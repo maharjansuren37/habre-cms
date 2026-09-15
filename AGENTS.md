@@ -71,6 +71,12 @@ fails `preflight`.
      rather - it is your file. Every other placeholder in this file names the
      skill that fills it; this one did not, and for a long time nothing did. -->
 
+Habre CMS is a website management system like WordPress, built to be really easy
+for non-technical editors: they write, manage and publish one website's content
+in a block editor, and the CMS serves the public site itself. It is for small
+organisations with a handful of admins, editors and authors; the first version
+is 8 build items, with a page builder the likely next step.
+
 ## The loop
 
     ideate -> architect -> stack -> layout -> scaffold -> ci -> context (plan it)
