@@ -15,70 +15,125 @@
 
 # Part 2 - This project
 
-*Written against the real repo by `scaffold` (new project) or `setup` (existing
-code). Until then these are prompts, not standards. **Anything that could not be
-determined says so** - an invented convention is worse than an absent one,
-because `review` will enforce it.*
+Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
 
 ## Where these rules come from
 
-<!-- Fill this in when the project already had standards. Three kinds, and the
-     difference matters when someone later wants to change a rule:
-
-     - **Enforced by a tool** - name the tool and its config file. Never restate
-       the rule here; the config wins and a prose copy drifts from it.
-         e.g. Formatting: Prettier, .prettierrc. Lint: eslint.config.mjs.
-     - **Agreed in a document this project maintains** - point at it, record only
-       what it does not cover.
-         e.g. CONTRIBUTING.md covers commits, branches and review.
-     - **Inferred from the code**, agreed by nobody - the rest of this file.
-       Say so, because "the code does this" and "the team decided this" are
-       different claims and a later reader cannot tell them apart. -->
-
-_Nothing recorded yet._
+- **Enforced by a tool:** formatting and lint - Biome, `biome.json`. Types -
+  TypeScript, `tsconfig.json`, `tsconfig.node.json`, `tsconfig.vite.json`. The
+  server-only boundary - React Router's build. The configs win over any prose
+  here.
+- **Agreed in the plan:** layout, imports and the client/server marking -
+  `blueprint/project-plan.md` section 6 *Layout*, D16. Dependencies - section 10
+  and D10-D20.
+- **Framework guidance:** React Router's installed docs,
+  `node_modules/react-router/docs/`, and its agent skill in
+  `.agents/skills/react-router/`. Where a React Router pattern is in question,
+  the installed docs for 8.3.1 decide, not memory.
+- **Inferred from a new codebase:** everything else below reflects the handful
+  of files written at scaffold time. It is a starting convention, not a team
+  agreement - change it here when the code shows a better one.
 
 ## Language and strictness
 
-<!-- Language and version. Strictness settings actually enabled, read from the
-     config rather than recalled - e.g. TypeScript `strict`, `noUncheckedIndexedAccess`. -->
+- TypeScript 7.0.2 everywhere; `server.js` is JavaScript type-checked through
+  `checkJs` with JSDoc types.
+- Enabled (root `tsconfig.json`): `strict`, `verbatimModuleSyntax`,
+  `allowImportingTsExtensions`, `erasableSyntaxOnly`, `noEmit`, `checkJs`.
+  `noUncheckedIndexedAccess` is **not** enabled.
+- `erasableSyntaxOnly` is load-bearing: plain `node` strips types rather than
+  compiling them, so **no `enum`, no `namespace`, no constructor parameter
+  properties.** Use union types and `as const` objects.
+- Target and lib ES2024. Browser code (`tsconfig.vite.json`) also has DOM types.
 
 ## Formatting and linting
 
-<!-- The formatter and linter, their config files, and the command that runs them.
-     Formatting is automated and never argued about in review. -->
+- Biome 2.5.13, `biome.json`: recommended lint rules, 2-space indent, 100-column
+  lines, double quotes, imports organised automatically.
+- `npm run format` fixes; `npm run lint` checks and fails on any issue. Never
+  argued in review.
+- `.claude/` and `.agents/` are excluded; gitignored paths are skipped.
 
 ## File layout and naming
 
-<!-- Where things go and what files are called, following the framework's own
-     conventions. Whether the source root is organised flat, by feature, or by layer. -->
+- By feature: `app/features/<feature>/` holds that feature's route modules,
+  server code and components. `app/lib/` is only for code several features use.
+  Every URL is listed in `app/routes.ts`.
+- File names are kebab-case (`pending-migrations.ts`). Route modules are named
+  for what they show (`home.tsx`, `healthz.ts`).
+- **`*.server.ts`** for anything touching the database, secrets, JWT or R2 - the
+  build fails if browser code imports one. **`*.client.tsx`** for browser-only
+  code (Editor.js). Everything else may run in both.
+- Logic worth unit-testing lives in `.ts` files, not in `.tsx` route modules:
+  `node --test` cannot run JSX. `db/pending-migrations.ts` beside `db/migrate.ts`
+  is the pattern - pure function separate from the code that does I/O.
+- Resource routes (no UI) are `.ts` files exporting only `loader`/`action` and
+  returning a `Response`.
 
 ## Imports
 
-<!-- Import style: path aliases, ordering, relative vs absolute, barrel files or not. -->
+- Across directories: `#app/...` with the file extension
+  (`import { sql } from "#app/lib/db.server.ts"`). Within a directory: relative
+  with the extension (`./pending-migrations.ts`).
+- **No `~/` alias** - plain `node` (tests, migrations, scripts) cannot resolve
+  it.
+- Type-only imports use `import type` (`verbatimModuleSyntax` requires it).
+- Route types come from the generated `./+types/<route>` - never edit
+  `.react-router/types`.
+- No barrel (`index.ts`) files. Could not determine a preference beyond that
+  from code this new.
 
 ## Error handling pattern
 
-<!-- The pattern this stack expects - exceptions, result types, framework error
-     boundaries - and where errors are caught. -->
+- **Configuration fails at startup:** `app/lib/env.server.ts` validates the
+  environment with Zod when first imported and throws a message naming the
+  variable and rule, never its value.
+- **Route loaders and actions** follow React Router's documented pattern:
+  throw `data("Not Found", { status: 404 })` for a missing record (rendered by
+  the nearest `ErrorBoundary`); return `data({ errors, values }, { status: 400 })`
+  for a validation failure and render it from `actionData`. Not yet exercised by
+  real code - item 1 is the first.
+- **Unexpected errors** propagate to the route `ErrorBoundary` (`app/root.tsx`
+  shows details only in development). `server.js` catches anything that escapes
+  the framework, logs it with `console.error`, and answers 500.
+- **Health and dependency checks** catch, log with context, and report the
+  failure in the response (`/healthz` returns 503) rather than throwing.
+- **Scripts** (`db/migrate.ts`) catch at the top level, log what failed, set
+  `process.exitCode = 1`, and always release resources in `finally`.
+- Logging is `console.*` to stdout/stderr, collected by the systemd journal in
+  production. No logging library.
 
 ## Test runner and test shape
 
-<!-- The test runner, what a test file is called, where it sits, and what a
-     typical test looks like here. -->
+- **Unit:** `node:test` with `node:assert/strict`, run by `npm test`. Files are
+  `<subject>.test.ts` beside the subject; Node discovers `**/*.test.ts`.
+  Tests import the subject with a relative `.ts` path, one `test()` per
+  behaviour, named as a sentence describing the result, asserting on values
+  (`deepEqual`, `throws` with a message pattern). See
+  `db/pending-migrations.test.ts`.
+- **Browser:** Playwright 1.63.0, Chromium only, `e2e/<area>.spec.ts`, run by
+  `npm run test:e2e`. It builds and starts the production server on port 3100
+  and needs the development database running. Prefer role-based locators
+  (`getByRole`). See `e2e/smoke.spec.ts`.
+- **Never name a directory `test/`** - Node treats it as tests. Playwright's
+  `testDir` is `e2e`, so it never collects `*.test.ts`.
+- Both runners were shown to fail on deliberately broken code at scaffold time.
 
 ## Standards this project follows
 
-<!-- The external standards `review` audits against, named so a finding is
-     checkable rather than an opinion. Typically OWASP Top 10:2025 for web security,
-     OWASP MASVS for mobile, WCAG 2.2 AA for anything with a UI.
-
-     Name only what this project actually holds itself to. `review` treats an
-     unrecorded standard as not a finding, so an empty list here means those
-     lenses can report generic smells and nothing else - and a personal tool and
-     a payment system genuinely warrant different bars. -->
+- **Security: OWASP Top 10:2025**, as mapped in `fundamentals.md`, held to the
+  security posture in `blueprint/context/quality-bar.md` (server-side
+  authorization, structured content escaped on render, upload allowlist, secrets
+  only in environment variables, logged security events).
+- **Accessibility: not recorded yet.** `quality-bar.md` gives this to
+  `blueprint/context/design.md`, which `prototype` writes. Until it exists there
+  is no accessibility standard for `review` to enforce - not a claim that none
+  applies.
+- **Performance, scale, availability:** the numbers in `quality-bar.md`; nothing
+  stricter.
 
 ## Verify command
 
-<!-- One command that runs the checks this project actually has, recorded under
-     Commands in AGENTS.md. Preferred order: typecheck, tests, build. It is an
-     umbrella over real checks - never invent a runner just to fill it in. -->
+`npm run verify` - typecheck (`react-router typegen && tsc -b`), lint (Biome),
+unit tests (`node --test`), build (`react-router build`). Browser tests are
+separate (`npm run test:e2e`) because they need the development database.

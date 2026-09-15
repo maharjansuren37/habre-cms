@@ -9,13 +9,20 @@ One or two sentences: what this is, and who it is for.
 
 ## Running it
 
-    <install command>
-    <dev command>
+Needs Node 26 and Docker.
+
+    npm install
+    cp .env.example .env        # then fill in the values
+    docker compose up -d        # development PostgreSQL 16
+    npm run db:migrate
+    npm run dev                 # http://127.0.0.1:3000
 
 ## Building it
 
-    <build command>
-    <test command>
+    npm run build               # output in build/
+    npm start                   # serves the production build
+    npm run verify              # typecheck, lint, unit tests, build
+    npx playwright install chromium && npm run test:e2e   # browser tests
 
 ## How this project is built
 

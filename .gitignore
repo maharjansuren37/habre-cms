@@ -58,3 +58,11 @@ target/
 *.log
 .cache/
 coverage/
+
+# React Router generated route types
+/.react-router/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/

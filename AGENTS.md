@@ -148,10 +148,25 @@ Or just ask in plain language - "spec the next item", "run the review".
 <!-- `scaffold` fills this in from what actually installed, read from the
      lockfile. `setup` fills it in for a project that already existed. -->
 
-- Platform: <web app | website | PWA | mobile | other>
-- Language(s): <and which part each covers>
-- Framework and version: <exact major.minor as installed>
-- Runtime version: <node / dart / python, as installed>
+- Platform: web app - browser-based admin plus a server-rendered public site
+- Language(s): TypeScript 7.0.2 for everything; `server.js` is JavaScript checked
+  by TypeScript (`checkJs`)
+- Framework and version: React Router **8.3.1** (framework mode, `@react-router/dev`
+  and `@react-router/node` 8.3.1), React 19.3.0, Vite 8.3.0. Served by `node:http`
+  through `createRequestListener` - no Express.
+- Runtime version: Node.js 26 (26.8.1 installed on the dev machine); `engines`
+  requires >= 26
+- Other installed versions (from `package-lock.json`): `postgres` 3.4.9, Zod 4.6.5,
+  `isbot` 5.2.2, `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
+  Playwright 1.63.0 (Chromium 153), Biome 2.5.13. Development database:
+  PostgreSQL 16.15 (`postgres:16-alpine`).
+- **React Router 8 is newer than an agent's training can be trusted on.** Its docs
+  ship inside the package and are the authority for this version:
+  `node_modules/react-router/docs/` (`start/framework/`, `how-to/`,
+  `explanation/`). React Router's own agent skill is installed at
+  `.agents/skills/react-router/` and `.claude/skills/react-router/` - its rule:
+  identify the mode (this app is **Framework Mode**), read the matching reference,
+  then read the installed docs for the installed version.
 <!-- MULTI-PART MARKER - a multi-part install replaces this comment with:
        - Part: web
        - Product root: ..
@@ -174,10 +189,16 @@ Or just ask in plain language - "spec the next item", "run the review".
      names one of these files must also say where it resolves. Add a file here
      and the rule starts requiring it; leave one out and nothing checks it. -->
 
-- Source layout: <one application | two parts in one repo | separate repos>
-- Source directory: <where the code lives - list each part if there is more
-  than one, e.g. `web/src` for the front end, `api/` for the backend>
-- Organised: <flat | by feature | by layer>
+- Source layout: one application
+- Source directory: `app/` (routes listed in `app/routes.ts`, route modules inside
+  `app/features/<feature>/`, shared server code in `app/lib/`); `server.js` and
+  `server/app.ts` are the Node entry; `db/` holds migrations and the runner;
+  `e2e/` holds Playwright tests. Full tree: plan section 6, *Layout*.
+- Organised: by feature
+- Imports: `#app/...` with an explicit `.ts`/`.tsx` extension (declared in
+  `package.json` `"imports"`) - never a `~/` alias, which plain `node` cannot
+  resolve. Server-only files end in `.server.ts`; the build fails if browser
+  code imports one.
 
 Config files - `package.json`, `tsconfig.json`, the framework's config - live at
 the root of whichever part owns them. They are not source.
@@ -193,10 +214,21 @@ rather than guessing.
 
 **One application:**
 
-- Dev: <command, and the URL if it serves one>
-- Build: <command>
-- Test: <command, or "none configured">
-- Verify: <the one command that runs the checks this project actually has>
+All run from the repository root. First time: `npm install`, copy `.env.example`
+to `.env` and fill it in, `npx playwright install chromium`.
+
+- Database (development): `docker compose up -d` - PostgreSQL 16 on
+  `127.0.0.1:5432`; then `npm run db:migrate`
+- Dev: `npm run dev` (http://127.0.0.1:3000, Vite HMR)
+- Build: `npm run build` (output in `build/`)
+- Start (production build): `npm start` (http://127.0.0.1:3000)
+- Typecheck: `npm run typecheck` (React Router typegen, then `tsc -b`)
+- Lint / format: `npm run lint` / `npm run format` (Biome)
+- Test: `npm test` (`node --test`, finds `**/*.test.ts`)
+- Browser tests: `npm run test:e2e` (Playwright, Chromium; builds and starts the
+  production server on port 3100; **needs the development database running**)
+- Verify: `npm run verify` - typecheck, lint, unit tests, build. Browser tests
+  are not included because they need the database.
 
 **More than one part** - list each separately, and **say which directory each
 runs from**, because that is the difference between a working instruction and a
@@ -223,7 +255,8 @@ figure of speech.
 
 | Environment | What it is for | Config comes from | Holds real data |
 |---|---|---|---|
-| `development` | local work | <`.env`, a local file, nothing> | no |
+| `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally | no |
+| `ci` | GitHub Actions, `.github/workflows/ci.yml`: `npm ci` then `npm run verify` on pull requests and pushes to `main`. **Runner `ubuntu-24.04`, Node pinned to `26`** - React Router 8 needs >= 22.22 and `engines` needs >= 26; do not float to `lts/*` or `latest`. Actions pinned to commit SHAs. | nothing - no `.env`, no secrets, no database; `verify` needs none | no |
 
 Add a row per environment as it comes into existence. For each, say **where its
 configuration comes from and where its secrets live** - never the repository -

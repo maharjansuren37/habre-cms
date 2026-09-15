@@ -36,7 +36,27 @@ scripts, and how to do by hand what CI does on push.
 **Anything that only exists as automation is one broken pipeline away from
 nobody knowing how to do it.** Write it down here.
 
-_Not filled in yet._
+**What CI does on push, by hand** (from the repository root, Node 26):
+
+    npm ci --no-audit --no-fund
+    npm run verify
+
+`npm run verify` runs, in order:
+
+    npx react-router typegen     # generate route types (gitignored, so CI needs this)
+    npx tsc -b                   # typecheck
+    npx biome check .            # lint + format check
+    node --test                  # unit tests (**/*.test.ts)
+    npx react-router build       # production build into build/
+
+To reproduce CI exactly, run it from a fresh clone with no `.env` - that is how
+it was proven on 2026-09-15 (commit `0ab3b35`):
+
+    git clone <repo> /tmp/habre-ci && cd /tmp/habre-ci && npm ci && npm run verify
+
+**Not run by CI** - browser tests, because they need a database:
+
+    docker compose up -d && npx playwright install chromium && npm run test:e2e
 
 ## Recommendations
 

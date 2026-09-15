@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server.js", "vite.config.ts", "playwright.config.ts", "e2e/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "strict": true,
+    "types": ["node"],
+    "lib": ["ES2024"],
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  }
+}
