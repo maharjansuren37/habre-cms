@@ -1,0 +1,60 @@
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+
+# ...and a local database is the same class of mistake. A file database holds
+# real rows, not configuration, and a dev one fills up with real names while you
+# are testing. Committed once it is in history forever - `strings` on the blob
+# reads it straight back. SQLite is the default for a small project, so this is
+# the common case, not an exotic one. Un-ignore a deliberately committed seed
+# file if you have one.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Dependencies
+node_modules/
+.pnp
+vendor/
+.venv/
+__pycache__/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.output/
+*.tsbuildinfo
+
+# .NET, JVM, Rust, Go. These were absent, and the list above is not
+# ecosystem-neutral - it covers JS, Python and Ruby only. One `dotnet build` in
+# a real project staged 156 files from bin/ and obj/, while every check here
+# passed: nothing reads .gitignore except git. `obj/` is .NET's restore output,
+# so it is a dependency directory as much as a build one.
+bin/
+obj/
+target/
+*.user
+*.class
+
+# ...but never the workflow's own skills. `build/` above matches at any depth,
+# and one of the skills is called `build` - so without these the single most
+# important skill in the pack is silently absent from every clone. Re-including
+# the directory is required: git will not re-include a file whose parent
+# directory is excluded.
+!**/skills/build/
+!**/skills/build/**
+!**/skills/dist/
+!**/skills/dist/**
+!**/skills/out/
+!**/skills/out/**
+
+# Local noise
+.DS_Store
+*.log
+.cache/
+coverage/
