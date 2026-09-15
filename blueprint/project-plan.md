@@ -57,12 +57,12 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   2026). React Router 8 requires >= 22.22.
 - **Framework:** React Router **8.3.1**, framework mode; React **19.3.0**;
   Vite **8.3.0**. Served by a plain `node:http` server through React Router's
-  Node adapter - no Express. v8 is newer than the planning session's knowledge;
-  `scaffold` checks its docs.
+  Node adapter - no Express. v8 is newer than an agent's training; its installed
+  docs in `node_modules/react-router/docs/` are the authority.
 - **Database:** PostgreSQL **16** (Ubuntu 24.04 packages). Driver `postgres`
   **3.4.9**, raw SQL. Migrations are numbered `.sql` files applied by a small
   in-repo runner that records them in `schema_migrations`. Development runs
-  PostgreSQL 16 in Docker (`postgres:16`) on the dev machine - Arch packages 18,
+  PostgreSQL 16 in Docker (`postgres:16-alpine`) on the dev machine - Arch packages 18,
   which would not match production.
 - **Styling:** plain CSS - custom properties for light/dark tokens, CSS Modules
   (built into Vite). No CSS framework.
@@ -335,8 +335,8 @@ at hundreds of sites (D8).
 
 ## 8. Deployment - where and how does it ship?
 
-Known so far: an **Oracle Cloud VPS**, with **PostgreSQL installed on the same
-server**. Images go to **Cloudflare R2** (account not created yet).
+Known so far: an **Oracle Cloud VPS**, with **PostgreSQL 16 to be installed on
+the same server** (not installed as of 2026-09-15). Images go to **Cloudflare R2** (account not created yet).
 
 From `architect`:
 
