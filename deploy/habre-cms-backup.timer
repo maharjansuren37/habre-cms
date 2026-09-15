@@ -1,0 +1,12 @@
+# Installed to /etc/systemd/system/ by deploy/setup-server.sh.
+[Unit]
+Description=Nightly Habre CMS database backup
+
+[Timer]
+# Server clock is UTC. Persistent catches up after the machine was off.
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

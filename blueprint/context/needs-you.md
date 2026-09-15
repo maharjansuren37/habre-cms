@@ -69,14 +69,17 @@ not tidying; it is what keeps the open list true.
            Blocks `scaffold` on `api`. Fix: `sudo -u postgres createuser -s appuser`
 -->
 
-- [ ] **Cloudflare R2 bucket, public URL, and an API token scoped to that bucket** -
-      accounts; needs your Cloudflare account. Blocks item 5 (Images). `open`
-      (architect, 2026-09-15)
-- [ ] **A second, private R2 bucket for database backups, and an API token
-      scoped to only that bucket** - accounts; your Cloudflare account (R2 needs
-      a payment method on file even on the free tier). Decided 2026-09-16 (D21).
-      Needed before the nightly backup can go off the VPS; `preflight` treats
-      missing backups as a blocker. `open` (host, 2026-09-16)
+- [ ] **Public URL for the R2 images bucket** - accounts/access; your Cloudflare
+      account. Either the bucket's `r2.dev` address (rate-limited, meant for
+      testing) or a custom domain such as `media.surenmaharjan.fyi`; goes in
+      `R2_PUBLIC_URL`, which is still empty in the local `.env`. Blocks item 5
+      (Images). `open` (architect, 2026-09-15; narrowed by host, 2026-09-16)
+- [ ] **A production R2 token for images - and, recommended, a production
+      bucket** - credentials; your Cloudflare account. The token in the local
+      `.env` is development's; reusing it in production would put laptop test
+      uploads beside real content and make a laptop leak a production leak.
+      Goes into `/etc/habre-cms/production.env` on the server, entered by you.
+      Needed when item 5 deploys, nothing blocked now. `open` (host, 2026-09-16)
 - [ ] **Delete the `hone.surenmaharjan.fyi` DNS record** - access; your DNS.
       The hone app was removed from `ocwebserver` on 2026-09-15 (data archived
       to `~/backups/hone-2026-09-15.tar.gz`); the record now points at a server
@@ -98,6 +101,20 @@ not tidying; it is what keeps the open list true.
       values are `host`'s. `open` (build, 2026-09-15)
 
 ## Done
+
+- [x] **Private R2 bucket for database backups, and a token scoped to it** -
+      accounts. `done` 2026-09-16: the owner created the bucket and put the
+      credentials in `/etc/habre-cms/backup.env` on the server (root-only, mode
+      600, not the app's file). Checked by host, values never printed: listing
+      that bucket -> 200, listing all buckets -> 403, unsigned read -> refused;
+      its name differs from the images bucket. One backup ran and the object is
+      in the bucket. (architect, 2026-09-15; closed by host)
+- [x] **R2 images bucket and an API token scoped to it, for development** -
+      accounts. `done` 2026-09-16 (owner added `R2_ACCOUNT_ID`,
+      `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` to the local
+      `.env`). Checked by host with signed requests, values never printed:
+      listing the bucket -> 200; listing all buckets in the account -> 403, so
+      the token is limited to that bucket. (architect, 2026-09-15; closed by host)
 
 - [x] **On `ocwebserver`: install Node 26 and PostgreSQL 16, then create the
       `habre_cms` database plus a role owning only it** - system software/access.

@@ -1,0 +1,10 @@
+# Installed to /etc/systemd/system/ by deploy/setup-server.sh. Started by
+# habre-cms-backup.timer; run by hand with: systemctl start habre-cms-backup
+[Unit]
+Description=Habre CMS database backup to R2
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/habre-cms-backup

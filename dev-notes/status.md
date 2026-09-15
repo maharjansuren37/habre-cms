@@ -57,6 +57,31 @@ on backups.
   routing by host; `PUBLIC_URL`/`ADMIN_URL` replace `APP_URL`. Built in item 4,
   which also adds the apex and `www` to `habre-cms.caddy`. Until then production
   runs on `cms` only with `APP_URL`.
+- **Backups working, 2026-09-16:** `deploy/backup-db.sh` (installed as
+  `/usr/local/sbin/habre-cms-backup`) with `habre-cms-backup.service` and a
+  `.timer` at 02:30 UTC nightly (`Persistent=true`, enabled, next run listed by
+  `systemctl list-timers`). It runs `pg_dump --format=custom` over the local
+  socket as `postgres` (no password to hold), rejects and deletes a dump that
+  fails `pg_restore --list`, uploads with `curl --aws-sigv4` (no S3 client
+  installed), re-reads the object's size from the bucket, writes
+  `/var/lib/habre-cms/last-backup`, and keeps 7 days of local copies.
+  Credentials: `/etc/habre-cms/backup.env`, root-only - **not** the app's file,
+  so an app compromise cannot reach the backups. Evidence: one manual run ->
+  `habre_cms-20260915T231515Z.dump`, 2019 bytes, listed in the bucket at the
+  same size; unit result `success`.
+- **Restore not yet proven, and cannot be until item 1 deploys:** the production
+  database has **0 tables** (migrations have never run there), so the dump is an
+  empty database and a restore restores nothing. After `deploy` runs migrations,
+  repeat: restore the newest dump into a scratch database and start the app
+  against it. `preflight` should not count backups as proven until then.
+- **Nothing alerts when a backup fails** (OWASP A09). A failed timer is silent:
+  the failure only shows in `systemctl list-timers` and the journal. For
+  `monitor` to close - the cheapest options are an UptimeRobot heartbeat the job
+  pings on success, or a check that reads `/var/lib/habre-cms/last-backup`.
+- **R2 (images), 2026-09-16:** the owner's development credentials are in the
+  local `.env`; checked by host - listing the bucket 200, listing all buckets
+  403, so the token is bucket-scoped. `R2_PUBLIC_URL` is still empty, and
+  production needs its own token (both in `needs-you.md`).
 - **Not verified yet:** that Caddy's `X-Forwarded-For` reaches the app as
   expected (F-07) - needs a running release.
 

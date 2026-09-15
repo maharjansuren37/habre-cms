@@ -21,6 +21,8 @@ DB_NAME="habre_cms"
 APP_DIR="/srv/habre-cms"
 CONFIG_DIR="/etc/habre-cms"
 ENV_FILE="$CONFIG_DIR/production.env"
+# Root-only, and deliberately not the app's file: the app never reads these.
+BACKUP_ENV_FILE="$CONFIG_DIR/backup.env"
 CADDYFILE="/etc/caddy/Caddyfile"
 CADDY_SITE="/etc/caddy/sites/habre-cms.caddy"
 DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -173,10 +175,26 @@ install_caddy_site() {
   systemctl reload caddy
 }
 
+install_backup() {
+  log "Installing the backup script and timer"
+  install -m 700 "$DEPLOY_DIR/backup-db.sh" /usr/local/sbin/habre-cms-backup
+  install -m 644 "$DEPLOY_DIR/habre-cms-backup.service" /etc/systemd/system/habre-cms-backup.service
+  install -m 644 "$DEPLOY_DIR/habre-cms-backup.timer" /etc/systemd/system/habre-cms-backup.timer
+  systemctl daemon-reload
+  # The credentials are the owner's to add; enabling a timer that cannot work
+  # would report a nightly failure nobody asked for.
+  if [[ -s "$BACKUP_ENV_FILE" ]]; then
+    systemctl enable --quiet --now habre-cms-backup.timer
+  else
+    log "No $BACKUP_ENV_FILE yet - backup timer installed, not enabled"
+  fi
+}
+
 install_node
 install_postgres
 create_app_user
 create_database_and_env_file
 install_service
 install_caddy_site
+install_backup
 log "Done. Next: deploy a release to $APP_DIR/current, then run migrations and create-admin."
