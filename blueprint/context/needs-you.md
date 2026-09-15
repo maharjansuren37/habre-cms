@@ -72,10 +72,6 @@ not tidying; it is what keeps the open list true.
 - [ ] **Cloudflare R2 bucket, public URL, and an API token scoped to that bucket** -
       accounts; needs your Cloudflare account. Blocks item 5 (Images). `open`
       (architect, 2026-09-15)
-- [ ] **DNS record for the CMS on `surenmaharjan.fyi` pointing at the VPS** -
-      access; your DNS. Decide root domain or a subdomain. Needed for HTTPS via
-      Caddy; needed by `host` and `deploy`, nothing blocked yet. `open`
-      (architect, 2026-09-15)
 - [ ] **On `ocwebserver`: install Node 26 and PostgreSQL 16, then create the
       `habre_cms` database plus a role owning only it** - system software/access;
       your server and its credentials. Not installed as of 2026-09-15. Needed by
@@ -91,12 +87,31 @@ not tidying; it is what keeps the open list true.
 - [ ] **UptimeRobot account with an alert email** - account; free tier.
       Needed by `monitor`, nothing blocked yet. `open` (stack, 2026-09-15)
 
+- [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin
+      shell** (NVDA, VoiceOver or Orca) - manual verification; no automated
+      check hears what is announced. Done during item 1's `verify`, from its
+      `--manual` walkthrough. Blocks nothing now; `preflight` needs it (design.md
+      lists it as unchecked). `open` (spec, 2026-09-15)
+
+- [ ] **Fill `APP_URL` and `JWT_SECRET` in your local `.env`** - credentials;
+      it is your secrets file, so no agent writes to it. `APP_URL=http://127.0.0.1:3000`;
+      generate the secret with the command in `.env.example`. Blocks `npm run dev`,
+      `npm start` and `npm run test:e2e` locally from item 1 step 6 on (the server
+      refuses to start without them); CI's `verify` needs neither. Production
+      values are `host`'s. `open` (build, 2026-09-15)
+
 ## Done
 
 <!-- Move lines here rather than deleting them. What was needed and when it was
      settled is worth keeping - it is the honest answer to "why did this take
      three days", and it stops the same question being asked again. -->
 
+- [x] **DNS record for `cms.surenmaharjan.fyi` pointing at the VPS** -
+      access; your DNS. `done` 2026-09-16 (user reported; checked by
+      resolving it): `cms.surenmaharjan.fyi` is a CNAME to `surenmaharjan.fyi`,
+      A `161.33.89.75`, no AAAA. Because it is a CNAME, adding an AAAA to the root
+      domain would also put the CMS on IPv6 (see F-13). (architect, 2026-09-15;
+      closed by build)
 - [x] **Install Node 26 on this dev machine** - system software. `done`
       2026-09-15: `node --version` -> v26.8.1; `npm run verify` and the
       Playwright tests passed on it. (stack; closed by scaffold)

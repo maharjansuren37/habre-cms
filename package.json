@@ -18,11 +18,13 @@
     "test": "node --test",
     "test:e2e": "playwright test",
     "db:migrate": "node --env-file-if-exists=.env db/migrate.ts",
+    "create-admin": "node --env-file-if-exists=.env scripts/create-admin.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@react-router/node": "8.3.1",
     "isbot": "5.2.2",
+    "jose": "6.2.12",
     "postgres": "3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",

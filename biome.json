@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!.claude", "!.agents"]
+    "includes": ["**", "!.claude", "!.agents", "!prototypes"]
   },
   "formatter": {
     "enabled": true,

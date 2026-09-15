@@ -125,10 +125,9 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
   security posture in `blueprint/context/quality-bar.md` (server-side
   authorization, structured content escaped on render, upload allowlist, secrets
   only in environment variables, logged security events).
-- **Accessibility: not recorded yet.** `quality-bar.md` gives this to
-  `blueprint/context/design.md`, which `prototype` writes. Until it exists there
-  is no accessibility standard for `review` to enforce - not a claim that none
-  applies.
+- **Accessibility: WCAG 2.2 level AA**, as recorded in
+  `blueprint/context/design.md` (its *Accessibility bar*, with measured
+  contrast), to which `quality-bar.md` defers.
 - **Performance, scale, availability:** the numbers in `quality-bar.md`; nothing
   stricter.
 

@@ -340,8 +340,9 @@ the same server** (not installed as of 2026-09-15). Images go to **Cloudflare R2
 
 From `architect`:
 
-- **Domain (for now):** `surenmaharjan.fyi` - root domain or a subdomain not
-  yet decided.
+- **Domain:** `cms.surenmaharjan.fyi`, a subdomain (decided 2026-09-16). The
+  production environment's `APP_URL` is `https://cms.surenmaharjan.fyi`; it is
+  set in production config by `host`, never in `.env.example`.
 - **One deployable application.** It listens on localhost only; **Caddy**
   (already installed) terminates HTTPS and proxies the domain to it. HTTPS is
   required - auth cookies are Secure.
@@ -372,6 +373,12 @@ From `stack`:
   server's main Caddyfile imports it. **The setup script must not replace the
   main Caddyfile, and must not reinstall or reconfigure an existing PostgreSQL**
   - it adds this app's database and role alongside whatever is there.
+- **IPv4 only today (checked 2026-09-16, F-13):** `ocwebserver` has no global
+  IPv6 address and no IPv6 default route; `cms.surenmaharjan.fyi` is a CNAME to
+  the root with no AAAA. Caddy listens on `*:443`/`*:80` with no `bind`. The
+  login rate limit assumes IPv6 clients cannot reach the CMS (one /48 would get
+  65,536 limit keys), so `host` either puts `bind 0.0.0.0` in
+  `habre-cms.caddy` or re-checks F-13 if the VM ever gets IPv6.
 - **No per-service memory cap** for now (decided 2026-09-15).
 - **Process:** a systemd service runs the built server on a localhost port;
   Caddy proxies the domain to it. No Docker on the server - its daemon costs

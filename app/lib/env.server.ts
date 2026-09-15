@@ -1,18 +1,14 @@
 import { z } from "zod";
+import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 
-// Only the variables code reads today. Later items add theirs here and to .env.example.
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+// Everything the web app reads. server/app.ts imports this, so the production
+// server refuses to start with a missing or invalid variable. Later items add
+// theirs here and to .env.example.
+const envSchema = databaseEnvSchema.extend({
+  // The public origin: checked against the Origin of state-changing requests,
+  // and https here is what makes the session cookie Secure.
+  APP_URL: z.url({ protocol: /^https?$/ }),
+  JWT_SECRET: z.string().min(32, { message: "JWT_SECRET must be at least 32 characters" }),
 });
 
-function parseEnv(source: NodeJS.ProcessEnv) {
-  const result = envSchema.safeParse(source);
-  if (!result.success) {
-    // Issue messages name the variable and the rule, never the value.
-    throw new Error(`Invalid environment configuration:\n${z.prettifyError(result.error)}`);
-  }
-  return result.data;
-}
-
-export const env = parseEnv(process.env);
+export const env = parseEnv(envSchema, process.env);

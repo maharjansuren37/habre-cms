@@ -261,7 +261,7 @@ figure of speech.
 
 | Environment | What it is for | Config comes from | Holds real data |
 |---|---|---|---|
-| `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally | no |
+| `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally. **The web app requires `DATABASE_URL`, `APP_URL` (`http://127.0.0.1:3000`) and `JWT_SECRET` (32+ chars, generated locally); the scripts (`db:migrate`, `create-admin`) require only `DATABASE_URL`** | no |
 | `ci` | GitHub Actions, `.github/workflows/ci.yml`: `npm ci` then `npm run verify` on pull requests and pushes to `main`. **Runner `ubuntu-24.04`, Node pinned to `26`** - React Router 8 needs >= 22.22 and `engines` needs >= 26; do not float to `lts/*` or `latest`. Actions pinned to commit SHAs. | nothing - no `.env`, no secrets, no database; `verify` needs none | no |
 
 Add a row per environment as it comes into existence. For each, say **where its

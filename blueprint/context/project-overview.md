@@ -161,8 +161,8 @@ Public pages < 500 ms p95 server-side; admin saves < 1 s p95. Up to ~10 admin
 users, a few thousand entries, media files and daily page views. Down until
 noticed, but an uptime alert; at most 24 h of data loss (nightly off-server
 backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
-10:2025. Accessibility standard: set by `prototype` in `design.md` (not yet
-written).
+10:2025. Accessibility standard: WCAG 2.2 AA, recorded by `prototype` in
+`design.md`.
 
 ## Constraints
 
@@ -177,7 +177,7 @@ written).
   is used only for the development database.
 - **Portable:** everything rebuildable from the repository, a backup and the
   secrets.
-- **Domain:** `surenmaharjan.fyi` (root or subdomain undecided). **R2 account not
+- **Domain:** `cms.surenmaharjan.fyi` (production `APP_URL=https://cms.surenmaharjan.fyi`). **R2 account not
   created yet.**
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.

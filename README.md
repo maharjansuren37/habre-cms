@@ -12,17 +12,28 @@ One or two sentences: what this is, and who it is for.
 Needs Node 26 and Docker.
 
     npm install
-    cp .env.example .env        # then fill in the values
+    cp .env.example .env        # then fill in the values - see below
     docker compose up -d        # development PostgreSQL 16
     npm run db:migrate
-    npm run dev                 # http://127.0.0.1:3000
+    npm run create-admin -- --email you@example.org --name "Your Name"
+    npm run dev                 # http://127.0.0.1:3000 - log in at /admin/login
+
+In `.env`, the web app needs `DATABASE_URL`, `APP_URL` (`http://127.0.0.1:3000`
+locally; the public `https://` address in production) and `JWT_SECRET` (at least
+32 characters - `.env.example` has the command that generates one). The server
+refuses to start without them. `db:migrate` and `create-admin` need only
+`DATABASE_URL`.
+
+There is no sign-up page: the first admin is created with `create-admin`, which
+asks for the password twice without showing it. Run the same command on the
+server after deploying.
 
 ## Building it
 
     npm run build               # output in build/
     npm start                   # serves the production build
     npm run verify              # typecheck, lint, unit tests, build
-    npx playwright install chromium && npm run test:e2e   # browser tests
+    npx playwright install chromium && npm run test:e2e   # browser tests; need the dev database and .env
 
 ## How this project is built
 

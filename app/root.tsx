@@ -1,4 +1,5 @@
 import {
+  data,
   isRouteErrorResponse,
   Links,
   Meta,
@@ -6,9 +7,31 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { clientIp } from "#app/features/auth/client-ip.ts";
+import { env } from "#app/lib/env.server.ts";
+import { isAllowedRequest } from "#app/lib/same-origin.ts";
+import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+
+// On the root route so every action, now and in later items, is covered
+// without having to remember it.
+export const middleware: Route.MiddlewareFunction[] = [
+  function refuseCrossSiteRequests({ request }) {
+    const appOrigin = new URL(env.APP_URL).origin;
+    if (!isAllowedRequest(request.method, request.headers, appOrigin)) {
+      logSecurityEvent({
+        event: "request_refused",
+        reason: "cross_site",
+        method: request.method,
+        path: new URL(request.url).pathname,
+        ip: clientIp(request.headers),
+      });
+      throw data("Cross-site request refused", { status: 403 });
+    }
+  },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
