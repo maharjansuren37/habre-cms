@@ -213,3 +213,38 @@ compress and serve `build/client`, or `server.js` gets a small static handler -
 now. Cost: the server's main Caddyfile is managed by hand outside this
 repository, and the setup script has to add the `import` line without
 duplicating it.
+
+## D18 - `server.js` serves `build/client` itself (2026-09-15)
+
+**Chose:** a ~30-line static handler in `server.js` (GET/HEAD only, dotfiles and
+paths outside `build/client` refused, hashed assets cached for a year).
+
+Caddy's `file_server` lost: the app would then only work behind Caddy, so
+`npm start`, Playwright and any future host would each need a proxy to serve
+CSS and JavaScript, and the Caddy site file would need the release path. Express
+or `sirv` lost on dependencies (D10). Cost: this is our code on a security
+boundary - path traversal and dotfile requests were tested (both 404) and must
+stay tested if it changes. Compression is not done by Node; Caddy's `encode`
+does it.
+
+## D19 - Biome for lint and format (2026-09-15)
+
+**Chose:** Biome 2.5.13 with its recommended rules, 2-space indent, 100-column
+lines.
+
+The plan named no linter. ESLint plus Prettier lost on dependencies - two tools,
+many plugins - against the minimal-dependency constraint. No linter lost because
+strict TypeScript does not catch unused imports, `debugger` statements or
+suspicious patterns. Cost: Biome's rule set is smaller than ESLint's ecosystem,
+and there is no React Router-specific lint plugin.
+
+## D20 - `isbot` pinned; item-specific packages installed with their item (2026-09-15)
+
+**Chose:** `isbot` 5.2.2 as a runtime dependency; `jose`, Editor.js,
+`aws4fetch` and `image-size` not installed until items 1, 2 and 5.
+
+React Router's default server entry imports `isbot` so crawlers get complete
+HTML; without it the build adds a floating `^5` by itself, which breaks the
+pinning rule. The deferred packages lost their scaffold-time install because an
+installed package with no call site reads as a finished capability. Cost: the
+items that need them add a dependency in their own diff.

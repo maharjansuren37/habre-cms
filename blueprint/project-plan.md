@@ -50,7 +50,8 @@ Written by `stack` (2026-09-15). Minimal dependencies: each new runtime
 dependency is a decision recorded in `dev-notes/decisions.md`.
 
 - **Platform:** web - browser-based admin plus a server-rendered public site.
-- **Language:** TypeScript (current stable at scaffold) - all code.
+- **Language:** TypeScript **7.0.2** (installed by `scaffold`) - all code.
+- **Lint / format:** Biome **2.5.13** (added by `scaffold`, D19).
 - **Runtime:** Node.js **26** on the dev machine, CI and the VPS - 26.8.2 today,
   moving to the first 26 LTS release when it is promoted (expected October
   2026). React Router 8 requires >= 22.22.
@@ -68,9 +69,15 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
 - **Auth:** JWT via `jose` **6.2.12**; passwords hashed with `node:crypto`
   scrypt. No auth library.
 - **Validation:** Zod **4.6.5** at every trust boundary.
+- **Bot detection:** `isbot` **5.2.2** - required by React Router's default
+  server entry (added by `scaffold`, D20).
 - **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with its header
   and list tools; the image tool is settled in item 5's spec.
 - **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**.
+- **Installed with their item, not at scaffold:** `jose` (item 1), Editor.js and
+  its header and list tools (item 2), `aws4fetch` and `image-size` (item 5) - so
+  no package sits in `package.json` with nothing calling it. Versions above stay
+  the pins.
 - **Testing:** `node:test` (built in) for unit tests; `@playwright/test`
   **1.63.0** for browser tests and screenshots.
 - **Monitoring:** UptimeRobot free tier checks `/healthz` and **alerts by
@@ -177,10 +184,14 @@ habre-cms/
 `e2e/*.spec.ts`; `#app/*` imports resolved under plain `node`, `tsc` and a Vite
 build; `~/` failed under plain `node`.
 
-**Left to `scaffold`:** TypeScript 7 with React Router 8 typegen and `tsc -b`
-(the template pins 5.9 - fall back if 7 fails); how `build/client` is served in
-production (Caddy or a small handler in `server.js`); test file naming inside a
-feature.
+**Settled by `scaffold` (2026-09-15):** TypeScript 7.0.2 works with React
+Router 8 typegen and `tsc -b` - no fallback needed, and the typecheck was shown
+to fail on errors planted in `app/`, `db/`, `e2e/` and `server.js`.
+`build/client` is served by `server.js` (D18). Tests sit beside their subject as
+`<name>.test.ts`. Additions to the tree: `db/pending-migrations.ts` (pure logic,
+unit-tested), `db/dev/init.sh` (creates the non-superuser role in the dev
+container), `db/migrations/.gitkeep`, `biome.json`. React Router's agent skill
+lives in `.agents/skills/react-router/` and `.claude/skills/react-router/`.
 
 ### Platform and organisation
 
@@ -367,9 +378,25 @@ From `stack`:
   ~100 MB of 1 GB (D14).
 - **Builds happen locally or in CI, never on the VPS.** A deploy ships the build
   output and production dependencies.
-- **Build / start (shape - `scaffold` corrects):** `react-router build`, then
-  `node server.js`.
-- **More env vars:** `PORT`, `NODE_ENV`.
+- **Build / start (from `scaffold`, 2026-09-15):** `npm ci && npm run build`
+  produces `build/` (`build/server/index.js`, `build/client/`). The server runs
+  `NODE_ENV=production node server.js` from the app directory (`npm start` does
+  the same, and also loads `.env` if present) and needs `build/`, `server.js`,
+  `package.json` and production `node_modules`. It listens on `127.0.0.1:$PORT`
+  only. Migrations: `npm run db:migrate`.
+- **Static files:** `server.js` serves `build/client` itself (hashed `/assets/*`
+  cached for a year, other files an hour; dotfiles and paths outside
+  `build/client` refused), so Caddy only needs `reverse_proxy` (D18).
+- **Security headers:** set by `server.js` on every response -
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy:
+  strict-origin-when-cross-origin`, `X-Frame-Options: DENY`.
+  **Content-Security-Policy is deliberately not set yet:** a CSP needs the real
+  app, and Editor.js (item 2) and R2 image URLs (item 5) decide what it must
+  allow. Set it once item 5 lands; `preflight` should treat it as a decision
+  with that trigger, not an oversight.
+- **More env vars:** `PORT`, `NODE_ENV`. Only `DATABASE_URL`, `NODE_ENV` and
+  `PORT` are read today; the rest are listed in `.env.example` against the item
+  that first reads them.
 - **Memory budget:** PostgreSQL tuned small (`shared_buffers` ~128 MB), app
   ~100 MB, Caddy ~30 MB.
 - **Server setup script** in the repository installs Node 26 and PostgreSQL 16

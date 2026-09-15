@@ -1,0 +1,42 @@
+{
+  "name": "habre-cms",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "imports": {
+    "#app/*": "./app/*"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=development node --env-file-if-exists=.env server.js",
+    "build": "react-router build",
+    "start": "NODE_ENV=production node --env-file-if-exists=.env server.js",
+    "typecheck": "react-router typegen && tsc -b",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "node --test",
+    "test:e2e": "playwright test",
+    "db:migrate": "node --env-file-if-exists=.env db/migrate.ts",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "dependencies": {
+    "@react-router/node": "8.3.1",
+    "isbot": "5.2.2",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.3.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@playwright/test": "1.63.0",
+    "@react-router/dev": "8.3.1",
+    "@types/node": "26.5.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}

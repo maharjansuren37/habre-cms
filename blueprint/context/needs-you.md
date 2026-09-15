@@ -84,8 +84,6 @@ not tidying; it is what keeps the open list true.
 - [ ] **Off-server location for nightly database backups** - decision/spend;
       where copies of your data live. Needed by `host`, nothing blocked yet.
       `open` (architect, 2026-09-15)
-- [ ] **Install Node 26 on this dev machine** - system software; not installed
-      as of 2026-09-15. **Blocks `scaffold`.** `open` (stack, 2026-09-15)
 - [ ] **Delete the `hone.surenmaharjan.fyi` DNS record** - access; your DNS.
       The hone app was removed from `ocwebserver` on 2026-09-15 (data archived
       to `~/backups/hone-2026-09-15.tar.gz`); the record now points at a server
@@ -98,3 +96,7 @@ not tidying; it is what keeps the open list true.
 <!-- Move lines here rather than deleting them. What was needed and when it was
      settled is worth keeping - it is the honest answer to "why did this take
      three days", and it stops the same question being asked again. -->
+
+- [x] **Install Node 26 on this dev machine** - system software. `done`
+      2026-09-15: `node --version` -> v26.8.1; `npm run verify` and the
+      Playwright tests passed on it. (stack; closed by scaffold)
