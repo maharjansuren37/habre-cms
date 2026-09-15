@@ -5,8 +5,9 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-15 at `main` `ece826c`. Decision numbers (D1-D20) refer to
-`dev-notes/decisions.md` - read the entry before changing anything it covers.
+Generated 2026-09-16 on branch `host/production` (from `main` `48e5052`, plan
+edits uncommitted). Decision numbers (D1-D22) refer to `dev-notes/decisions.md` -
+read the entry before changing anything it covers.
 
 ## What this is
 
@@ -52,11 +53,11 @@ decision.
 | Layer | Choice | Why (decision) |
 |---|---|---|
 | Language | TypeScript 7.0.2, strict, `erasableSyntaxOnly` (no `enum`, `namespace`, parameter properties) | Node runs `.ts` by stripping types |
-| Runtime | Node.js 26 (dev 26.8.1, CI 26.8.2) | Supported to 2029, LTS due Oct 2026 (D15) |
+| Runtime | Node.js 26 (dev 26.8.1, CI and production 26.8.2) | Supported to 2029, LTS due Oct 2026 (D15) |
 | Framework | React Router 8.3.1 framework mode, React 19.3.0, Vite 8.3.0, served by `node:http` - **no Express** | Small, low memory, forms work without JS (D10, D17) |
 | Database | PostgreSQL 16; `postgres` 3.4.9 driver, **raw SQL, no ORM**; numbered `.sql` migrations via `db/migrate.ts` | Four tables do not need an ORM (D11) |
-| Styling | Plain CSS: custom properties for light/dark tokens, CSS Modules. **No Tailwind** | `prototype` tokens map straight to CSS variables (D12) |
-| Auth | JWT with `jose` 6.2.12; passwords with `node:crypto` scrypt. **No auth library** | (D6) |
+| Styling | Plain CSS: custom properties for light/dark tokens, CSS Modules. **No Tailwind** | `prototype` tokens map straight to CSS variables (D12); look in `blueprint/context/design.md` |
+| Auth | JWT with `jose` 6.2.12 (installed); passwords with `node:crypto` scrypt. **No auth library** | (D6) |
 | Validation | Zod 4.6.5 at every trust boundary | |
 | Editor | Editor.js 2.31.6 + header and list tools | Saves the `{id, type, data}` block shape directly (D13) |
 | Media | Cloudflare R2 via `aws4fetch` 1.0.20; `image-size` 2.0.4 | Uploads through the app server (D7) |
@@ -64,8 +65,8 @@ decision.
 | Tests | `node:test` unit tests; Playwright 1.63.0 (Chromium) browser tests | |
 | Monitoring | UptimeRobot on `/healthz`, alerts by email; logs to the systemd journal | |
 
-- **Not installed until their item:** `jose` (item 1), Editor.js and tools
-  (item 2), `aws4fetch` and `image-size` (item 5) (D20).
+- **Not installed until their item:** Editor.js and tools (item 2), `aws4fetch`
+  and `image-size` (item 5) (D20).
 - **React Router 8 is newer than an agent's training.** The installed docs in
   `node_modules/react-router/docs/` are the authority; React Router's agent skill
   is at `.claude/skills/react-router/`. This app is **Framework Mode**.
@@ -79,14 +80,14 @@ nothing should be added to the design that they did not call for.
 ### Layout (D16)
 
 - `app/routes.ts` lists every URL; route modules live inside
-  `app/features/<feature>/` (`auth`, `users`, `content`, `blocks`, `media`,
-  `settings`, `public-site`); cross-feature code in `app/lib/`
-  (`db.server.ts`, `env.server.ts`).
+  `app/features/<feature>/` (`auth`, `admin-shell`, `users`, `content`, `blocks`,
+  `media`, `settings`, `public-site`); cross-feature code in `app/lib/`
+  (`db.server.ts`, `env.server.ts`, `same-origin.ts`, `security-log.server.ts`).
 - `server.js` (+ `server/app.ts`): the Node entry - Vite middleware in dev; in
   production serves `build/client` itself and sets security headers (D18).
-- `db/migrations/NNNN_name.sql`, `db/migrate.ts`; `scripts/create-admin.ts`
-  (item 1); `deploy/` (setup script, systemd unit, Caddy site file - written by
-  `host`); `e2e/*.spec.ts`.
+- `db/migrations/NNNN_name.sql` (`0001_users.sql` exists), `db/migrate.ts`;
+  `scripts/create-admin.ts`; `deploy/` - `setup-server.sh`, `habre-cms.service`,
+  `caddy/habre-cms.caddy` (written by `host`); `e2e/*.spec.ts`.
 - **Imports:** `#app/...` with explicit `.ts`/`.tsx` extensions. **Never a `~/`
   alias** - plain `node` cannot resolve it.
 - **Boundary per file, not per directory:** `*.server.ts` = server only (the
@@ -95,23 +96,49 @@ nothing should be added to the design that they did not call for.
 - Unit-testable logic goes in `.ts` files beside a `*.test.ts` - `node --test`
   cannot run `.tsx`.
 
+### Hostnames (D22 - decided, built in item 4)
+
+One app answers two hostnames; Caddy proxies both to the same process.
+
+| Hostname | Serves |
+|---|---|
+| `surenmaharjan.fyi` | the public site: `/`, `/posts/:slug`, `/:slug` |
+| `cms.surenmaharjan.fyi` | the admin: `/admin/*`; `/` redirects to `/admin` |
+| `www.surenmaharjan.fyi` | redirects to the apex (in Caddy) |
+
+- **Config:** `PUBLIC_URL` and `ADMIN_URL` replace today's single `APP_URL`.
+  When equal (development, browser tests on one port) the app acts as one host
+  and redirects nothing.
+- **Routing by host, before any route runs:** admin path on the public host ->
+  same path on the admin host; public path on the admin host -> public host.
+  GET/HEAD only, **temporary** redirects; any other method on the wrong host
+  gets 404. `/healthz` answers on both. A host matching neither gets 404.
+- **Admin stays under `/admin`** - the prefix keeps admin and public routes from
+  colliding and lets development run on one host. `/cms` was rejected.
+- Admin "view" links are absolute on `PUBLIC_URL`; public pages never link to
+  the admin. Browser tests need two local hostnames (`127.0.0.1`, `localhost`).
+- **Until item 4 ships:** the app reads one `APP_URL`, and production runs on
+  `cms.surenmaharjan.fyi` only; the apex serves nothing.
+
 ### Routes
 
 - **Public** (server-rendered HTML, no login, works without JS): `/` latest
   published posts · `/posts/:slug` one post · `/:slug` one page · `/healthz`
-  (exists). Unknown or draft content -> 404. Reserved page slugs: `admin`,
-  `posts`, `api`, `healthz`.
-- **Admin** (login required): `/admin/login` · `/admin/posts[/new|/:id]` (all
-  roles; authors only their own) · `/admin/pages[/new|/:id]` (editor, admin) ·
-  `/admin/media` (all roles) · `/admin/settings` (admin) ·
-  `/admin/users[/:id]` - add, change role, reset password, deactivate (admin).
-- **The first admin is created by a server command, never a web setup page.**
+  (exists, reports database reachability). Unknown or draft content -> 404.
+  Reserved page slugs: `admin`, `posts`, `api`, `healthz`.
+- **Admin** (login required): `/admin/login`, `/admin/logout`, `/admin` (exist
+  since item 1) · `/admin/posts[/new|/:id]` (all roles; authors only their own) ·
+  `/admin/pages[/new|/:id]` (editor, admin) · `/admin/media` (all roles) ·
+  `/admin/settings` (admin) · `/admin/users[/:id]` - add, change role, reset
+  password, deactivate (admin).
+- **The first admin is created by a server command (`npm run create-admin`),
+  never a web setup page.**
 
 ### Data model (no site id on any table - D8)
 
 - **users** - `id`, `email` (unique, case-insensitive), `name`, `password_hash`,
   `role` (admin | editor | author), `token_version`, `deactivated_at`,
-  `created_at`, `updated_at`
+  `created_at`, `updated_at` (exists: `0001_users.sql`)
 - **entries** - posts **and** pages in one table (D5): `id`, `type` (post |
   page), `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`,
   `status` (draft | published), `published_at`, `author_id` -> users, `version`,
@@ -142,13 +169,19 @@ container blocks with `children`.
 
 - **All authorization, validation and rendering happen on the server.** The
   browser only runs the editor and uploads.
-- Login -> JWT (7 days) in an **httpOnly, Secure, SameSite=Lax cookie**.
+- Login -> JWT (7 days) in an **httpOnly, Secure, SameSite=Lax cookie**,
+  host-only on the admin hostname (no `Domain`), so it never reaches the public
+  site once D22 lands.
 - **Every admin request loads the user from the database**, rejects a
   deactivated user or a `token_version` mismatch, and **reads the role from the
   database, never the token** - removals and role changes take effect at once
   (D6).
-- Login rate-limited per IP and per email. Logged: failed logins, role changes,
-  deactivations, password resets. CSRF: SameSite cookie plus an origin check.
+- Login rate-limited per IP and per email (IP from the rightmost
+  `X-Forwarded-For` entry, which Caddy sets; IPv6 keyed per /64). Logged: failed
+  logins, role changes, deactivations, password resets.
+- **CSRF:** SameSite cookie plus an origin check in root middleware
+  (`app/root.tsx`) - today against `APP_URL`, after item 4 against `ADMIN_URL`
+  only, so every state-changing request to the public host is refused.
 - Permissions: **author** - own posts (create, edit, publish, delete), upload
   media, delete own media; **editor** - all posts, pages and media; **admin** -
   everything plus settings and users.
@@ -161,41 +194,59 @@ Public pages < 500 ms p95 server-side; admin saves < 1 s p95. Up to ~10 admin
 users, a few thousand entries, media files and daily page views. Down until
 noticed, but an uptime alert; at most 24 h of data loss (nightly off-server
 backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
-10:2025. Accessibility standard: WCAG 2.2 AA, recorded by `prototype` in
-`design.md`.
+10:2025. Accessibility standard: WCAG 2.2 AA, recorded in `design.md`.
 
 ## Constraints
 
 - **Server:** `ocwebserver` - Oracle Cloud VPS, Ubuntu 24.04, 2 vCPU, **954 MB
-  RAM**, shared with the static site `surenmaharjan.fyi`. Nothing memory-heavy;
-  **never build on the server** (D14).
-- **Not yet installed there:** Node 26 and PostgreSQL 16.
-- **Caddy** handles HTTPS. The repository owns only
+  RAM**. **Runs only this app** since 2026-09-16 (the test static site, `shelf`
+  and hone leftovers were removed). Nothing memory-heavy; **never build on the
+  server** (D14). A second web app likely needs a bigger VPS.
+- **Environments (D21):** `development` (local, Docker PostgreSQL), `ci` (GitHub
+  Actions, `npm run verify`), **`production` only** - no staging.
+- **Production is provisioned, nothing deployed** (`deploy/setup-server.sh`,
+  2026-09-16): Node 26.8.2 at `/usr/local/bin/node`; PostgreSQL 16.15 on
+  localhost, database and role `habre_cms`; systemd `habre-cms.service` as user
+  `habre_cms` from `/srv/habre-cms/current` on `127.0.0.1:3000` (enabled, not
+  started); secrets in `/etc/habre-cms/production.env` (mode 600, generated on
+  the server, never printed). Non-secret settings (`NODE_ENV`, `PORT`,
+  `APP_URL`) live in the unit.
+- **Deploying:** files go over **`rsync` via SSH** (the server has no `git`).
+  Releases in `/srv/habre-cms/releases/`, the `current` symlink picks one;
+  rollback repoints it. Build locally or in CI; the server runs the artifact.
+- **Caddy** handles HTTPS and renews certificates. The repository owns only
   `deploy/caddy/habre-cms.caddy`, imported by the server's main Caddyfile -
-  **never replace the main Caddyfile** (D17). The app listens on `127.0.0.1`.
-- **No Docker on the server;** systemd service plus an in-repo setup script. Docker
-  is used only for the development database.
-- **Portable:** everything rebuildable from the repository, a backup and the
-  secrets.
-- **Domain:** `cms.surenmaharjan.fyi` (production `APP_URL=https://cms.surenmaharjan.fyi`). **R2 account not
-  created yet.**
+  **never replace the main Caddyfile** (D17, amended). The app listens on
+  `127.0.0.1`; ports 3000 and 5432 are closed in both firewalls.
+- **IPv4 only:** no IPv6 on the VM, no AAAA record; no `bind` in the site file.
+  If IPv6 appears, re-check F-13 (an AAAA on the apex affects both hostnames).
+- **No Docker on the server;** Docker is used only for the development database.
+- **Portable:** everything rebuildable from the repository, a backup and fresh
+  secrets (a rebuild generates new ones).
+- **Env vars read today:** `DATABASE_URL`, `APP_URL`, `JWT_SECRET`, `PORT`,
+  `NODE_ENV`. `R2_*` from item 5; `PUBLIC_URL`/`ADMIN_URL` replace `APP_URL` in
+  item 4.
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.
 
 ## Current state
 
-- **Build plan: 0 of 8 items done.** Nothing in flight (`current-work.md` is
-  empty).
-- **Done before the build loop:** plan, architecture, stack, layout; scaffold
-  (app starts, `/` and `/healthz` serve, dev database in Docker); CI on GitHub
-  Actions running `npm run verify` on pull requests and pushes to `main` - green
-  on `main` at `ece826c`.
-- **Next:** `prototype` (no visual direction exists and ease of use is the
-  product), then `spec` for **item 1 - Admin login**.
-- **Remaining items, in order:** 1 Admin login · 2 Write a post · 3 Manage
-  posts · 4 Publish to the public site · 5 Images · 6 Pages · 7 Site settings and
-  menu · 8 Users and roles.
-- **Waiting on the user** (`needs-you.md`): R2 bucket and token (blocks item 5);
-  DNS record for the CMS; Node 26 + PostgreSQL 16 + database on the VPS (needed
-  by `host`); off-server backup location; UptimeRobot account; deleting the old
+- **Build plan: 1 of 8 items done** - item 1 *Admin login* shipped (`48e5052`,
+  archived in `blueprint/history/features/01-admin-login.md`). Nothing in flight
+  (`current-work.md` is empty). `prototype` has run (`design.md` exists).
+- **In progress outside the build loop:** `host` work on branch
+  `host/production`, **uncommitted** - `deploy/` files, the production row in
+  `AGENTS.md`, D21, D22, the D17 amendment and plan updates.
+- **Open findings:** F-07 [P3] `fixed` - `preflight` closes it once a running
+  release confirms Caddy's `X-Forwarded-For`; F-13 [P3] `unverified` - not
+  reachable on today's IPv4-only server.
+- **Next:** commit the hosting work (needs approval) -> `preflight` -> `deploy`
+  item 1 to `cms.surenmaharjan.fyi`. Then `spec` **item 2 - Write a post**.
+- **Remaining items, in order:** 2 Write a post · 3 Manage posts · 4 Publish to
+  the public site (includes the D22 hostname split) · 5 Images · 6 Pages · 7 Site
+  settings and menu · 8 Users and roles.
+- **Waiting on the user** (`needs-you.md`): R2 image bucket and token (blocks
+  item 5); private R2 backup bucket and token (blocks off-server backups, which
+  `preflight` requires); UptimeRobot account; screen-reader pass over login and
+  the admin shell; `APP_URL`/`JWT_SECRET` in the local `.env`; deleting the old
   `hone.surenmaharjan.fyi` DNS record.

@@ -1,0 +1,11 @@
+# Habre CMS site block only (D17). Imported by the server's main Caddyfile with
+# `import /etc/caddy/sites/habre-cms.caddy`; installed by deploy/setup-server.sh.
+#
+# No `bind`: the server has no IPv6 address today, so IPv6 clients cannot reach
+# this. If it ever gets one, re-check F-13 before serving over IPv6.
+cms.surenmaharjan.fyi {
+	encode zstd gzip
+	# reverse_proxy sets X-Forwarded-For to the connecting address, which the
+	# login rate limit reads (app/features/auth/client-ip.ts, F-07).
+	reverse_proxy 127.0.0.1:3000
+}

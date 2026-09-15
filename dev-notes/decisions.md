@@ -214,6 +214,12 @@ now. Cost: the server's main Caddyfile is managed by hand outside this
 repository, and the setup script has to add the `import` line without
 duplicating it.
 
+*Amended 2026-09-16 (D22):* the static site on `surenmaharjan.fyi` was removed,
+so "Caddy also serves `surenmaharjan.fyi`" no longer holds - the CMS now serves
+that name itself, from this site file. The choice stands: the main Caddyfile
+stays hand-managed and only imports site files, so a later app on the same
+server cannot collide with this one.
+
 ## D18 - `server.js` serves `build/client` itself (2026-09-15)
 
 **Chose:** a ~30-line static handler in `server.js` (GET/HEAD only, dotfiles and
@@ -248,3 +254,42 @@ HTML; without it the build adds a floating `^5` by itself, which breaks the
 pinning rule. The deferred packages lost their scaffold-time install because an
 installed package with no call site reads as a finished capability. Cost: the
 items that need them add a dependency in their own diff.
+
+## D21 - Production only, on the existing VPS; backups to a private R2 bucket (2026-09-16)
+
+**Chose:** one hosted environment, `production`, on `ocwebserver` (a server we
+manage); nightly `pg_dump` copied to a second, private R2 bucket with its own
+token.
+
+Staging on the same VPS lost: a second service and database cost ~100-150 MB of
+~580 MB free RAM. Staging on a second VPS lost: another box to patch and possibly
+pay for. Releases are tried locally and in CI instead. Backups to another provider
+lost to one fewer account; pulling to the owner's machine lost because it only
+runs while that machine is on. Secrets (database password, `JWT_SECRET`) are
+generated on the server by the setup script and never leave it; a rebuild makes
+new ones rather than restoring them. Cost: no rehearsal environment - a bad
+release is found in production and undone by `deploy rollback`; images and
+backups share one Cloudflare account, so losing that account loses both (the
+content itself survives in the database only if the VPS does); and every
+self-hosting duty - restarts, TLS renewal, patching, both firewalls, backups - is
+ours.
+
+## D22 - Public site on the apex domain, admin on a subdomain, one app routing by host (2026-09-16)
+
+**Chose:** `surenmaharjan.fyi` serves the public site and `cms.surenmaharjan.fyi`
+the admin (still under `/admin`), both answered by the one application, which
+routes by the request's host. `PUBLIC_URL` and `ADMIN_URL` replace `APP_URL`.
+Built in item 4.
+
+Everything on `cms.surenmaharjan.fyi` lost: no work, but the public address
+carries `cms.`. Everything on the apex with `/admin` lost: one origin is the
+simplest code, but it puts the login page on the public domain and browsers send
+the admin cookie with every public page view. Renaming `/admin` to `/cms` lost:
+`cms.surenmaharjan.fyi/cms/...` repeats itself and changes item 1's routes and
+tests for nothing; a prefix is still needed so admin and public routes cannot
+collide and development can run on one host. Routing by host is also the shape
+D8's "pick the database from the request's domain" and later custom domains
+need. Two separate deployables were never considered - D4 holds. Cost: two
+hostnames to configure in Caddy and production config, cross-host redirects to
+build and test, and browser tests that need two local hostnames (`127.0.0.1` and
+`localhost`) to exercise them.

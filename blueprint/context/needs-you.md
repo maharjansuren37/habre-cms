@@ -72,14 +72,11 @@ not tidying; it is what keeps the open list true.
 - [ ] **Cloudflare R2 bucket, public URL, and an API token scoped to that bucket** -
       accounts; needs your Cloudflare account. Blocks item 5 (Images). `open`
       (architect, 2026-09-15)
-- [ ] **On `ocwebserver`: install Node 26 and PostgreSQL 16, then create the
-      `habre_cms` database plus a role owning only it** - system software/access;
-      your server and its credentials. Not installed as of 2026-09-15. Needed by
-      `host` and `deploy`, not `scaffold` (development uses Docker). `open`
-      (architect, 2026-09-15; updated by stack)
-- [ ] **Off-server location for nightly database backups** - decision/spend;
-      where copies of your data live. Needed by `host`, nothing blocked yet.
-      `open` (architect, 2026-09-15)
+- [ ] **A second, private R2 bucket for database backups, and an API token
+      scoped to only that bucket** - accounts; your Cloudflare account (R2 needs
+      a payment method on file even on the free tier). Decided 2026-09-16 (D21).
+      Needed before the nightly backup can go off the VPS; `preflight` treats
+      missing backups as a blocker. `open` (host, 2026-09-16)
 - [ ] **Delete the `hone.surenmaharjan.fyi` DNS record** - access; your DNS.
       The hone app was removed from `ocwebserver` on 2026-09-15 (data archived
       to `~/backups/hone-2026-09-15.tar.gz`); the record now points at a server
@@ -101,6 +98,17 @@ not tidying; it is what keeps the open list true.
       values are `host`'s. `open` (build, 2026-09-15)
 
 ## Done
+
+- [x] **On `ocwebserver`: install Node 26 and PostgreSQL 16, then create the
+      `habre_cms` database plus a role owning only it** - system software/access.
+      `done` 2026-09-16 by `deploy/setup-server.sh`, run with the owner's yes
+      (the owner installed `rsync` first). Checked: `node --version` -> v26.8.2;
+      PostgreSQL 16.15 listening on localhost only; role `habre_cms` (not
+      superuser, no createrole/createdb) owns only database `habre_cms` and logs
+      in with the generated password. (architect, 2026-09-15; closed by host)
+- [x] **Off-server location for nightly database backups** - decision. `done`
+      2026-09-16: a private R2 bucket (D21); creating it is the open line
+      above. (architect, 2026-09-15; closed by host)
 
 <!-- Move lines here rather than deleting them. What was needed and when it was
      settled is worth keeping - it is the honest answer to "why did this take

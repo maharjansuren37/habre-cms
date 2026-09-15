@@ -172,8 +172,8 @@ habre-cms/
   browser tests live in `e2e/`. Playwright's default pattern also matches
   `*.test.ts`, so its config sets `testDir: "e2e"`.
 - **Wholesale copy:** `public/` ships to visitors as-is - nothing private in it.
-- **A shared server config:** Caddy on `ocwebserver` also serves other sites, so
-  the repository owns only `deploy/caddy/habre-cms.caddy`, pulled in by an
+- **A shared server config:** Caddy on `ocwebserver` is managed by hand and may
+  serve other apps later (D17), so the repository owns only `deploy/caddy/habre-cms.caddy`, pulled in by an
   `import` line in the server's main Caddyfile - never the whole Caddyfile.
 - **Silently unchecked files:** the template's TypeScript configs cover only
   `app/`, `server/`, `server.js` and `vite.config.ts`. `db/`, `scripts/`, `e2e/`
@@ -202,6 +202,36 @@ lives in `.agents/skills/react-router/` and `.claude/skills/react-router/`.
 - **`blocks` is the one shared module:** block type definitions, validation and
   HTML rendering, defined once and used by the editor, the server and the public
   site. A page builder later extends this module.
+
+### Hostnames
+
+One application answers two hostnames (D22); Caddy proxies both to the same
+process. Decided 2026-09-16; built in item 4.
+
+| Hostname | Serves |
+|---|---|
+| `surenmaharjan.fyi` | the public site: `/`, `/posts/:slug`, `/:slug` |
+| `cms.surenmaharjan.fyi` | the admin: `/admin/*`; `/` redirects to `/admin` |
+| `www.surenmaharjan.fyi` | redirects to `surenmaharjan.fyi` (in Caddy) |
+
+- **Two origins in config:** `PUBLIC_URL` and `ADMIN_URL` replace `APP_URL`.
+  When they are equal (development, browser tests on one port) the app behaves
+  as one host and redirects nothing.
+- **The app routes by the request's host before any route runs:**
+  - An admin path on the public host redirects to the same path on the admin
+    host; a public path on the admin host redirects to the public host.
+  - Only GET and HEAD redirect; any other method on the wrong host gets 404.
+  - Redirects are temporary: browsers cache permanent ones indefinitely, and
+    hostnames change once custom domains arrive.
+  - `/healthz` answers on both hosts.
+  - A host matching neither gets 404. Only Caddy reaches the app, and it
+    forwards only these names.
+- **Admin stays under `/admin` on its own host.** The prefix keeps admin and
+  public routes from colliding and lets one-host development work; no route
+  moves and the reserved slugs are unchanged. `/cms` was considered and lost: it
+  reads `cms.surenmaharjan.fyi/cms/...` and buys nothing.
+- **Links across hosts are absolute:** admin "view" links use `PUBLIC_URL`;
+  public pages never link to the admin.
 
 ### Routes
 
@@ -295,7 +325,11 @@ permissions.
 - Login is rate-limited per IP and per email.
 - Logged: failed logins, role changes, deactivations, password resets.
 - State-changing requests are protected against cross-site request forgery by
-  the SameSite cookie plus an origin check.
+  the SameSite cookie plus an origin check against `ADMIN_URL`. The public site
+  has no forms in v1, so every state-changing request to the public host is
+  refused.
+- The session cookie is host-only on the admin hostname (no `Domain`
+  attribute), so browsers never send it to the public site.
 - Public routes need no auth; drafts are never served publicly.
 
 | | Author | Editor | Admin |
@@ -335,14 +369,18 @@ at hundreds of sites (D8).
 
 ## 8. Deployment - where and how does it ship?
 
-Known so far: an **Oracle Cloud VPS**, with **PostgreSQL 16 to be installed on
-the same server** (not installed as of 2026-09-15). Images go to **Cloudflare R2** (account not created yet).
+Known so far: an **Oracle Cloud VPS**, with **PostgreSQL 16 installed on the
+same server** (2026-09-16, `deploy/setup-server.sh`). Images go to **Cloudflare R2** (account not created yet).
 
 From `architect`:
 
-- **Domain:** `cms.surenmaharjan.fyi`, a subdomain (decided 2026-09-16). The
-  production environment's `APP_URL` is `https://cms.surenmaharjan.fyi`; it is
-  set in production config by `host`, never in `.env.example`.
+- **Domains (D22, 2026-09-16):** public site `surenmaharjan.fyi`
+  (`PUBLIC_URL=https://surenmaharjan.fyi`), admin `cms.surenmaharjan.fyi`
+  (`ADMIN_URL=https://cms.surenmaharjan.fyi`), `www` redirecting to the apex.
+  `deploy/caddy/habre-cms.caddy` serves all three names, proxying the two app
+  hosts to the same port. Until item 4 ships, only `cms` is in it and the app
+  still reads a single `APP_URL=https://cms.surenmaharjan.fyi`. Production
+  values are set in production config, never in `.env.example`.
 - **One deployable application.** It listens on localhost only; **Caddy**
   (already installed) terminates HTTPS and proxies the domain to it. HTTPS is
   required - auth cookies are Secure.
@@ -350,8 +388,9 @@ From `architect`:
   role with access to nothing else. PostgreSQL listens on localhost only.
 - **Storage:** Cloudflare R2 bucket for images, with a public URL.
 - **Health check:** `/healthz`, reporting database reachability.
-- **Env vars:** `APP_URL`, `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`,
-  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
+- **Env vars:** `PUBLIC_URL`, `ADMIN_URL` (replacing `APP_URL` in item 4),
+  `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 - **Backups:** nightly database dump stored off the VPS - app and database share
   one disk.
 - **Portable (D9):** the Caddy config lives in the repository, server setup is
@@ -363,12 +402,16 @@ From `architect`:
 From `stack`:
 
 - **Host:** `ocwebserver` - Oracle Cloud VPS, Ubuntu 24.04.4 LTS, x86_64,
-  2 vCPU, 954 MB RAM + 2 GB swap, 41 GB free. Caddy 2.11.4 running. **Not yet
-  installed (checked 2026-09-15):** Node 26, PostgreSQL 16.
-- **Shared server:** Caddy also serves the static site `surenmaharjan.fyi`
-  (`/srv/redpanda`), watched by the `site-check` timer. After removing the hone
-  app on 2026-09-15: 372 MB used, 581 MB available. More web apps later likely
-  need a bigger VPS - decide before hosting a second app.
+  2 vCPU, 954 MB RAM + 2 GB swap, 41 GB free. Caddy 2.11.4 running. Node 26.8.2
+  and PostgreSQL 16.15 installed 2026-09-16 by the setup script.
+- **Server is this app's alone (2026-09-16):** the test static site
+  `surenmaharjan.fyi` (`/srv/redpanda`), the unserved `shelf` app, their
+  `site-check` timer and the hone app's leftovers were removed at the owner's
+  request. Caddy's main Caddyfile now holds only the `habre-cms` import, and
+  `surenmaharjan.fyi` serves nothing until the CMS public site moves there (the
+  owner wants the public site on `surenmaharjan.fyi` and admin on
+  `cms.surenmaharjan.fyi` - designed in D22, built in item 4). More web apps later
+  likely need a bigger VPS - decide before hosting a second app.
 - **Caddy:** the repository ships only `deploy/caddy/habre-cms.caddy`; the
   server's main Caddyfile imports it. **The setup script must not replace the
   main Caddyfile, and must not reinstall or reconfigure an existing PostgreSQL**
@@ -377,14 +420,21 @@ From `stack`:
   IPv6 address and no IPv6 default route; `cms.surenmaharjan.fyi` is a CNAME to
   the root with no AAAA. Caddy listens on `*:443`/`*:80` with no `bind`. The
   login rate limit assumes IPv6 clients cannot reach the CMS (one /48 would get
-  65,536 limit keys), so `host` either puts `bind 0.0.0.0` in
-  `habre-cms.caddy` or re-checks F-13 if the VM ever gets IPv6.
+  65,536 limit keys). `host` chose no `bind` (2026-09-16); `habre-cms.caddy`
+  says to re-check F-13 if the VM ever gets IPv6. An AAAA on the apex now puts
+  both the public site and `cms` on IPv6.
 - **No per-service memory cap** for now (decided 2026-09-15).
 - **Process:** a systemd service runs the built server on a localhost port;
   Caddy proxies the domain to it. No Docker on the server - its daemon costs
   ~100 MB of 1 GB (D14).
 - **Builds happen locally or in CI, never on the VPS.** A deploy ships the build
   output and production dependencies.
+- **Files reach the server with `rsync` over SSH** (from `host`, 2026-09-16).
+  The server has no `git`; `rsync` 3.2.7 was installed on it by the owner on
+  2026-09-16 for this. The setup script and each release are copied with it;
+  `deploy` puts releases under `/srv/habre-cms/releases/` and points the
+  `/srv/habre-cms/current` symlink at the one to run, so rollback is repointing
+  the symlink.
 - **Build / start (from `scaffold`, 2026-09-15):** `npm ci && npm run build`
   produces `build/` (`build/server/index.js`, `build/client/`). The server runs
   `NODE_ENV=production node server.js` from the app directory (`npm start` does
@@ -419,8 +469,7 @@ decided; no billing in the first version.
 ## 10. Constraints - what is fixed before anything is chosen?
 
 - **Platform:** web - browser-based admin plus a server-rendered public site.
-- **Database:** PostgreSQL 16, on the same Oracle VPS - **not installed yet**
-  (checked 2026-09-15).
+- **Database:** PostgreSQL 16, on the same Oracle VPS - installed 2026-09-16.
 - **Minimal dependencies:** prefer the platform and standard library; every
   runtime dependency is a recorded decision.
 - **Server resources:** 954 MB RAM, 2 vCPU - rules out memory-heavy runtimes and
