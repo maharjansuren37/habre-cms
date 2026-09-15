@@ -256,6 +256,7 @@ figure of speech.
 | Environment | What it is for | Config comes from | Holds real data |
 |---|---|---|---|
 | `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally | no |
+| `ci` | GitHub Actions, `.github/workflows/ci.yml`: `npm ci` then `npm run verify` on pull requests and pushes to `main`. **Runner `ubuntu-24.04`, Node pinned to `26`** - React Router 8 needs >= 22.22 and `engines` needs >= 26; do not float to `lts/*` or `latest`. Actions pinned to commit SHAs. | nothing - no `.env`, no secrets, no database; `verify` needs none | no |
 
 Add a row per environment as it comes into existence. For each, say **where its
 configuration comes from and where its secrets live** - never the repository -
