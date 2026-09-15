@@ -8,89 +8,427 @@
 
 ## 1. Problem - what are we solving?
 
-The problem this project solves, and its main purpose.
+WordPress is the default way to run a content website, but it is heavy and
+confusing for the people who actually edit the content. Habre CMS is a website
+management system that makes writing, managing and publishing a site's content
+**really easy** - and serves the public site itself, so no developer is needed
+to put content online.
 
 ## 2. Users - who is this for?
 
-The kind of people who will use it. Be specific enough that it rules something
-out.
+- **Editors and authors** at a small organisation managing one website's
+  content - not developers.
+- **Admins** who set the site up and decide who can edit it.
+- **Visitors** read the public site and have no accounts.
+- Starting small: a handful of users per site.
+- Not for developers wanting a headless API, and not for people wanting a
+  drag-and-drop page builder - both deferred (section 11).
 
 ## 3. Features - what does the first version need?
 
-High-level list, one line each. No detail - that comes per item, later.
+- Log in and out; 1-week session; no public signup.
+- Write posts and pages in a block editor with basic blocks: text, heading,
+  image, list.
+- Save as draft, publish, unpublish.
+- Upload images and reuse them from a media library.
+- Public site rendered from published content with one built-in theme.
+- Site settings: title, logo, navigation menu.
+- Users and roles:
+  - **Author** - writes and publishes their own posts.
+  - **Editor** - manages everyone's content.
+  - **Admin** - everything an editor can do, plus users and settings.
+- Light and dark mode in both the admin area and the public site.
 
 ## 4. Data - what are we storing?
 
-The things that need to persist, e.g. users, projects, sessions. "Nothing" is a
-valid answer.
+Users (with role), posts, pages (both made of content blocks), media (metadata
+here; files in Cloudflare R2), site settings, navigation menu.
 
 ## 5. Tech - what stack are we using?
 
-Filled in by the `stack` skill, or by you. Framework, language, styling,
-database, testing, **monitoring and where its alerts go**, hosting. Include the
-platform: web app, content website, PWA, mobile app, command-line tool, library,
-or a service with no UI.
+Written by `stack` (2026-09-15). Minimal dependencies: each new runtime
+dependency is a decision recorded in `dev-notes/decisions.md`.
 
-**This is filled in after section 6, not before it.** A technology is chosen
-against a structure and a quality bar; chosen first, it decides them instead.
+- **Platform:** web - browser-based admin plus a server-rendered public site.
+- **Language:** TypeScript (current stable at scaffold) - all code.
+- **Runtime:** Node.js **26** on the dev machine, CI and the VPS - 26.8.2 today,
+  moving to the first 26 LTS release when it is promoted (expected October
+  2026). React Router 8 requires >= 22.22.
+- **Framework:** React Router **8.3.1**, framework mode; React **19.3.0**;
+  Vite **8.3.0**. Served by a plain `node:http` server through React Router's
+  Node adapter - no Express. v8 is newer than the planning session's knowledge;
+  `scaffold` checks its docs.
+- **Database:** PostgreSQL **16** (Ubuntu 24.04 packages). Driver `postgres`
+  **3.4.9**, raw SQL. Migrations are numbered `.sql` files applied by a small
+  in-repo runner that records them in `schema_migrations`. Development runs
+  PostgreSQL 16 in Docker (`postgres:16`) on the dev machine - Arch packages 18,
+  which would not match production.
+- **Styling:** plain CSS - custom properties for light/dark tokens, CSS Modules
+  (built into Vite). No CSS framework.
+- **Auth:** JWT via `jose` **6.2.12**; passwords hashed with `node:crypto`
+  scrypt. No auth library.
+- **Validation:** Zod **4.6.5** at every trust boundary.
+- **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with its header
+  and list tools; the image tool is settled in item 5's spec.
+- **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**.
+- **Testing:** `node:test` (built in) for unit tests; `@playwright/test`
+  **1.63.0** for browser tests and screenshots.
+- **Monitoring:** UptimeRobot free tier checks `/healthz` and **alerts by
+  email**. App logs go to the systemd journal. No error-tracking service in v1.
 
 ## 6. Architecture - how is it structured?
 
-Filled in by the `architect` skill, or by you, **before section 5**. How many
-deployable parts there are and why, routes or screens, the data model in enough
-detail to write a schema from, where logic lives, the auth boundary, and any
-third-party service a feature actually needs.
+Written by `architect` (2026-09-15). `layout` adds the directory tree beneath
+the part count once the framework is known.
 
-`layout` adds the directory tree here once the framework is known - where the
-files physically sit is a framework convention, not an architectural decision,
-and it is recorded beneath the part count it implements.
+### Shape questions
+
+| Question | Answer |
+|---|---|
+| More than one deployable service? | **No** - one application serves admin, public site and its endpoints. |
+| Work outside a request? | **No** - nothing in v1 is scheduled or slow; images stored as uploaded. Scheduled publishing or image resizing (both deferred) would make this yes. |
+| Consistency across more than one write? | **No** - every v1 action is a single-row write. One cross-system pair (R2 file + media row) cannot share a transaction; handled by write order (see Data rules). |
+| Dependency whose failure is unacceptable? | **No** - PostgreSQL down means site down, accepted on one VPS. R2 down means images missing, text still served. |
+| Real load or a hard latency target? | **No** - see `blueprint/context/quality-bar.md`. Concurrent writers: a handful of editors at most; same-entry collisions caught by a version check. |
+| Rate-limited or unreliable external API? | **No** - R2 is the only external service. |
+
+**System design does not apply:** single process, one database, no background
+work, no cache.
+
+### Parts
+
+**One application, deployed once.** Admin, public site and endpoints share the
+same data, ship together, and have one owner. A headless API later is extra
+routes in the same app, not a second part.
+
+### Layout
+
+Written by `layout` (2026-09-15). Follows React Router 8's `node-custom-server`
+template, with route modules kept inside their feature (D16).
+
+```
+habre-cms/
+├── app/                        source root (React Router convention)
+│   ├── root.tsx                HTML shell, theme switch, error boundary
+│   ├── routes.ts               every URL, pointing at route modules inside features
+│   ├── app.css                 global CSS: design tokens, light/dark
+│   ├── features/
+│   │   ├── auth/               login/logout routes, JWT + scrypt (*.server.ts), request guard
+│   │   ├── users/              admin user routes, user queries
+│   │   ├── content/            post + page admin routes, entry queries, version check
+│   │   ├── blocks/             block types, Zod schemas, HTML renderer,
+│   │   │                       editor.client.tsx (Editor.js wrapper, browser only)
+│   │   ├── media/              media library route, upload handler, R2 client (*.server.ts)
+│   │   ├── settings/           settings route, navigation menu
+│   │   └── public-site/        /, /posts/:slug, /:slug, /healthz, 404
+│   └── lib/                    cross-feature code: db.server.ts, env.server.ts, logging
+├── server/app.ts               builds React Router's request listener (template convention)
+├── server.js                   node:http entry: Vite middleware in dev, build output in production
+├── db/
+│   ├── migrations/             0001_users.sql, ... applied in order
+│   └── migrate.ts              migration runner, run with plain `node`
+├── scripts/create-admin.ts     first-admin command, run on the server
+├── deploy/
+│   ├── setup-server.sh         installs Node 26, PostgreSQL 16, the service, the Caddy site
+│   ├── habre-cms.service       systemd unit
+│   └── caddy/habre-cms.caddy   this app's site block only, imported by the server's main Caddyfile
+├── e2e/                        Playwright tests (*.spec.ts)
+├── public/                     copied into the build as-is - favicon only
+├── compose.yaml                development-only PostgreSQL 16 container
+├── .env.example                variable names, no values
+├── package.json · package-lock.json · react-router.config.ts · vite.config.ts
+├── tsconfig.json · tsconfig.node.json · tsconfig.vite.json · playwright.config.ts
+├── AGENTS.md · CLAUDE.md · blueprint/ · dev-notes/    workflow files
+└── build/ · .react-router/ · node_modules/            generated, gitignored
+```
+
+**Conventions:**
+
+- **No client/server directory split.** A route module holds both: `loader` and
+  `action` run on the server and are stripped from the browser bundle; the
+  component renders on both. The boundary is marked per file:
+  - `*.server.ts` - server only (database, JWT, R2, env). The build fails if
+    browser code imports one.
+  - `*.client.ts(x)` - browser only (Editor.js).
+  - Everything else runs in both on purpose (block renderer, Zod schemas).
+- **Imports:** `#app/...` with an explicit `.ts` extension, declared once in
+  `package.json` `"imports"`. No `~/` alias - plain `node` cannot resolve it
+  (`ERR_MODULE_NOT_FOUND`), and the migration runner, `create-admin` and unit
+  tests run under plain `node`.
+- **Tests:** unit tests colocated as `*.test.ts`, testing logic in `.ts` files
+  (plain `node` cannot run `.tsx`). Browser tests in `e2e/*.spec.ts`.
+- **Config** lives at the repository root - it is the only part.
+
+**Ecosystem traps this avoids:**
+
+- **Test discovery by path:** Node treats a `test/` directory as tests, so
+  browser tests live in `e2e/`. Playwright's default pattern also matches
+  `*.test.ts`, so its config sets `testDir: "e2e"`.
+- **Wholesale copy:** `public/` ships to visitors as-is - nothing private in it.
+- **A shared server config:** Caddy on `ocwebserver` also serves other sites, so
+  the repository owns only `deploy/caddy/habre-cms.caddy`, pulled in by an
+  `import` line in the server's main Caddyfile - never the whole Caddyfile.
+- **Silently unchecked files:** the template's TypeScript configs cover only
+  `app/`, `server/`, `server.js` and `vite.config.ts`. `db/`, `scripts/`, `e2e/`
+  and `playwright.config.ts` must be added, or `tsc` never checks them.
+
+**Verified** in `node:26-alpine` (Node 26.8.2, TypeScript 7.0.2, Vite 8.3.0),
+2026-09-15: `node --test` found and passed `app/**/*.test.ts` and did not run
+`e2e/*.spec.ts`; `#app/*` imports resolved under plain `node`, `tsc` and a Vite
+build; `~/` failed under plain `node`.
+
+**Left to `scaffold`:** TypeScript 7 with React Router 8 typegen and `tsc -b`
+(the template pins 5.9 - fall back if 7 fails); how `build/client` is served in
+production (Caddy or a small handler in `server.js`); test file naming inside a
+feature.
+
+### Platform and organisation
+
+- **Platform:** web - browser-based admin plus a server-rendered public website.
+  No mobile app, no offline/PWA.
+- **Organised by feature:** `auth`, `users`, `content` (posts and pages),
+  `blocks`, `media`, `settings`, `public-site`.
+- **`blocks` is the one shared module:** block type definitions, validation and
+  HTML rendering, defined once and used by the editor, the server and the public
+  site. A page builder later extends this module.
+
+### Routes
+
+**Public** - server-rendered HTML, no login, works without JavaScript:
+
+| Route | Shows |
+|---|---|
+| `/` | latest published posts |
+| `/posts/:slug` | one post |
+| `/:slug` | one page |
+| `/healthz` | health check, including database reachability |
+
+- Unknown or draft content returns 404.
+- Reserved slugs pages cannot take: `admin`, `posts`, `api`, `healthz`.
+
+**Admin** - login required, interactive in the browser:
+
+| Route | Who |
+|---|---|
+| `/admin/login` | anyone |
+| `/admin/posts`, `/admin/posts/new`, `/admin/posts/:id` | all roles (authors see and edit only their own) |
+| `/admin/pages`, `/admin/pages/new`, `/admin/pages/:id` | editor, admin |
+| `/admin/media` | all roles |
+| `/admin/settings` - title, logo, menu | admin |
+| `/admin/users`, `/admin/users/:id` - add, change role, reset password, deactivate | admin |
+
+Each admin action has a server handler; its exact shape follows the framework's
+conventions.
+
+**The first admin is created by a command run on the server, not a web setup
+page** - an open setup page on a freshly deployed server belongs to whoever
+reaches it first.
+
+### Data model
+
+One site per installation - no site id on any table (D8).
+
+- **users** - `id`, `email` (unique, case-insensitive), `name`,
+  `password_hash`, `role` (admin | editor | author), `token_version`,
+  `deactivated_at`, `created_at`, `updated_at`
+- **entries** - posts and pages in one table: `id`, `type` (post | page),
+  `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`, `status`
+  (draft | published), `published_at`, `author_id` -> users, `version`,
+  `created_at`, `updated_at`
+- **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`,
+  `width`, `height`, `alt_text`, `uploaded_by` -> users, `created_at`
+- **site_settings** - a single row: `site_title`, `logo_media_id` -> media,
+  `navigation` (JSON list of `{label, pageId | url}`), `updated_at`
+- **schema_migrations** - owned by the in-repo migration runner: `filename`,
+  `applied_at`. No library creates any other table.
+
+**Blocks** are an ordered list of `{id, type, data}`:
+
+- A page builder adds container block types with `children`; existing content
+  stays valid. `blocks_format` versions the format for future changes.
+- **Text is stored as structured data, never raw HTML**, and escaped on render.
+  Which inline formatting is supported (bold, links, ...) is decided in item 2's
+  spec.
+- **Image blocks store a media id, not a URL.** The URL is resolved at render
+  time, so a bucket or domain change never touches content.
+
+### Data rules
+
+- Saving a published entry updates the live page (revisions are deferred).
+- Every save sends the entry's `version`; if someone saved in between, the save
+  is rejected with "changed by someone else, reload".
+- **Upload:** write the R2 object first, then the media row. A failure between
+  leaves an unreferenced object - harmless.
+- **Delete media:** remove the row first, then the object.
+- **Users are deactivated, never deleted** - authorship stays intact and nothing
+  needs reassigning.
+- **The server's disk holds no state but the database.** No local uploads, no
+  config edited by hand on the server (D9).
+
+### Where logic lives
+
+All on the server: authorization, block validation, rendering. The browser
+handles admin interactivity only - the editor and uploads - and never decides
+permissions.
+
+### Auth boundary
+
+- Email and password -> JWT signed with a server secret, 7-day expiry, in an
+  **httpOnly, Secure, SameSite=Lax cookie** - not browser storage, which page
+  scripts can read.
+- **Every admin request loads the user from the database** and rejects it if
+  deactivated or if `token_version` does not match the token. **Role is read
+  from the database, never from the token.** Removing a user, changing a role or
+  resetting a password bumps `token_version` and takes effect immediately. Cost:
+  one indexed lookup per admin request (D6).
+- Login is rate-limited per IP and per email.
+- Logged: failed logins, role changes, deactivations, password resets.
+- State-changing requests are protected against cross-site request forgery by
+  the SameSite cookie plus an origin check.
+- Public routes need no auth; drafts are never served publicly.
+
+| | Author | Editor | Admin |
+|---|---|---|---|
+| Posts | own: create, edit, publish, delete | all | all |
+| Pages | - | all | all |
+| Media | upload; delete own | all | all |
+| Settings, users | - | - | yes |
+
+### Integrations
+
+- **Cloudflare R2** - stores images; served to visitors from the bucket's public
+  URL.
+  - **Uploads go through the app server** (D7): 10 MB cap; JPEG, PNG, WebP, GIF
+    only. **No SVG** - it can carry script.
+- **Nothing else.** No email, analytics, cache or CDN beyond R2.
+
+### Scaling ceiling
+
+One VPS. The first thing likely to break is **large unresized images making
+public pages heavy**, then rendering CPU under a traffic spike. If the
+performance bar is missed, the first fix is caching rendered public pages,
+invalidated on entry save, publish/unpublish, and settings change.
+
+**Many sites later:** a database per site with the same tables; the app picks
+the database from the request's domain. Reconsider shared tables with a site id
+at hundreds of sites (D8).
 
 ## 7. UI/UX - how should it look and feel?
 
-The look, the feel, and any reference you are working from. Link examples.
-
-Filled in by the `ideate` skill from what you say, or by you. `prototype` reads
-this as its starting direction, so "no strong opinion, keep it plain" is a
-useful answer and an empty section is not.
+- **Ease of use is the product.** The editing experience must be clearly simpler
+  than WordPress for a non-technical editor: few screens, obvious next actions,
+  no settings they don't need.
+- Light and dark mode from the first screen, not added later - admin area and
+  public site both.
+- No specific visual reference yet; `prototype` settles the look.
 
 ## 8. Deployment - where and how does it ship?
 
-Target host if known. App type, build and start commands, env vars by name,
-database or storage needs, health check path, domain notes.
+Known so far: an **Oracle Cloud VPS**, with **PostgreSQL installed on the same
+server**. Images go to **Cloudflare R2** (account not created yet).
 
-Started by `architect` with what the structure implies - how many things deploy,
-and what each one needs - filled in by `stack` with the concrete host, build and
-start commands, and corrected by `scaffold` to the commands that actually
-landed. **`host`, `deploy` and `preflight` all read this section**,
-so a blank line here is a question asked at the most expensive possible moment.
+From `architect`:
 
-**"Runs from source, not published anywhere" is a complete answer** - and it is
-the one that stops `host` before it spends anything.
+- **Domain (for now):** `surenmaharjan.fyi` - root domain or a subdomain not
+  yet decided.
+- **One deployable application.** It listens on localhost only; **Caddy**
+  (already installed) terminates HTTPS and proxies the domain to it. HTTPS is
+  required - auth cookies are Secure.
+- **Database:** a dedicated `habre_cms` PostgreSQL database owned by its own
+  role with access to nothing else. PostgreSQL listens on localhost only.
+- **Storage:** Cloudflare R2 bucket for images, with a public URL.
+- **Health check:** `/healthz`, reporting database reachability.
+- **Env vars:** `APP_URL`, `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`,
+  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
+- **Backups:** nightly database dump stored off the VPS - app and database share
+  one disk.
+- **Portable (D9):** the Caddy config lives in the repository, server setup is
+  reproducible (a setup script - D14), and all state lives in
+  PostgreSQL and R2. Moving to another server (e.g. headless Ubuntu) and
+  recovering from a disk loss are the same procedure: set up, restore the latest
+  backup, copy the secrets, point DNS.
+
+From `stack`:
+
+- **Host:** `ocwebserver` - Oracle Cloud VPS, Ubuntu 24.04.4 LTS, x86_64,
+  2 vCPU, 954 MB RAM + 2 GB swap, 41 GB free. Caddy 2.11.4 running. **Not yet
+  installed (checked 2026-09-15):** Node 26, PostgreSQL 16.
+- **Shared server:** Caddy also serves the static site `surenmaharjan.fyi`
+  (`/srv/redpanda`), watched by the `site-check` timer. After removing the hone
+  app on 2026-09-15: 372 MB used, 581 MB available. More web apps later likely
+  need a bigger VPS - decide before hosting a second app.
+- **Caddy:** the repository ships only `deploy/caddy/habre-cms.caddy`; the
+  server's main Caddyfile imports it. **The setup script must not replace the
+  main Caddyfile, and must not reinstall or reconfigure an existing PostgreSQL**
+  - it adds this app's database and role alongside whatever is there.
+- **No per-service memory cap** for now (decided 2026-09-15).
+- **Process:** a systemd service runs the built server on a localhost port;
+  Caddy proxies the domain to it. No Docker on the server - its daemon costs
+  ~100 MB of 1 GB (D14).
+- **Builds happen locally or in CI, never on the VPS.** A deploy ships the build
+  output and production dependencies.
+- **Build / start (shape - `scaffold` corrects):** `react-router build`, then
+  `node server.js`.
+- **More env vars:** `PORT`, `NODE_ENV`.
+- **Memory budget:** PostgreSQL tuned small (`shared_buffers` ~128 MB), app
+  ~100 MB, Caddy ~30 MB.
+- **Server setup script** in the repository installs Node 26 and PostgreSQL 16
+  if missing, the systemd unit, and the Caddy site file plus its `import` line
+  (D9).
+- **Monitoring:** UptimeRobot checks `/healthz`, alerts by email.
 
 ## 9. Money - how does this pay for itself? *(optional)*
 
-Delete this section if it is a personal tool and the answer is "it doesn't."
+Intended as a hosted service eventually, so billing will come. Pricing model not
+decided; no billing in the first version.
 
 ## 10. Constraints - what is fixed before anything is chosen?
 
-Anything that rules an option out rather than merely preferring one: a language
-or framework you already know and want to keep, hosting it must run on, a hard
-budget ceiling, a deadline, something it has to work with, app-store
-distribution.
-
-Filled in by the `ideate` skill from what you say, or by you. **`stack` Step 1
-asks for exactly these**, so an empty section here is the same question asked
-twice - and the answer lost between sessions rather than merely repeated.
-
-"None" is a real answer and worth writing, because it licenses the simplest
-choice instead of leaving one looking careless.
+- **Platform:** web - browser-based admin plus a server-rendered public site.
+- **Database:** PostgreSQL 16, on the same Oracle VPS - **not installed yet**
+  (checked 2026-09-15).
+- **Minimal dependencies:** prefer the platform and standard library; every
+  runtime dependency is a recorded decision.
+- **Server resources:** 954 MB RAM, 2 vCPU - rules out memory-heavy runtimes and
+  building on the server.
+- **Hosting:** Oracle Cloud VPS, with Caddy already installed for HTTPS. Must
+  stay portable to another VPS (e.g. headless Ubuntu).
+- **Image storage:** Cloudflare R2 (account to be created by the user).
+- **Auth:** JWT with a one-week lifetime for the MVP. The gap - a removed or
+  demoted user keeping access until expiry - is closed by a database check on
+  every admin request (section 6, D6).
+- **From scratch:** no existing code or data to migrate.
+- **Deadline / budget:** not stated.
 
 ## 11. Deliberately deferred - what is not in the first version?
 
-What was cut, and roughly when it comes back: **soon after** (real, wanted, not
-needed on day one) and **later, or never** (named so it stops taking up room).
+**Soon after:**
 
-Filled in by the `ideate` skill, whose most valuable step is cutting scope.
-Recording the cut is what makes it stay cut: an unwritten deferral is
-re-litigated every time someone remembers it, and a first version that quietly
-regrows is the most common way a project dies.
+- **Categories and tags** - useful, but publishing works without them.
+- **Scheduled publishing and revision history** - editor complexity before the
+  editor is proven.
+- **SEO fields and sitemap** - meta description, social image.
+- **Password reset by email** - needs an email service; an admin resets
+  passwords for now.
+- **Custom domains** - needed once it is a hosted service.
+
+**Later - likely direction:**
+
+- **Page builder** - the probable next big step after the first version. A
+  product of its own, so not in the MVP; `architect` should store content as
+  blocks in a shape a page builder can extend (layout added on top), so it
+  arrives as an addition rather than a rewrite.
+
+**Later, or never:**
+
+- **Headless content API.**
+- **Multiple themes and theme customisation.**
+- **Many sites per installation, public signup, billing.**
+- **Importing from WordPress.**
+- **Plugins, comments, forms, e-commerce, multiple languages.**
+
+## Open questions
+
+- ~~One installation per customer, or many sites in one system?~~ **Settled by
+  D8:** one site per installation, no site id; many sites later means a database
+  per site.

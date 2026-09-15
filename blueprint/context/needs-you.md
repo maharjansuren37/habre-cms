@@ -69,7 +69,29 @@ not tidying; it is what keeps the open list true.
            Blocks `scaffold` on `api`. Fix: `sudo -u postgres createuser -s appuser`
 -->
 
-_Nothing recorded yet._
+- [ ] **Cloudflare R2 bucket, public URL, and an API token scoped to that bucket** -
+      accounts; needs your Cloudflare account. Blocks item 5 (Images). `open`
+      (architect, 2026-09-15)
+- [ ] **DNS record for the CMS on `surenmaharjan.fyi` pointing at the VPS** -
+      access; your DNS. Decide root domain or a subdomain. Needed for HTTPS via
+      Caddy; needed by `host` and `deploy`, nothing blocked yet. `open`
+      (architect, 2026-09-15)
+- [ ] **On `ocwebserver`: install Node 26 and PostgreSQL 16, then create the
+      `habre_cms` database plus a role owning only it** - system software/access;
+      your server and its credentials. Not installed as of 2026-09-15. Needed by
+      `host` and `deploy`, not `scaffold` (development uses Docker). `open`
+      (architect, 2026-09-15; updated by stack)
+- [ ] **Off-server location for nightly database backups** - decision/spend;
+      where copies of your data live. Needed by `host`, nothing blocked yet.
+      `open` (architect, 2026-09-15)
+- [ ] **Install Node 26 on this dev machine** - system software; not installed
+      as of 2026-09-15. **Blocks `scaffold`.** `open` (stack, 2026-09-15)
+- [ ] **Delete the `hone.surenmaharjan.fyi` DNS record** - access; your DNS.
+      The hone app was removed from `ocwebserver` on 2026-09-15 (data archived
+      to `~/backups/hone-2026-09-15.tar.gz`); the record now points at a server
+      with no site for it. Blocks nothing. `open` (2026-09-15)
+- [ ] **UptimeRobot account with an alert email** - account; free tier.
+      Needed by `monitor`, nothing blocked yet. `open` (stack, 2026-09-15)
 
 ## Done
 
