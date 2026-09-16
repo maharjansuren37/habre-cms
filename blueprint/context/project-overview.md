@@ -5,9 +5,9 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-16 on branch `host/production` (from `main` `48e5052`, plan
-edits uncommitted). Decision numbers (D1-D22) refer to `dev-notes/decisions.md` -
-read the entry before changing anything it covers.
+Generated 2026-09-16 at `main` `52c2670` (record edits uncommitted). Decision
+numbers (D1-D23) refer to `dev-notes/decisions.md` - read the entry before
+changing anything it covers.
 
 ## What this is
 
@@ -55,6 +55,7 @@ decision.
 | Language | TypeScript 7.0.2, strict, `erasableSyntaxOnly` (no `enum`, `namespace`, parameter properties) | Node runs `.ts` by stripping types |
 | Runtime | Node.js 26 (dev 26.8.1, CI and production 26.8.2) | Supported to 2029, LTS due Oct 2026 (D15) |
 | Framework | React Router 8.3.1 framework mode, React 19.3.0, Vite 8.3.0, served by `node:http` - **no Express** | Small, low memory, forms work without JS (D10, D17) |
+| Node server | `@remix-run/node-fetch-server` 0.14.1, used directly in `server/app.ts` with `trustProxy: true` | `@react-router/node`'s wrapper passes no options, and without `trustProxy` the app misreads its own origin behind Caddy (D23) |
 | Database | PostgreSQL 16; `postgres` 3.4.9 driver, **raw SQL, no ORM**; numbered `.sql` migrations via `db/migrate.ts` | Four tables do not need an ORM (D11) |
 | Styling | Plain CSS: custom properties for light/dark tokens, CSS Modules. **No Tailwind** | `prototype` tokens map straight to CSS variables (D12); look in `blueprint/context/design.md` |
 | Auth | JWT with `jose` 6.2.12 (installed); passwords with `node:crypto` scrypt. **No auth library** | (D6) |
@@ -204,16 +205,25 @@ backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
   server** (D14). A second web app likely needs a bigger VPS.
 - **Environments (D21):** `development` (local, Docker PostgreSQL), `ci` (GitHub
   Actions, `npm run verify`), **`production` only** - no staging.
-- **Production is provisioned, nothing deployed** (`deploy/setup-server.sh`,
-  2026-09-16): Node 26.8.2 at `/usr/local/bin/node`; PostgreSQL 16.15 on
-  localhost, database and role `habre_cms`; systemd `habre-cms.service` as user
-  `habre_cms` from `/srv/habre-cms/current` on `127.0.0.1:3000` (enabled, not
-  started); secrets in `/etc/habre-cms/production.env` (mode 600, generated on
-  the server, never printed). Non-secret settings (`NODE_ENV`, `PORT`,
+- **Production is live** (`deploy/setup-server.sh`, 2026-09-16): Node 26.8.2 at
+  `/usr/local/bin/node`; PostgreSQL 16.15 on localhost, database and role
+  `habre_cms`; systemd `habre-cms.service` as user `habre_cms` from
+  `/srv/habre-cms/current` on `127.0.0.1:3000`; secrets in
+  `/etc/habre-cms/production.env` (mode 600, generated on the server, never
+  printed), backup credentials separately in root-only
+  `/etc/habre-cms/backup.env`. Non-secret settings (`NODE_ENV`, `PORT`,
   `APP_URL`) live in the unit.
+- **Backups:** nightly `pg_dump` at 02:30 UTC to a private R2 bucket
+  (`deploy/backup-db.sh`), dump checked before upload and its stored size
+  re-read after. **Restore proven** by running the app against a restored copy.
+  **Nothing alerts if a backup fails** - F-15, accepted by the owner until
+  `monitor` runs.
 - **Deploying:** files go over **`rsync` via SSH** (the server has no `git`).
   Releases in `/srv/habre-cms/releases/`, the `current` symlink picks one;
   rollback repoints it. Build locally or in CI; the server runs the artifact.
+  **Rollback proven** 2026-09-16: back in 5 s, forward in 3 s, each confirmed by
+  the behaviour only that release has. **A release with a migration cannot be
+  rolled back this way** - reversing code does not reverse a schema (F-19).
 - **Caddy** handles HTTPS and renews certificates. The repository owns only
   `deploy/caddy/habre-cms.caddy`, imported by the server's main Caddyfile -
   **never replace the main Caddyfile** (D17, amended). The app listens on
@@ -231,22 +241,34 @@ backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
 
 ## Current state
 
-- **Build plan: 1 of 8 items done** - item 1 *Admin login* shipped (`48e5052`,
-  archived in `blueprint/history/features/01-admin-login.md`). Nothing in flight
+- **Build plan: 1 of 8 items done** - item 1 *Admin login* shipped (archived in
+  `blueprint/history/features/01-admin-login.md`). Nothing in flight
   (`current-work.md` is empty). `prototype` has run (`design.md` exists).
-- **In progress outside the build loop:** `host` work on branch
-  `host/production`, **uncommitted** - `deploy/` files, the production row in
-  `AGENTS.md`, D21, D22, the D17 amendment and plan updates.
-- **Open findings:** F-07 [P3] `fixed` - `preflight` closes it once a running
-  release confirms Caddy's `X-Forwarded-For`; F-13 [P3] `unverified` - not
-  reachable on today's IPv4-only server.
-- **Next:** commit the hosting work (needs approval) -> `preflight` -> `deploy`
-  item 1 to `cms.surenmaharjan.fyi`. Then `spec` **item 2 - Write a post**.
+- **It is live and working.** Production serves `https://cms.surenmaharjan.fyi`
+  from release `52c2670`; an admin account exists and the owner has logged in
+  through a browser. The first release `48e5052` shipped with a P0 - behind
+  Caddy every form POST was rejected, so login was impossible - fixed by
+  `fix/trust-forwarded-proto` (D23) and proven in production.
+  **Until item 4, everything is on `cms`; the apex serves nothing.**
+- **Also done outside the build loop:** `preflight` (no-go for real users, its
+  two P1s now closed or accepted), `host` (server, backups, restore, rollback),
+  two `deploy` runs, and `docs` (real README, proven by running its commands).
+- **`main` is 4 commits ahead of `origin/main` and has never been pushed**, so
+  this machine holds the only copy and **CI has not checked anything since
+  `48e5052`**. Record edits from the last deploy are uncommitted.
+- **Open findings:** F-16 [P2] `fixed` (restore now proven, `preflight` closes) ·
+  F-17 [P2] browser tests never run in CI · F-18 [P2] accessibility never checked
+  by hand · F-22 [P2] `unverified` (trusting forwarded headers; the production
+  half is disproven) · F-19, F-20, F-23, F-24 [P3] · F-07 [P3] `fixed` (evidence
+  now recorded) · F-13 [P3] `unverified`. **F-15 [P1] was accepted by the owner**
+  - nothing alerts when the live system breaks, until `monitor` runs.
+- **Next:** commit the record edits, push `main` (needs a separate yes), then
+  `spec` **item 2 - Write a post**. `monitor` whenever the owner is ready.
 - **Remaining items, in order:** 2 Write a post · 3 Manage posts · 4 Publish to
   the public site (includes the D22 hostname split) · 5 Images · 6 Pages · 7 Site
   settings and menu · 8 Users and roles.
-- **Waiting on the user** (`needs-you.md`): R2 image bucket and token (blocks
-  item 5); private R2 backup bucket and token (blocks off-server backups, which
-  `preflight` requires); UptimeRobot account; screen-reader pass over login and
-  the admin shell; `APP_URL`/`JWT_SECRET` in the local `.env`; deleting the old
-  `hone.surenmaharjan.fyi` DNS record.
+- **Waiting on the user** (`needs-you.md`): a public URL for the R2 images bucket
+  and a production R2 token (both item 5); an UptimeRobot account (`monitor`,
+  F-15); a screen-reader and keyboard pass over login and the admin shell
+  (F-18); deleting the old `hone.surenmaharjan.fyi` DNS record. The images
+  bucket, backup bucket, server software and local `.env` lines are **done**.

@@ -294,6 +294,18 @@ hostnames to configure in Caddy and production config, cross-host redirects to
 build and test, and browser tests that need two local hostnames (`127.0.0.1` and
 `localhost`) to exercise them.
 
+*Reconsidered and kept, 2026-09-16.* The owner asked whether a single domain with
+`/admin` would do. It would, and it is simpler - one origin, one certificate, one
+Caddy block, no host routing, no cross-host redirects, and a smaller item 4. The
+split was kept for one reason: on a single origin the session cookie travels with
+every public page view, so **any XSS on a public page is same-origin with the
+admin and can act as the logged-in user**, which the CSRF origin check cannot
+distinguish from a real request. That risk is small today (public pages render
+escaped structured blocks, no raw HTML, no comments, no forms) and grows with
+item 5 and the page builder. A second reason: separate origins allow a strict
+public CSP alongside the looser one Editor.js needs. Revisit only with those two
+in view.
+
 ## D23 - The Node listener is built directly, to trust Caddy's forwarded headers (2026-09-16)
 
 **Chose:** `server/app.ts` builds the request listener from

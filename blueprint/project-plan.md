@@ -454,9 +454,9 @@ From `stack`:
   app, and Editor.js (item 2) and R2 image URLs (item 5) decide what it must
   allow. Set it once item 5 lands; `preflight` should treat it as a decision
   with that trigger, not an oversight.
-- **More env vars:** `PORT`, `NODE_ENV`. Only `DATABASE_URL`, `NODE_ENV` and
-  `PORT` are read today; the rest are listed in `.env.example` against the item
-  that first reads them.
+- **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`, `APP_URL`,
+  `JWT_SECRET`, `PORT` and `NODE_ENV`; the rest are listed in `.env.example`
+  against the item that first reads them.
 - **Memory budget:** PostgreSQL tuned small (`shared_buffers` ~128 MB), app
   ~100 MB, Caddy ~30 MB.
 - **Server setup script** in the repository installs Node 26 and PostgreSQL 16

@@ -11,12 +11,52 @@ The `docs` skill maintains it.
 
 ## Where this stands
 
-**First production deploy, 2026-09-16: release `48e5052` (`main`, item 1 admin
-login) is live at `https://cms.surenmaharjan.fyi` - and its one feature does not
-work.** See F-21 (P0): behind Caddy the app thinks its origin is `http://`, so
-every form POST, login included, is rejected with 400. Read-only pages are fine.
-The release was left running deliberately (no users, no content, and it is what
-the fix will be verified against); the next deploy carries the fix.
+**Production runs release `52c2670` (2026-09-16), and login works.** Deployed at
+`https://cms.surenmaharjan.fyi`; the first release `48e5052` shipped with F-21
+(every form POST rejected behind Caddy) and this one fixes it. **An admin account
+exists and the owner has logged in**, so item 1 is proven working in production.
+
+- **Second deploy, `52c2670`:** built from a clean clone of `main` (never on the
+  server), `npm ci` -> `npm run verify` passed -> `npm run build` ->
+  `npm ci --omit=dev`, rsynced to `/srv/habre-cms/releases/52c2670`, `current`
+  repointed, service restarted. **No migration** - this release changes no
+  schema. **CI never ran on this commit:** `main` has not been pushed, and CI
+  runs on push, so the checks that gated it ran only on the dev machine.
+- **Verified through the public URL:** `/healthz` `{"status":"ok","database":"up"}`
+  · `/admin/login` 200 · a POST with a browser-shaped `Origin: https://...`
+  reaches the action and comes back as the form's own error (6951 bytes), logged
+  `login_failed` with the real client IP - **F-21 fixed in production, and F-07's
+  `X-Forwarded-For` proven again here**. Under the previous release the same
+  request returned an 11-byte "Bad Request".
+- **F-22 answered:** Caddy overwrites client-supplied `X-Forwarded-Host` and
+  `X-Forwarded-Proto` - forging either changes nothing (evidence in the ledger).
+- **Previous release:** `48e5052`, still on disk. **Rollback** is
+  `sudo ln -sfn /srv/habre-cms/releases/<sha> /srv/habre-cms/current && sudo systemctl restart habre-cms`,
+  which takes seconds and needs no rebuild.
+- **Restore proven 2026-09-16 (F-16).** The newest dump was restored into a
+  scratch database and **the app was started against it**: `/healthz` healthy, a
+  wrong password gave the form error, the right password gave 302 to `/admin`.
+  The scratch database and its throwaway account were dropped afterwards. A
+  restore onto a **fresh server** - D9's under-an-hour rebuild - is still
+  untested.
+- **Production was down for about a minute on 2026-09-16, by accident.** During
+  the first restore attempt a cleanup `pkill -u habre_cms -f 'node server.js'`
+  matched the live server as well as the scratch one; SIGTERM looks like a clean
+  exit, so `Restart=on-failure` did not bring it back and the service sat
+  `inactive` until `systemctl start`. No data was involved and nobody was using
+  the site. **Two lessons worth keeping:** kill by the PID you started, never by
+  pattern, on a machine running the real thing; and nothing would have told
+  anyone - exactly the gap F-15 describes, demonstrated by accident.
+- **Rollback drill run 2026-09-16, and it works.** Rolled production back to
+  `48e5052` (**5 s**) and confirmed the old code was really serving, not just a
+  moved symlink: the login POST came back as the 11-byte "Bad Request" that
+  release is known for, while `/healthz` stayed `{"status":"ok","database":"up"}`.
+  Rolled forward to `52c2670` (**3 s**): the same POST returned the 6951-byte
+  form error again and `/admin/login` 200. **No migration was involved**, so
+  neither direction had a schema to reconcile - a release that adds one cannot be
+  rolled back this simply, and F-19 (forward-only migrations) is why.
+
+**First deploy, 2026-09-16 (superseded by `52c2670` above; kept as the record):**
 
 - **Deployed:** commit `48e5052`, built from a clean clone of `main` in a scratch
   directory (never on the server, never from the working tree), `npm ci` ->
@@ -35,13 +75,16 @@ the fix will be verified against); the next deploy carries the fix.
   cookie 302 to the login page with `redirectTo` · unknown path 404 · http 308 to
   https · `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` present
   (no CSP yet, deliberate) · **login POST 400 - F-21**.
-- **No admin account exists yet.** Create one on the server with:
+- **An admin account now exists, and the owner logged in through
+  `https://cms.surenmaharjan.fyi/admin/login` on 2026-09-16** (reported by the
+  owner). That is item 1 working end to end in production, in a real browser:
+  F-21 is closed on evidence rather than on a curl approximation. The command
+  below is how to add another.
+- **Superseded:** *No admin account exists yet* - create one on the server with:
   `sudo -u habre_cms bash -c "cd /srv/habre-cms/current && /usr/local/bin/node --env-file=/etc/habre-cms/production.env scripts/create-admin.ts --email you@example.org --name 'Your Name'"`
-  It prompts for the password twice. Logging in only works once F-21 is fixed.
-- **Rollback:** untested, and there is no previous release to go back to. The
-  mechanism is `ln -sfn /srv/habre-cms/releases/<sha> /srv/habre-cms/current`
-  then `systemctl restart habre-cms`; it becomes real on the second deploy.
-- **Previous release:** none. Releases kept on disk: `48e5052`.
+  It prompts for the password twice. Logging in works now that F-21 is fixed.
+- **Rollback:** the mechanism exists and is still **untested** - no rollback has
+  been performed. Releases kept on disk: `48e5052`, `52c2670`.
 
 **Hosting (host, 2026-09-16, branch `host/production`):** decided, not
 provisioned. Production only, on `ocwebserver`; backups to a private R2 bucket
