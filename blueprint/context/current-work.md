@@ -90,10 +90,10 @@ with a one-line description; Draft badge is warning amber.
   matches, returning a `stale` result otherwise; a successful update bumps
   `version` and `updated_at`. `findEntryForUser` returns nothing when an author
   asks for someone else's post (editor and admin see all).
-  *Done when:* `npm run verify` passes, and a unit test proves the ownership rule
-  and the version check against the development database - two concurrent
-  updates from the same starting version leave the second reporting `stale` and
-  the row changed once.
+  *Done when:* `npm run verify` passes, and the pure parts (input validation,
+  the slug choice) are covered by unit tests. **The ownership rule and the
+  version check are proven in step 7's browser tests, not here** - see Decisions:
+  `npm test` is part of `npm run verify`, which CI runs with no database.
 
 - [ ] **Step 4 - The editor component** - install `@editorjs/editorjs` 2.31.6
   with its header and list tools, pinned exactly (record the resolved versions in
@@ -130,9 +130,27 @@ with a one-line description; Draft badge is warning amber.
 
 - [ ] **Step 7 - Browser tests** - `e2e/write-post.spec.ts`: write and save a
   draft; reload and see it; an author cannot open another author's post (404);
-  the stale-save conflict. Each seen to fail against a deliberately broken
-  version.
+  an editor can; the stale-save conflict leaves one change in the database. Each
+  seen to fail against a deliberately broken version. **This is where the
+  database-backed rules from step 3 are proven.**
   *Done when:* `npm run test:e2e` passes, including the existing 15.
+
+## Decisions
+
+Settled while building; `ship` carries these into `dev-notes/decisions.md`.
+
+- **Database-backed tests live in the Playwright suite, not `node --test`**
+  (2026-09-16, with the owner's agreement at the step 3 gate). `npm test` runs
+  inside `npm run verify`, which CI runs **with no database**, so a
+  database-dependent unit test would turn CI red on the next push. Skipping it
+  when `DATABASE_URL` is absent was rejected: a test that silently skips in the
+  one place that runs automatically reports safety nobody has. The real fix is a
+  PostgreSQL service in CI - that is F-17's, and its own change.
+- **A post's web address is chosen once, at creation, and does not follow later
+  title edits.** Changing it afterwards is the "Change" control in `design.md`,
+  which no item has built yet. Keeping it stable means a saved draft's address
+  never moves under a link someone shared, and every save avoids re-checking
+  uniqueness.
 
 ## Files and areas
 
