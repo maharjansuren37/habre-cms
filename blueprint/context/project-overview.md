@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-16 at `main` `52c2670` (record edits uncommitted). Decision
-numbers (D1-D23) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-16 at `main` `6f9c1ea`. Decision
+numbers (D1-D27) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -241,9 +241,22 @@ backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
 
 ## Current state
 
-- **Build plan: 1 of 8 items done** - item 1 *Admin login* shipped (archived in
-  `blueprint/history/features/01-admin-login.md`). Nothing in flight
-  (`current-work.md` is empty). `prototype` has run (`design.md` exists).
+- **Build plan: item 1 done, item 2 half done** - *Admin login* and **2a *Write a
+  post*** are shipped (archived under `blueprint/history/features/`). Item 2 was
+  split: **2b *Inline formatting*** - bold, italic and links as structured runs -
+  is the next unchecked item. Nothing in flight (`current-work.md` is empty).
+  `prototype` has run (`design.md` exists).
+- **Writing works, in development only.** `/admin/posts/new` and
+  `/admin/posts/:id` save drafts through Editor.js; text, heading and list
+  blocks are stored as plain text in `blocks_format` `v1` (D26). **Production has
+  neither the code nor the `entries` table** - the next deploy needs
+  `0002_entries.sql` applied through `migrate` first.
+- **What item 2a settled, for the items that read it:** blocks are
+  `{id, type, data}` with plain text; **item 4's public renderer must render
+  through JSX, never an HTML-building helper**, and the `title` column is stored
+  raw (D26); a post's address is chosen once at creation (D25); untrusted
+  structure is bounded by name rather than hoped about (D27); database-backed
+  tests live in the Playwright suite because CI has no database (D24).
 - **It is live and working.** Production serves `https://cms.surenmaharjan.fyi`
   from release `52c2670`; an admin account exists and the owner has logged in
   through a browser. The first release `48e5052` shipped with a P0 - behind
@@ -253,20 +266,29 @@ backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
 - **Also done outside the build loop:** `preflight` (no-go for real users, its
   two P1s now closed or accepted), `host` (server, backups, restore, rollback),
   two `deploy` runs, and `docs` (real README, proven by running its commands).
-- **`main` is 4 commits ahead of `origin/main` and has never been pushed**, so
-  this machine holds the only copy and **CI has not checked anything since
-  `48e5052`**. Record edits from the last deploy are uncommitted.
-- **Open findings:** F-16 [P2] `fixed` (restore now proven, `preflight` closes) ·
+- **`main` is pushed and in sync**, and item 2a went in through **pull request #3
+  with CI green** - the first item CI checked before it reached `main`. CI runs
+  `verify` only, so the browser tests covering item 2a's worst defects still gate
+  nothing (F-17).
+- **Item 2a's review is worth knowing about:** four independent passes found a P0
+  (every list stored as `[object Object]`, because `@editorjs/list` saves objects
+  not strings), stored XSS through Editor.js's own render path, and two ways to
+  save an empty body over a real post. All closed, each covered by a test shown
+  to fail when the repair is reverted. **Self-review missed all three** - they
+  shared one assumption with the code.
+- **Open findings:** F-16 [P2] `fixed` (restore proven, `preflight` closes) ·
   F-17 [P2] browser tests never run in CI · F-18 [P2] accessibility never checked
-  by hand · F-22 [P2] `unverified` (trusting forwarded headers; the production
-  half is disproven) · F-19, F-20, F-23, F-24 [P3] · F-07 [P3] `fixed` (evidence
-  now recorded) · F-13 [P3] `unverified`. **F-15 [P1] was accepted by the owner**
-  - nothing alerts when the live system breaks, until `monitor` runs.
-- **Next:** commit the record edits, push `main` (needs a separate yes), then
-  `spec` **item 2 - Write a post**. `monitor` whenever the owner is ready.
-- **Remaining items, in order:** 2 Write a post · 3 Manage posts · 4 Publish to
-  the public site (includes the D22 hostname split) · 5 Images · 6 Pages · 7 Site
-  settings and menu · 8 Users and roles.
+  by hand, now also covering the editor's two popovers · F-22, F-25, F-29 [P2] ·
+  F-19, F-20, F-23, F-24, F-26, F-27, F-37, F-38, F-39, F-40 [P3] · F-41 [P3]
+  `fixed` · F-07 [P3] `fixed` · F-13, F-31 [P3] `unverified`. **F-15 [P1] was
+  accepted by the owner** - nothing alerts when the live system breaks, until
+  `monitor` runs.
+- **Next:** `spec` **2b - Inline formatting**, or item 3 if the posts list is
+  wanted first. A deploy would carry item 2a to production and needs `migrate`
+  for `0002_entries.sql` beforehand.
+- **Remaining items, in order:** 2b Inline formatting · 3 Manage posts · 4 Publish
+  to the public site (includes the D22 hostname split) · 5 Images · 6 Pages ·
+  7 Site settings and menu · 8 Users and roles.
 - **Waiting on the user** (`needs-you.md`): a public URL for the R2 images bucket
   and a production R2 token (both item 5); an UptimeRobot account (`monitor`,
   F-15); a screen-reader and keyboard pass over login and the admin shell
