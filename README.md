@@ -1,11 +1,13 @@
-# Project Name
+# Habre CMS
 
-<!-- Replace everything down to "How this project is built" - that section is
-     worth keeping, and points whoever joins next at their orientation. The
-     `docs` skill will help, and `preflight` treats a README that is still
-     boilerplate as a blocker before going live. -->
+A website management system, like WordPress but built to be genuinely easy for
+non-technical editors: they write, manage and publish one website's content in a
+block editor, and the CMS serves the public site itself - no developer needed to
+put something online. It is for small organisations with a handful of admins,
+editors and authors.
 
-One or two sentences: what this is, and who it is for.
+**Status: early.** Admin login works; writing, publishing and the public site are
+the next items. Nothing is deployed yet.
 
 ## Running it
 
@@ -34,6 +36,27 @@ server after deploying.
     npm start                   # serves the production build
     npm run verify              # typecheck, lint, unit tests, build
     npx playwright install chromium && npm run test:e2e   # browser tests; need the dev database and .env
+
+`npm run verify` is what CI runs on every push and pull request. It does **not**
+include the browser tests, which need a database - run those yourself before a
+release.
+
+## Deploying it
+
+Not deployed yet. The server it will run on is prepared, and everything needed to
+rebuild it lives in `deploy/`:
+
+- `setup-server.sh` - installs Node and PostgreSQL, creates the service user,
+  database and secrets, installs the service, the Caddy site file and the nightly
+  backup. Safe to run again.
+- `habre-cms.service` - systemd unit; the app listens on localhost and Caddy
+  terminates HTTPS.
+- `backup-db.sh` with `habre-cms-backup.{service,timer}` - nightly `pg_dump` to a
+  private object-storage bucket, checked before upload.
+
+The app is built locally or in CI and copied to the server with `rsync`; it is
+never built there. `dev-notes/status.md` records what is set up and what is still
+missing.
 
 ## How this project is built
 

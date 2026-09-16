@@ -11,6 +11,38 @@ The `docs` skill maintains it.
 
 ## Where this stands
 
+**First production deploy, 2026-09-16: release `48e5052` (`main`, item 1 admin
+login) is live at `https://cms.surenmaharjan.fyi` - and its one feature does not
+work.** See F-21 (P0): behind Caddy the app thinks its origin is `http://`, so
+every form POST, login included, is rejected with 400. Read-only pages are fine.
+The release was left running deliberately (no users, no content, and it is what
+the fix will be verified against); the next deploy carries the fix.
+
+- **Deployed:** commit `48e5052`, built from a clean clone of `main` in a scratch
+  directory (never on the server, never from the working tree), `npm ci` ->
+  `npm run verify` passed -> `npm run build` -> `npm ci --omit=dev`, copied by
+  rsync to `/srv/habre-cms/releases/48e5052` (53 MB), `current` symlink
+  repointed, service restarted.
+  **Caveat: CI does not publish artifacts, so this is a local build of the commit
+  CI tested - same source, a different build.**
+- **Migration:** `0001_users.sql` applied to production by `migrate` on
+  2026-09-16, after a fresh backup (`habre_cms-20260916T015818Z.dump`). Re-run
+  prints "No pending migrations." `users` and `schema_migrations` exist with the
+  columns, unique email index and role check from the plan. Forward-only: the
+  reverse is restoring a dump (F-19).
+- **Verified through the public URL** (not localhost): `/` 200 · `/healthz`
+  `{"status":"ok","database":"up"}` · `/admin/login` 200 · `/admin` without a
+  cookie 302 to the login page with `redirectTo` · unknown path 404 · http 308 to
+  https · `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` present
+  (no CSP yet, deliberate) · **login POST 400 - F-21**.
+- **No admin account exists yet.** Create one on the server with:
+  `sudo -u habre_cms bash -c "cd /srv/habre-cms/current && /usr/local/bin/node --env-file=/etc/habre-cms/production.env scripts/create-admin.ts --email you@example.org --name 'Your Name'"`
+  It prompts for the password twice. Logging in only works once F-21 is fixed.
+- **Rollback:** untested, and there is no previous release to go back to. The
+  mechanism is `ln -sfn /srv/habre-cms/releases/<sha> /srv/habre-cms/current`
+  then `systemctl restart habre-cms`; it becomes real on the second deploy.
+- **Previous release:** none. Releases kept on disk: `48e5052`.
+
 **Hosting (host, 2026-09-16, branch `host/production`):** decided, not
 provisioned. Production only, on `ocwebserver`; backups to a private R2 bucket
 (D21). **Server provisioned 2026-09-16** by `deploy/setup-server.sh` (run
@@ -113,7 +145,18 @@ on backups.
 What has actually been proven to work, and how it was proven. Not what should
 work.
 
-_Nothing yet._
+- **Item 1, admin login** - `verify` at ship time on `81a3480`: every done-when
+  passed (login p95 0.191 s, light/dark screenshots at 1280 and 390 px).
+  Archived in `blueprint/history/features/01-admin-login.md`.
+- **Every README command, run 2026-09-16 by `docs`:** `docker compose up -d`;
+  `npm run db:migrate` -> "No pending migrations."; `npm run verify` -> passed
+  (typecheck, lint, 40 unit tests, build); `npm start` -> `/` 200,
+  `/healthz` `{"status":"ok","database":"up"}`, `/admin/login` 200;
+  `npm run test:e2e` -> **12 passed** in 11.9 s.
+- **CI** - green on `main` for all three pushes (latest `35023825857`, item 1).
+- **Production server** - provisioned and checked; see *Where this stands*.
+- **Nightly backup** - one manual run dumped, verified, uploaded; the object is
+  in the bucket at the same size.
 
 ## Open / not done
 
@@ -121,7 +164,30 @@ Known gaps, untested paths, and things deliberately deferred. **Be honest here**
 this section is the one that saves time later, and it only works if it is
 complete.
 
-_Nothing yet._
+- **Nothing is deployed.** 1 of 8 build items done; the public site, the editor
+  and everything else are unbuilt. `preflight` on 2026-09-16 said **no-go for
+  real users**.
+- **Open findings** (`blueprint/context/findings.md`): F-15 P1 nothing alerts on
+  failure - **deferred by the owner to `monitor`** (2026-09-16), so it does not
+  block `deploy` · F-16 P2 backup never restored · F-17 P2 browser tests never run
+  automatically · F-18 P2 accessibility never checked by hand · F-19 P3 no
+  migration reverse policy · F-20 P3 root SSH login allowed. F-14 (README) is
+  `fixed`, awaiting a `preflight` re-check. F-07 `fixed`, F-13 `unverified`.
+- **The browser tests are the only cover for login's real behaviour, and CI does
+  not run them** - they need a database. Run `npm run test:e2e` before a release.
+- **`npm run create-admin -- --help` crashes** with an unhandled
+  `ERR_PARSE_ARGS_UNKNOWN_OPTION` stack trace instead of printing the usage line
+  it already has (`scripts/create-admin.ts:16`). Cosmetic, unspecced; worth a
+  small fix item.
+- **No Content-Security-Policy** until item 5 lands - deliberate, recorded in the
+  plan with that trigger.
+- **No staging environment** (D21), and no rollback has ever been performed.
+- **`R2_PUBLIC_URL` is empty** and production has no R2 token yet - both needed
+  by item 5.
+- **No `CHANGELOG.md`** - deliberate: nothing is released and nobody else runs
+  this. `docs` writes it from `blueprint/history/` at the first release.
+- **No licence and no privacy policy** - not distributed, no public accounts.
+  Both become real before anyone outside the organisation uses it.
 
 ## Running it by hand
 
