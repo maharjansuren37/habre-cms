@@ -88,18 +88,31 @@ export function toPlainText(html: string): string {
 // cannot exhaust the stack: unbounded recursion here threw RangeError and
 // answered 500 (F-41). The format holds one level anyway.
 const MAX_LIST_DEPTH = 8;
+// Matches the schema's own cap, so a body cannot build a huge array first.
+const MAX_LIST_ITEMS = 500;
 
-function flattenListItems(items: readonly unknown[], depth = 0): string[] {
-  if (depth > MAX_LIST_DEPTH) return [];
+function flattenListItems(items: unknown, depth = 0): string[] {
+  // Anything that is not an array - including a string, which would otherwise be
+  // iterated one character at a time and stored as that many list items.
+  if (depth > MAX_LIST_DEPTH || !Array.isArray(items)) return [];
   const flat: string[] = [];
   for (const item of items) {
+    // Bounds the work, not the correctness: the schema refuses past 500 items
+    // either way, so no test can tell this line from its absence. It stops a
+    // crafted body building a 150,000-element array first.
+    if (flat.length > MAX_LIST_ITEMS) break;
     if (typeof item === "string") {
       flat.push(toPlainText(item));
       continue;
     }
-    const listItem = item as { content?: unknown; items?: unknown[] };
+    // `typeof null === "object"`, so null has to be excluded by name: reading
+    // `.content` off it threw a TypeError to the action, which has no catch.
+    if (item === null || typeof item !== "object") continue;
+    const listItem = item as { content?: unknown; items?: unknown };
     flat.push(toPlainText(String(listItem.content ?? "")));
-    if (Array.isArray(listItem.items)) flat.push(...flattenListItems(listItem.items, depth + 1));
+    // Pushed one at a time, not spread: spreading a very wide child exhausts
+    // the call stack, which the depth bound cannot see (one level, 150k items).
+    for (const nested of flattenListItems(listItem.items, depth + 1)) flat.push(nested);
   }
   return flat.filter((text) => text !== "");
 }

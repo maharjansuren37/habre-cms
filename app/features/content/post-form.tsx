@@ -26,6 +26,7 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
   const readEditor = useRef<(() => Promise<{ blocks: unknown[] }>) | null>(null);
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
+  const [hasUnreadableContent, setUnreadableContent] = useState(false);
 
   // Editor.js reaches for `document` as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
@@ -38,7 +39,7 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
 
   const saveState = isSaving
     ? "Saving…"
-    : problem
+    : problem || hasUnreadableContent
       ? "Not saved - see message below"
       : hasUnsavedChanges
         ? "Not saved yet"
@@ -48,7 +49,16 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const content = await readEditor.current?.();
-    form.set("blocks", JSON.stringify(content ?? { blocks: [] }));
+    // Editor.js's save() resolves to undefined when a tool throws inside it, and
+    // the ref is null before the editor mounts. Defaulting either to an empty
+    // list turned "the content could not be read" into "there is no content",
+    // which saved over a real post - the same wipe as F-34, from the client side.
+    if (!content || !Array.isArray(content.blocks)) {
+      setUnreadableContent(true);
+      return;
+    }
+    setUnreadableContent(false);
+    form.set("blocks", JSON.stringify(content));
     submit(form, { method: "post" });
   }
 
@@ -85,6 +95,11 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
       {problem?.kind === "invalid" ? (
         <Message tone="error" title="Your changes were not saved.">
           {problem.message}
+        </Message>
+      ) : null}
+      {hasUnreadableContent ? (
+        <Message tone="error" title="Your changes were not saved.">
+          The editor's content could not be read. Copy anything you want to keep, then reload.
         </Message>
       ) : null}
 

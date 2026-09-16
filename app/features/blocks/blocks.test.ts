@@ -182,3 +182,31 @@ test("a checklist refusal tells the writer how to get unstuck", () => {
   );
   assert.match(result.ok === false ? result.message : "", /Open that block's settings/);
 });
+
+test("a null item is refused rather than throwing on a property read", () => {
+  // typeof null === "object", so this read `.content` off null and threw a
+  // TypeError to the action, which has no catch - an 82-byte body gave a 500.
+  const result = fromEditorJs(editorBlock("list", { style: "unordered", items: [null] }));
+  assert.equal(result.ok, false);
+});
+
+test("a very wide nested list is bounded rather than exhausting the stack", () => {
+  const wide = Array.from({ length: 150_000 }, (_, index) => ({
+    content: `item ${index}`,
+    meta: {},
+    items: [],
+  }));
+  const result = fromEditorJs(
+    editorBlock("list", {
+      style: "unordered",
+      items: [{ content: "parent", meta: {}, items: wide }],
+    }),
+  );
+  // Refused by the schema's 500-item cap, and crucially without throwing.
+  assert.equal(result.ok, false);
+});
+
+test("items that are not an array are refused rather than read one character at a time", () => {
+  const result = fromEditorJs(editorBlock("list", { style: "unordered", items: "nonsense" }));
+  assert.equal(result.ok, false);
+});
