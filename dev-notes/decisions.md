@@ -329,3 +329,66 @@ pinned dependency, which must move in step with `@react-router/node` (its range
 is `^0.14.1`); and the app now trusts `X-Forwarded-*`, which is only safe because
 it listens on 127.0.0.1 and nothing but Caddy can reach it - **if it is ever
 exposed directly, a client can forge its own origin and client address.**
+
+## D24 - Database-backed tests live in the Playwright suite, not `node --test` (2026-09-16)
+
+**Chose:** tests that need PostgreSQL go in `e2e/`, run by `npm run test:e2e`;
+`node --test` keeps only pure logic, and modules holding it are split away from
+anything that opens a connection.
+
+`npm test` runs inside `npm run verify`, which CI runs **with no database**, so a
+database-dependent unit test turns CI red on the next push. Skipping such a test
+when `DATABASE_URL` is absent lost: a test that silently skips in the one place
+that runs automatically reports safety nobody has. Cost: those tests only run
+when someone remembers, because CI does not run the browser suite (F-17) - so the
+ownership rule and the stale-save check are proven by tests no pipeline gates on.
+The real fix is a PostgreSQL service in CI, which is F-17's own change. This also
+forces a file split whenever logic needs testing beside a database module -
+`entry-input.ts` beside `entries.server.ts`, `editor-content.ts` beside
+`post-form.tsx` - following `db/pending-migrations.ts`.
+
+## D25 - A post's web address is chosen once, at creation (2026-09-16)
+
+**Chose:** `createDraft` derives the slug from the title and never changes it;
+later title edits leave the address alone.
+
+Following the title lost: a saved draft's address would move under any link
+someone had shared, and every save would re-check uniqueness against the table.
+Changing it deliberately is the "Change" control `design.md` describes, which no
+item has built. Cost: an address can end up unrelated to a retitled post until
+that control exists, and item 3 or 7 has to build it.
+
+## D26 - Blocks are stored as plain text in `blocks_format` v1, escaped when handed back to the editor (2026-09-16)
+
+**Chose:** `{id, type, data}` blocks holding **plain text**, with the editor's
+markup stripped on the way in (`toPlainText`) and re-escaped on the way out
+(`escapeForEditor`).
+
+Storing the editor's HTML lost - D5 rules it out, and it is what makes a page
+builder possible later. The escape on the way out is not symmetry, it is the fix
+for a real stored-XSS hole (F-33): Editor.js sanitizes on save and on paste but
+renders with `innerHTML`, so text that merely *looks* like markup executed when a
+post was reopened. **The same obligation lands on item 4's public renderer**,
+which must render through JSX and never an HTML-building helper - and note the
+`title` column is stored raw, never passing through `toPlainText`. Cost: bold,
+italic and links wait for item 2b, which introduces `v2` with structured inline
+runs and migrates existing rows; until then a writer's `<b>` is kept as visible
+text rather than formatting.
+
+## D27 - Untrusted structure is bounded by name, not by hoping (2026-09-16)
+
+**Chose:** the block mapper refuses rather than copes - `Array.isArray` at every
+level, `null` and non-objects skipped by name, nested results pushed one at a
+time rather than spread, 8 levels of nesting, 500 items, 200 blocks, 20,000
+characters a block, and a 1 MB body; and a save carrying **no `blocks` field at
+all** is refused rather than read as an empty post.
+
+Every bound here was earned by something measured, not imagined: `String(item)`
+stored every list as `[object Object]` (F-32); an 82-byte body with `items:
+[null]` threw a TypeError to an action with no catch; a 150,000-item child
+exhausted the stack through an argument spread; a native submit with no `blocks`
+part wiped a saved body twice over, once from the server side (F-34) and once
+from the client defaulting an unreadable editor to an empty post (F-42). Cost:
+the mapper is longer and more defensive than its happy path needs, and a writer
+who exceeds a bound is refused rather than truncated - which is the intended
+trade, since truncation loses work silently.
