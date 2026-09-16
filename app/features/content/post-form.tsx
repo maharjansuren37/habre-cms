@@ -4,6 +4,7 @@ import type { Block } from "#app/features/blocks/blocks.ts";
 import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
+import { isReadableEditorContent } from "./editor-content.ts";
 import styles from "./post-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
@@ -48,12 +49,19 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const content = await readEditor.current?.();
-    // Editor.js's save() resolves to undefined when a tool throws inside it, and
-    // the ref is null before the editor mounts. Defaulting either to an empty
-    // list turned "the content could not be read" into "there is no content",
-    // which saved over a real post - the same wipe as F-34, from the client side.
-    if (!content || !Array.isArray(content.blocks)) {
+    // Four ways this can give nothing usable: Editor.js's save() resolves
+    // undefined when a tool throws inside it; the ref is null before the editor
+    // mounts; the result can lack `blocks`; and `editor.isReady` rejects when
+    // the editor never started - which the Save button does not wait for, so
+    // that click would otherwise reject silently and do nothing at all.
+    // Defaulting any of them to an empty list saved over a real post (F-42).
+    let content: unknown;
+    try {
+      content = await readEditor.current?.();
+    } catch {
+      content = undefined;
+    }
+    if (!isReadableEditorContent(content)) {
       setUnreadableContent(true);
       return;
     }
@@ -87,19 +95,20 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
         </div>
       </div>
 
-      {problem?.kind === "stale" ? (
-        <Message tone="error" title="Your changes were not saved.">
-          Copy anything you want to keep, then reload to see the latest version.
-        </Message>
-      ) : null}
-      {problem?.kind === "invalid" ? (
-        <Message tone="error" title="Your changes were not saved.">
-          {problem.message}
-        </Message>
-      ) : null}
+      {/* One message at a time. The client-side guard wins: it describes the
+          save that was just refused, while `problem` describes an earlier one
+          the writer has already read. */}
       {hasUnreadableContent ? (
         <Message tone="error" title="Your changes were not saved.">
           The editor's content could not be read. Copy anything you want to keep, then reload.
+        </Message>
+      ) : problem?.kind === "stale" ? (
+        <Message tone="error" title="Your changes were not saved.">
+          Copy anything you want to keep, then reload to see the latest version.
+        </Message>
+      ) : problem?.kind === "invalid" ? (
+        <Message tone="error" title="Your changes were not saved.">
+          {problem.message}
         </Message>
       ) : null}
 

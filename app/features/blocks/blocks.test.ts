@@ -210,3 +210,19 @@ test("items that are not an array are refused rather than read one character at 
   const result = fromEditorJs(editorBlock("list", { style: "unordered", items: "nonsense" }));
   assert.equal(result.ok, false);
 });
+
+test("the item cap stops the mapper walking a huge list, not just refusing it", () => {
+  // The cap bounds work rather than correctness: Zod refuses past 500 either
+  // way, so this asserts what was actually read rather than the result.
+  let highestRead = -1;
+  const items = Array.from({ length: 2000 }, (_, index) => ({
+    meta: {},
+    items: [],
+    get content() {
+      highestRead = Math.max(highestRead, index);
+      return `item ${index}`;
+    },
+  }));
+  fromEditorJs(editorBlock("list", { style: "unordered", items }));
+  assert.ok(highestRead <= 501, `read up to item ${highestRead}, expected to stop around 500`);
+});
