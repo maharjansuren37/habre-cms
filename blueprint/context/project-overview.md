@@ -66,8 +66,10 @@ decision.
 | Tests | `node:test` unit tests; Playwright 1.63.0 (Chromium) browser tests | |
 | Monitoring | UptimeRobot on `/healthz`, alerts by email; logs to the systemd journal | |
 
-- **Not installed until their item:** Editor.js and tools (item 2), `aws4fetch`
-  and `image-size` (item 5) (D20).
+- **Not installed until their item:** `aws4fetch` and `image-size` (item 5)
+  (D20). Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list`
+  2.0.9 arrived with item 2a, pinned exactly; their shipped `.ts` types use
+  `enum`, so `app/types/editorjs.d.ts` describes what this app uses.
 - **React Router 8 is newer than an agent's training.** The installed docs in
   `node_modules/react-router/docs/` are the authority; React Router's agent skill
   is at `.claude/skills/react-router/`. This app is **Framework Mode**.
@@ -86,7 +88,7 @@ nothing should be added to the design that they did not call for.
   (`db.server.ts`, `env.server.ts`, `same-origin.ts`, `security-log.server.ts`).
 - `server.js` (+ `server/app.ts`): the Node entry - Vite middleware in dev; in
   production serves `build/client` itself and sets security headers (D18).
-- `db/migrations/NNNN_name.sql` (`0001_users.sql` exists), `db/migrate.ts`;
+- `db/migrations/NNNN_name.sql` (`0001_users.sql`, `0002_entries.sql`), `db/migrate.ts`;
   `scripts/create-admin.ts`; `deploy/` - `setup-server.sh`, `habre-cms.service`,
   `caddy/habre-cms.caddy` (written by `host`); `e2e/*.spec.ts`.
 - **Imports:** `#app/...` with explicit `.ts`/`.tsx` extensions. **Never a `~/`
