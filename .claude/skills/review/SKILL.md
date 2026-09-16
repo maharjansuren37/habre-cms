@@ -249,6 +249,7 @@ into a confirmed high severity.
 | `open` | Confirmed, not repaired | **Yes** |
 | `fixed` | Repaired, not yet re-reviewed | **Yes** |
 | `closed` | Repaired, and re-checked by something other than what repaired it | No |
+| `deferred` | Not now, by the user's explicit decision, **naming the skill or milestone that will do it** | No |
 | `accepted` | Not fixing, by the user's explicit decision, reason recorded | No |
 | `invalid` | Re-examination proved it wrong, evidence recorded | No |
 
@@ -276,6 +277,12 @@ Then:
   new problem in the same file gets its own entry. **Never close implicitly.**
 - Set `accepted` only on the user's explicit decision in this conversation, with
   their reason. Never accept one on their behalf.
+- Set `deferred` the same way, and **only with a target**: a `Deferred to:`
+  line naming the skill or milestone that will do the work. It is not
+  `accepted` - the difference is whether the work is going to happen - and
+  `accepted` was doing both jobs, which reads downstream as abandoned. A
+  `deferred` finding stays in the ledger through `ship`, because the skill
+  named in it has not run yet.
 - Set `invalid` only when re-examination shows the finding was wrong, with the
   evidence recorded. It is a review verdict, never a shortcut past a blocked
   merge.

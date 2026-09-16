@@ -150,6 +150,16 @@ they ask *does it work*. Both are real audits; say which you ran.
   answer - what is missing then is the *mechanism*, and that is `host`'s job
 - who finds out when it breaks, and how
 - domain, TLS, and certificate renewal
+- **if a proxy terminates TLS in front of the app, that the app is built to sit
+  behind it** - it reads the forwarded scheme, host and client address rather
+  than the connection's own, and the proxy overwrites those headers rather than
+  passing a visitor's through. **Nothing earlier in the loop exercises this**:
+  the tests, CI and `verify` all talk to the app directly over http, where the
+  scheme matches and the client address is real. On a real project the first
+  deploy served every page correctly and rejected **every form post**, because
+  the framework compared its own `http://` origin against the browser's
+  `https://`. Ask for the evidence: a request through the proxy that reaches a
+  state-changing action, and a forged forwarded header that does not.
 
 **Observability**
 
@@ -255,6 +265,11 @@ Sort everything into four buckets, and lead with the verdict:
   not hold. Code findings are not yours to close - they wait for `review`.
 - **Risks, accepted** - the user has decided to live with it. **Record who
   accepted it and why.** Only they can put something here.
+- **Deferred, and to what** - every `deferred` finding in the ledger, with the
+  skill or milestone named in it. These are risks the project carries *now*: a
+  release goes out with them live, and the only difference from an accepted one
+  is that something is meant to come back. Report them at every audit, never as
+  resolved, until that skill has run.
 - **Not applicable** - with the reason. "No personal data collected, so no
   privacy policy needed" is a real result.
 - **Could not verify** - and what would be needed to verify it. **Never counted

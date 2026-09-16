@@ -82,6 +82,14 @@ content exposes.
 Keep them static: no build step, no framework, no dependency. They open in a
 browser directly.
 
+**Then run the project's verification command once.** Mockups are full of what a
+linter rightly rejects in real code - placeholder `href="#"` links, repeated
+markup - and a `prototypes/` directory inside the lint or format globs fails the
+check locally and, once committed, in CI. `scaffold` excludes it when it
+configures those tools; a project set up another way may not. **If the check now
+fails on files under prototypes, exclude that directory in the tool's own
+config** and say so - the one change outside prototypes this skill makes.
+
 ### Where the theme lands depends on the platform
 
 The mockups are HTML either way - they are the fastest way to see a layout - but
@@ -97,7 +105,27 @@ Name the destination now, in the terms the project actually uses. "Port
 `theme.css` into the stylesheet" is meaningless advice on three of those four
 platforms.
 
-## Step 4 - write the durable design record
+## Step 4 - look at them, then review and iterate
+
+**Open them yourself before showing anyone.** A mockup that has only been written
+settles nothing - the whole reason this step exists is that seeing a layout
+answers questions reading it cannot, and that applies to the person who wrote it
+first. Rasterise them if there is no browser; **if nothing here can render them,
+say so plainly rather than presenting unviewed files as a settled direction.**
+
+The specific thing to check is that each element is actually **visible at a
+sensible size**, not merely present in the file. An SVG or a canvas with no
+intrinsic dimensions can occupy zero pixels while every attribute reads correctly.
+
+Then show the user how to open them. Iterate on the tokens rather than on individual
+mockups - a change made in `theme.css` shows up everywhere at once, which is the
+whole point of the structure.
+
+**Nothing durable is written until the user has seen them.** Every change made
+here - a lighter grey, a larger title - changes a token, and a contrast value
+measured before the change describes a colour that no longer exists.
+
+## Step 5 - write the durable design record, once the direction is settled
 
 **The mockups are throwaway. The decisions in them are not.**
 
@@ -125,23 +153,10 @@ So write `blueprint/context/design.md`, which **survives**:
 Keep it short. This is a record of decisions, not a design system - and an
 unmaintained design system is worse than none.
 
-## Step 5 - look at them, then review and iterate
+**Measure contrast against the tokens as they are now**, after the last
+iteration - not a value carried over from a round the user changed.
 
-**Open them yourself before showing anyone.** A mockup that has only been written
-settles nothing - the whole reason this step exists is that seeing a layout
-answers questions reading it cannot, and that applies to the person who wrote it
-first. Rasterise them if there is no browser; **if nothing here can render them,
-say so plainly rather than presenting unviewed files as a settled direction.**
-
-The specific thing to check is that each element is actually **visible at a
-sensible size**, not merely present in the file. An SVG or a canvas with no
-intrinsic dimensions can occupy zero pixels while every attribute reads correctly.
-
-Then show the user how to open them. Iterate on the tokens rather than on individual
-mockups - a change made in `theme.css` shows up everywhere at once, which is the
-whole point of the structure.
-
-When the direction is settled, say explicitly what happens next:
+Then say explicitly what happens next:
 
 - `spec` links the relevant mockups as the design reference for a UI item
 - that item's **first build step** ports the tokens into wherever this platform
@@ -155,8 +170,9 @@ When the direction is settled, say explicitly what happens next:
   that grows real behavior has become the app, badly.
 - **Tokens only in the mockups.** A hardcoded color is a decision that will not
   survive the port.
-- **Do not touch the real app.** This skill writes only inside
-  prototypes.
+- **Do not touch the real app.** This skill writes inside prototypes,
+  `blueprint/context/design.md`, and - only when a check trips on the mockups -
+  the exclusion in Step 3.
 
 ## Formatting
 

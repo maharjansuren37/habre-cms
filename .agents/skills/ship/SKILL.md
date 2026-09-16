@@ -5,7 +5,7 @@ description: "Close out finished work: run a final safety pass, archive the spec
 
 # ship - log it, commit it, merge it
 
-**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/build-plan.md` · `blueprint/history/` · `blueprint/status/`
+**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/build-plan.md` · `blueprint/history/` · `dev-notes/decisions.md` · `blueprint/status/`
 
 Where this sits:
 
@@ -59,7 +59,8 @@ blockers**:
 That last one is the gate. `fixed` still blocks on purpose: the repair exists but
 nothing has re-checked it - run `review` to close it out, or `preflight` for a
 finding no code fixes. The only ways
-past without more code are `accepted` (the user's explicit decision in this
+past without more code are `deferred` (the user's decision to do it later, with
+the skill that will do it named) or `accepted` (the user's explicit decision in this
 conversation, with their reason recorded) or `invalid` (a `review`
 verdict backed by evidence). **Never set either on the user's behalf.** A missing
 ledger file means no findings.
@@ -87,9 +88,21 @@ accordingly:
   a short note to its line with the date and the rollback's archive path. Keep
   the item's number stable.
 
+**Record the item's decisions in `dev-notes/decisions.md`** before the spec is
+archived. Every entry under the spec's `## Decisions`, and every rule a repair
+settled - a size cap, a concurrency limit - becomes a numbered entry in that file's
+own format: what was chosen, what lost, what it costs. **Show them with the rest
+of this step's changes**, since they land in the same commit. The archive keeps
+the spec, but nobody reads an archive to learn why the project is shaped as it
+is: on a real run eight decisions a later item depended on lived only there,
+and `docs` was merely suggested.
+
 **Archive the resolved findings with it.** Append a `## Findings` section to the
 archive file holding every `closed`, `accepted`, or `invalid` entry at its final
-status, with `accepted` entries keeping their recorded reason. Prefix each ID
+status, with `accepted` entries keeping their recorded reason. **A `deferred`
+entry is not resolved and stays in the ledger**, with its `Deferred to:` target:
+one archived as `accepted` was repaired an hour later by the very skill it named,
+and the repair had to be written into an archive nobody reads. Prefix each ID
 with the archive name so it stays unique forever: item 12's `F-03` becomes
 `12/F-03`. Then remove those entries from the ledger.
 
@@ -109,7 +122,10 @@ learn how a finding no code fixes gets closed:
     > evidence by whichever skill repairs it, and `preflight` re-checks and closes it.
     > `ship` refuses to merge while any P0 or P1 finding
     > is `open` or `fixed`, then archives resolved findings with the work item and
-    > resets this file.
+    > resets this file. A finding the user puts off rather than abandons is
+    > `deferred`, with a `Deferred to:` line naming the skill that will do it: it
+    > gates nothing, stays in the ledger through `ship`, and `preflight` reports it
+    > at every audit until that skill has run.
 
     _No findings recorded._
 
@@ -133,19 +149,30 @@ starts missing.
 
 **Discard consumed prototypes, and confirm it worked.** If this item built the look from
 prototypes - its design reference pointed there and an early step ported
-the theme into the app - delete that directory now and fold the deletion into
-this commit. The tokens live in the app's own theme now - a stylesheet, a theme object, or
-`ThemeData`, depending on the platform - and the mockups were always throwaway. Skip this if the item did not consume them.
+the theme into the app - the tokens now live in the app's own theme, a stylesheet,
+a theme object or `ThemeData` depending on the platform, and those mockups were
+always throwaway. Skip this if the item did not consume them.
+
+**Delete only the mockups nothing unbuilt still needs.** A look is built over
+several items: a login item consumes the theme and one screen while the editor,
+the list and the public page wait for items 2, 3 and 4. **Check each remaining
+file against `blueprint/context/design.md` and every unchecked item in
+`blueprint/build-plan.md` before removing it**, delete what is spent, and say
+which files stayed and which item holds each. The whole directory goes only when
+the last of them is consumed - on a real run a session had to keep it and explain
+why, against this skill's own text.
 
 **Keep `blueprint/context/design.md`.** The mockups go; the decisions in them
 stay. Deleting the record along with the mockups is how the next UI item ends up
 reinventing the loading state.
 
-**Then check the directory is actually gone before continuing.** In a real
+**Then check what you deleted is actually gone before continuing.** In a real
 project built with an earlier version of this workflow, `prototypes/` survived
 thirteen consecutive features because this step was an instruction with nothing
-verifying it. An instruction with no check is a suggestion. If it is still there,
-say so and stop rather than reporting a clean finish.
+verifying it. An instruction with no check is a suggestion. If a file you meant
+to remove is still there, say so and stop rather than reporting a clean finish -
+and if the directory remains because later items still need it, say that too,
+naming the items, so it reads as a decision rather than the same old oversight.
 
 Do not commit yet. The next step makes one commit covering the code and this
 bookkeeping together.
@@ -159,6 +186,17 @@ logging - and make **one** conventional commit: `feat: <name>`, `fix: <name>`,
 The project's verification command must pass first.
 
 ## Step 4 - merge, then stop
+
+**If the repository has a remote and CI that runs on pull requests, offer that
+route first.** A local merge lands the item on `main` without CI ever having run
+on it: the branch was never pushed, so the only pre-merge check was this
+machine's verification command, and CI first sees the code after `main` is
+pushed. On a real run a login feature reached `main` that way. The pull-request
+route is: push the branch, open a pull request, wait for its checks, then
+squash-merge on the host and delete the remote branch - **the push is a push, so
+it needs its own explicit yes**, like step 4 below. If the user declines, or there
+is no remote or no CI, merge locally as below and **say that CI has not seen this
+item** until `main` is pushed.
 
 1. **Squash-merge the branch into `main`, only with the user's explicit
    go-ahead.** The item lands as one commit.
@@ -224,8 +262,8 @@ Then point at what is next:
 - **`ci`** only if it was never set up, or if this item changed what the checks
   are. It normally runs right after `scaffold`, long before here. A green suite that only
   runs when someone remembers is a suite that will eventually stop being run.
-- **`docs`** if this item made a decision worth recording, or if the README still
-  does not describe what the project actually does now.
+- **`docs`** if the README still does not describe what the project actually does
+  now. Its decisions are already recorded - Step 2 did that.
 - **`integrate`** if this project has more than one part. This part passing its
   own checks says nothing about whether it still agrees with the others - and
   agreeing is what breaks when parts are built in parallel.
