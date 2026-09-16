@@ -70,7 +70,11 @@ exists and the owner has logged in**, so item 1 is proven working in production.
   only after the dump has verified and the bucket has confirmed its size, so a
   missed ping is what raises the alarm. **The URL is not set yet**, and the job
   says so on every run: `no BACKUP_HEARTBEAT_URL set - nothing is watching this
-  job`. To finish: create an UptimeRobot **Heartbeat** monitor with a period just
+  job`. **Left unset deliberately by the owner, 2026-09-16** - the plumbing is in
+  place and switching it on is one line whenever they want it. **Until then a
+  failed backup tells nobody**, which matters from the moment there is content
+  worth restoring; the restore path itself is proven. To finish: create an
+  UptimeRobot **Heartbeat** monitor with a period just
   over 24 h, then add `BACKUP_HEARTBEAT_URL=...` to `/etc/habre-cms/backup.env`
   (root-only, never the repository - whoever holds that URL can fake a healthy
   backup). A failed ping after a good backup logs a warning and does **not** fail
