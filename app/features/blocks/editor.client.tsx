@@ -19,7 +19,9 @@ export function BlockEditor({
   onChange,
 }: {
   initialBlocks: Block[];
-  contentRef: { current: (() => Promise<OutputData>) | null };
+  // Deliberately not Editor.js's own OutputData: the caller only forwards what
+  // comes back to the server, and this keeps its types off the server side.
+  contentRef: { current: (() => Promise<{ blocks: unknown[] }>) | null };
   onChange: () => void;
 }) {
   const holder = useRef<HTMLDivElement>(null);

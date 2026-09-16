@@ -6,4 +6,7 @@ export default [
   route("admin/login", "features/auth/login.tsx"),
   route("admin/logout", "features/auth/logout.ts"),
   layout("features/admin-shell/layout.tsx", [route("admin", "features/admin-shell/home.tsx")]),
+  // Outside the admin shell on purpose: the editor drops the sidebar (design.md).
+  route("admin/posts/new", "features/content/post-new.tsx"),
+  route("admin/posts/:id", "features/content/post-edit.tsx"),
 ] satisfies RouteConfig;

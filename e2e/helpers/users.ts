@@ -43,3 +43,40 @@ export function revokeSessions(email: string): Promise<void> {
 export function deleteTestUser(email: string): Promise<void> {
   return withDatabase((sql) => sql`delete from users where email = ${email}`);
 }
+
+/** Test-only: create-admin makes admins, and some tests need another role. */
+export function setRole(email: string, role: "admin" | "editor" | "author"): Promise<void> {
+  return withDatabase((sql) => sql`update users set role = ${role} where email = ${email}`);
+}
+
+/** Test cleanup: entries reference their author, so they go first. */
+export function deleteEntriesBy(email: string): Promise<void> {
+  return withDatabase(
+    (sql) =>
+      sql`delete from entries where author_id in (select id from users where email = ${email})`,
+  );
+}
+
+/** How many entries this author has, and the version of their newest one. */
+export async function entriesBy(
+  email: string,
+): Promise<{ count: number; newestVersion: number | null; newestTitle: string | null }> {
+  let result = {
+    count: 0,
+    newestVersion: null as number | null,
+    newestTitle: null as string | null,
+  };
+  await withDatabase(async (sql) => {
+    const rows = await sql<{ version: number; title: string }[]>`
+      select version, title from entries
+      where author_id in (select id from users where email = ${email})
+      order by updated_at desc
+    `;
+    result = {
+      count: rows.length,
+      newestVersion: rows[0]?.version ?? null,
+      newestTitle: rows[0]?.title ?? null,
+    };
+  });
+  return result;
+}

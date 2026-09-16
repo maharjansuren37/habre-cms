@@ -1,0 +1,112 @@
+/* The editor drops the admin sidebar (design.md, Editor): a top bar with the
+   back link, status and save state on the left, actions on the right. */
+.editor {
+  min-height: 100dvh;
+  background: var(--color-bg);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.topbarLeft,
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.back {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-text);
+}
+
+/* Draft is warning amber, measured at 5.6:1 light / 8.7:1 dark (design.md). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+}
+
+.badge::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.saveState {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The writing column uses the reading measure, so what is typed looks like what
+   a visitor will read (design.md, Type). */
+.canvas {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-7);
+}
+
+.titleLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.title {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  padding: 0;
+}
+
+.title::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* The one place a visible focus ring is dropped: the caret marks the position,
+   and a box around a borderless title reads as an error (design.md). */
+.title:focus-visible {
+  outline: none;
+}
+
+.address {
+  margin: var(--space-2) 0 var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.needsJs {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}

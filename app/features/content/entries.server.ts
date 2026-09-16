@@ -55,7 +55,9 @@ export async function createDraft(input: EntryInput, authorId: string): Promise<
       type: "post",
       title: input.title,
       slug,
-      blocks: JSON.stringify(input.blocks),
+      // sql.json, not JSON.stringify: the column is jsonb, and a string would
+      // be stored as a JSON string rather than the array itself.
+      blocks: sql.json(input.blocks),
       blocks_format: BLOCKS_FORMAT,
       status: "draft",
       author_id: authorId,
@@ -87,7 +89,7 @@ export async function updateDraft(
   const [entry] = await sql<Entry[]>`
     update entries set
       title = ${input.title},
-      blocks = ${JSON.stringify(input.blocks)},
+      blocks = ${sql.json(input.blocks)},
       blocks_format = ${BLOCKS_FORMAT},
       version = version + 1,
       updated_at = now()

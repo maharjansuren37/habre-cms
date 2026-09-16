@@ -2,7 +2,7 @@
 
 **From build plan:** item 2a
 **Type:** Feature
-**Status:** not started
+**Status:** built, awaiting review
 
 ## Goal
 
@@ -104,7 +104,7 @@ with a one-line description; Draft badge is warning amber.
   build fails loudly if it does), and `/admin/posts/new` renders the editor with
   a working + menu offering exactly Text, Heading and List.
 
-- [ ] **Step 5 - The new-post and edit routes** - `app/features/content/post-editor.tsx`
+- [x] **Step 5 - The new-post and edit routes** - `app/features/content/post-editor.tsx`
   serving `/admin/posts/new` and `/admin/posts/:id`, listed in `app/routes.ts`,
   behind the existing `requireUser` middleware. Title field, "Web address" line,
   editor, **Save draft**; the top bar, Draft badge and save states from
@@ -118,7 +118,7 @@ with a one-line description; Draft badge is warning amber.
   consecutive saves measure p95 under 1 s server-side** (`quality-bar.md`), with
   the numbers pasted into the step.
 
-- [ ] **Step 6 - Stale saves and the no-JavaScript case** - when `updateDraft`
+- [x] **Step 6 - Stale saves and the no-JavaScript case** - when `updateDraft`
   reports `stale`, render the conflict message from `prototypes/editor.html`
   ("Your changes were not saved. Copy anything you want to keep, then reload to
   see the latest version.") and leave the editor's content untouched so nothing
@@ -128,7 +128,7 @@ with a one-line description; Draft badge is warning amber.
   gets the conflict message with its text intact and the database shows one
   change; loading the page with JavaScript disabled shows the message.
 
-- [ ] **Step 7 - Browser tests** - `e2e/write-post.spec.ts`: write and save a
+- [x] **Step 7 - Browser tests** - `e2e/write-post.spec.ts`: write and save a
   draft; reload and see it; an author cannot open another author's post (404);
   an editor can; the stale-save conflict leaves one change in the database. Each
   seen to fail against a deliberately broken version. **This is where the
