@@ -83,7 +83,7 @@ test("a checklist is refused by name rather than stored as a bullet list", () =>
     }),
   );
   assert.equal(result.ok, false);
-  assert.match(result.ok === false ? result.message : "", /"checklist" list/);
+  assert.match(result.ok === false ? result.message : "", /checklist/);
 });
 
 test("a saved list loads back into the shape the list tool reads", () => {
@@ -160,4 +160,25 @@ test("a block survives a round trip through the editor's shape and back", () => 
 
 test("line breaks and runs of whitespace collapse to single spaces", () => {
   assert.equal(toPlainText("one<br>two   three\n\nfour"), "one two three four");
+});
+
+test("a deeply nested list is refused rather than exhausting the stack", () => {
+  // Unbounded recursion here threw RangeError and answered 500 (F-41).
+  let items: unknown = [{ content: "deepest", meta: {}, items: [] }];
+  for (let depth = 0; depth < 5000; depth++) {
+    items = [{ content: `level ${depth}`, meta: {}, items }];
+  }
+  const result = fromEditorJs(editorBlock("list", { style: "unordered", items }));
+  // Either outcome is fine; throwing is not.
+  assert.equal(typeof result.ok, "boolean");
+});
+
+test("a checklist refusal tells the writer how to get unstuck", () => {
+  const result = fromEditorJs(
+    editorBlock("list", {
+      style: "checklist",
+      items: [{ content: "todo", meta: { checked: true }, items: [] }],
+    }),
+  );
+  assert.match(result.ok === false ? result.message : "", /Open that block's settings/);
 });

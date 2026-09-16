@@ -127,8 +127,16 @@ test("a body cannot be wiped by saving without JavaScript", async ({ browser, pa
   await noJs.goto(postUrl);
 
   await expect(noJs.getByText("The editor needs JavaScript")).toBeVisible();
-  // A native submit carries no blocks, which parses as an empty post (F-34).
   await expect(noJs.getByRole("button", { name: "Save draft" })).toBeHidden();
+
+  // Hiding the button is not enough: with one text field and no submit button,
+  // Enter in the title submits the form natively, carrying no blocks - which
+  // read as an empty post and wiped the body (F-34, re-opened after the first
+  // repair only removed the button).
+  await noJs.getByRole("textbox", { name: "Title" }).click();
+  await noJs.keyboard.press("Enter");
+  await noJs.waitForLoadState();
+  await expect(noJs.getByText("The editor had not finished loading")).toBeVisible();
   await context.close();
 
   await page.reload();

@@ -25,9 +25,21 @@ export type PostFormResult =
  * writer reads. The author is never taken from here - it comes from the session.
  */
 export function parsePostForm(form: FormData): PostFormResult {
+  // An absent field is not an empty post. The editor adds `blocks` as it
+  // submits, so a submission without it never came from the editor - a native
+  // submit with JavaScript off, a keypress before hydration, a truncated body -
+  // and treating that as "no blocks" wiped the body of a saved post (F-34).
+  // An empty post is still legal: what matters is that the field was sent.
+  if (!form.has("blocks")) {
+    return {
+      ok: false,
+      message: "The editor had not finished loading, so nothing was saved. Reload and try again.",
+    };
+  }
+
   let editorOutput: unknown;
   try {
-    editorOutput = JSON.parse(String(form.get("blocks") ?? '{"blocks":[]}'));
+    editorOutput = JSON.parse(String(form.get("blocks")));
   } catch {
     return { ok: false, message: "The editor's content could not be read. Reload and try again." };
   }

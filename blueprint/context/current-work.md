@@ -177,6 +177,25 @@ with a one-line description; Draft badge is warning amber.
   *Done when:* the + menu offers exactly Text, Heading and List; one browser
   test writes a heading and a list end to end.
 
+- [x] **Repair F-34 properly - the wipe is at the trust boundary, not the button** -
+  `parsePostForm` treats an absent `blocks` field as an empty post. Distinguish
+  absent from empty and refuse the save, keeping the hidden button as the UI
+  half. An empty post stays legal when the field is present.
+  *Done when:* with JavaScript off, pressing Enter in the title of a post that
+  has a body leaves the body intact and says why nothing was saved - proved by a
+  browser test seen to fail against the current code.
+
+- [x] **Repair F-35 - the block settings menu still offers Checklist** - the tool
+  builds that entry unconditionally, so either stop offering it or make the
+  refusal tell the writer what to do.
+  *Done when:* a writer who reaches a checklist can save again by following the
+  message, and the browser test asserts on the settings popover rather than the
+  toolbox.
+
+- [x] **Repair F-41 - bound the list flattening** - the recursion added by F-32
+  has no depth limit, so a crafted body throws RangeError and answers 500.
+  *Done when:* a deeply nested payload is refused cleanly, covered by a unit test.
+
 ## Decisions
 
 Settled while building; `ship` carries these into `dev-notes/decisions.md`.

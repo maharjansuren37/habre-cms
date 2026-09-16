@@ -84,7 +84,13 @@ export function toPlainText(html: string): string {
  * sends them. A nested list shape belongs to the page builder, which will need a
  * new `blocks_format`.
  */
-function flattenListItems(items: readonly unknown[]): string[] {
+// Deeper than any list a person writes, and shallow enough that a crafted body
+// cannot exhaust the stack: unbounded recursion here threw RangeError and
+// answered 500 (F-41). The format holds one level anyway.
+const MAX_LIST_DEPTH = 8;
+
+function flattenListItems(items: readonly unknown[], depth = 0): string[] {
+  if (depth > MAX_LIST_DEPTH) return [];
   const flat: string[] = [];
   for (const item of items) {
     if (typeof item === "string") {
@@ -93,7 +99,7 @@ function flattenListItems(items: readonly unknown[]): string[] {
     }
     const listItem = item as { content?: unknown; items?: unknown[] };
     flat.push(toPlainText(String(listItem.content ?? "")));
-    if (Array.isArray(listItem.items)) flat.push(...flattenListItems(listItem.items));
+    if (Array.isArray(listItem.items)) flat.push(...flattenListItems(listItem.items, depth + 1));
   }
   return flat.filter((text) => text !== "");
 }
@@ -128,9 +134,17 @@ export function fromEditorJs(input: unknown): FromEditorJs {
       // Anything else - checklist, which the tool can produce - is refused by
       // name rather than stored as a bullet list with its ticks thrown away.
       if (list.style !== "ordered" && list.style !== "unordered") {
+        // The tool builds Unordered / Ordered / Checklist into every list
+        // block's settings menu and ignores the toolbox config, so a writer can
+        // still reach a checklist. Refusing protects the ticks, but leaves them
+        // unable to save anything until they undo it - so the message says how
+        // (F-35), rather than only naming what is wrong.
         return {
           ok: false,
-          message: `Block ${index + 1} is a "${list.style}" list, which cannot be saved yet.`,
+          message:
+            list.style === "checklist"
+              ? `Block ${index + 1} is a checklist, which cannot be saved yet. Open that block's settings and choose Unordered or Ordered, then save.`
+              : `Block ${index + 1} is a "${list.style}" list, which cannot be saved yet.`,
         };
       }
       blocks.push({
