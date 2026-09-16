@@ -87,6 +87,12 @@ not tidying; it is what keeps the open list true.
 - [ ] **UptimeRobot account with an alert email** - account; free tier.
       Needed by `monitor`, nothing blocked yet. `open` (stack, 2026-09-15)
 
+- [ ] **Screen-reader and keyboard pass over the block editor** (NVDA, VoiceOver
+      or Orca) - manual verification; no automated check hears what Editor.js
+      announces, and `design.md` names the editor's blocks and block menu as the
+      hardest part of the accessibility bar. Done during item 2a's `verify`.
+      Blocks nothing now; `preflight` needs it. `open` (spec, 2026-09-16)
+
 - [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin
       shell** (NVDA, VoiceOver or Orca) - manual verification; no automated
       check hears what is announced. Done during item 1's `verify`, from its

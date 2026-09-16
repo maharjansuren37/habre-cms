@@ -66,6 +66,8 @@ blueprint/project-plan.md too, then regenerate the overview.
 
 - [x] 1. **Admin login** - create the first admin account, log in and out, 1-week session
 - [ ] 2. **Write a post** - block editor (text, heading, list), save as draft
+  - [ ] 2a. **Write a post** - entries table, block model, Editor.js, save a draft at /admin/posts/new and /admin/posts/:id
+  - [ ] 2b. **Inline formatting** - bold, italic and links, stored as structured runs, never raw HTML
 - [ ] 3. **Manage posts** - list, edit and delete posts and drafts
 - [ ] 4. **Publish to the public site** - publish/unpublish; the site renders published posts with the built-in theme on `surenmaharjan.fyi`, with admin on `cms.surenmaharjan.fyi` (D22)
 - [ ] 5. **Images** - upload to R2, insert into a post, media library to reuse them
