@@ -1,4 +1,5 @@
 import { data } from "react-router";
+import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import type { Route } from "./+types/post-edit";
@@ -8,12 +9,22 @@ import { isPostBodySizeAllowed, parsePostForm, parseVersion } from "./post-form-
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
+/**
+ * A post id that is not a uuid never matches a row, but reaching the database
+ * with one raises `invalid input syntax for type uuid` and answers 500. A
+ * mistyped or stale address deserves the same 404 a missing post gets (F-28).
+ */
+function requirePostId(id: string): string {
+  if (!z.uuid().safeParse(id).success) throw data("Not Found", { status: 404 });
+  return id;
+}
+
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.entry.title ?? "Post"} - Habre CMS` }];
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const entry = await findEntryForUser(params.id, context.get(userContext));
+  const entry = await findEntryForUser(requirePostId(params.id), context.get(userContext));
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
@@ -21,6 +32,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
+  const id = requirePostId(params.id);
   if (!isPostBodySizeAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
@@ -38,7 +50,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const result = await updateDraft(
-    params.id,
+    id,
     { title: parsed.title, blocks: parsed.blocks },
     version,
     context.get(userContext),

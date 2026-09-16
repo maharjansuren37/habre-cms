@@ -139,6 +139,15 @@ test("a save from a stale version is refused, and the writer keeps their text", 
   await secondContext.close();
 });
 
+test("a mistyped post address is not found, rather than an error", async ({ page }) => {
+  await logIn(page, author);
+  // Not a uuid: it can never match a row, and reaching the database with it
+  // used to raise invalid input syntax and answer 500 (F-28).
+  const response = await page.goto("/admin/posts/not-a-uuid");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByText("An unexpected error occurred")).toBeHidden();
+});
+
 test("without JavaScript the page says so instead of showing an empty canvas", async ({
   browser,
 }) => {

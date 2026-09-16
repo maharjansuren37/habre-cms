@@ -24,7 +24,7 @@ export function BlockEditor({
   contentRef: { current: (() => Promise<{ blocks: unknown[] }>) | null };
   onChange: () => void;
 }) {
-  const holder = useRef<HTMLDivElement>(null);
+  const holder = useRef<HTMLElement>(null);
   // The editor is created once, so it would otherwise hold the first render's
   // onChange forever. Reading it through a ref keeps the latest one reachable.
   const latestOnChange = useRef(onChange);
@@ -65,5 +65,8 @@ export function BlockEditor({
     // Mount once: re-running this would throw away what the writer has typed.
   }, []);
 
-  return <div ref={holder} className="editor-canvas" />;
+  // Named for screen readers: Editor.js's contenteditable exposes a textbox role
+  // with no name of its own, so tabbing from the title would reach an
+  // unlabelled edit area (WCAG 2.2, 4.1.2 Name, Role, Value - F-29).
+  return <section ref={holder} aria-label="Post content" />;
 }

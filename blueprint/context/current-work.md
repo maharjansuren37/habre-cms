@@ -135,6 +135,18 @@ with a one-line description; Draft badge is warning amber.
   database-backed rules from step 3 are proven.**
   *Done when:* `npm run test:e2e` passes, including the existing 15.
 
+- [x] **Repair F-28 - a mistyped post address answers 500** - check the shape of
+  `params.id` before it reaches a uuid comparison, in both the loader and the
+  action, throwing the same 404 a missing post gets.
+  *Done when:* `GET /admin/posts/not-a-uuid` returns 404, covered by a browser
+  test that was seen to fail without the guard.
+
+- [x] **Repair F-29 and F-30 - the writing area has no accessible name, and
+  carries a class nothing defines** - name the region for screen readers, and
+  drop the orphan global class.
+  *Done when:* the editor container exposes an accessible name, `npm run verify`
+  passes, and no stylesheet is left referencing a class that does not exist.
+
 ## Decisions
 
 Settled while building; `ship` carries these into `dev-notes/decisions.md`.

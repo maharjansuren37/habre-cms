@@ -10,6 +10,30 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-28 [P2] fixed - A mistyped post address answers 500 instead of 404
+
+**File:** app/features/content/post-edit.tsx:16 (`findEntryForUser(params.id, …)`), app/features/content/entries.server.ts:36
+**Found:** 2026-09-16 by review (scope: current; lens: correctness)
+**Why it matters:** `params.id` goes straight into a `uuid` comparison, so anything that is not a UUID makes PostgreSQL raise `invalid input syntax for type uuid` before the query can return nothing. **Measured:** logged in, `GET /admin/posts/not-a-uuid` returns **500** with "Oops! An unexpected error occurred." The same URL shaped like a UUID correctly returns 404. No data is at risk and it is behind the login, which is why this is not a P1 - but a mistyped or stale link is an ordinary thing to do, and the answer should be the same 404 a missing post gets. OWASP Top 10:2025 A10, mishandling of exceptional conditions.
+**Suggested fix:** Check the shape before querying - a `z.uuid()` parse of `params.id` in the loader and action, throwing the same `data("Not Found", { status: 404 })`. A browser test alongside the existing ownership one.
+**Resolution:** Repaired 2026-09-16 by build. `requirePostId()` in `post-edit.tsx` parses the id with `z.uuid()` and throws the same 404 a missing post gets; both the loader and the action go through it. Evidence: `GET /admin/posts/not-a-uuid` now returns **404** with no error page, covered by `e2e/write-post.spec.ts` ("a mistyped post address is not found"), **which was shown to fail with the guard removed** (1 failed / 5 passed) and pass with it (6 passed). `npm run verify` green, `npm run test:e2e` 21 passed. Status `fixed` for `review` to re-examine.
+
+### F-29 [P2] fixed - The writing area has no accessible name
+
+**File:** app/features/blocks/editor.client.tsx:68
+**Found:** 2026-09-16 by review (scope: current; lens: accessibility)
+**Why it matters:** The title input carries a visually-hidden label, but the editor's container is a bare `<div>` holding Editor.js's `contenteditable` region, which exposes a textbox role with **no name**. A screen-reader user tabbing from the title hears an unlabelled edit area and has to infer what it is. **WCAG 2.2 level A, 4.1.2 Name, Role, Value** - the project's recorded bar is AA, which includes every level A criterion (`design.md`, Accessibility bar). Checkable statically, unlike focus order, which still needs the manual pass in F-18.
+**Suggested fix:** Give the holder `role="region"` and `aria-label="Post content"`, or label it from a visually-hidden heading. Confirm in the manual pass that Editor.js does not override it.
+**Resolution:** Repaired 2026-09-16 by build. The container is now `<section aria-label="Post content">` - a real landmark rather than a div with a role, which is what Biome`s `a11y/useSemanticElements` asked for when the first attempt used `role="region"`. **Statically fixed only:** whether a screen reader announces it usefully is still the manual pass in F-18. Status `fixed`.
+
+### F-30 [P3] fixed - The editor container carries a class name nothing defines
+
+**File:** app/features/blocks/editor.client.tsx:68 (`className="editor-canvas"`)
+**Found:** 2026-09-16 by review (scope: current; lens: quality)
+**Why it matters:** This project styles components with CSS Modules (`coding-standards.md`, and every other component here uses `styles.x`). `editor-canvas` is a global class that no stylesheet defines, so it reads as intent that was never finished: a maintainer looking for it finds nothing, and a later global rule could match it by accident.
+**Suggested fix:** Either drop the attribute, or add the class to a module and reference it as `styles.canvas` like the rest of the form.
+**Resolution:** Repaired 2026-09-16 by build: the orphan `editor-canvas` class is gone, and the element carries no class at all - Editor.js styles its own canvas. Status `fixed`.
+
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 
 **File:** app/features/content/entries.server.ts:44-66 (`createDraft`)
