@@ -147,6 +147,36 @@ with a one-line description; Draft badge is warning amber.
   *Done when:* the editor container exposes an accessible name, `npm run verify`
   passes, and no stylesheet is left referencing a class that does not exist.
 
+- [x] **Repair F-32 - list blocks are stored as `[object Object]`** - read
+  `item.content` from `@editorjs/list`'s real `ListItem` shape, keeping a string
+  fallback for hand-written input, and decide nesting explicitly rather than
+  dropping it silently. Reject a `style` this version cannot store (checklist)
+  with a message naming it, instead of quietly calling it a bullet list.
+  *Done when:* the unit tests use the library's real shape; a browser test
+  writes a list, saves, reloads and reads the text back; both were seen to fail
+  against the old mapping.
+
+- [x] **Repair F-33 - stored text is decoded into live HTML and injected** -
+  escape `<`, `>` and `&` in `toEditorJs`, which is the `innerHTML` sink, so a
+  writer's literal `<img …>` stays text. Do not change the decode order in
+  `toPlainText`: that would delete text a writer meant to keep.
+  *Done when:* the payload from the review is stored and reloaded without
+  executing and without vanishing, proved in a browser test; `use <div> here`
+  survives a save-reload-save round trip unchanged.
+
+- [x] **Repair F-34 - saving without JavaScript wipes the body** - do not render
+  Save draft until the editor has mounted, beside the notice that already
+  explains why.
+  *Done when:* with JavaScript disabled, an existing post with a body shows the
+  notice and no Save button, and its blocks are still there afterwards - proved
+  by a browser test that was seen to fail without the change.
+
+- [x] **Repair F-35 and F-36 - the menu offers five types, and the mapping tests
+  cannot fail** - give the list tool one toolbox entry with nesting off, and
+  rewrite the mapping tests against the library's real output.
+  *Done when:* the + menu offers exactly Text, Heading and List; one browser
+  test writes a heading and a list end to end.
+
 ## Decisions
 
 Settled while building; `ship` carries these into `dev-notes/decisions.md`.

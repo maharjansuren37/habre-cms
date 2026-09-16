@@ -80,3 +80,23 @@ export async function entriesBy(
   });
   return result;
 }
+
+/** Test-only: a draft with blocks already in it, for load-and-save tests. */
+export async function createDraftFor(
+  email: string,
+  title: string,
+  blocks: unknown[],
+): Promise<string> {
+  let id = "";
+  await withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      insert into entries (type, title, slug, blocks, author_id)
+      select 'post', ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
+             ${sql.json(blocks as never)}, id
+      from users where email = ${email}
+      returning id
+    `;
+    id = row.id;
+  });
+  return id;
+}

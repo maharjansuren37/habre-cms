@@ -72,6 +72,32 @@ export function toPlainText(html: string): string {
     .trim();
 }
 
+/**
+ * `@editorjs/list` 2.0.9 saves each item as `{ content, meta, items }`, not as a
+ * string - `String(item)` on one gives `"[object Object]"`, which is how every
+ * list was stored until F-32. A string is still accepted, because a hand-written
+ * payload may send one.
+ *
+ * **Nested items are flattened, not dropped and not kept as a tree.** The tool
+ * is configured with `maxLevel: 1` so the editor cannot make them; this is the
+ * defensive half, and flattening keeps a writer's words when something else
+ * sends them. A nested list shape belongs to the page builder, which will need a
+ * new `blocks_format`.
+ */
+function flattenListItems(items: readonly unknown[]): string[] {
+  const flat: string[] = [];
+  for (const item of items) {
+    if (typeof item === "string") {
+      flat.push(toPlainText(item));
+      continue;
+    }
+    const listItem = item as { content?: unknown; items?: unknown[] };
+    flat.push(toPlainText(String(listItem.content ?? "")));
+    if (Array.isArray(listItem.items)) flat.push(...flattenListItems(listItem.items));
+  }
+  return flat.filter((text) => text !== "");
+}
+
 export type FromEditorJs = { ok: true; blocks: Block[] } | { ok: false; message: string };
 
 /**
@@ -98,15 +124,21 @@ export function fromEditorJs(input: unknown): FromEditorJs {
     }
     if (type === "list") {
       const list = block.data as { style?: string; items?: unknown[] };
+      // Editor.js says ordered/unordered; this project says number/bullet.
+      // Anything else - checklist, which the tool can produce - is refused by
+      // name rather than stored as a bullet list with its ticks thrown away.
+      if (list.style !== "ordered" && list.style !== "unordered") {
+        return {
+          ok: false,
+          message: `Block ${index + 1} is a "${list.style}" list, which cannot be saved yet.`,
+        };
+      }
       blocks.push({
         id: block.id,
         type,
         data: {
-          // Editor.js says ordered/unordered; this project says number/bullet.
           style: list.style === "ordered" ? "number" : "bullet",
-          items: (list.items ?? [])
-            .map((item) => toPlainText(String(item)))
-            .filter((item) => item !== ""),
+          items: flattenListItems(list.items ?? []),
         },
       });
       continue;
@@ -134,6 +166,17 @@ export function fromEditorJs(input: unknown): FromEditorJs {
   return { ok: true, blocks: validated.data };
 }
 
+/**
+ * Editor.js sanitizes on save and on paste, **never on render**: its paragraph
+ * tool assigns `innerHTML` directly. Stored text is plain text, so anything that
+ * looks like markup in it is a writer's literal words - and handing them to that
+ * sink unescaped executes them (F-33). Escaping here keeps `<img …>` as five
+ * visible characters instead of an element.
+ */
+function escapeForEditor(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /** The inverse, for loading a saved entry back into the editor. */
 export function toEditorJs(blocks: Block[]): {
   blocks: { id: string; type: string; data: unknown }[];
@@ -146,14 +189,20 @@ export function toEditorJs(blocks: Block[]): {
           type: "list",
           data: {
             style: block.data.style === "number" ? "ordered" : "unordered",
-            items: block.data.items,
+            // The tool reads `{ content, meta, items }`, the same shape it
+            // saves; handing it bare strings renders an empty list.
+            items: block.data.items.map((content) => ({
+              content: escapeForEditor(content),
+              meta: {},
+              items: [],
+            })),
           },
         };
       }
       return {
         id: block.id,
         type: block.type === "heading" ? "header" : "paragraph",
-        data: block.data,
+        data: { ...block.data, text: escapeForEditor(block.data.text) },
       };
     }),
   };

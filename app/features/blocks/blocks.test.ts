@@ -39,8 +39,14 @@ test("a heading level the theme cannot render is refused", () => {
 });
 
 test("an ordered list becomes a number list, an unordered one a bullet list", () => {
-  const ordered = fromEditorJs(editorBlock("list", { style: "ordered", items: ["one", "two"] }));
-  const unordered = fromEditorJs(editorBlock("list", { style: "unordered", items: ["one"] }));
+  // The shape @editorjs/list 2.0.9 actually saves (F-32): objects, not strings.
+  const listItem = (content: string) => ({ content, meta: {}, items: [] });
+  const ordered = fromEditorJs(
+    editorBlock("list", { style: "ordered", items: [listItem("one"), listItem("two")] }),
+  );
+  const unordered = fromEditorJs(
+    editorBlock("list", { style: "unordered", items: [listItem("one")] }),
+  );
   assert.deepEqual(ordered, {
     ok: true,
     blocks: [{ id: "abc123", type: "list", data: { style: "number", items: ["one", "two"] } }],
@@ -54,6 +60,51 @@ test("an ordered list becomes a number list, an unordered one a bullet list", ()
 test("a list with nothing in it is refused rather than stored empty", () => {
   const result = fromEditorJs(editorBlock("list", { style: "unordered", items: [] }));
   assert.equal(result.ok, false);
+});
+
+test("a nested list is flattened rather than losing the nested words", () => {
+  const result = fromEditorJs(
+    editorBlock("list", {
+      style: "unordered",
+      items: [{ content: "parent", meta: {}, items: [{ content: "child", meta: {}, items: [] }] }],
+    }),
+  );
+  assert.deepEqual(result, {
+    ok: true,
+    blocks: [{ id: "abc123", type: "list", data: { style: "bullet", items: ["parent", "child"] } }],
+  });
+});
+
+test("a checklist is refused by name rather than stored as a bullet list", () => {
+  const result = fromEditorJs(
+    editorBlock("list", {
+      style: "checklist",
+      items: [{ content: "todo", meta: { checked: true }, items: [] }],
+    }),
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.ok === false ? result.message : "", /"checklist" list/);
+});
+
+test("a saved list loads back into the shape the list tool reads", () => {
+  const blocks: Block[] = [
+    { id: "c", type: "list", data: { style: "bullet", items: ["one", "two"] } },
+  ];
+  assert.deepEqual(toEditorJs(blocks), {
+    blocks: [
+      {
+        id: "c",
+        type: "list",
+        data: {
+          style: "unordered",
+          items: [
+            { content: "one", meta: {}, items: [] },
+            { content: "two", meta: {}, items: [] },
+          ],
+        },
+      },
+    ],
+  });
 });
 
 test("a block type this version cannot store is refused, and the message names it", () => {
@@ -88,7 +139,11 @@ test("saved blocks load back into the shape the editor expects", () => {
     blocks: [
       { id: "a", type: "paragraph", data: { text: "Hello" } },
       { id: "b", type: "header", data: { text: "Section", level: 2 } },
-      { id: "c", type: "list", data: { style: "ordered", items: ["one"] } },
+      {
+        id: "c",
+        type: "list",
+        data: { style: "ordered", items: [{ content: "one", meta: {}, items: [] }] },
+      },
     ],
   });
 });

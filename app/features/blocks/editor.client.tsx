@@ -45,7 +45,15 @@ export function BlockEditor({
       inlineToolbar: false,
       tools: {
         header: { class: Header as never, config: { levels: [2, 3], defaultLevel: 2 } },
-        list: { class: List as never, inlineToolbar: false },
+        list: {
+          class: List as never,
+          inlineToolbar: false,
+          // One menu entry, not three: the tool offers ordered, unordered and
+          // checklist by default, and a checklist cannot be stored in v1 (F-35).
+          // maxLevel 1 keeps nesting out of a format that has no place for it.
+          toolbox: { title: "List" },
+          config: { defaultStyle: "unordered", maxLevel: 1 },
+        },
       },
       data: toEditorJs(initialBlocks) as OutputData,
       onChange: () => latestOnChange.current(),

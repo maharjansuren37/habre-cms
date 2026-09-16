@@ -66,10 +66,14 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
           </span>
         </div>
         <div className={styles.topbarActions}>
-          {/* Publish arrives with item 4. */}
-          <Button type="submit" isPending={isSaving}>
-            {isSaving ? "Saving…" : "Save draft"}
-          </Button>
+          {/* Publish arrives with item 4. Save appears only once the editor has
+              mounted: a native submit carries no blocks field, which reads as an
+              empty post and wipes the body (F-34). */}
+          {isEditorReady ? (
+            <Button type="submit" isPending={isSaving}>
+              {isSaving ? "Saving…" : "Save draft"}
+            </Button>
+          ) : null}
         </div>
       </div>
 

@@ -10,29 +10,108 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
-### F-28 [P2] fixed - A mistyped post address answers 500 instead of 404
+### F-32 [P0] fixed - Every list block is stored as the literal text `[object Object]`
+
+**File:** app/features/blocks/blocks.ts:107-109
+**Found:** 2026-09-16 by review (independent `reviewer` agent, fresh context; scope: current; lens: correctness)
+**Why it matters:** `items: (list.items ?? []).map((item) => toPlainText(String(item)))` assumes `@editorjs/list` saves `items: string[]`. The pinned 2.0.9 does not: `ListData.items` is `ListItem[]`, where `ListItem = { content, meta, items }` (`node_modules/@editorjs/list/dist/types/ListParams.d.ts:56-70`), so `String(item)` is `"[object Object]"`. **Measured in a real browser against the production build:** a list written through the + menu, saved and reloaded, comes back as `"[object Object]\n[object Object]"`. One of the three block types this item exists to ship **destroys the writer's content on every save**, silently and unrecoverably - the typed text never existed anywhere else. The unit test at `blocks.test.ts:41-52` passes because it feeds the mapper the implementation's own assumption (`items: ["one","two"]`) rather than the library's real output, so code and test agree with each other and both disagree with the dependency.
+**Suggested fix:** Read `item.content` with a string fallback, and decide explicitly what happens to nesting (`item.items`) and checklist state (`item.meta.checked`) rather than dropping them silently. Add a browser test that writes a list and asserts the text comes back - no unit test can see this.
+**Resolution:** Repaired 2026-09-16 by build. `flattenListItems` reads `item.content` from the real `ListItem` shape, keeps a string fallback for hand-written payloads, and flattens nested items rather than dropping the words; `toEditorJs` emits the same `{content, meta, items}` shape, without which a saved list loaded back empty. A style other than ordered/unordered - checklist - is now refused by name instead of being stored as a bullet list. Evidence: the unit tests use the library shape (15 pass), and a browser test loads a seeded heading and list into the editor, saves, reloads and reads the text back. **Shown to fail** with the old `String(item)` mapping restored: 1 failed / 9 passed. Status `fixed`.
+
+### F-33 [P1] fixed - Stored cross-site scripting in the editor: text is decoded into live HTML and injected
+
+**File:** app/features/blocks/blocks.ts:66-73 (`toPlainText`), app/features/blocks/blocks.ts:138-160 (`toEditorJs`)
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: security)
+**Why it matters:** `toPlainText` strips tags **then** decodes entities, so `&lt;img …&gt;` becomes a real `<img …>` in the stored row. Editor.js sanitizes on save and paste but **never on render** - its paragraph tool does `e.innerHTML = this._data.text` (`node_modules/@editorjs/editorjs/dist/editorjs.mjs:9512`) - so `toEditorJs` hands that text straight into an HTML sink on the next load. **Measured:** a writer typing an `<img src=x onerror=…>` payload got it stored, and on reload the script ran (`document.title = XSS-FIRED`, one `<img>` injected). This is live **now**, not a trap for item 4: the editor is itself a render surface, which is the assumption the code and my own reviews shared and got wrong. The lowest-privileged role (author) can plant script that runs in an editor's or admin's authenticated same-origin session; `httpOnly` stops cookie theft, not authenticated requests, and item 8 turns that into author -> admin escalation. No CSP yet (deliberate until item 5), so nothing blunts it. OWASP Top 10:2025 A05; `quality-bar.md` promises structured content escaped on render.
+**Suggested fix:** Escape `<`, `>` and `&` in `toEditorJs` for `data.text` and list items, because that is the sink. **Do not** instead decode entities before stripping tags - that silently deletes text a writer meant to keep. Add a round-trip test with `<b>` as literal content, and record for item 4 that its renderer escapes and never uses `dangerouslySetInnerHTML`. The same bug has a non-security twin: type `use <div> here`, save, reload, and the text vanishes from view, then is stripped for good on the next save.
+**Resolution:** Repaired 2026-09-16 by build. `escapeForEditor` escapes `&`, `<` and `>` in `toEditorJs` for text and list items - the `innerHTML` sink - leaving `toPlainText` alone, since decoding before stripping would delete words a writer meant to keep. Evidence: a browser test types the review`s `<img src=x onerror=…>` payload, saves, reloads and asserts the title is unchanged, no `img` was injected, and the text is visible as text. **Shown to fail** with the escaping removed: 1 failed / 9 passed. Item 4`s renderer must escape too - recorded in the spec. Status `fixed`.
+
+### F-34 [P1] fixed - Saving without JavaScript wipes the post body
+
+**File:** app/features/content/post-form.tsx:70-72, app/features/content/post-form-input.ts:30
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: correctness)
+**Why it matters:** The Save draft button is rendered unconditionally, so with JavaScript off - or in the window before React hydrates - `<Form method="post">` submits natively. The `blocks` field exists only because `handleSubmit` adds it, so the action receives a title and a version and **no blocks**, which parses as a valid empty post. The version matches, so the stale check cannot save it. **Measured** against the production build with `javaScriptEnabled: false`: an existing post with a body came back with 0 blocks after one click. Step 6's done-when was met literally (the "needs JavaScript" notice shows) while the Save button beside that notice was never considered, and the browser test only checks `/admin/posts/new`, where there is nothing to lose.
+**Suggested fix:** Render the button only when the editor has mounted (`isEditorReady`), or carry the loaded blocks in a hidden field so a native submit means "unchanged" rather than "empty". Extend the no-JavaScript browser test to open an existing post and assert the body survives.
+**Resolution:** Repaired 2026-09-16 by build. Save draft renders only once the editor has mounted, beside the notice that already explains why, so a native submit carrying no blocks is impossible. Evidence: a browser test writes a post with a body, opens it with JavaScript disabled, asserts the notice shows and no Save button exists, then reloads with JavaScript on and finds the body intact. **Shown to fail** with the button rendered unconditionally: 1 failed / 9 passed. Status `fixed`.
+
+### F-35 [P2] fixed - The block menu offers five types, two of which cannot be stored properly
+
+**File:** app/features/blocks/editor.client.tsx:46-49
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The list tool registers three toolbox entries, so the menu measured as `["Text","Heading","Unordered List","Ordered List","Checklist"]`. Step 4's done-when claims "exactly Text, Heading and List" and `design.md:137-139` asks for each type to carry a one-line description; neither is true. Checklist saves `style: "checklist"`, which `blocks.ts:105` quietly maps to `"bullet"`, dropping every checkbox state without telling the writer - the same "offering what we cannot keep" failure the spec avoided by turning the inline toolbar off.
+**Suggested fix:** Give the list tool a single toolbox entry and constrain it (`toolbox: { title: "List" }`, `config: { defaultStyle: "unordered", maxLevel: 1 }`), or reject `style: "checklist"` in `fromEditorJs` with a named message. If the per-type descriptions are deferred, say so in the item instead of leaving the done-when claiming otherwise.
+**Resolution:** Repaired 2026-09-16 by build: the list tool gets one toolbox entry (`toolbox: { title: "List" }`) with `maxLevel: 1` and `defaultStyle: "unordered"`, so Checklist and Ordered List no longer appear, and a checklist style is refused by name in the mapper if one arrives anyway. A browser test asserts the menu lists exactly Text, Heading and List. **Honest limit:** Editor.js keeps the menu in the DOM whether open or not, so that test asserts the menu`s contents, not that opening it works; driving the floating menu was too flaky to keep. The per-type descriptions `design.md` asks for are still not implemented. Status `fixed`.
+
+### F-36 [P2] fixed - The editor-mapping unit tests cannot fail when the mapping is wrong
+
+**File:** app/features/blocks/blocks.test.ts:41-52, 81-104
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: tests)
+**Why it matters:** Every `fromEditorJs` assertion feeds hand-written input in the shape the implementation expects, and that shape never occurs against the real library (F-32). The suite therefore reports coverage of a contract it does not test - the mutation checks run during the build passed for the same reason. **No test of any kind exercises a heading or a list end to end**: the browser test types a paragraph only (`e2e/write-post.spec.ts:38-45`). The slug and entry-input tests are genuinely value-asserting and are fine.
+**Suggested fix:** One browser test that writes a heading and a list, saves, reloads and asserts the text. That single test would have caught F-32, F-33 and F-35.
+**Resolution:** Repaired 2026-09-16 by build. The mapping tests now use `@editorjs/list`s real `{content, meta, items}` shape, and cover the nested-list flattening and the checklist refusal; the end-to-end gap is closed by the seeded round-trip browser test, which exercises a heading and a list through the real tools in both directions. Status `fixed`.
+
+### F-37 [P3] open - `blocks_format` is written but never read
+
+**File:** app/features/content/entries.server.ts:22-27
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The column is set on every write and left out of `entryColumns`, so nothing reads it. When item 2b introduces `v2`, code loading a `v1` row has nothing to branch on and no loud failure - the version marker exists precisely to prevent that, and unread it prevents nothing. The reviewer judged this the one aspect of the otherwise sound block shape most likely to force an avoidable migration.
+**Suggested fix:** Select it and refuse a row whose format this build does not understand.
+
+### F-38 [P3] open - Duplicate block ids are accepted, and ids are unconstrained
+
+**File:** app/features/blocks/blocks.ts:16, 45
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: security)
+**Why it matters:** Editor.js generates unique ids, but a hand-crafted POST can repeat one or use any characters. The shape is load-bearing: item 4 will key a rendered list on `block.id`, and a page builder will reference children by id, so duplicates become a data migration later. An unconstrained id also ends up in an HTML attribute in item 4.
+**Suggested fix:** Reject duplicates with a `superRefine` on `blocksSchema`, and constrain `blockId` to `/^[A-Za-z0-9_-]+$/` now, while nothing depends on it.
+
+### F-39 [P3] open - The body cap and the block limits disagree, and the refusal destroys the draft
+
+**File:** app/features/content/post-form-input.ts:7, app/features/content/post-edit.tsx:37
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: correctness)
+**Why it matters:** The schema permits 200 blocks of 20,000 characters (about 4 MB) while the body cap refuses anything over 1 MB, so a post that is valid by the project's own rules is rejected - and the rejection `throw`s, replacing the page with the error boundary and losing everything typed. OWASP Top 10:2025 A10.
+**Suggested fix:** Return the 413 as a rendered `problem`, the way the 400 path already does, so the editor stays on screen; or lower the block limits to fit the cap so the two agree.
+
+### F-40 [P3] open - `updateDraft` does not enforce that the entry is a draft
+
+**File:** app/features/content/entries.server.ts:89-98
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The name promises something the `where` clause does not enforce. Harmless while every entry is a draft; item 4 introduces published rows and will hand them to this function.
+**Suggested fix:** Add `and status = 'draft'`, or rename the function to say what it actually does.
+
+### F-28 [P2] closed - A mistyped post address answers 500 instead of 404
 
 **File:** app/features/content/post-edit.tsx:16 (`findEntryForUser(params.id, …)`), app/features/content/entries.server.ts:36
 **Found:** 2026-09-16 by review (scope: current; lens: correctness)
 **Why it matters:** `params.id` goes straight into a `uuid` comparison, so anything that is not a UUID makes PostgreSQL raise `invalid input syntax for type uuid` before the query can return nothing. **Measured:** logged in, `GET /admin/posts/not-a-uuid` returns **500** with "Oops! An unexpected error occurred." The same URL shaped like a UUID correctly returns 404. No data is at risk and it is behind the login, which is why this is not a P1 - but a mistyped or stale link is an ordinary thing to do, and the answer should be the same 404 a missing post gets. OWASP Top 10:2025 A10, mishandling of exceptional conditions.
 **Suggested fix:** Check the shape before querying - a `z.uuid()` parse of `params.id` in the loader and action, throwing the same `data("Not Found", { status: 404 })`. A browser test alongside the existing ownership one.
 **Resolution:** Repaired 2026-09-16 by build. `requirePostId()` in `post-edit.tsx` parses the id with `z.uuid()` and throws the same 404 a missing post gets; both the loader and the action go through it. Evidence: `GET /admin/posts/not-a-uuid` now returns **404** with no error page, covered by `e2e/write-post.spec.ts` ("a mistyped post address is not found"), **which was shown to fail with the guard removed** (1 failed / 5 passed) and pass with it (6 passed). `npm run verify` green, `npm run test:e2e` 21 passed. Status `fixed` for `review` to re-examine.
+Closed 2026-09-16 by review (scope: current). Re-read the repaired code rather than the repair`s account of it: `requirePostId` is applied in **both** entry points - the loader (`post-edit.tsx:27`) and the action (`post-edit.tsx:35`, whose result is what `updateDraft` receives) - so no path reaches a uuid comparison unchecked, and it throws the same 404 as a missing post rather than a distinguishable error. Re-ran the suite: 21 browser tests pass, `npm run verify` green. Nothing new introduced in that file.
 
-### F-29 [P2] fixed - The writing area has no accessible name
+### F-29 [P2] open - The writing area has no accessible name
 
 **File:** app/features/blocks/editor.client.tsx:68
 **Found:** 2026-09-16 by review (scope: current; lens: accessibility)
 **Why it matters:** The title input carries a visually-hidden label, but the editor's container is a bare `<div>` holding Editor.js's `contenteditable` region, which exposes a textbox role with **no name**. A screen-reader user tabbing from the title hears an unlabelled edit area and has to infer what it is. **WCAG 2.2 level A, 4.1.2 Name, Role, Value** - the project's recorded bar is AA, which includes every level A criterion (`design.md`, Accessibility bar). Checkable statically, unlike focus order, which still needs the manual pass in F-18.
 **Suggested fix:** Give the holder `role="region"` and `aria-label="Post content"`, or label it from a visually-hidden heading. Confirm in the manual pass that Editor.js does not override it.
 **Resolution:** Repaired 2026-09-16 by build. The container is now `<section aria-label="Post content">` - a real landmark rather than a div with a role, which is what Biome`s `a11y/useSemanticElements` asked for when the first attempt used `role="region"`. **Statically fixed only:** whether a screen reader announces it usefully is still the manual pass in F-18. Status `fixed`.
+**Re-opened 2026-09-16 by review, on rendered evidence - the repair is partial.** Measured in Chromium with the editor mounted: the landmark is there (`getByRole("region", { name: "Post content" })` visible), but **the control itself is still unnamed**. Focusing the title and pressing Tab lands on `DIV contenteditable=true` with `aria-label=null`, and every `[contenteditable]` on the page reports `aria-label: null`. So a screen-reader user now hears the region on entering it, then an unnamed edit area - better orientation, same unnamed control, and WCAG 2.2 4.1.2 still applies to the control. This is the case the ledger`s `fixed` rule exists for: the repair looked right in the diff and is incomplete in the browser.
+**Smallest remaining fix:** after `editor.isReady`, label the block editables (`holder.querySelectorAll("[contenteditable]")` -> `aria-label`), reapplying as blocks are added - or judge in F-18`s manual pass whether the named region is enough for a multi-block editor, and record that decision here rather than leaving it implied.
 
-### F-30 [P3] fixed - The editor container carries a class name nothing defines
+### F-30 [P3] closed - The editor container carries a class name nothing defines
 
 **File:** app/features/blocks/editor.client.tsx:68 (`className="editor-canvas"`)
 **Found:** 2026-09-16 by review (scope: current; lens: quality)
 **Why it matters:** This project styles components with CSS Modules (`coding-standards.md`, and every other component here uses `styles.x`). `editor-canvas` is a global class that no stylesheet defines, so it reads as intent that was never finished: a maintainer looking for it finds nothing, and a later global rule could match it by accident.
 **Suggested fix:** Either drop the attribute, or add the class to a module and reference it as `styles.canvas` like the rest of the form.
 **Resolution:** Repaired 2026-09-16 by build: the orphan `editor-canvas` class is gone, and the element carries no class at all - Editor.js styles its own canvas. Status `fixed`.
+Closed 2026-09-16 by review: `grep -rn editor-canvas app e2e` returns nothing, and the element carries no class attribute at all.
+
+### F-31 [P3] unverified - The editor placeholder may never appear
+
+**File:** app/features/blocks/editor.client.tsx:42 (`placeholder: "Write your post…"`)
+**Found:** 2026-09-16 by review (scope: current; lens: quality)
+**Why it matters:** Editor.js renders its placeholder through a `data-placeholder` attribute on the first empty block, and on a freshly opened `/admin/posts/new` every `[contenteditable]` reports `data-placeholder: null`. That suggests the option is not reaching the paragraph tool - in this version it is usually set on the tool's own config rather than at the top level. If so, a writer opens an empty white canvas with no prompt, which is the opposite of the "obvious next action" the design record asks for (`design.md`, Direction). **Unverified** because I checked the attribute, not what is painted: a placeholder drawn another way would not show up this way.
+**Suggested fix:** Look at the screen. If there is no prompt, move the option onto the paragraph tool's config for the installed Editor.js version, and assert the prompt in the browser test that opens a new post.
 
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 

@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import {
   createAdmin,
+  createDraftFor,
   deleteEntriesBy,
   deleteTestUser,
   entriesBy,
@@ -40,6 +41,99 @@ async function writeBody(page: Page, text: string) {
   await canvas.click();
   await page.keyboard.type(text);
 }
+
+test("a heading and a list survive being loaded into the editor and saved again", async ({
+  page,
+}) => {
+  // Seeded rather than typed through the + menu: this proves the round trip
+  // through the real Editor.js tools in both directions, which is where F-32
+  // lived (every list item came back as "[object Object]"). Driving the
+  // floating menu proved too flaky to be worth what it adds.
+  const id = await createDraftFor(author.email, "Every block type", [
+    { id: "p1", type: "text", data: { text: "An opening paragraph." } },
+    { id: "h1", type: "heading", data: { text: "A section heading", level: 2 } },
+    { id: "l1", type: "list", data: { style: "bullet", items: ["first item", "second item"] } },
+  ]);
+
+  await logIn(page, author);
+  await page.goto(`/admin/posts/${id}`);
+  await page.locator("[contenteditable=true]").first().waitFor();
+
+  // Loaded: the tools render what was stored.
+  await expect(page.getByText("A section heading")).toBeVisible();
+  await expect(page.getByText("first item")).toBeVisible();
+  await expect(page.getByText("[object Object]")).toBeHidden();
+
+  // Saved back: what the tools hand over is stored as text, not as objects.
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("An opening paragraph.")).toBeVisible();
+  await expect(page.getByText("A section heading")).toBeVisible();
+  await expect(page.getByText("first item")).toBeVisible();
+  await expect(page.getByText("second item")).toBeVisible();
+  await expect(page.getByText("[object Object]")).toBeHidden();
+});
+
+test("the block menu lists only the types this version can store", async ({ page }) => {
+  await logIn(page, author);
+  await page.goto("/admin/posts/new");
+  await page.locator("[contenteditable=true]").first().click();
+  // Editor.js keeps the menu in the DOM whether or not it is open, so this
+  // asserts what the menu contains, not that opening it works - the list tool
+  // otherwise registers three entries, including a Checklist whose ticks v1
+  // cannot store (F-35).
+  await page.locator(".ce-popover-item__title").first().waitFor({ state: "attached" });
+  expect(await page.locator(".ce-popover-item__title").allInnerTexts()).toEqual([
+    "Text",
+    "Heading",
+    "List",
+  ]);
+});
+
+test("markup a writer types stays text and never runs", async ({ page }) => {
+  await logIn(page, author);
+  await page.goto("/admin/posts/new");
+  await page.getByRole("textbox", { name: "Title" }).fill("Markup as text");
+  await writeBody(page, "use <img src=x onerror=\"document.title='XSS-FIRED'\"> here");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/\/admin\/posts\/[0-9a-f-]{36}$/);
+  await page.reload();
+  await page.locator("[contenteditable=true]").first().waitFor();
+
+  // Editor.js renders with innerHTML, so unescaped text becomes an element and
+  // executes (F-33).
+  expect(await page.title()).not.toBe("XSS-FIRED");
+  expect(await page.locator(".codex-editor img").count()).toBe(0);
+  await expect(page.getByText("use <img", { exact: false })).toBeVisible();
+});
+
+test("a body cannot be wiped by saving without JavaScript", async ({ browser, page }) => {
+  await logIn(page, author);
+  await page.goto("/admin/posts/new");
+  await page.getByRole("textbox", { name: "Title" }).fill("Keeps its body");
+  await writeBody(page, "Text that must survive.");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/\/admin\/posts\/[0-9a-f-]{36}$/);
+  const postUrl = page.url();
+
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const noJs = await context.newPage();
+  await noJs.setExtraHTTPHeaders({ "X-Forwarded-For": `10.${randomInt(256)}.2.2` });
+  await noJs.goto("/admin/login");
+  await noJs.getByLabel("Email").fill(author.email);
+  await noJs.getByLabel("Password").fill(author.password);
+  await noJs.getByRole("button", { name: "Log in" }).click();
+  await noJs.goto(postUrl);
+
+  await expect(noJs.getByText("The editor needs JavaScript")).toBeVisible();
+  // A native submit carries no blocks, which parses as an empty post (F-34).
+  await expect(noJs.getByRole("button", { name: "Save draft" })).toBeHidden();
+  await context.close();
+
+  await page.reload();
+  await expect(page.getByText("Text that must survive.")).toBeVisible();
+});
 
 test("a draft is written, saved, and still there after a reload", async ({ page }) => {
   await logIn(page, author);
