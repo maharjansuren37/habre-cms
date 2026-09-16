@@ -67,7 +67,7 @@ with a one-line description; Draft badge is warning amber.
   prints `No pending migrations.`, `\d entries` shows every column and
   constraint, and inserting two posts with the same slug fails.
 
-- [ ] **Step 2 - Block model and slugs, as pure logic** - `app/features/blocks/`:
+- [x] **Step 2 - Block model and slugs, as pure logic** - `app/features/blocks/`:
   the `Block` type and Zod schemas for `text`, `heading` (levels 2-3) and `list`
   (bullet/number); `fromEditorJs()` mapping Editor.js's `paragraph`/`header`/
   `list` output onto them and **stripping any HTML to plain text** (2b replaces
