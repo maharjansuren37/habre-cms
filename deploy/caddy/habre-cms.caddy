@@ -5,6 +5,17 @@
 # this. If it ever gets one, re-check F-13 before serving over IPv6.
 cms.surenmaharjan.fyi {
 	encode zstd gzip
+
+	# The only signal for "is anyone using this" - the app logs security events,
+	# not requests. Rolled at 10 MB, 3 kept, so it cannot quietly fill the disk.
+	# Note it records visitor IP addresses and user agents; nothing else about a
+	# visitor is stored (quality-bar.md, Security posture).
+	log {
+		output file /var/log/caddy/habre-cms-access.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
 	# reverse_proxy sets X-Forwarded-For to the connecting address, which the
 	# login rate limit reads (app/features/auth/client-ip.ts, F-07).
 	reverse_proxy 127.0.0.1:3000

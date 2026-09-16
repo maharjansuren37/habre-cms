@@ -25,6 +25,7 @@ ENV_FILE="$CONFIG_DIR/production.env"
 BACKUP_ENV_FILE="$CONFIG_DIR/backup.env"
 CADDYFILE="/etc/caddy/Caddyfile"
 CADDY_SITE="/etc/caddy/sites/habre-cms.caddy"
+CADDY_LOG="/var/log/caddy/habre-cms-access.log"
 DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 log() { printf '==> %s\n' "$*"; }
@@ -157,6 +158,15 @@ install_caddy_site() {
   log "Installing Caddy site file"
   install -d -m 755 "$(dirname "$CADDY_SITE")"
   install -m 644 "$DEPLOY_DIR/caddy/habre-cms.caddy" "$CADDY_SITE"
+  # Caddy runs as the caddy user and cannot open a log file owned by root -
+  # which is what `sudo caddy validate` leaves behind if it gets there first,
+  # and the reload then fails with "permission denied" while the old config
+  # keeps serving. Create it correctly before either happens.
+  if [[ ! -e $CADDY_LOG ]]; then
+    install -m 640 -o caddy -g caddy /dev/null "$CADDY_LOG"
+  else
+    chown caddy:caddy "$CADDY_LOG"
+  fi
 
   local import_line="import $CADDY_SITE"
   if ! grep -qxF "$import_line" "$CADDYFILE"; then

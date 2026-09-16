@@ -33,6 +33,48 @@ exists and the owner has logged in**, so item 1 is proven working in production.
 - **Previous release:** `48e5052`, still on disk. **Rollback** is
   `sudo ln -sfn /srv/habre-cms/releases/<sha> /srv/habre-cms/current && sudo systemctl restart habre-cms`,
   which takes seconds and needs no rebuild.
+- **Uptime monitoring live, 2026-09-16 (`monitor`).** The owner created an
+  UptimeRobot account and an HTTP(s) monitor on
+  `https://cms.surenmaharjan.fyi/healthz`, 5-minute interval, alerting by email,
+  with a keyword check on `"database":"up"` so a 200 carrying the wrong body
+  still counts as down. `/healthz` queries the database and answers 503 when it
+  is unreachable, so this watches the app *and* PostgreSQL, from outside the box
+  - a checker on the server could never report the server being off.
+  **Delivery is proven, by accident and then by design:** the first monitor was
+  pointed at `surenmaharjan.fyi`, which genuinely serves nothing until item 4,
+  and the down alert arrived by email. Endpoint measured at the same time: 200
+  on three consecutive checks, 0.11-0.23 s, against a 500 ms p95 bar;
+  certificate valid to 2026-12-14. **SSL expiry alerting** covers renewal
+  failing silently - the old `site-check` timer that used to do this was deleted
+  with the test site.
+  **This partly repairs the accepted F-15** (archived as
+  `trust-forwarded-proto/F-15`): up/down and certificate expiry are now covered.
+  **Still uncovered:** a failed backup tells nobody (the heartbeat ping is not
+  built), application errors reach only the journal (no error tracker - a v1
+  decision), disk filling has no signal, and there is no escalation beyond one
+  person's inbox.
+  **Add a second monitor on `https://surenmaharjan.fyi/` when item 4 ships** -
+  not before, or it alerts on every check.
+- **Caddy access log, 2026-09-16:** `/var/log/caddy/habre-cms-access.log`, JSON,
+  rolled at 10 MB keeping 3 - the only signal for "is anyone using this", since
+  the app logs security events rather than requests. It also carries per-request
+  timings (`/healthz` 302 ms, `/admin/login` 43 ms on the first two entries).
+  **It records visitor IPs and user agents**, which is the only visitor data this
+  project stores; `quality-bar.md` otherwise says nothing about visitors is kept.
+  **Trap found while installing it:** `sudo caddy validate` creates the log file
+  as root, and Caddy runs as `caddy`, so the reload then fails with "permission
+  denied" - Caddy keeps the old config and the site stays up, so the only symptom
+  is a failed reload. `setup-server.sh` now creates the file as `caddy:caddy`
+  first.
+- **Backup heartbeat, 2026-09-16:** `backup-db.sh` pings `$BACKUP_HEARTBEAT_URL`
+  only after the dump has verified and the bucket has confirmed its size, so a
+  missed ping is what raises the alarm. **The URL is not set yet**, and the job
+  says so on every run: `no BACKUP_HEARTBEAT_URL set - nothing is watching this
+  job`. To finish: create an UptimeRobot **Heartbeat** monitor with a period just
+  over 24 h, then add `BACKUP_HEARTBEAT_URL=...` to `/etc/habre-cms/backup.env`
+  (root-only, never the repository - whoever holds that URL can fake a healthy
+  backup). A failed ping after a good backup logs a warning and does **not** fail
+  the job.
 - **Restore proven 2026-09-16 (F-16).** The newest dump was restored into a
   scratch database and **the app was started against it**: `/healthz` healthy, a
   wrong password gave the form error, the right password gave 302 to `/admin`.

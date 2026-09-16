@@ -58,5 +58,22 @@ remote_size=$(r2 -I "$url" | awk 'tolower($1) == "content-length:" { print $2 + 
 printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ) $object $size bytes" > "$STAMP_FILE"
 echo "habre-cms-backup: uploaded $object ($size bytes)"
 
+# Ping the heartbeat only here, after the dump verified and the bucket confirmed
+# its size - every failure above exits first, so a missed ping is what tells
+# someone. Without this a failed backup is silent until a restore needs it.
+# The URL lives in the env file, not the repository: anyone holding it can fake
+# a healthy backup.
+if [[ -n ${BACKUP_HEARTBEAT_URL:-} ]]; then
+  if curl -fsS --max-time 30 --retry 2 -o /dev/null "$BACKUP_HEARTBEAT_URL"; then
+    echo "habre-cms-backup: heartbeat sent"
+  else
+    # Not a backup failure: the dump is safely uploaded. Say so loudly anyway,
+    # because the monitor will now report a missed backup that did happen.
+    echo "habre-cms-backup: WARNING - backup succeeded but the heartbeat ping failed" >&2
+  fi
+else
+  echo "habre-cms-backup: no BACKUP_HEARTBEAT_URL set - nothing is watching this job"
+fi
+
 # Local copies are a convenience for a fast restore; the bucket is the backup.
 find "$DUMP_DIR" -maxdepth 1 -name "$DB-*.dump" -mtime "+$KEEP_LOCAL_DAYS" -delete
