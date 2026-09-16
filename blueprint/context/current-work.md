@@ -82,7 +82,7 @@ with a one-line description; Draft badge is warning amber.
   `post`; `nextFreeSlug` returns `hello-world-2` when `hello-world` is taken.
   Each test was seen to fail before the code existed.
 
-- [ ] **Step 3 - Saving and loading entries** -
+- [x] **Step 3 - Saving and loading entries** -
   `app/features/content/entries.server.ts`: `createDraft`, `updateDraft`,
   `findEntryForUser`. Validation at the boundary with Zod: title trimmed, 1-200
   characters; at most 200 blocks; at most 20,000 characters per block.
@@ -95,7 +95,7 @@ with a one-line description; Draft badge is warning amber.
   version check are proven in step 7's browser tests, not here** - see Decisions:
   `npm test` is part of `npm run verify`, which CI runs with no database.
 
-- [ ] **Step 4 - The editor component** - install `@editorjs/editorjs` 2.31.6
+- [x] **Step 4 - The editor component** - install `@editorjs/editorjs` 2.31.6
   with its header and list tools, pinned exactly (record the resolved versions in
   the plan's Tech section and `AGENTS.md`). `app/features/blocks/editor.client.tsx`
   mounts Editor.js on the client only, with the three tools, the inline toolbar
