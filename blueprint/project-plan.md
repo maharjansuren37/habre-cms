@@ -69,6 +69,9 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
 - **Auth:** JWT via `jose` **6.2.12**; passwords hashed with `node:crypto`
   scrypt. No auth library.
 - **Validation:** Zod **4.6.5** at every trust boundary.
+- **Node server:** `@remix-run/node-fetch-server` **0.14.1** - the listener is
+  built from it directly so `trustProxy` can be set, which is what makes the app
+  read Caddy's `X-Forwarded-Proto` (D23, fixes F-21).
 - **Bot detection:** `isbot` **5.2.2** - required by React Router's default
   server entry (added by `scaffold`, D20).
 - **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with its header

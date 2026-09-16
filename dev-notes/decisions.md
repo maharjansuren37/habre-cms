@@ -293,3 +293,27 @@ need. Two separate deployables were never considered - D4 holds. Cost: two
 hostnames to configure in Caddy and production config, cross-host redirects to
 build and test, and browser tests that need two local hostnames (`127.0.0.1` and
 `localhost`) to exercise them.
+
+## D23 - The Node listener is built directly, to trust Caddy's forwarded headers (2026-09-16)
+
+**Chose:** `server/app.ts` builds the request listener from
+`@remix-run/node-fetch-server` **0.14.1** (now a direct, pinned dependency) with
+`trustProxy: true`, wrapping React Router's own `createRequestHandler`, instead
+of calling `createRequestListener` from `@react-router/node`.
+
+Keeping the React Router wrapper lost because it cannot express this: it is the
+same two calls and passes no options through (`@react-router/node`
+`dist/index.js:23-28`), so `trustProxy` is unreachable. Without it the app builds
+`request.url` from the connection, which behind Caddy is plain http on
+127.0.0.1, while browsers send an `https` `Origin` - React Router then aborts
+every form post, and the first production release shipped with login impossible
+(F-21). Setting `protocol: "https"` outright lost: it would be wrong in
+development and in the browser tests, which really do serve http. Terminating
+TLS in the app lost: Caddy already does it for every site on the server (D17).
+
+The package is not new to the tree - it is `@react-router/node`'s own dependency
+- but importing it ourselves makes it ours to pin and upgrade. Cost: one more
+pinned dependency, which must move in step with `@react-router/node` (its range
+is `^0.14.1`); and the app now trusts `X-Forwarded-*`, which is only safe because
+it listens on 127.0.0.1 and nothing but Caddy can reach it - **if it is ever
+exposed directly, a client can forge its own origin and client address.**
