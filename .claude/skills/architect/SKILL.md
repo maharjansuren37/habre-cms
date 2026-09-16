@@ -339,8 +339,13 @@ Write `blueprint/context/quality-bar.md`. Keep it short; every line must be
 something a person or a command could check:
 
 - **Performance** - the one or two numbers that matter, and **where they are
-  measured**. "Search results under 500ms at p95, measured server-side" is a bar.
-  "Fast" is not.
+  measured**: on the server, or as the user experiences it in their browser or on
+  their device. "Search results under 500ms at p95", with the place named, is a
+  bar. "Fast" is not. **Where is a decision, not a detail - ask the user which
+  they mean.** It rules technology in and out by itself: a server-side number is
+  one a page rendered in the browser cannot produce, and a user-experienced one
+  is not. An example here once said "measured server-side", and projects that
+  never discussed it copied the phrase - deciding the question for them.
 - **Scale** - the load this is actually built for. "One user, a few hundred rows"
   is a real and useful answer, and it is the honest one for most projects. It
   licenses simple choices later instead of leaving them looking careless.
@@ -366,7 +371,7 @@ has to be a number on the page before anyone is attached to a framework. A bar
 written afterwards only ever ratifies the choice already made.
 
 **Write it as what the project requires, never as what something can do.** "Under
-300ms at p95, measured server-side" is a requirement. "Fast enough for SQLite"
+300ms at p95, as the user experiences it" is a requirement. "Fast enough for SQLite"
 is a technology decision wearing a bar's clothes, and it forecloses the next
 step's job.
 

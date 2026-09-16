@@ -10,6 +10,83 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-41 [P3] fixed - `flattenListItems` recurses without a depth bound, so a crafted body answers 500
+
+**File:** app/features/blocks/blocks.ts:88-101, called at :141
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: security)
+**Why it matters:** The recursion added by the F-32 repair has no depth limit, and the call sits outside any `try` - `post-form-input.ts:35` wraps only `JSON.parse`. Measured directly against the module: depth 1,000 (36 KB) is refused cleanly by Zod, depth 5,000 (180 KB) and depth 20,000 (720 KB) both throw `RangeError: Maximum call stack size exceeded`, which becomes a 500 through the error boundary. All are inside the 1 MB body cap, so the cap does not contain it. Small - only an authenticated user can reach the action and the editor cannot produce such a body with `maxLevel: 1` - but it is **new, introduced by a repair**, which is why it is recorded rather than waved through. OWASP Top 10:2025 A10.
+**Suggested fix:** Bound it - `function flattenListItems(items, depth = 0)` returning `[]` past depth 8. The format holds one level of nesting anyway.
+**Resolution:** Repaired 2026-09-16 by build: `flattenListItems` takes a depth and returns `[]` past 8 levels, deeper than any list a person writes and shallow enough that a crafted body cannot exhaust the stack. Evidence: a unit test builds 5,000 levels of nesting and asserts the mapper returns a result instead of throwing - **shown to fail** (`RangeError`) with the bound removed. Status `fixed`.
+**Extended 2026-09-16 after the third review pass: the depth bound was right and three other shapes were still unguarded**, measured against the module - a 150,000-item child exhausted the stack through `flat.push(...flattenListItems(...))` (600 KB body, inside the 1 MB cap, depth bound blind to it because the nesting is one level); `items: [null]` threw a `TypeError` from an **82-byte** body, because `typeof null === "object"` passed the string check and `.content` was read off it; and a non-array `items` was iterated as a string and stored as that many single-character list items. Repaired together: the spread became a push loop, `null` and non-objects are skipped by name, the argument is `Array.isArray`-checked at every level, and a 500-item cap bounds the work. Unit tests cover the null and non-array cases and were **shown to fail** without their guards (19/1 each); the wide case passes with or without the item cap, because the push loop is what removes the throw - the cap bounds work rather than correctness, and the code comment says so rather than implying a test covers it. Status `fixed`.
+**Closed 2026-09-16 by review (independent `reviewer` agent, fourth pass)**, which re-ran every hostile shape against this build: deep 5,000 -> ok; wide child 150,000 and wide top-level 250,000 -> refused; `null`/`undefined` items -> refused; non-array `items` -> refused; nine levels of a thousand items -> refused. No throw, no unbounded work, nothing over 4 ms. **The width cap stays, and is now distinguishable by a test:** a list whose items record when their `content` is read shows the mapper stopping at item 500 of 2,000 - it fails when the cap is removed, so the line is no longer untested. A getter that throws and a `Proxy` do escape the guards, and are unreachable: `fromEditorJs` is only ever called with `JSON.parse` output, which can express neither - guarding them would be defensive code for a requirement nobody has. **One optional residual, P3:** a crafted `content` that is an object is still `String()`-ed to `"[object Object]"` and stored; the editor cannot produce it, and one line (`typeof listItem.content === "string"`) would close it.
+
+### F-37 [P3] open - `blocks_format` is written but never read
+
+**File:** app/features/content/entries.server.ts:22-27
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The column is set on every write and left out of `entryColumns`, so nothing reads it. When item 2b introduces `v2`, code loading a `v1` row has nothing to branch on and no loud failure - the version marker exists precisely to prevent that, and unread it prevents nothing. The reviewer judged this the one aspect of the otherwise sound block shape most likely to force an avoidable migration.
+**Suggested fix:** Select it and refuse a row whose format this build does not understand.
+
+### F-38 [P3] open - Duplicate block ids are accepted, and ids are unconstrained
+
+**File:** app/features/blocks/blocks.ts:16, 45
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: security)
+**Why it matters:** Editor.js generates unique ids, but a hand-crafted POST can repeat one or use any characters. The shape is load-bearing: item 4 will key a rendered list on `block.id`, and a page builder will reference children by id, so duplicates become a data migration later. An unconstrained id also ends up in an HTML attribute in item 4.
+**Suggested fix:** Reject duplicates with a `superRefine` on `blocksSchema`, and constrain `blockId` to `/^[A-Za-z0-9_-]+$/` now, while nothing depends on it.
+
+### F-39 [P3] open - The body cap and the block limits disagree, and the refusal destroys the draft
+
+**File:** app/features/content/post-form-input.ts:7, app/features/content/post-edit.tsx:37
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: correctness)
+**Why it matters:** The schema permits 200 blocks of 20,000 characters (about 4 MB) while the body cap refuses anything over 1 MB, so a post that is valid by the project's own rules is rejected - and the rejection `throw`s, replacing the page with the error boundary and losing everything typed. OWASP Top 10:2025 A10.
+**Suggested fix:** Return the 413 as a rendered `problem`, the way the 400 path already does, so the editor stays on screen; or lower the block limits to fit the cap so the two agree.
+
+### F-40 [P3] open - `updateDraft` does not enforce that the entry is a draft
+
+**File:** app/features/content/entries.server.ts:89-98
+**Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The name promises something the `where` clause does not enforce. Harmless while every entry is a draft; item 4 introduces published rows and will hand them to this function.
+**Suggested fix:** Add `and status = 'draft'`, or rename the function to say what it actually does.
+
+### F-29 [P2] open - The writing area has no accessible name
+
+**File:** app/features/blocks/editor.client.tsx:68
+**Found:** 2026-09-16 by review (scope: current; lens: accessibility)
+**Why it matters:** The title input carries a visually-hidden label, but the editor's container is a bare `<div>` holding Editor.js's `contenteditable` region, which exposes a textbox role with **no name**. A screen-reader user tabbing from the title hears an unlabelled edit area and has to infer what it is. **WCAG 2.2 level A, 4.1.2 Name, Role, Value** - the project's recorded bar is AA, which includes every level A criterion (`design.md`, Accessibility bar). Checkable statically, unlike focus order, which still needs the manual pass in F-18.
+**Suggested fix:** Give the holder `role="region"` and `aria-label="Post content"`, or label it from a visually-hidden heading. Confirm in the manual pass that Editor.js does not override it.
+**Resolution:** Repaired 2026-09-16 by build. The container is now `<section aria-label="Post content">` - a real landmark rather than a div with a role, which is what Biome`s `a11y/useSemanticElements` asked for when the first attempt used `role="region"`. **Statically fixed only:** whether a screen reader announces it usefully is still the manual pass in F-18. Status `fixed`.
+**Re-opened 2026-09-16 by review, on rendered evidence - the repair is partial.** Measured in Chromium with the editor mounted: the landmark is there (`getByRole("region", { name: "Post content" })` visible), but **the control itself is still unnamed**. Focusing the title and pressing Tab lands on `DIV contenteditable=true` with `aria-label=null`, and every `[contenteditable]` on the page reports `aria-label: null`. So a screen-reader user now hears the region on entering it, then an unnamed edit area - better orientation, same unnamed control, and WCAG 2.2 4.1.2 still applies to the control. This is the case the ledger`s `fixed` rule exists for: the repair looked right in the diff and is incomplete in the browser.
+**Smallest remaining fix:** after `editor.isReady`, label the block editables (`holder.querySelectorAll("[contenteditable]")` -> `aria-label`), reapplying as blocks are added - or judge in F-18`s manual pass whether the named region is enough for a multi-block editor, and record that decision here rather than leaving it implied.
+**Independent view, 2026-09-16 (`reviewer` agent):** the named region is **probably enough for SC 4.1.2**, and 4.1.2 is not where the real AA risk sits. Editor.js's editable surfaces expose no `textbox` role - measured, they are generic elements in an editable subtree - so there is no named-role control left unnamed, and what a screen reader announces on entering an editable region is decided by the region's name, which now exists. Adding `aria-label` to each `contenteditable` would be noise on nodes this project does not own. **The unmeasured risk is the two custom popovers** - the + toolbox and the block settings menu, both keyboard- and focus-managed by the library - where SC 2.1.1 (keyboard), 2.4.3 (focus order) and 2.4.11 (focus not obscured, new in 2.2) are far likelier to fail than a missing label. **Do not close this by asserting conformance:** widen the manual pass in `needs-you.md` to name both menus, and have `design.md` show the editor as *not yet verified* rather than met, since `preflight` reads that line.
+
+### F-31 [P3] unverified - The editor placeholder may never appear
+
+**File:** app/features/blocks/editor.client.tsx:42 (`placeholder: "Write your post…"`)
+**Found:** 2026-09-16 by review (scope: current; lens: quality)
+**Why it matters:** Editor.js renders its placeholder through a `data-placeholder` attribute on the first empty block, and on a freshly opened `/admin/posts/new` every `[contenteditable]` reports `data-placeholder: null`. That suggests the option is not reaching the paragraph tool - in this version it is usually set on the tool's own config rather than at the top level. If so, a writer opens an empty white canvas with no prompt, which is the opposite of the "obvious next action" the design record asks for (`design.md`, Direction). **Unverified** because I checked the attribute, not what is painted: a placeholder drawn another way would not show up this way.
+**Suggested fix:** Look at the screen. If there is no prompt, move the option onto the paragraph tool's config for the installed Editor.js version, and assert the prompt in the browser test that opens a new post.
+
+### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
+
+**File:** app/features/content/entries.server.ts:44-66 (`createDraft`)
+**Found:** 2026-09-16 by review (scope: current; lens: correctness)
+**Why it matters:** The free address is chosen by reading the taken ones and then inserting, with no transaction between the two. Two saves racing with the same title both read the same taken list, both pick `hello-world-2`, and the second violates `entries_type_slug_key` - an unhandled `23505` becomes the "Oops! An unexpected error occurred." page, and the writer's text is still in their editor but their save is lost. Narrow window and a handful of editors (`quality-bar.md`), so it is not a P1, but the failure is ugly and the fix is small.
+**Suggested fix:** Catch `23505` on the insert in `createDraft` and retry with the next free address, two or three times before giving up. A unit test cannot reach this without a database, so it belongs with F-17's CI database or a browser test that inserts a clashing row first.
+
+### F-26 [P3] open - `/admin/posts/new` has no loader, so a client-side navigation skips the auth check
+
+**File:** app/features/content/post-new.tsx:9
+**Found:** 2026-09-16 by review (scope: current; lens: security)
+**Why it matters:** `requireUser` is route middleware, and `admin-shell/layout.tsx:11` documents the pattern: the loader is what makes a client-side navigation call the server, so the middleware runs on those too. This route has no loader, so a client-side navigation to it renders the editor without a server check. **Nothing leaks** - the page has no data, and the action re-checks on save - so this is a P3 about consistency, not an open door. It becomes a real gap the moment this route loads anything.
+**Suggested fix:** Give it a loader returning `null` (or the user, once the screen shows who is writing), matching the admin shell.
+
+### F-27 [P3] open - The address lookup scans rather than using the index
+
+**File:** app/features/content/entries.server.ts:46-48
+**Found:** 2026-09-16 by review (scope: current; lens: performance)
+**Why it matters:** `slug like 'base%'` cannot use `entries_type_slug_key` under the database's default collation - a prefix `LIKE` needs `text_pattern_ops` - so every new post scans the entries table. At the recorded scale (a few thousand entries, `quality-bar.md`) this is microseconds and well inside the 1 s save bar (measured p95 105 ms), so it is a note for when the table grows, not a problem today.
+**Suggested fix:** When it matters, add `create index entries_slug_prefix_idx on entries (type, slug text_pattern_ops)`, or select the exact candidates instead of a prefix match.
+
 ### F-22 [P2] unverified - The app now believes any client's `X-Forwarded-Host` and `X-Forwarded-Proto`
 
 **File:** server/app.ts:17 (`{ trustProxy: true }`)

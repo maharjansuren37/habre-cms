@@ -65,9 +65,12 @@ replacement, and the existing one is preserved.
 - whether there is a remote at all, and which host it is on. **This decides the
   file you write**, and there is no neutral format: GitHub Actions, GitLab CI and
   Forgejo Actions are different files in different places. **If there is no
-  remote, say which host you are assuming and why before writing anything** - a
-  config written for the wrong host is not adapted later, it is rewritten, and
-  the user finds out when they first push
+  remote, stop and ask which host the repository will live on, before writing
+  anything** - a config written for the wrong host is not adapted later, it is
+  rewritten, and the user finds out when they first push. Recommend one, with
+  the evidence (a logged-in CLI, the other projects' remotes), but let the user
+  answer: "say which host you are assuming" was an instruction a real run
+  skipped, writing a GitHub workflow and explaining it afterwards
 
 **If the verification command fails locally, stop.** Setting up CI to run a
 failing command just moves the failure somewhere less visible.
@@ -167,6 +170,11 @@ project's own dependencies do not support.
 Then **stop**. Report:
 
 - what the config runs, and when
+- **every test command the project has that the pipeline does not run**, and
+  why. A browser test tool `stack` chose is the usual one - it often needs a
+  database service and a browser download, which is a real cost and the user's
+  call. Record the answer in the `ci` row of the Environments table, so "CI is
+  green" is never read as "the browser tests passed"
 - that it passed locally
 - **that nothing has been pushed**, and that pushing is the user's call
 - what would still need doing on the remote by hand - requiring the check before

@@ -5,7 +5,7 @@ description: "Settle the technology stack for a new project - web app, mobile ap
 
 # stack - choose the stack before you scaffold
 
-**Writes:** `blueprint/project-plan.md` · `blueprint/context/needs-you.md`
+**Writes:** `blueprint/project-plan.md` · `blueprint/context/needs-you.md` · `dev-notes/decisions.md`
 
 Where this sits:
 
@@ -337,7 +337,11 @@ needs Xcode or Android Studio by hand.
 Show the settled stack and the scaffold command, then wait. Write nothing yet.
 
 Mark clearly which parts were the user's own choice and which you decided, so
-they know what they are actually approving. If they push back on one part ("no
+they know what they are actually approving. **Beside each significant choice,
+name the line of `blueprint/context/quality-bar.md` it answers** - or write "no
+bar line" and what decided it instead: a constraint, the server's size, the
+user's preference. Saying it only in prose let a real run rule out a framework on
+install size and memory without ever connecting either to the bar. If they push back on one part ("no
 database, keep it static"), revise just that part and re-confirm rather than
 re-proposing everything.
 
@@ -395,8 +399,10 @@ Touch no other section.
 **Record the reasoning where it will be found.** When a choice had a real
 alternative and a real why - a self-hostable auth library because the plan
 mentions moving off a managed host later, say - add a numbered entry to
-`dev-notes/decisions.md` giving what was chosen, what lost, and what it costs. A
-trade-off buried in a plan section is one nobody will read.
+`dev-notes/decisions.md` giving what was chosen, what lost, what it costs, and
+**which bar line it answers, or that none did**. A trade-off buried in a plan
+section is one nobody will read, and a choice with no bar line is one the bar
+never tested.
 
 Then point at `scaffold` to build it.
 

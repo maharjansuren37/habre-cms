@@ -213,6 +213,11 @@ the coordinator no way to know - it sees a part that simply went quiet.
 - the range is valid, and every skill in it is permitted
 - no unrelated uncommitted changes - an unattended run must be able to tell its
   own work from someone else's
+- **a step marked `_(built, awaiting approval)_` is this item's work, and the
+  user's to approve.** Its uncommitted files are not unrelated - but ticking it is
+  the approval `build` was waiting for, so **ask once, before the run starts**:
+  accept it as built, or rebuild it. Never tick it silently; a run that did made
+  the right call only because the same session remembered the step.
 - on a branch, not `main` - **only when `build` is not in the range.** If it is,
   `build`'s Step 2 creates the branch from the spec, and requiring one first is
   circular: `ship` deletes the branch when it merges, so a clean `main` is the
@@ -295,6 +300,13 @@ points, and the reason an unattended pass is recoverable.
 
 Stopping early is the correct outcome in every one of those, not a failed run.
 **A run that stops at the first real question has done its job.**
+
+**Mark where the stop leaves the step.** A step stopped with its code in the
+working tree gets `_(partly built, stopped: <reason>)_` after its bold title in
+`blueprint/context/current-work.md`, so the next run - this skill or `build` -
+knows those files are the step's own. Without it, re-running this range meets an
+unchecked step with its files already present: the same state it would refuse
+from anyone else.
 
 ## Step 4 - verify and review
 

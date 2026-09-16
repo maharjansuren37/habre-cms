@@ -191,6 +191,14 @@ resulting project will contain.
 **This is the approval gate.** Scaffolding writes a lot of files and pulls a lot
 from the network. Choosing a stack was not a yes to installing it. Wait.
 
+**Commit the plans first, as part of that yes.** No skill before this one
+commits: `ideate`, `architect`, `stack` and `layout` all write files and leave
+them in the working tree, so on a real run four skills of decisions - both plans,
+the quality bar, every decision entry - existed nowhere else when the installer
+started writing across the tree. Say that the approval covers a `docs:` commit of
+the planning files before anything installs, and make it: a scaffold that goes
+wrong is then unpicked without taking the plans with it.
+
 ## Step 4 - create the project
 
 **First: is there a scaffolder at all?** The rest of this step exists to work
@@ -330,6 +338,11 @@ Installed is not the same as usable:
   recorded and an unset header somebody chose look identical at the end and are
   not the same thing.**
 - add the **scripts**: dev, build, test, lint
+- **keep the pack's own directories out of every check you configure** -
+  `prototypes/` above all, and `.claude/`, `.agents/` and `.opencode/`. `prototype`
+  writes throwaway HTML there that no linter should pass: placeholder links failed
+  a real project's lint, and would have failed CI on the commit that added them.
+  Exclude them in each tool's own config, not with a flag on one script.
 - define the **one verification command** that runs the checks this project now
   genuinely has. Preferred order: typecheck, tests, build. **Never invent a
   check just to fill it in.**
@@ -476,6 +489,14 @@ typically OWASP Top 10:2025 for a web project, OWASP MASVS for mobile, WCAG 2.2 
 anything with a UI, and honestly nothing beyond the fundamentals for a local
 script. Take the bar from `blueprint/context/quality-bar.md` where `architect`
 recorded one rather than choosing a stricter one here.
+
+**Where the quality bar hands a standard to another file, point at that file.**
+Accessibility is the common case: `architect` leaves it to
+`blueprint/context/design.md`, which `prototype` writes *after* this skill runs.
+Write "Accessibility: as recorded in `blueprint/context/design.md`", never "not
+recorded yet" - nothing comes back to correct that line, and `review` decides what
+its accessibility lens checks from it. On a real project it read "not recorded"
+beside a `design.md` recording WCAG 2.2 AA.
 
 **Anything you could not determine, say so in the file** rather than filling it
 with a plausible convention nobody chose; an invented standard is worse than an

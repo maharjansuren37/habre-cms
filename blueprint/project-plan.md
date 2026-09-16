@@ -74,8 +74,11 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   read Caddy's `X-Forwarded-Proto` (D23, fixes F-21).
 - **Bot detection:** `isbot` **5.2.2** - required by React Router's default
   server entry (added by `scaffold`, D20).
-- **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with its header
-  and list tools; the image tool is settled in item 5's spec.
+- **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with `@editorjs/header`
+  **2.8.9** and `@editorjs/list` **2.0.9** (installed with item 2a, pinned exactly);
+  the image tool is settled in item 5's spec. Their shipped `.ts` types use `enum`,
+  which `erasableSyntaxOnly` forbids, so `app/types/editorjs.d.ts` describes the
+  surface we use and `tsconfig.vite.json` maps the packages to it.
 - **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**.
 - **Installed with their item, not at scaffold:** `jose` (item 1), Editor.js and
   its header and list tools (item 2), `aws4fetch` and `image-size` (item 5) - so

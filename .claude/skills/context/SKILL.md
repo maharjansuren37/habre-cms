@@ -83,6 +83,12 @@ an authoritative-looking file full of nothing. Check for:
 - **Contradictions.** A feature the stack cannot support, data in the model that
   no feature reads or writes, an architecture describing a platform the Tech
   section does not name.
+- **The plan against the repository.** A version, image tag, service or command
+  the plan names that the lockfile, compose file, config or `AGENTS.md`
+  Environments disagrees with - or a fact about a server that a later skill
+  checked and found false. The repository is usually right and the plan line
+  stale. **Report it as a contradiction, not as "none":** it is one, with the
+  repository on the other side.
 - **A data model the stack already owns.** The model is written before the stack
   now, so a library chosen later may create and migrate tables the plan also
   specifies by hand - an auth library owning users and sessions is the common
@@ -100,6 +106,12 @@ writing it.
 **A contradiction the user has to resolve stops this skill.** Do not generate an
 overview from plans that disagree with themselves, and do not pick a side on
 their behalf. Say what conflicts and ask.
+
+**Never write a correction into the overview before it is in the plan.** An
+overview carrying a fix the plan does not have disagrees with its own source, and
+the next regeneration quietly reverts it. On a real run the overview was
+generated with three corrected lines while the plan edits still waited for
+approval. Propose the plan change, get the yes, write it, then generate.
 
 **So does a gap in a section Step 3 generates from.** A contradiction and an
 unfilled section both produce an overview that is wrong, and only one of them

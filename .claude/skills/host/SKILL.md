@@ -147,6 +147,16 @@ someone sets it up:
   misremembers how a thing they set up months ago actually works, and the answer
   changes the deploy design rather than being a detail of it.
 
+- **What else already runs on it?** A box that hosts one site usually hosts more
+  soon. List the services, sites and scheduled jobs before adding anything, and
+  budget memory against what is already used rather than against the machine's
+  total.
+- **Removing anything is its own approval, shown before it happens.** An app, a
+  package, a user: say exactly what goes, and **simulate the package change first**
+  (`apt-get -s`, or the platform's dry run) - `autoremove` takes dependencies
+  nobody named, and a real run removed sixty packages that way unchecked. Back up
+  any data the removal deletes, and say where the backup is.
+
 - **What patches the operating system?** Unattended upgrades, or a person with a
   calendar. A box nobody updates is the part of self-hosting that has no managed
   equivalent.
@@ -296,6 +306,14 @@ add a `dev-notes/decisions.md` entry for the host choice and why.
   makes building on the target look possible in the first place.
 - **Never delete or resize an existing resource** without separate, explicit
   approval - that is someone's data.
+- **Stop a process by the PID you started, never by a pattern.** `pkill -f` on a
+  machine that runs the real thing matches the real thing: a restore drill's
+  cleanup killed the live server, and because `SIGTERM` reads as a clean exit,
+  `Restart=on-failure` left it down. The same holds for a scratch database, a
+  test port or a temporary unit - name what you created, and clean up only that.
+- **A drill against production is a production change.** Restores, rollbacks and
+  failover tests get the same care as a deploy: say what you will run, what it
+  touches, and how you will put it back.
 - **Record everything.** An unrecorded resource is one nobody will find until it
   bills them.
 

@@ -250,8 +250,18 @@ Write the spec to `blueprint/context/current-work.md`, filling every section:
     Schema, types, or API shapes involved, or "none yet."
 
     ## Testing
+    ## Decisions
+    Choices this item makes that the plan does not already answer and later
+    items will build on - an id type, a limit, a session rule - each with what
+    it beat. `ship` records them in dev-notes/decisions.md. "None" is an answer.
     ## Notes
     Conventions and constraints to respect.
+
+**The Decisions section is how a choice outlives the item.** `ship` resets this
+file, and the archive under `blueprint/history/` is not where anyone looks for why
+the project is shaped the way it is. On a real run a spec settled UUID ids, a
+password rule, logout on every device and a folder the layout never named - and
+none of it reached `dev-notes/decisions.md`, because nothing carried it there.
 
 The build steps are a live checklist. `build` ticks each one off as it
 lands, so a session that resumes after a context clear reads which boxes are

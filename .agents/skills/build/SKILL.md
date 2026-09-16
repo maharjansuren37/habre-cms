@@ -52,6 +52,18 @@ branch and `git status` to see what is committed versus still in the working tre
 then continue from the **first unchecked step**. Do not start over, and do not
 re-do a step that is already ticked.
 
+**An unchecked step can still be built.** Two markers after a step's bold title
+say so, because the conversation that knew it is gone:
+
+- `_(built, awaiting approval)_` - its code is in the working tree and passed its
+  checks; the user had not said yes yet. **Show its diff and ask for that
+  approval. Never build it again over itself.**
+- `_(partly built, stopped: <reason>)_` - a run stopped mid-step. Show what is
+  there and the reason, and continue from it rather than starting the step over.
+
+If the marker is there but the step's files are not, the work was discarded:
+drop the marker and build the step normally.
+
 ## Step 2 - get on a branch
 
 Create and check out a branch named from the spec: `feature/<name>` for a feature,
@@ -143,6 +155,13 @@ Work the spec's build steps in order, one at a time. For each step:
    fails, or the user wants it different, revise the step, show the updated diff,
    and re-check. Nothing is committed until the user is happy with the step.
 
+   **While a built step waits for the user, mark it in the file:** add
+   `_(built, awaiting approval)_` right after its bold title in
+   `blueprint/context/current-work.md`. Otherwise the only record that the step's
+   code exists is this conversation - and a session that picks the item up cold,
+   or an `autopilot` run started from here, finds an unchecked step whose files
+   are already written, and either rebuilds over them or refuses the tree.
+
    **If the same step fails twice and you cannot say why, stop and run `debug`.**
    A third attempt made without understanding the cause is a guess, and a guess
    that happens to go green is worse than the failure - it retires the question
@@ -152,7 +171,11 @@ Work the spec's build steps in order, one at a time. For each step:
    the sentence that should trigger it.
 
 7. **Tick it off, then offer the checkpoint.** Once approved, check the step off
-   (`- [x]`) in `blueprint/context/current-work.md` so progress survives a context clear. If the
+   (`- [x]`) in `blueprint/context/current-work.md` so progress survives a context clear,
+   and remove its `_(built, awaiting approval)_` marker. **If the step settled a
+   choice the spec did not** - a limit, a library, a rule a later item will build
+   on - add it under the spec's `## Decisions` now, while the reason is on screen;
+   `ship` carries that section into `dev-notes/decisions.md`. If the
    step repaired a finding in `blueprint/context/findings.md`, set that finding to `fixed` and
    note the repair in its **Resolution** line - never to `closed`, because a repair
    is re-reviewed by `review` before it clears. A fix can introduce a worse
@@ -226,7 +249,7 @@ Before handing off, read blueprint/context/findings.md. A P0 or P1 finding still
   Tick the step and mark the finding `fixed` together.
 - **Then run `review`** so those repairs are re-reviewed and can move to
   `closed`. A repair never closes itself.
-- **Never set `accepted` or `invalid`.** `accepted` is the user's explicit
+- **Never set `accepted`, `deferred` or `invalid`.** `accepted` is the user's explicit
   decision with a recorded reason; `invalid` is a `review` verdict backed
   by evidence. Neither is this skill's call.
 
