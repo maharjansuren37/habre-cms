@@ -10,6 +10,27 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
+
+**File:** app/features/content/entries.server.ts:44-66 (`createDraft`)
+**Found:** 2026-09-16 by review (scope: current; lens: correctness)
+**Why it matters:** The free address is chosen by reading the taken ones and then inserting, with no transaction between the two. Two saves racing with the same title both read the same taken list, both pick `hello-world-2`, and the second violates `entries_type_slug_key` - an unhandled `23505` becomes the "Oops! An unexpected error occurred." page, and the writer's text is still in their editor but their save is lost. Narrow window and a handful of editors (`quality-bar.md`), so it is not a P1, but the failure is ugly and the fix is small.
+**Suggested fix:** Catch `23505` on the insert in `createDraft` and retry with the next free address, two or three times before giving up. A unit test cannot reach this without a database, so it belongs with F-17's CI database or a browser test that inserts a clashing row first.
+
+### F-26 [P3] open - `/admin/posts/new` has no loader, so a client-side navigation skips the auth check
+
+**File:** app/features/content/post-new.tsx:9
+**Found:** 2026-09-16 by review (scope: current; lens: security)
+**Why it matters:** `requireUser` is route middleware, and `admin-shell/layout.tsx:11` documents the pattern: the loader is what makes a client-side navigation call the server, so the middleware runs on those too. This route has no loader, so a client-side navigation to it renders the editor without a server check. **Nothing leaks** - the page has no data, and the action re-checks on save - so this is a P3 about consistency, not an open door. It becomes a real gap the moment this route loads anything.
+**Suggested fix:** Give it a loader returning `null` (or the user, once the screen shows who is writing), matching the admin shell.
+
+### F-27 [P3] open - The address lookup scans rather than using the index
+
+**File:** app/features/content/entries.server.ts:46-48
+**Found:** 2026-09-16 by review (scope: current; lens: performance)
+**Why it matters:** `slug like 'base%'` cannot use `entries_type_slug_key` under the database's default collation - a prefix `LIKE` needs `text_pattern_ops` - so every new post scans the entries table. At the recorded scale (a few thousand entries, `quality-bar.md`) this is microseconds and well inside the 1 s save bar (measured p95 105 ms), so it is a note for when the table grows, not a problem today.
+**Suggested fix:** When it matters, add `create index entries_slug_prefix_idx on entries (type, slug text_pattern_ops)`, or select the exact candidates instead of a prefix match.
+
 ### F-22 [P2] unverified - The app now believes any client's `X-Forwarded-Host` and `X-Forwarded-Proto`
 
 **File:** server/app.ts:17 (`{ trustProxy: true }`)
