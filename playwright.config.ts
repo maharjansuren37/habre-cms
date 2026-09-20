@@ -13,6 +13,10 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 export default defineConfig({
   // Only e2e/ - Playwright's default pattern would also collect node:test's *.test.ts files.
   testDir: "e2e",
+  // Login allows two password checks at once and answers "Login is busy" past
+  // that (login-rate-limit.server.ts). Almost every test logs in, so more workers
+  // than slots made a test fail at random once the suite grew (item 2b, step 6).
+  workers: 2,
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

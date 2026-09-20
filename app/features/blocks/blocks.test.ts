@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Block, fromEditorJs, toEditorJs, toPlainText } from "./blocks.ts";
+import { type Block, fromEditorJs, toEditorJs } from "./blocks.ts";
 
 const editorBlock = (type: string, data: unknown, id = "abc123") => ({
   blocks: [{ id, type, data }],
@@ -10,25 +10,76 @@ test("a paragraph becomes a text block", () => {
   const result = fromEditorJs(editorBlock("paragraph", { text: "Hello there" }));
   assert.deepEqual(result, {
     ok: true,
-    blocks: [{ id: "abc123", type: "text", data: { text: "Hello there" } }],
+    blocks: [{ id: "abc123", type: "text", data: { text: [{ text: "Hello there" }] } }],
   });
 });
 
-test("markup the editor sends is stored as plain text", () => {
+test("formatting the editor sends is stored as runs, never as markup", () => {
   const result = fromEditorJs(
-    editorBlock("paragraph", { text: "<b>bold</b> &amp; <i>italic</i>" }),
+    editorBlock("paragraph", { text: "<b>bold</b> &amp; <i>italic</i><u>under</u>" }),
   );
   assert.deepEqual(result, {
     ok: true,
-    blocks: [{ id: "abc123", type: "text", data: { text: "bold & italic" } }],
+    blocks: [
+      {
+        id: "abc123",
+        type: "text",
+        data: {
+          text: [
+            { text: "bold", bold: true },
+            { text: " & " },
+            { text: "italic", italic: true },
+            { text: "under" },
+          ],
+        },
+      },
+    ],
   });
+});
+
+test("a link to an unsafe address is refused, and the message names the block", () => {
+  const result = fromEditorJs({
+    blocks: [
+      { id: "a", type: "paragraph", data: { text: "fine" } },
+      { id: "b", type: "header", data: { text: '<a href="javascript:alert(1)">x</a>', level: 2 } },
+    ],
+  });
+  assert.deepEqual(result, {
+    ok: false,
+    message:
+      "Block 2 has a link to an address that cannot be used. Links must start with https://, http://, mailto:, # or a single /.",
+  });
+});
+
+test("each refusal tells the writer what happened and what to do", () => {
+  const message = (text: string) => {
+    const result = fromEditorJs(editorBlock("paragraph", { text }));
+    return result.ok ? "saved" : result.message;
+  };
+  // Starts with "/", so a message listing "/" alone would read as wrong (F-45).
+  assert.equal(
+    message('<a href="//example.com">x</a>'),
+    "Block 1 has a link to an address that cannot be used. Links must start with https://, http://, mailto:, # or a single /.",
+  );
+  assert.equal(
+    message(`<a href="https://example.com/${"x".repeat(2_048)}">x</a>`),
+    "Block 1 has a link address longer than 2,048 characters. Shorten the link, then save.",
+  );
+  assert.equal(
+    message("<b>a</b>b".repeat(1_001)),
+    "Block 1 has too much formatting to save. Remove some bold, italic or links, or split it into smaller blocks.",
+  );
+  assert.equal(
+    message("a".repeat(20_001)),
+    "Block 1 could not be saved: it is longer than 20,000 characters. Split it into smaller blocks.",
+  );
 });
 
 test("a header becomes a heading block, keeping its level", () => {
   const result = fromEditorJs(editorBlock("header", { text: "Section", level: 3 }));
   assert.deepEqual(result, {
     ok: true,
-    blocks: [{ id: "abc123", type: "heading", data: { text: "Section", level: 3 } }],
+    blocks: [{ id: "abc123", type: "heading", data: { text: [{ text: "Section" }], level: 3 } }],
   });
 });
 
@@ -49,11 +100,17 @@ test("an ordered list becomes a number list, an unordered one a bullet list", ()
   );
   assert.deepEqual(ordered, {
     ok: true,
-    blocks: [{ id: "abc123", type: "list", data: { style: "number", items: ["one", "two"] } }],
+    blocks: [
+      {
+        id: "abc123",
+        type: "list",
+        data: { style: "number", items: [[{ text: "one" }], [{ text: "two" }]] },
+      },
+    ],
   });
   assert.deepEqual(unordered, {
     ok: true,
-    blocks: [{ id: "abc123", type: "list", data: { style: "bullet", items: ["one"] } }],
+    blocks: [{ id: "abc123", type: "list", data: { style: "bullet", items: [[{ text: "one" }]] } }],
   });
 });
 
@@ -71,7 +128,35 @@ test("a nested list is flattened rather than losing the nested words", () => {
   );
   assert.deepEqual(result, {
     ok: true,
-    blocks: [{ id: "abc123", type: "list", data: { style: "bullet", items: ["parent", "child"] } }],
+    blocks: [
+      {
+        id: "abc123",
+        type: "list",
+        data: { style: "bullet", items: [[{ text: "parent" }], [{ text: "child" }]] },
+      },
+    ],
+  });
+});
+
+test("a list item keeps its formatting, and an empty item is dropped", () => {
+  const result = fromEditorJs(
+    editorBlock("list", {
+      style: "unordered",
+      items: [
+        { content: "<b>bold</b> item", meta: {}, items: [] },
+        { content: "<br>", meta: {}, items: [] },
+      ],
+    }),
+  );
+  assert.deepEqual(result, {
+    ok: true,
+    blocks: [
+      {
+        id: "abc123",
+        type: "list",
+        data: { style: "bullet", items: [[{ text: "bold", bold: true }, { text: " item" }]] },
+      },
+    ],
   });
 });
 
@@ -88,7 +173,11 @@ test("a checklist is refused by name rather than stored as a bullet list", () =>
 
 test("a saved list loads back into the shape the list tool reads", () => {
   const blocks: Block[] = [
-    { id: "c", type: "list", data: { style: "bullet", items: ["one", "two"] } },
+    {
+      id: "c",
+      type: "list",
+      data: { style: "bullet", items: [[{ text: "one" }], [{ text: "two" }]] },
+    },
   ];
   assert.deepEqual(toEditorJs(blocks), {
     blocks: [
@@ -131,9 +220,9 @@ test("content that is not the editor's shape at all is refused", () => {
 
 test("saved blocks load back into the shape the editor expects", () => {
   const blocks: Block[] = [
-    { id: "a", type: "text", data: { text: "Hello" } },
-    { id: "b", type: "heading", data: { text: "Section", level: 2 } },
-    { id: "c", type: "list", data: { style: "number", items: ["one"] } },
+    { id: "a", type: "text", data: { text: [{ text: "Hello" }] } },
+    { id: "b", type: "heading", data: { text: [{ text: "Section" }], level: 2 } },
+    { id: "c", type: "list", data: { style: "number", items: [[{ text: "one" }]] } },
   ];
   assert.deepEqual(toEditorJs(blocks), {
     blocks: [
@@ -150,16 +239,54 @@ test("saved blocks load back into the shape the editor expects", () => {
 
 test("a block survives a round trip through the editor's shape and back", () => {
   const blocks: Block[] = [
-    { id: "a", type: "text", data: { text: "Hello" } },
-    { id: "b", type: "heading", data: { text: "Section", level: 3 } },
-    { id: "c", type: "list", data: { style: "bullet", items: ["one", "two"] } },
+    { id: "a", type: "text", data: { text: [{ text: "Hello" }, { text: " there", bold: true }] } },
+    {
+      id: "b",
+      type: "heading",
+      data: { text: [{ text: "Section", italic: true, href: "/about?a=1&b=2" }], level: 3 },
+    },
+    {
+      id: "c",
+      type: "list",
+      data: { style: "bullet", items: [[{ text: "one" }], [{ text: "two", bold: true }]] },
+    },
+    { id: "d", type: "text", data: { text: [] } },
   ];
   const back = fromEditorJs(toEditorJs(blocks));
   assert.deepEqual(back, { ok: true, blocks });
 });
 
 test("line breaks and runs of whitespace collapse to single spaces", () => {
-  assert.equal(toPlainText("one<br>two   three\n\nfour"), "one two three four");
+  const result = fromEditorJs(editorBlock("paragraph", { text: "one<br>two   three\n\nfour" }));
+  assert.deepEqual(result, {
+    ok: true,
+    blocks: [{ id: "abc123", type: "text", data: { text: [{ text: "one two three four" }] } }],
+  });
+});
+
+test("text that looks like markup loads into the editor as visible characters", () => {
+  // Editor.js renders with innerHTML (F-33); an unescaped run would execute.
+  const blocks: Block[] = [
+    { id: "a", type: "text", data: { text: [{ text: "<script>alert(1)</script>" }] } },
+    {
+      id: "b",
+      type: "list",
+      data: { style: "bullet", items: [[{ text: "<img src=x onerror=alert(1)>" }]] },
+    },
+  ];
+  assert.deepEqual(toEditorJs(blocks), {
+    blocks: [
+      { id: "a", type: "paragraph", data: { text: "&lt;script&gt;alert(1)&lt;/script&gt;" } },
+      {
+        id: "b",
+        type: "list",
+        data: {
+          style: "unordered",
+          items: [{ content: "&lt;img src=x onerror=alert(1)&gt;", meta: {}, items: [] }],
+        },
+      },
+    ],
+  });
 });
 
 test("a deeply nested list is refused rather than exhausting the stack", () => {
@@ -225,4 +352,13 @@ test("the item cap stops the mapper walking a huge list, not just refusing it", 
   }));
   fromEditorJs(editorBlock("list", { style: "unordered", items }));
   assert.ok(highestRead <= 501, `read up to item ${highestRead}, expected to stop around 500`);
+});
+
+test("a block id carrying a character the database cannot store is refused", () => {
+  // The id goes into the same jsonb as the text, so it needs the same rule (F-49).
+  const lone = `b${String.fromCharCode(0xd800)}1`;
+  const result = fromEditorJs({
+    blocks: [{ id: lone, type: "paragraph", data: { text: "Hello" } }],
+  });
+  assert.equal(result.ok, false);
 });

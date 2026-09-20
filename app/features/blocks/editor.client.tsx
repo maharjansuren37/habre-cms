@@ -4,6 +4,9 @@ import List from "@editorjs/list";
 import { useEffect, useRef } from "react";
 import { type Block, toEditorJs } from "./blocks.ts";
 
+// Built into Editor.js; the names are its own. Shortcuts: Ctrl/Cmd+B, I, K.
+const INLINE_TOOLS = ["bold", "italic", "link"];
+
 /**
  * Editor.js, mounted in the browser only - it reaches for `document` as it is
  * constructed, so this file is `.client.tsx` and the build refuses any server
@@ -40,14 +43,23 @@ export function BlockEditor({
       holder: holder.current,
       // Wording from design.md: plain language, no CMS jargon.
       placeholder: "Write your post…",
-      // No inline toolbar in v1: bold, italic and links arrive in item 2b, and
-      // offering them now would mean quietly dropping them on save.
-      inlineToolbar: false,
+      // Exactly what blocks_format v2 can store (inline-runs.ts), named so the
+      // toolbar offers nothing a save would have to refuse or drop. `true` below
+      // inherits this list; in 2.31.6 a tool given its own list also gets
+      // Editor.js's "Convert to" menu prepended.
+      inlineToolbar: INLINE_TOOLS,
       tools: {
-        header: { class: Header as never, config: { levels: [2, 3], defaultLevel: 2 } },
+        header: {
+          class: Header as never,
+          // No Bold: headings are already bold, so Editor.js's Bold un-bolds
+          // them with a <span> no save can keep (F-43). The "Convert to" menu
+          // this brings only offers block types that can be stored.
+          inlineToolbar: ["italic", "link"],
+          config: { levels: [2, 3], defaultLevel: 2 },
+        },
         list: {
           class: List as never,
-          inlineToolbar: false,
+          inlineToolbar: true,
           // One menu entry, not three: the tool offers ordered, unordered and
           // checklist by default, and a checklist cannot be stored in v1 (F-35).
           // maxLevel 1 keeps nesting out of a format that has no place for it.

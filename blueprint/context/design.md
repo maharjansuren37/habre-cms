@@ -137,6 +137,32 @@ mostly the page itself, not spinners.
   get a hover background and a drag handle in the left margin; a round + button
   opens a menu of the four block types, each with a one-line description. Image
   blocks show the alt text field directly below the image.
+- **Inline formatting** (item 2b, not in the mockups): selecting text opens
+  Editor.js's own inline toolbar with exactly **Bold, Italic, Link** (shortcuts
+  Ctrl/Cmd+B, I, K) in text and list blocks; the link field opens beneath it.
+  **Headings offer Italic and Link only**, because headings are already bold and
+  Editor.js's Bold un-bolds them with markup no save can keep (F-43, confirmed in
+  the app). Giving headings their own list makes Editor.js 2.31.6 add its
+  "Convert to" menu there, offering only Text - chosen by the owner over hiding
+  it with CSS, which could leave an invisible item in the keyboard order. The + menu shares the same popover. Both are re-coloured onto the tokens in
+  `post-form.module.css` - surface background, `--color-text` icons,
+  `--color-surface-hover` hover, accent for active, 2px inset focus ring on the
+  link field **and on each toolbar button** (inset because the popover clips
+  outside). Editor.js's own focus affordance is a background swap at 1.11 / 1.09
+  against the toolbar - imperceptible, and identical to hover, so keyboard focus
+  could not be seen or told apart from the pointer (F-48); keyboard focus there
+  is a class, not DOM focus, so the ring hangs off `.ce-popover-item--focused`.
+  Measured light / dark: icon 16.75 / 14.07, hovered icon 15.07 / 12.86, link
+  field text 16.75 / 14.07, **focus ring on the toolbar surface 6.45 / 7.76**.
+  Editor.js's tooltip is left as shipped (dark in both schemes): title 10.66,
+  shortcut line 4.73. **Text selection inside the editor** is `--color-accent`
+  with `--color-on-accent` (6.45 / 8.40), overriding Editor.js's own
+  `.codex-editor ::selection` light blue, which hid selected text in dark mode;
+  the rest of the app keeps the browser default. The toolbar's
+  background differs from the page by only 1.07:1, and its border is decorative
+  at 1.29 / 1.30 against that background - **the icons are what identify it**, at
+  16.75 / 14.07 (F-53: the border was credited with a job it cannot do). Keyboard and screen-reader use is **not yet verified** (`needs-you.md`).
+  Screenshots: `blueprint/reference/2b-inline-toolbar/`.
 - **Public site:** header with logo, site title and the navigation menu; article
   with date and author above the title; images full column width with 12px radius
   and muted caption; footer on `--color-bg`.

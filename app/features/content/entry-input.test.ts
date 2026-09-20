@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { entryInputSchema } from "./entry-input.ts";
 import { parsePostForm } from "./post-form-input.ts";
 
-const blocks = [{ id: "a", type: "text" as const, data: { text: "Hello" } }];
+const blocks = [{ id: "a", type: "text" as const, data: { text: [{ text: "Hello" }] } }];
 
 test("a title is trimmed before it is stored", () => {
   const result = entryInputSchema.parse({ title: "  Hello  ", blocks });
@@ -26,7 +26,7 @@ test("more blocks than one post should hold are refused", () => {
   const many = Array.from({ length: 201 }, (_, index) => ({
     id: `b${index}`,
     type: "text" as const,
-    data: { text: "x" },
+    data: { text: [{ text: "x" }] },
   }));
   assert.equal(entryInputSchema.safeParse({ title: "Fine", blocks: many }).success, false);
   assert.equal(entryInputSchema.safeParse({ title: "Fine", blocks }).success, true);
@@ -49,4 +49,14 @@ test("a submission with no blocks field is refused, not read as an empty post", 
   withEmptyBlocks.set("title", "Just a title");
   withEmptyBlocks.set("blocks", JSON.stringify({ blocks: [] }));
   assert.equal(parsePostForm(withEmptyBlocks).ok, true);
+});
+
+test("a title carrying a character the database cannot store is refused, not left to the insert", () => {
+  // PostgreSQL rejects U+0000 in a text column, so this used to answer 500 (F-47).
+  const result = entryInputSchema.safeParse({ title: "Hello\u0000there", blocks });
+  assert.equal(result.success, false);
+  assert.equal(
+    result.error?.issues[0].message,
+    "The title has a character that cannot be stored. Remove it and save again.",
+  );
 });
