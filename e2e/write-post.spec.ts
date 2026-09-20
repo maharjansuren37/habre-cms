@@ -50,9 +50,13 @@ test("a heading and a list survive being loaded into the editor and saved again"
   // lived (every list item came back as "[object Object]"). Driving the
   // floating menu proved too flaky to be worth what it adds.
   const id = await createDraftFor(author.email, "Every block type", [
-    { id: "p1", type: "text", data: { text: "An opening paragraph." } },
-    { id: "h1", type: "heading", data: { text: "A section heading", level: 2 } },
-    { id: "l1", type: "list", data: { style: "bullet", items: ["first item", "second item"] } },
+    { id: "p1", type: "text", data: { text: [{ text: "An opening paragraph." }] } },
+    { id: "h1", type: "heading", data: { text: [{ text: "A section heading" }], level: 2 } },
+    {
+      id: "l1",
+      type: "list",
+      data: { style: "bullet", items: [[{ text: "first item" }], [{ text: "second item" }]] },
+    },
   ]);
 
   await logIn(page, author);
@@ -64,7 +68,7 @@ test("a heading and a list survive being loaded into the editor and saved again"
   await expect(page.getByText("first item")).toBeVisible();
   await expect(page.getByText("[object Object]")).toBeHidden();
 
-  // Saved back: what the tools hand over is stored as text, not as objects.
+  // Saved back: what the tools hand over is stored as runs, not as objects.
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await page.reload();

@@ -14,7 +14,13 @@ export const entryInputSchema = z.object({
     .string()
     .trim()
     .min(1, { message: "Give your post a title before saving." })
-    .max(200, { message: "Titles can be up to 200 characters." }),
+    .max(200, { message: "Titles can be up to 200 characters." })
+    // PostgreSQL refuses U+0000 in a text column, so a crafted title reached the
+    // insert and answered 500 (F-47's residual). Refused at the boundary, the
+    // way a block's text already is.
+    .refine((title) => !title.includes("\u0000"), {
+      message: "The title has a character that cannot be stored. Remove it and save again.",
+    }),
   blocks: blocksSchema,
 });
 

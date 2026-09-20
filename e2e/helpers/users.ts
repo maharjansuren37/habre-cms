@@ -100,3 +100,15 @@ export async function createDraftFor(
   });
   return id;
 }
+
+/** Test-only: the blocks and version stored for one entry, as the database holds them. */
+export async function storedEntry(id: string): Promise<{ blocks: unknown; version: number }> {
+  let entry = { blocks: null as unknown, version: 0 };
+  await withDatabase(async (sql) => {
+    const [row] = await sql<{ blocks: unknown; version: number }[]>`
+      select blocks, version from entries where id = ${id}
+    `;
+    entry = row;
+  });
+  return entry;
+}

@@ -1,6 +1,7 @@
 import { BLOCKS_FORMAT, type Block } from "#app/features/blocks/blocks.ts";
 import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
+import { assertKnownFormat } from "./blocks-format.ts";
 import type { EntryInput } from "./entry-input.ts";
 import { nextFreeSlug, slugFromTitle } from "./slug.ts";
 
@@ -20,11 +21,21 @@ export type Entry = {
 export type Actor = { id: string; role: Role };
 
 const entryColumns = sql`
-  id, type, title, slug, blocks, status,
+  id, type, title, slug, blocks,
+  blocks_format as "blocksFormat",
+  status,
   author_id as "authorId",
   version,
   updated_at as "updatedAt"
 `;
+
+/** What the columns above return; the format is checked, then left out. */
+type EntryRow = Entry & { blocksFormat: string };
+
+function toEntry({ blocksFormat, ...entry }: EntryRow): Entry {
+  assertKnownFormat(entry.id, blocksFormat);
+  return entry;
+}
 
 /** Authors see only their own entries; editors and admins see every one. */
 function ownedBy(actor: Actor) {
@@ -32,11 +43,11 @@ function ownedBy(actor: Actor) {
 }
 
 export async function findEntryForUser(id: string, actor: Actor): Promise<Entry | null> {
-  const [entry] = await sql<Entry[]>`
+  const [row] = await sql<EntryRow[]>`
     select ${entryColumns} from entries
     where id = ${id} and type = 'post' ${ownedBy(actor)}
   `;
-  return entry ?? null;
+  return row ? toEntry(row) : null;
 }
 
 export async function createDraft(input: EntryInput, authorId: string): Promise<Entry> {
@@ -50,7 +61,7 @@ export async function createDraft(input: EntryInput, authorId: string): Promise<
     taken.map((row) => row.slug),
   );
 
-  const [entry] = await sql<Entry[]>`
+  const [row] = await sql<EntryRow[]>`
     insert into entries ${sql({
       type: "post",
       title: input.title,
@@ -64,7 +75,7 @@ export async function createDraft(input: EntryInput, authorId: string): Promise<
     })}
     returning ${entryColumns}
   `;
-  return entry;
+  return toEntry(row);
 }
 
 export type UpdateResult =
@@ -86,7 +97,7 @@ export async function updateDraft(
   version: number,
   actor: Actor,
 ): Promise<UpdateResult> {
-  const [entry] = await sql<Entry[]>`
+  const [row] = await sql<EntryRow[]>`
     update entries set
       title = ${input.title},
       blocks = ${sql.json(input.blocks)},
@@ -94,9 +105,13 @@ export async function updateDraft(
       version = version + 1,
       updated_at = now()
     where id = ${id} and version = ${version} and type = 'post' ${ownedBy(actor)}
+      -- Only over a row this build can read: a tab opened before a format change
+      -- would otherwise replace newer content with the old format (F-46). Such a
+      -- row changes nothing here, and findEntryForUser below refuses it loudly.
+      and blocks_format = ${BLOCKS_FORMAT}
     returning ${entryColumns}
   `;
-  if (entry) return { ok: true, entry };
+  if (row) return { ok: true, entry: toEntry(row) };
 
   // No row changed: either this person cannot see it at all, or its version moved.
   const existing = await findEntryForUser(id, actor);

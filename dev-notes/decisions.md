@@ -392,3 +392,104 @@ from the client defaulting an unreadable editor to an empty post (F-42). Cost:
 the mapper is longer and more defensive than its happy path needs, and a writer
 who exceeds a bound is refused rather than truncated - which is the intended
 trade, since truncation loses work silently.
+
+## D28 - Inline formatting is stored as flat canonical runs (2026-09-21)
+
+**Chose:** a piece of text is a list of `{ text, bold?, italic?, href? }` runs -
+`blocks_format` `v2` - with exactly three marks, whitespace collapsed, and one
+canonical form per text: no empty runs, no two neighbours with identical marks,
+a mark key present only when it applies.
+
+Beat: a nested tree, where `<b><i>x</i></b>` and `<i><b>x</b></i>` mean one thing
+and compare as two; and text-plus-ranges, where every edit that shifts an offset
+breaks the ranges. Flat runs compare with a deep-equal, which is what the browser
+tests assert on, and render as a simple map in JSX for item 4. Line breaks inside
+a block stay collapsed to a space rather than becoming a fourth mark nobody asked
+for. **This supersedes the "Cost" half of D26:** a writer's `<b>` is formatting
+now; text that merely looks like markup is still kept as visible characters, and
+D26's escaping obligation moved into `runsToHtml`. Cost: run JSON is larger than
+a plain string, so the 1 MB body cap is reached slightly sooner (F-39), and each
+new mark is a `v3` migration rather than a silent extra field - which
+`runsSchema`'s strict objects make explicit on purpose.
+
+## D29 - The editor's HTML is parsed by an in-repo scanner, not a library (2026-09-21)
+
+**Chose:** ~100 lines in `app/features/blocks/inline-runs.ts` - a single
+left-to-right scan with counters, no recursion and no regex over the whole input.
+
+Beat: `node-html-parser`, `parse5`, `htmlparser2`, DOMPurify. The input is
+Editor.js's already-sanitized output over four tags, the project's
+minimal-dependencies constraint makes any runtime dependency a recorded decision,
+and the bounds D27 requires are far easier to prove on code we own: 20,000
+characters, 2,000 runs, 10,000 tags, each checked as the scan goes so a crafted
+input stops early. Cost: a hand-written parser is ours to get right - which is
+why its tests carry the obfuscated-scheme cases and the round trip, and why an
+independent review re-ran roughly 60 hostile inputs against it before ship.
+
+## D30 - An unsafe link refuses the save, against a scheme allowlist (2026-09-21)
+
+**Chose:** `http:`, `https:`, `mailto:`, a site-relative `/path` (not `//` or
+`/\`) or a `#fragment`, at most 2,048 characters - checked after ASCII
+whitespace and control characters are removed, because browsers ignore those
+before reading a scheme. Anything else **refuses the whole save**, naming the
+block.
+
+Beat: dropping the link and keeping the text, which silently loses what the
+writer did (D27 again: refuse rather than truncate); allowing `tel:`, which
+nobody asked for; and allowing anything `new URL` parses, which includes
+`javascript:`. The check lives in `isSafeHref` and is applied by both the parser
+and the stored schema, so a payload that never went through the parser cannot
+store what the parser would refuse. This matters because Editor.js's own link
+field accepts any `scheme:` - its `addProtocol` passes `javascript:` straight
+through - so the server is the only check there is. Cost: a writer who pastes an
+address the allowlist does not know is refused rather than corrected.
+
+## D31 - The block format marker is enforced at both ends (2026-09-21)
+
+**Chose:** the database refuses a write whose `blocks_format` is not the current
+one (`entries_blocks_format_check`), the reader refuses a row whose format this
+build does not understand (`assertKnownFormat`, naming the entry id and both
+formats), and `updateDraft`'s `where` requires the row's current format so a
+stale tab cannot overwrite a newer one.
+
+Beat: trusting that every write goes through the `BLOCKS_FORMAT` constant. It
+does today; the measured failure is what a `v3` deploy would do to an editor tab
+opened before it - before the `where` clause, a save from such a tab answered 200
+and silently replaced newer content with older, downgraded content (F-46). Cost:
+one extra column on every read and a 500 rather than a rendered message when a
+row is from the future - loud, which is the point, and unreachable while the
+check constraint holds.
+
+## D32 - Values PostgreSQL cannot hold are refused at the trust boundary (2026-09-21)
+
+**Chose:** one predicate, `isStorableText` - no U+0000, and `isWellFormed()` -
+applied to run text, link addresses and block ids, all of which land in the same
+`jsonb` column; the post title carries its own U+0000 refusal, because it lands
+in a `text` column with the same limitation.
+
+Both were measured reaching the database: `jsonb` rejects U+0000 and a lone
+surrogate ("Unicode low surrogate must follow a high surrogate"), and either one
+turned an authenticated crafted save into a 500 through the error boundary,
+losing whatever was in the editor (F-47, F-49; OWASP Top 10:2025 A10). The parser
+strips U+0000 but the schema *refuses* a lone surrogate rather than repairing it
+with `toWellFormed()`, because that would silently rewrite a writer's text to
+U+FFFD - D27's rule again. Cost: two checks on every save of every run, and a
+refusal message rather than a repair for input no editor can actually produce.
+
+## D33 - Editor.js's own styling is overridden only inside the editor (2026-09-21)
+
+**Chose:** every override of the library's injected CSS is scoped under
+`.canvas`, one class more specific than the rule it replaces, so it wins on
+specificity rather than on the order Editor.js happens to inject its stylesheet.
+
+Two were needed and both were first written too wide: the selection colour, where
+Editor.js's `.codex-editor ::selection` light blue hid selected text in dark mode
+and the first fix changed selection app-wide on a misreading of the rule's scope
+(F-44); and the toolbar's focus ring, where the library's only affordance is a
+background swap at 1.1:1 that is also identical to hover (F-48). **Keyboard focus
+in that toolbar is a class, not DOM focus** - the caret stays in the block while
+Editor.js moves `ce-popover-item--focused` along the items - so `:focus-visible`
+never fires and the ring has to hang off that class. Cost: these rules are
+coupled to internal class names of a library that does not promise them, so an
+Editor.js upgrade is the moment to re-measure; both are guarded by browser tests
+that were shown to fail with the rules removed.

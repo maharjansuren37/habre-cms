@@ -90,7 +90,9 @@ not tidying; it is what keeps the open list true.
 - [ ] **Screen-reader and keyboard pass over the block editor** (NVDA, VoiceOver
       or Orca) - manual verification; no automated check hears what Editor.js
       announces, and `design.md` names the editor's blocks and block menu as the
-      hardest part of the accessibility bar. Done during item 2a's `verify`.
+      hardest part of the accessibility bar. Covers the + toolbox, the block
+      settings menu, and - from item 2b - the inline toolbar (Bold, Italic,
+      Link) and its link field. Done during item 2a's or 2b's `verify`.
       Blocks nothing now; `preflight` needs it. `open` (spec, 2026-09-16)
 
 - [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin

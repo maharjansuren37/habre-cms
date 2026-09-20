@@ -1,27 +1,37 @@
 import { z } from "zod";
+import {
+  isStorableText,
+  parseInlineHtml,
+  type Refusal,
+  type Run,
+  runsSchema,
+  runsToHtml,
+} from "./inline-runs.ts";
 
 /**
  * The stored shape of post and page content: an ordered list of blocks, each
  * `{ id, type, data }`. Defined once and used by the editor, the save action and
  * (from item 4) the public renderer.
  *
- * **Text is plain text in this format version.** Item 2b introduces `v2`, where
- * `text` becomes a list of runs carrying bold, italic and links, and migrates
- * existing rows. Nothing here ever holds HTML: the editor's markup is stripped
- * on the way in, and the renderer escapes on the way out.
+ * **Text is a list of runs** (`inline-runs.ts`): plain text carrying bold,
+ * italic and links. `v1` held plain strings; `0003_blocks_v2.sql` converted
+ * them. Nothing here ever holds HTML: the editor's markup is parsed into runs on
+ * the way in, and escaped on the way out.
  */
-export const BLOCKS_FORMAT = "v1";
+export const BLOCKS_FORMAT = "v2";
 
 // Editor.js generates ids; the cap is a bound on anything a client can send.
-const blockId = z.string().min(1).max(64);
-// 20,000 characters is far longer than a paragraph anyone writes and short
-// enough that 200 of them stay a sane request body.
-const plainText = z.string().max(20_000);
+// The id shares the run text's storability rule - it goes into the same jsonb.
+const blockId = z
+  .string()
+  .min(1)
+  .max(64)
+  .refine(isStorableText, "a character that cannot be stored");
 
 const textBlock = z.object({
   id: blockId,
   type: z.literal("text"),
-  data: z.object({ text: plainText }),
+  data: z.object({ text: runsSchema }),
 });
 
 // Levels 2 and 3 only: the page's own <h1> is the entry title, so a heading
@@ -29,7 +39,7 @@ const textBlock = z.object({
 const headingBlock = z.object({
   id: blockId,
   type: z.literal("heading"),
-  data: z.object({ text: plainText, level: z.union([z.literal(2), z.literal(3)]) }),
+  data: z.object({ text: runsSchema, level: z.union([z.literal(2), z.literal(3)]) }),
 });
 
 const listBlock = z.object({
@@ -37,7 +47,7 @@ const listBlock = z.object({
   type: z.literal("list"),
   data: z.object({
     style: z.enum(["bullet", "number"]),
-    items: z.array(plainText).min(1).max(500),
+    items: z.array(runsSchema).min(1).max(500),
   }),
 });
 
@@ -48,29 +58,6 @@ export type Block = z.infer<typeof blockSchema>;
 
 /** What Editor.js calls each block type, and what this project calls it. */
 const EDITOR_JS_TYPES = { paragraph: "text", header: "heading", list: "list" } as const;
-
-const ENTITIES: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&nbsp;": " ",
-};
-
-/**
- * Editor.js returns HTML fragments (`<b>hi</b>`, `&amp;`) even with its inline
- * toolbar off - a paste carries markup in. In `v1` that markup is dropped rather
- * than stored, because storing HTML is what D5 rules out.
- */
-export function toPlainText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&[a-z]+;|&#\d+;/gi, (entity) => ENTITIES[entity.toLowerCase()] ?? entity)
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 /**
  * `@editorjs/list` 2.0.9 saves each item as `{ content, meta, items }`, not as a
@@ -91,6 +78,7 @@ const MAX_LIST_DEPTH = 8;
 // Matches the schema's own cap, so a body cannot build a huge array first.
 const MAX_LIST_ITEMS = 500;
 
+/** Each item's HTML, in order; parsed into runs by the caller. */
 function flattenListItems(items: unknown, depth = 0): string[] {
   // Anything that is not an array - including a string, which would otherwise be
   // iterated one character at a time and stored as that many list items.
@@ -102,22 +90,44 @@ function flattenListItems(items: unknown, depth = 0): string[] {
     // crafted body building a 150,000-element array first.
     if (flat.length > MAX_LIST_ITEMS) break;
     if (typeof item === "string") {
-      flat.push(toPlainText(item));
+      flat.push(item);
       continue;
     }
     // `typeof null === "object"`, so null has to be excluded by name: reading
     // `.content` off it threw a TypeError to the action, which has no catch.
     if (item === null || typeof item !== "object") continue;
     const listItem = item as { content?: unknown; items?: unknown };
-    flat.push(toPlainText(String(listItem.content ?? "")));
+    flat.push(String(listItem.content ?? ""));
     // Pushed one at a time, not spread: spreading a very wide child exhausts
     // the call stack, which the depth bound cannot see (one level, 150k items).
     for (const nested of flattenListItems(listItem.items, depth + 1)) flat.push(nested);
   }
-  return flat.filter((text) => text !== "");
+  return flat;
 }
 
 export type FromEditorJs = { ok: true; blocks: Block[] } | { ok: false; message: string };
+
+/** What happened and what to do, for each refusal (design.md, Words). */
+const REFUSAL_MESSAGES: Record<Refusal, (block: string) => string> = {
+  unsafe_link: (block) =>
+    `${block} has a link to an address that cannot be used. Links must start with https://, http://, mailto:, # or a single /.`,
+  link_too_long: (block) =>
+    `${block} has a link address longer than 2,048 characters. Shorten the link, then save.`,
+  too_long: (block) =>
+    `${block} could not be saved: it is longer than 20,000 characters. Split it into smaller blocks.`,
+  too_much_formatting: (block) =>
+    `${block} has too much formatting to save. Remove some bold, italic or links, or split it into smaller blocks.`,
+};
+
+/** One piece of the editor's HTML as runs, or the sentence the writer reads. */
+function toRuns(
+  html: string,
+  position: number,
+): { ok: true; runs: Run[] } | { ok: false; message: string } {
+  const parsed = parseInlineHtml(html);
+  if (parsed.ok) return parsed;
+  return { ok: false, message: REFUSAL_MESSAGES[parsed.reason](`Block ${position}`) };
+}
 
 /**
  * Turns what the editor submits into stored blocks. Every failure names the
@@ -160,24 +170,27 @@ export function fromEditorJs(input: unknown): FromEditorJs {
               : `Block ${index + 1} is a "${list.style}" list, which cannot be saved yet.`,
         };
       }
+      const items: Run[][] = [];
+      for (const html of flattenListItems(list.items ?? [])) {
+        const item = toRuns(html, index + 1);
+        if (!item.ok) return item;
+        // An empty item is dropped, as an empty string was in v1.
+        if (item.runs.length > 0) items.push(item.runs);
+      }
       blocks.push({
         id: block.id,
         type,
-        data: {
-          style: list.style === "ordered" ? "number" : "bullet",
-          items: flattenListItems(list.items ?? []),
-        },
+        data: { style: list.style === "ordered" ? "number" : "bullet", items },
       });
       continue;
     }
     const data = block.data as { text?: unknown; level?: unknown };
+    const text = toRuns(String(data.text ?? ""), index + 1);
+    if (!text.ok) return text;
     blocks.push({
       id: block.id,
       type,
-      data:
-        type === "heading"
-          ? { text: toPlainText(String(data.text ?? "")), level: data.level }
-          : { text: toPlainText(String(data.text ?? "")) },
+      data: type === "heading" ? { text: text.runs, level: data.level } : { text: text.runs },
     });
   }
 
@@ -194,17 +207,10 @@ export function fromEditorJs(input: unknown): FromEditorJs {
 }
 
 /**
- * Editor.js sanitizes on save and on paste, **never on render**: its paragraph
- * tool assigns `innerHTML` directly. Stored text is plain text, so anything that
- * looks like markup in it is a writer's literal words - and handing them to that
- * sink unescaped executes them (F-33). Escaping here keeps `<img …>` as five
- * visible characters instead of an element.
+ * The inverse, for loading a saved entry back into the editor. Editor.js
+ * sanitizes on save and on paste, **never on render** - its tools assign
+ * `innerHTML` - so text goes through `runsToHtml`, which escapes it (F-33).
  */
-function escapeForEditor(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-/** The inverse, for loading a saved entry back into the editor. */
 export function toEditorJs(blocks: Block[]): {
   blocks: { id: string; type: string; data: unknown }[];
 } {
@@ -219,7 +225,7 @@ export function toEditorJs(blocks: Block[]): {
             // The tool reads `{ content, meta, items }`, the same shape it
             // saves; handing it bare strings renders an empty list.
             items: block.data.items.map((content) => ({
-              content: escapeForEditor(content),
+              content: runsToHtml(content),
               meta: {},
               items: [],
             })),
@@ -229,7 +235,7 @@ export function toEditorJs(blocks: Block[]): {
       return {
         id: block.id,
         type: block.type === "heading" ? "header" : "paragraph",
-        data: { ...block.data, text: escapeForEditor(block.data.text) },
+        data: { ...block.data, text: runsToHtml(block.data.text) },
       };
     }),
   };
