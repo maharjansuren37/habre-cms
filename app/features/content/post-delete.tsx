@@ -1,10 +1,11 @@
-import { data, Form, Link, redirect } from "react-router";
+import { data, Form, Link } from "react-router";
 import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
 import type { Route } from "./+types/post-delete";
+import { bannerRedirect } from "./banner.ts";
 import { deleteEntry, findEntryForUser } from "./entries.server.ts";
 import styles from "./post-delete.module.css";
 
@@ -40,7 +41,7 @@ export async function action({ params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
   const deleted = await deleteEntry(id, context.get(userContext));
   if (!deleted) throw data("Not Found", { status: 404 });
-  return redirect(`/admin/posts?deleted=${encodeURIComponent(deleted.title)}`);
+  return bannerRedirect("deleted", deleted.title);
 }
 
 export default function DeletePost({ loaderData }: Route.ComponentProps) {

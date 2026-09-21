@@ -124,3 +124,20 @@ export async function storedEntry(id: string): Promise<{ blocks: unknown; versio
   });
   return entry;
 }
+
+/** Test-only: an entry's status and published_at, for publish/unpublish tests. */
+export async function entryStatus(
+  id: string,
+): Promise<{ status: "draft" | "published"; publishedAt: Date | null }> {
+  let result: { status: "draft" | "published"; publishedAt: Date | null } = {
+    status: "draft",
+    publishedAt: null,
+  };
+  await withDatabase(async (sql) => {
+    const [row] = await sql<{ status: "draft" | "published"; published_at: Date | null }[]>`
+      select status, published_at from entries where id = ${id}
+    `;
+    if (row) result = { status: row.status, publishedAt: row.published_at };
+  });
+  return result;
+}

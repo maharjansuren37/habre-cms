@@ -70,6 +70,9 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 2b. **Inline formatting** - bold, italic and links, stored as structured runs, never raw HTML
 - [x] 3. **Manage posts** - list, edit and delete posts and drafts
 - [ ] 4. **Publish to the public site** - publish/unpublish; the site renders published posts with the built-in theme on `surenmaharjan.fyi`, with admin on `cms.surenmaharjan.fyi` (D22)
+  - [x] 4a. **Publish and unpublish** - a draft/published toggle on the post editor, reusing the existing status column and the `?deleted=`-style redirect banner
+  - [ ] 4b. **Render the public site** - home page, one post, 404, in the built-in theme, still on the single existing hostname
+  - [ ] 4c. **Split the hostnames** (D22) - `PUBLIC_URL`/`ADMIN_URL`, host-based routing and redirects, the CSRF check, and the Caddy/DNS changes to serve `surenmaharjan.fyi` and `cms.surenmaharjan.fyi` from one app
 - [ ] 5. **Images** - upload to R2, insert into a post, media library to reuse them
 - [ ] 6. **Pages** - create, edit and publish static pages, served at their own URLs
 - [ ] 7. **Site settings and menu** - title, logo, navigation shown on the public site
