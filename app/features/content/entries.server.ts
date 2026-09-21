@@ -218,3 +218,52 @@ export async function deleteEntry(id: string, actor: Actor): Promise<{ title: st
   `;
   return row ?? null;
 }
+
+/** What the public home page shows for one post - no `Actor`, no ownership:
+ *  every visitor sees the same published list. */
+export type PublicPostSummary = { title: string; slug: string; publishedAt: Date };
+
+/**
+ * The newest published posts, for the public home page. Ordered by
+ * `published_at`, not `updated_at` (item 4b's D-3) - an unrelated copy-edit
+ * must never reorder the public list.
+ */
+export async function listPublishedPosts(limit: number): Promise<PublicPostSummary[]> {
+  return sql<PublicPostSummary[]>`
+    select title, slug, published_at as "publishedAt"
+    from entries
+    where type = 'post' and status = 'published'
+    order by published_at desc
+    limit ${limit}
+  `;
+}
+
+/** One published post's full content, for its own page. */
+export type PublicPost = {
+  title: string;
+  blocks: Block[];
+  publishedAt: Date;
+  authorName: string;
+};
+
+/** What the columns below return; the format is checked, then left out - same
+ *  reason `toEntry` does this for the admin side. */
+type PublicPostRow = PublicPost & { blocksFormat: string };
+
+/**
+ * A published post by its address, or `null` if there is none - a draft and a
+ * missing slug get the same answer, so a post's existence is never leaked by
+ * its status (the same rule `findEntryForUser` applies for ownership).
+ */
+export async function findPublishedPost(slug: string): Promise<PublicPost | null> {
+  const [row] = await sql<PublicPostRow[]>`
+    select e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.published_at as "publishedAt", u.name as "authorName"
+    from entries e join users u on u.id = e.author_id
+    where e.type = 'post' and e.status = 'published' and e.slug = ${slug}
+  `;
+  if (!row) return null;
+  const { blocksFormat, ...post } = row;
+  assertKnownFormat(slug, blocksFormat);
+  return post;
+}

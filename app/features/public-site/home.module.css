@@ -1,0 +1,37 @@
+.home {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+}
+
+.empty {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list a {
+  color: var(--color-text);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.list a:hover {
+  text-decoration: underline;
+}
+
+.list time {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

@@ -647,3 +647,83 @@ cookie instead of a URL param, which would close the "no proof" half too but is
 a bigger change than this fix warranted. Cost: the "no proof" half is still
 open - a crafted link can still show a plausible-looking success banner to a
 logged-in admin, just not an unbounded one.
+
+## D47 - The public home page shows the newest 10 published posts, no pagination (2026-09-21)
+
+**Chose:** `listPublishedPosts(limit)` (item 4b) caps the home page at 10 posts,
+newest first, with no "older posts" link.
+
+Beat: matching the admin list's `PAGE_SIZE` (20) - a different concern with no
+reason to be coupled to it - and building pagination nobody asked for at this
+scale (`quality-bar.md`: a few thousand entries, not a few thousand read every
+day). Cost: revisit if the public archive ever needs to go back further than
+the newest 10.
+
+## D48 - The public header and footer show fixed "Habre CMS" text, no nav, until site settings exist (2026-09-21)
+
+**Chose:** `layout.tsx`'s `Chrome` hardcodes the brand text and omits a
+navigation list entirely, rather than inventing placeholder content.
+
+Beat: a fake site title or a dead-link nav - mirrors the admin shell's own
+precedent for the same gap (`design.md`: no nav list until the first admin
+section ships). Cost: none; item 7 replaces this wholesale once
+`site_settings` exists.
+
+## D49 - Public posts are ordered by `published_at`, not `updated_at` (2026-09-21)
+
+**Chose:** `listPublishedPosts` orders by `published_at desc`.
+
+Beat: reusing `listEntries`'s admin ordering (`updated_at desc`), which would
+let an unrelated copy-edit silently reorder the public home - readers should
+see order reflect when something became public, not when it was last touched.
+Cost: none.
+
+## D50 - Public dates are formatted with an explicit `timeZone: "UTC"` (2026-09-21)
+
+**Chose:** both `home.tsx` and `post.tsx` format dates with `timeZone: "UTC"`
+explicitly.
+
+Beat: leaving it implicit, which is exactly the shape of an already-recorded
+bug in the admin list's own date formatter (F-55: a server/client locale
+mismatch, a hydration mismatch waiting to happen). New code doing the same
+kind of formatting does not get to repeat a defect already on record. Cost:
+none.
+
+## D51 - A missing or draft post 404s inside the public layout's own `ErrorBoundary`, not root's (2026-09-21)
+
+**Chose:** `layout.tsx` exports its own `ErrorBoundary`, themed inside the
+site's header/footer, rather than extending `root.tsx`'s.
+
+Beat: reshaping root's boundary (shared with the admin, out of scope here) or
+shipping the public 404 unthemed - `design.md` explicitly left the 404's shape
+"to be decided in item 4," and this is that decision. Cost: `root.tsx`'s own
+dev-mode diagnostic behavior no longer reaches errors thrown inside the public
+route subtree (closest boundary renders) - `layout.tsx`'s `ErrorBoundary`
+mirrors that same dev-mode pattern itself (D52) so nothing is lost by the
+split, beyond the pre-existing gap tracked separately as F-69.
+
+## D52 - The layout's header/footer live in a shared `Chrome` component, used by both the normal layout and its `ErrorBoundary` (2026-09-21)
+
+**Chose:** a `Chrome` function component wraps both `PublicLayout`'s default
+export and its `ErrorBoundary`.
+
+Not in the original spec - discovered while building: React Router's error
+boundary *replaces* its route's own component entirely rather than nesting
+inside it (confirmed against the installed docs), so without a shared
+component a themed 404 would have lost the header/footer it was meant to sit
+inside. Beat: duplicating the header/footer markup in both places. Cost: none
+- any future public route adding its own `ErrorBoundary` should follow the
+same shape.
+
+## D53 - `createDraftFor`'s test helper now sets `published_at` for a "published" seeded row (2026-09-21)
+
+**Chose:** `e2e/helpers/users.ts`'s `createDraftFor` defaults `published_at`
+to `now()` when `status: "published"`, or accepts an explicit `Date` for
+deterministic ordering in tests.
+
+Not in the original spec - the helper never set it before item 4b, because
+nothing before this item ordered by it; without the fix, seeded "published"
+rows tied at `null` and made ordering unverifiable. Beat: leaving tests to
+work around it individually. Cost: none - every future test seeding published
+posts should pass an explicit `publishedAt` when order matters, rather than
+relying on insertion order.

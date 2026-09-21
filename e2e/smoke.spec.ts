@@ -1,8 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-test("home page renders its heading", async ({ page }) => {
+test("home page renders the site chrome", async ({ page }) => {
+  // The page's own content (published posts, or the empty state) is covered
+  // in detail by public-site.spec.ts; this only checks the page renders at
+  // all. The heading this test used to check was home.tsx's placeholder,
+  // replaced by real content in item 4b - "Habre CMS" is now the header's
+  // brand link, not an <h1>.
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Habre CMS" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Habre CMS" })).toBeVisible();
 });
 
 test("health check reports the database is up", async ({ request }) => {

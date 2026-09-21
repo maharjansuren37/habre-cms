@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-21 at `main` `0ad8300`. Decision
-numbers (D1-D41) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-21 at `main` `c7ff306`. Decision
+numbers (D1-D46) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -100,7 +100,7 @@ nothing should be added to the design that they did not call for.
 - Unit-testable logic goes in `.ts` files beside a `*.test.ts` - `node --test`
   cannot run `.tsx`.
 
-### Hostnames (D22 - decided, built in item 4)
+### Hostnames (D22 - decided, built in item 4c)
 
 One app answers two hostnames; Caddy proxies both to the same process.
 
@@ -121,7 +121,7 @@ One app answers two hostnames; Caddy proxies both to the same process.
   colliding and lets development run on one host. `/cms` was rejected.
 - Admin "view" links are absolute on `PUBLIC_URL`; public pages never link to
   the admin. Browser tests need two local hostnames (`127.0.0.1`, `localhost`).
-- **Until item 4 ships:** the app reads one `APP_URL`, and production runs on
+- **Until item 4c ships:** the app reads one `APP_URL`, and production runs on
   `cms.surenmaharjan.fyi` only; the apex serves nothing.
 
 ### Routes
@@ -138,9 +138,13 @@ One app answers two hostnames; Caddy proxies both to the same process.
   filter tabs **All / Drafts / Published** with counts, title search, 20 posts
   a page (D38, no new index - D39) · `/admin/posts/new`, `/admin/posts/:id` -
   edit (all roles; authors only their own, with inline bold/italic/link
-  formatting since item 2b) · `/admin/posts/:id/delete` - a GET confirmation
-  screen then a POST delete, same shape as edit's ownership check (D36); the
-  list redirects to `/admin/posts?deleted=<title>` afterwards (D37) ·
+  formatting since item 2b), **and publish/unpublish** (item 4a): the same
+  action, keyed by an `intent` field, saves content and flips `status` in one
+  atomic update (D42) and redirects to the list with a banner (D44) ·
+  `/admin/posts/:id/delete` - a GET confirmation screen then a POST delete,
+  same shape as edit's ownership check (D36); the list redirects to
+  `/admin/posts?deleted=<title>` afterwards (D37), the same mechanism
+  publish/unpublish now share (`banner.ts`) ·
   `/admin/pages[/new|/:id]` (editor, admin, item 6 - not yet built) ·
   `/admin/media` (all roles, item 5 - not yet built) · `/admin/settings`
   (admin, item 7 - not yet built) · `/admin/users[/:id]` - add, change role,
@@ -214,7 +218,7 @@ container blocks with `children`.
   `X-Forwarded-For` entry, which Caddy sets; IPv6 keyed per /64). Logged: failed
   logins, role changes, deactivations, password resets.
 - **CSRF:** SameSite cookie plus an origin check in root middleware
-  (`app/root.tsx`) - today against `APP_URL`, after item 4 against `ADMIN_URL`
+  (`app/root.tsx`) - today against `APP_URL`, after item 4c against `ADMIN_URL`
   only, so every state-changing request to the public host is refused.
 - Permissions: **author** - own posts (create, edit, publish, delete), upload
   media, delete own media; **editor** - all posts, pages and media; **admin** -
@@ -272,60 +276,79 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   secrets (a rebuild generates new ones).
 - **Env vars read today:** `DATABASE_URL`, `APP_URL`, `JWT_SECRET`, `PORT`,
   `NODE_ENV`. `R2_*` from item 5; `PUBLIC_URL`/`ADMIN_URL` replace `APP_URL` in
-  item 4.
+  item 4c.
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.
 
 ## Current state
 
-- **Build plan: items 1, 2 (2a and 2b) and 3 done** - archived under
-  `blueprint/history/features/`. Nothing in flight (`current-work.md` is
-  empty). `prototype` has run (`design.md` exists).
-- **Writing and managing posts both work, in development only.**
-  `/admin/posts/new` and `/admin/posts/:id` save drafts through Editor.js, with
-  structured inline formatting (bold, italic, links) stored as canonical runs
-  in `blocks_format` `v2` (D28), never HTML. `/admin/posts` lists them -
-  role-scoped, filterable by status, searchable by title, paginated at 20 a
-  page - and `/admin/posts/:id/delete` removes one after a confirmation screen
-  (item 3, D34-D40). **Production has neither `0002_entries.sql` nor
-  `0003_blocks_v2.sql` applied** - the next deploy needs `migrate` to run both,
-  in order, before the release; item 3 added no schema change.
+- **Build plan: items 1, 2 (2a and 2b), 3, and 4a done** - archived under
+  `blueprint/history/features/`. Item 4 split into 4a/4b/4c at spec time
+  (item 4a was too big to review as one bundle with the public renderer and
+  the hostname split); 4a is done, **4b and 4c are not started**. Nothing in
+  flight (`current-work.md` is empty). `prototype` has run (`design.md`
+  exists).
+- **Writing, managing, and now publishing posts all work, in development
+  only.** `/admin/posts/new` and `/admin/posts/:id` save drafts through
+  Editor.js, with structured inline formatting (bold, italic, links) stored as
+  canonical runs in `blocks_format` `v2` (D28), never HTML. `/admin/posts`
+  lists them - role-scoped, filterable by status, searchable by title,
+  paginated at 20 a page - and `/admin/posts/:id/delete` removes one after a
+  confirmation screen (item 3, D34-D40). **As of item 4a, the editor also
+  publishes and unpublishes** (D42-D46): a `Publish`/`Unpublish` button next
+  to Save, only once a post has been saved once (D45); `published_at` is set
+  the first time and kept across every later unpublish, per the schema's own
+  comment (`0002_entries.sql`) rather than a new decision. **Production has
+  none of `0002_entries.sql`, `0003_blocks_v2.sql` applied** - the next deploy
+  needs `migrate` to run both, in order, before the release; neither item 3
+  nor item 4a added a schema change.
 - **What item 2b settled, for the items that read it:** a piece of text is a
   list of `{ text, bold?, italic?, href? }` runs, canonical (one stored form per
   text); links are checked against an allowlist enforced at both the parser and
   the schema (D30); the format marker is enforced at both ends so a stale write
   or an unreadable row fails loudly rather than silently (D31); values
   PostgreSQL cannot hold in `jsonb` are refused at the boundary (D32); **item
-  4's public renderer still must render through JSX, never an HTML-building
+  4b's public renderer still must render through JSX, never an HTML-building
   helper** (D26, amended by D28); a post's address is chosen once at creation
   (D25); untrusted structure is bounded by name rather than hoped about (D27).
-- **What item 3 settled, for item 4 to reuse rather than re-invent:**
+- **What item 3 settled, for item 4a to reuse rather than re-invent:**
   `listEntries(actor, query)` and its `{ entries, total, totalPages, counts }`
-  shape are load-bearing - publish/unpublish should call the same function
-  rather than a second query (D34's routes table entry); a successful
-  redirect-producing action reports itself through `?deleted=<title>` (D37, and
-  item 4's publish/unpublish should use the same param shape); `PAGE_SIZE` is
-  server-only, the client works from a derived `totalPages` (D40, discovered by
-  React Router's build refusing to bundle a server constant into the browser).
-- **It is live and working, but three items behind.** Production serves
+  shape are load-bearing - `saveEntry`'s content+status save reads through the
+  same query, never a second one (D34's routes table entry); a successful
+  redirect-producing action reports itself through `?deleted=<title>` (D37) -
+  item 4a generalized this into `readBanner`/`bannerRedirect`
+  (`app/features/content/banner.ts`, D46), which delete now shares too;
+  `PAGE_SIZE` is server-only, the client works from a derived `totalPages`
+  (D40, discovered by React Router's build refusing to bundle a server
+  constant into the browser).
+- **What item 4a settled, for item 4b and later items to reuse:** `saveEntry`
+  (renamed from `updateDraft`, closing F-40) takes an optional status
+  transition and applies it in the *same* atomic update as the content save,
+  never two requests (D42) - the pattern for any future action that changes
+  both content and a status flag together. `banner.ts` is now the one place a
+  redirect-with-announcement to `/admin/posts` is built (D46); a future
+  row-level action on that list should call `bannerRedirect`, not write the
+  string again. The success banner has **no "view it on the site" link yet**
+  (D44) - item 4b adds it once `/posts/:slug` is real.
+- **It is live and working, but four items behind.** Production serves
   `https://cms.surenmaharjan.fyi` from release `52c2670` - **item 1 (admin
   login) only**: that release predates item 2a (`52c2670` ships only
   `db/migrations/0001_users.sql`, confirmed directly on the server), so
-  **items 2a, 2b and 3 have none of their code or migrations in production
-  yet**. An admin account exists and the owner has logged in through a
-  browser. The first release `48e5052` shipped with a P0 - behind Caddy every
-  form POST was rejected, so login was impossible - fixed by
-  `fix/trust-forwarded-proto` (D23) and proven in production. **Until item 4,
-  everything is on `cms`; the apex serves nothing.**
+  **items 2a, 2b, 3 and 4a have none of their code or migrations in
+  production yet**. An admin account exists and the owner has logged in
+  through a browser. The first release `48e5052` shipped with a P0 - behind
+  Caddy every form POST was rejected, so login was impossible - fixed by
+  `fix/trust-forwarded-proto` (D23) and proven in production. **Until item
+  4c, everything is on `cms`; the apex serves nothing.**
 - **Also done outside the build loop:** `preflight` (no-go for real users, its
   two P1s now closed or accepted), `host` (server, backups, restore, rollback),
   two `deploy` runs (both before item 2b), and `docs` (real README, proven by
   running its commands).
 - **`main` is pushed and in sync.** Item 2a went in through pull request #3,
-  item 2b through pull request #4, and **item 3 through pull request #5**, all
-  with CI green before merge - the loop the workflow recommends. CI runs
-  `verify` only, so the browser tests covering the worst defects in every item
-  still gate nothing (F-17).
+  item 2b through pull request #4, item 3 through pull request #5, and
+  **item 4a through pull request #6**, all with CI green before merge - the
+  loop the workflow recommends. CI runs `verify` only, so the browser tests
+  covering the worst defects in every item still gate nothing (F-17).
 - **Item 2b's review, across two independent passes, found and closed six
   findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
   un-bolding text with no way to save it back; an app-wide selection-colour
@@ -344,23 +367,37 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   nearly reintroduced in a fourth query before it was caught in review of the
   fix). The other nine (F-55 through F-59, F-61 through F-64) are `open` or
   `unverified` at P3 - a server/browser timezone mismatch on the "last changed"
-  date, a page-past-the-end showing a false "no matches", an uncapped
-  attacker-controlled delete banner, a doubled auth check, an extra redirect
-  hop through the guarded `/admin`, no submit control on the search box, two
-  possible screen-reader gaps, and two stale reference screenshots.
-- **Open findings:** 30 in the ledger, **none above P2** and nothing `open` or
-  `fixed` at P0/P1. P2: F-16 `fixed` (restore proven, `preflight` closes) ·
-  F-17, F-18, F-29 open · F-22 unverified · F-25 open. P3: F-07, F-41, F-48,
-  F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
-  F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-40, F-50, F-51, F-55, F-56,
-  F-57, F-58, F-59, F-61, F-62, F-64 open. **F-15 [P1] was accepted by the
+  date, a page-past-the-end showing a false "no matches", a doubled auth
+  check, an extra redirect hop through the guarded `/admin`, no submit control
+  on the search box, two possible screen-reader gaps, and two stale reference
+  screenshots.
+- **Item 4a's review found two findings, and closed both within the item** -
+  the first time a review's own findings were fully closed (not just fixed)
+  before shipping, rather than carried to a later pass. Archived as
+  `4a/F-57` (the delete/publish/unpublish banner text was attacker-controlled
+  and unbounded - fixed by capping it to the title's own 200-character limit
+  in `readBanner`; the "no proof this happened" half is deliberately left as
+  an accepted low-reach property of URL-param banners) and `4a/F-65` (the
+  banner-redirect one-liner had drifted to three copies across two files -
+  extracted into `banner.ts` alongside F-57's fix, since both touched the
+  same code). F-40 (`updateDraft`'s misleading name, found in item 3's
+  review) was fixed in the same item, by the `saveEntry` rename - still
+  `fixed`, not yet `closed`, since it was fixed in the step before this
+  item's own review ran, and stays in the live ledger rather than being
+  archived here.
+- **Open findings:** 35 in the ledger, **none above P2** and nothing `open` or
+  `fixed` at P0/P1. P2: F-16, F-48 `fixed` (F-16's restore proven, `preflight`
+  closes) · F-17, F-18, F-25, F-29 open · F-22 unverified. P3: F-07, F-40,
+  F-41, F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
+  F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-50, F-51, F-55, F-56,
+  F-58, F-59, F-61, F-62, F-64 open. **F-15 [P1] was accepted by the
   owner** - nothing alerts when the live system breaks, until `monitor` runs.
-- **Next:** `context` regeneration is done (this file); `spec` item 4 (Publish
-  to the public site) to keep building, or `deploy` first to carry items 2b and
-  3 to production (needs `migrate` for `0002` and `0003` in order before the
-  release).
-- **Remaining items, in order:** 4 Publish to the public site (includes the
-  D22 hostname split) · 5 Images · 6 Pages · 7 Site settings and menu · 8 Users
+- **Next:** `context` regeneration is done (this file); `spec` item 4b
+  (Render the public site) to keep building, or `deploy` first to carry items
+  2b, 3 and 4a to production (needs `migrate` for `0002` and `0003` in order
+  before the release - `0003` is unaffected by 4a, which added no migration).
+- **Remaining items, in order:** 4b Render the public site · 4c Split the
+  hostnames (D22) · 5 Images · 6 Pages · 7 Site settings and menu · 8 Users
   and roles.
 - **Waiting on the user** (`needs-you.md`): a public URL for the R2 images
   bucket and a production R2 token (both item 5); an UptimeRobot account

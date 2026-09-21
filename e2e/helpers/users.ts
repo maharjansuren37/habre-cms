@@ -86,15 +86,19 @@ export async function createDraftFor(
   email: string,
   title: string,
   blocks: unknown[],
-  options: { status?: "draft" | "published" } = {},
+  options: { status?: "draft" | "published"; publishedAt?: Date } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";
+  // A real publish always sets this (item 4a); a test row claiming to be
+  // published needs one too, or anything ordering by it (item 4b's public
+  // home) sees every seeded row tie at null.
+  const publishedAt = options.publishedAt ?? (status === "published" ? new Date() : null);
   let id = "";
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into entries (type, title, slug, blocks, status, author_id)
+      insert into entries (type, title, slug, blocks, status, published_at, author_id)
       select 'post', ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
-             ${sql.json(blocks as never)}, ${status}, id
+             ${sql.json(blocks as never)}, ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id
     `;
