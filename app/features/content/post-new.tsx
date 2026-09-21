@@ -28,6 +28,13 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function NewPost({ actionData }: Route.ComponentProps) {
   return (
-    <PostForm title="" slug="" blocks={[]} version={1} problem={actionData?.problem ?? null} />
+    <PostForm
+      title=""
+      slug=""
+      blocks={[]}
+      status="draft"
+      version={1}
+      problem={actionData?.problem ?? null}
+    />
   );
 }

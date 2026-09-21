@@ -3,7 +3,8 @@ import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import type { Route } from "./+types/post-edit";
-import { findEntryForUser, updateDraft } from "./entries.server.ts";
+import { bannerRedirect } from "./banner.ts";
+import { findEntryForUser, saveEntry } from "./entries.server.ts";
 import { PostForm } from "./post-form.tsx";
 import { isPostBodySizeAllowed, parsePostForm, parseVersion } from "./post-form-input.ts";
 
@@ -18,6 +19,9 @@ function requirePostId(id: string): string {
   if (!z.uuid().safeParse(id).success) throw data("Not Found", { status: 404 });
   return id;
 }
+
+/** Which button was pressed. Never trusted as free text past this parse. */
+const intentSchema = z.enum(["save", "publish", "unpublish"]);
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.entry.title ?? "Post"} - Habre CMS` }];
@@ -37,6 +41,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw data("Request too large", { status: 413 });
   }
   const form = await request.formData();
+  // A native submit with no JavaScript carries no `intent` at all - the
+  // buttons that set it only render once the editor has mounted (F-34's same
+  // condition) - and that has to fall through to `parsePostForm`'s own
+  // missing-blocks message below, not a new "action could not be read" one.
+  const intent = intentSchema.safeParse(form.get("intent") ?? "save");
+  if (!intent.success) {
+    return data(
+      { problem: { kind: "invalid" as const, message: "That action could not be read." } },
+      { status: 400 },
+    );
+  }
   const parsed = parsePostForm(form);
   if (!parsed.ok) {
     return data(
@@ -49,15 +64,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data({ problem: { kind: "stale" as const } }, { status: 409 });
   }
 
-  const result = await updateDraft(
+  const result = await saveEntry(
     id,
     { title: parsed.title, blocks: parsed.blocks },
     version,
     context.get(userContext),
+    intent.data === "save" ? undefined : intent.data,
   );
-  if (result.ok) return { problem: null, version: result.entry.version };
-  if (result.reason === "not_found") throw data("Not Found", { status: 404 });
-  return data({ problem: { kind: "stale" as const } }, { status: 409 });
+  if (!result.ok) {
+    if (result.reason === "not_found") throw data("Not Found", { status: 404 });
+    return data({ problem: { kind: "stale" as const } }, { status: 409 });
+  }
+  // Publish and unpublish return to the list with the same success-banner
+  // pattern the delete flow already uses (design.md); a plain save stays on
+  // the editor and shows its new version instead.
+  if (intent.data === "publish") return bannerRedirect("published", result.entry.title);
+  if (intent.data === "unpublish") return bannerRedirect("unpublished", result.entry.title);
+  return { problem: null, version: result.entry.version };
 }
 
 export default function EditPost({ loaderData, actionData }: Route.ComponentProps) {
@@ -67,6 +90,7 @@ export default function EditPost({ loaderData, actionData }: Route.ComponentProp
       title={entry.title}
       slug={entry.slug}
       blocks={entry.blocks}
+      status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.
       version={actionData && "version" in actionData ? actionData.version : entry.version}

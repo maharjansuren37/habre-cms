@@ -82,12 +82,14 @@
 **Why it matters:** The schema permits 200 blocks of 20,000 characters (about 4 MB) while the body cap refuses anything over 1 MB, so a post that is valid by the project's own rules is rejected - and the rejection `throw`s, replacing the page with the error boundary and losing everything typed. OWASP Top 10:2025 A10.
 **Suggested fix:** Return the 413 as a rendered `problem`, the way the 400 path already does, so the editor stays on screen; or lower the block limits to fit the cap so the two agree.
 
-### F-40 [P3] open - `updateDraft` does not enforce that the entry is a draft
+### F-40 [P3] fixed - `updateDraft` does not enforce that the entry is a draft
 
 **File:** app/features/content/entries.server.ts:89-98
 **Found:** 2026-09-16 by review (independent `reviewer` agent; scope: current; lens: quality)
 **Why it matters:** The name promises something the `where` clause does not enforce. Harmless while every entry is a draft; item 4 introduces published rows and will hand them to this function.
 **Suggested fix:** Add `and status = 'draft'`, or rename the function to say what it actually does.
+
+**Resolution:** Repaired 2026-09-21 by build (item 4a, step 1). Renamed to `saveEntry`, which now honestly describes what it does: it saves content for any entry, draft or published, and optionally carries a status transition in the same atomic update. No `and status = 'draft'` guard was added - the data rules already say saving a published entry updates the live page, so that constraint would have been wrong, not missing. `npm run verify` -> exit 0, no behavior change to the plain-save path. Status `fixed` for `review` to close.
 
 ### F-29 [P2] open - The writing area has no accessible name
 
@@ -226,13 +228,6 @@ Evidence from the user, 2026-09-16, on `ocwebserver`: `ip -6 addr show scope glo
 **Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: correctness)
 **Why it matters:** Verified live: with 26 posts, `/admin/posts?page=9` answers 200 and renders "No posts match this filter or search." - untrue, since no filter or search is active - because the branch only checks `list.entries.length === 0`, not whether `query.page` is actually within `totalPages`. The pagination block (and its only way back, "Previous") sits inside the `entries.length > 0` branch, so there is no way back from this page except editing the URL. Reachable without crafting: bookmark page 2, then delete posts until fewer than 20 remain, and open the bookmark.
 **Suggested fix:** In the loader, when `query.page > list.totalPages && list.total > 0`, redirect to the last real page (`listHref({...query, page: list.totalPages})`).
-
-### F-57 [P3] open - The delete success banner's text is attacker-controlled and unbounded
-
-**File:** app/features/content/post-list.tsx:34,61-67
-**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: security)
-**Why it matters:** `deletedTitle` is read straight from `?deleted=` with no length bound and no proof a delete actually happened. Script injection is closed - `Message` renders it as a plain text child, confirmed against the running build with `?deleted=<script>alert(1)</script>` (the DOM shows the escaped text, `grep -c '<script>alert(1)</script>'` over the full response including the hydration payload is 0) - but a crafted link (`/admin/posts?deleted=Your%20site%20was%20suspended.%20Call%20…`) renders a genuine green success banner with a check icon, saying whatever the sender chose, to a logged-in admin on a real admin page. A 5,000-character value also rendered fine (20 KB response), so there is no cap either. Reach is low - needs an authenticated victim to click a link - hence P3, not higher. OWASP Top 10:2025 A06 Insecure Design.
-**Suggested fix:** Cap the param (`.slice(0, 200)`, matching the title's own cap) at minimum. More robust: carry the message through a single-use flash cookie instead of a URL param, so it cannot be supplied by a link at all.
 
 ### F-58 [P3] open - `requireUser` runs twice on the delete confirmation route
 

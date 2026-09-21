@@ -588,3 +588,62 @@ standards already name this shape ("Resource routes … are `.ts` files
 exporting only `loader`/`action`"); keeping the `.tsx` extension and an unused
 default export would have been the second way to write the same thing. Cost:
 none.
+
+## D42 - Publish and unpublish save content and status in one atomic update (2026-09-21)
+
+**Chose:** `saveEntry` (item 4a) takes an optional status transition applied in
+the same `update` statement as the title/blocks save, rather than two separate
+requests.
+
+Beat: a save-then-publish pair, which could race against each other or against
+a concurrent edit in a way the existing single-version optimistic-concurrency
+check would not catch - two requests means two chances for another save to land
+in between. Cost: none; the transition is one more SQL fragment on a query that
+already existed.
+
+## D43 - Once published, neither Save nor Unpublish is styled `primary` (2026-09-21)
+
+**Chose:** both buttons use the `default` button variant once a post is
+published; only `Publish` (on a draft) gets `primary`.
+
+Beat: forcing one of the two into `primary` to satisfy an assumed "there must
+be one" rule - design.md's actual rule is "at most one primary per view," which
+zero also satisfies, and neither Save nor Unpublish is the important action on
+a published post the way Publish is on a draft. Cost: none.
+
+## D44 - The publish/unpublish success banner has no "view it on the site" link yet (2026-09-21)
+
+**Chose:** the banner says `"<title>" was published.` with no link, even though
+design.md's generic Success state calls for one ("a link to the result").
+
+Beat: linking to a public post URL that does not exist until item 4b ships -
+the public site still renders a placeholder home page. Cost: item 4b should add
+the link once `/posts/:slug` is real, rather than this item inventing a URL
+ahead of the feature that serves it.
+
+## D45 - Publish/Unpublish only appear once a post has been saved once (2026-09-21)
+
+**Chose:** `PostForm` shows the Publish/Unpublish button only when the post
+already has an address (`slug !== ""`); a brand-new, never-saved post gets only
+Save.
+
+Not in the original spec - discovered while building it: `post-new.tsx`'s
+action always creates a new entry as a draft, with no way to carry a status
+transition through `createDraft`. Without this gate, a Publish button on an
+unsaved post would render and do nothing when clicked. Beat: teaching
+`createDraft` a transition too, for a first-save publish nobody asked for.
+Cost: none - the gate is one boolean already derived from a prop the form had.
+
+## D46 - The posts-list banner title is capped at 200 characters, matching the entry title's own limit (2026-09-21)
+
+**Chose:** `readBanner` (`app/features/content/banner.ts`) truncates whatever
+`?deleted=`/`?published=`/`?unpublished=` carries to 200 characters before it
+reaches the page.
+
+Repaired finding, not an original design choice (F-57): the param is read
+straight from the URL with no proof the action it names actually happened, so
+a crafted link could make the banner say anything, at any length. Beat: a flash
+cookie instead of a URL param, which would close the "no proof" half too but is
+a bigger change than this fix warranted. Cost: the "no proof" half is still
+open - a crafted link can still show a plausible-looking success banner to a
+logged-in admin, just not an unbounded one.

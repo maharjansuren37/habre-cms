@@ -97,17 +97,36 @@ export type UpdateResult =
   | { ok: false; reason: "stale" }
   | { ok: false; reason: "not_found" };
 
+export type StatusTransition = "publish" | "unpublish";
+
 /**
- * Saves a draft, but only over the version the editor loaded. The version is
+ * The status half of a save, alongside the content half below. `published_at`
+ * is set only the first time (F-40's item: 0002_entries.sql already commits to
+ * "kept when unpublished, so a republished entry keeps its original date") -
+ * unpublishing never touches it.
+ */
+function transitionUpdate(transition: StatusTransition | undefined) {
+  if (transition === "publish") {
+    return sql`, status = 'published', published_at = coalesce(published_at, now())`;
+  }
+  if (transition === "unpublish") return sql`, status = 'draft'`;
+  return sql``;
+}
+
+/**
+ * Saves an entry's content, and optionally its publish status, in one
+ * atomic update - only over the version the editor loaded. The version is
  * part of the `where`, so two saves racing from the same version cannot both
  * win - the second changes no rows and is told, rather than silently replacing
- * work it never saw.
+ * work it never saw. Named for what it does now that a save can publish or
+ * unpublish, not only ever touch a draft (F-40).
  */
-export async function updateDraft(
+export async function saveEntry(
   id: string,
   input: EntryInput,
   version: number,
   actor: Actor,
+  transition?: StatusTransition,
 ): Promise<UpdateResult> {
   const [row] = await sql<EntryRow[]>`
     update entries e set
@@ -116,6 +135,7 @@ export async function updateDraft(
       blocks_format = ${BLOCKS_FORMAT},
       version = version + 1,
       updated_at = now()
+      ${transitionUpdate(transition)}
     where e.id = ${id} and e.version = ${version} and e.type = 'post' ${ownedBy(actor)}
       -- Only over a row this build can read: a tab opened before a format change
       -- would otherwise replace newer content with the old format (F-46). Such a

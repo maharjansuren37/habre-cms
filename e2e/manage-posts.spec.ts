@@ -6,6 +6,7 @@ import {
   deleteEntriesBy,
   deleteTestUser,
   entryExists,
+  entryStatus,
   setRole,
   type TestUser,
 } from "./helpers/users.ts";
@@ -196,4 +197,105 @@ test("an author cannot reach or delete another author's post - a 404, not a hint
     await deleteEntriesBy(other.email);
     await deleteTestUser(other.email);
   }
+});
+
+test("publishing a draft shows it as Published, with a success banner", async ({ page }) => {
+  const id = await createDraftFor(author.email, "Ready To Go", [], { status: "draft" });
+  await logIn(page, author);
+  await page.goto(`/admin/posts/${id}`);
+
+  await page.getByRole("button", { name: "Publish" }).click();
+  await page.waitForURL(/published=/);
+  await expect(page.getByText('"Ready To Go" was published.')).toBeVisible();
+  await expect(
+    page
+      .locator("tr")
+      .filter({ has: page.getByRole("link", { name: "Ready To Go" }) })
+      .getByText("Published"),
+  ).toBeVisible();
+  expect((await entryStatus(id)).status).toBe("published");
+});
+
+test("unpublishing a published post reverts it to Draft, with a success banner", async ({
+  page,
+}) => {
+  const id = await createDraftFor(author.email, "Take It Down", [], { status: "published" });
+  await logIn(page, author);
+  await page.goto(`/admin/posts/${id}`);
+
+  await page.getByRole("button", { name: "Unpublish" }).click();
+  await page.waitForURL(/unpublished=/);
+  await expect(page.getByText('"Take It Down" was unpublished.')).toBeVisible();
+  expect((await entryStatus(id)).status).toBe("draft");
+});
+
+test("publishing, unpublishing, then publishing again keeps the original published_at", async ({
+  page,
+}) => {
+  const id = await createDraftFor(author.email, "Round Trip", [], { status: "draft" });
+  await logIn(page, author);
+
+  await page.goto(`/admin/posts/${id}`);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await page.waitForURL(/published=/);
+  const firstPublishedAt = (await entryStatus(id)).publishedAt;
+  expect(firstPublishedAt).not.toBeNull();
+
+  await page.goto(`/admin/posts/${id}`);
+  await page.getByRole("button", { name: "Unpublish" }).click();
+  await page.waitForURL(/unpublished=/);
+  expect((await entryStatus(id)).publishedAt?.getTime()).toBe(firstPublishedAt?.getTime());
+
+  await page.goto(`/admin/posts/${id}`);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await page.waitForURL(/published=/);
+  expect((await entryStatus(id)).publishedAt?.getTime()).toBe(firstPublishedAt?.getTime());
+});
+
+test("an author cannot publish or unpublish another author's post", async ({ page }) => {
+  const other = createAdmin("Protected Publish Author");
+  await setRole(other.email, "author");
+  try {
+    const id = await createDraftFor(other.email, "Not Yours To Publish", [], { status: "draft" });
+    await logIn(page, author);
+
+    // Same-origin, so the same-origin check is not what answers (that would
+    // be a 400, not the 404 this test is about) - matching the delete
+    // ownership test above.
+    const origin = new URL(page.url()).origin;
+    const response = await page.request.post(`${origin}/admin/posts/${id}`, {
+      headers: { Origin: origin },
+      form: {
+        intent: "publish",
+        title: "Not Yours To Publish",
+        version: "1",
+        blocks: JSON.stringify({ blocks: [] }),
+      },
+    });
+    expect(response.status()).toBe(404);
+    expect((await entryStatus(id)).status).toBe("draft");
+  } finally {
+    await deleteEntriesBy(other.email);
+    await deleteTestUser(other.email);
+  }
+});
+
+test("a stale-version publish is refused rather than overwriting a concurrent edit", async ({
+  page,
+}) => {
+  const id = await createDraftFor(author.email, "Racing Save", [], { status: "draft" });
+  await logIn(page, author);
+
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post(`${origin}/admin/posts/${id}`, {
+    headers: { Origin: origin },
+    form: {
+      intent: "publish",
+      title: "Racing Save",
+      version: "999",
+      blocks: JSON.stringify({ blocks: [] }),
+    },
+  });
+  expect(response.status()).toBe(409);
+  expect((await entryStatus(id)).status).toBe("draft");
 });

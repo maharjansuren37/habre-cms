@@ -4,6 +4,7 @@ import buttonStyles from "#app/lib/ui/button.module.css";
 import fieldStyles from "#app/lib/ui/field.module.css";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/post-list";
+import { readBanner } from "./banner.ts";
 import { listEntries, type PostSummary } from "./entries.server.ts";
 import styles from "./post-list.module.css";
 import { type PostListQuery, type PostStatus, parsePostListQuery } from "./post-list-query.ts";
@@ -28,11 +29,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const query = parsePostListQuery(url);
   const list = await listEntries(actor, query);
-  // Read once: a successful delete redirects here with the title it removed,
-  // matching the mockup's own success-banner example. The `?deleted=` shape
-  // is reusable by item 4's publish/unpublish.
-  const deletedTitle = url.searchParams.get("deleted");
-  return { list, query, deletedTitle };
+  // Read once: a successful delete, publish or unpublish redirects here with
+  // the title it acted on, matching the mockup's own success-banner example
+  // (design.md) - the `?deleted=` shape item 4a reuses rather than inventing.
+  const banner = readBanner(url.searchParams);
+  return { list, query, banner };
 }
 
 /** A tab or a page link's target - only the params that differ from the default. */
@@ -46,7 +47,7 @@ function listHref(query: Partial<PostListQuery>): string {
 }
 
 export default function PostList({ loaderData }: Route.ComponentProps) {
-  const { list, query, deletedTitle } = loaderData;
+  const { list, query, banner } = loaderData;
   const { totalPages } = list;
 
   return (
@@ -58,10 +59,10 @@ export default function PostList({ loaderData }: Route.ComponentProps) {
           New post
         </Link>
       </div>
-      {deletedTitle && (
+      {banner && (
         <Message
           tone="success"
-          title={`"${deletedTitle}" was deleted.`}
+          title={`"${banner.title}" was ${banner.verb}.`}
           className={styles.banner}
         />
       )}

@@ -34,15 +34,12 @@
   color: var(--color-text);
 }
 
-/* Draft is warning amber, measured at 5.6:1 light / 8.7:1 dark (design.md). */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
-  background: var(--color-warning-subtle);
-  color: var(--color-warning);
   font-size: var(--text-sm);
 }
 
@@ -52,6 +49,17 @@
   height: 0.5em;
   border-radius: var(--radius-full);
   background: currentColor;
+}
+
+/* Same two tones as post-list.module.css - measured there (design.md). */
+.draft {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.published {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .saveState {
