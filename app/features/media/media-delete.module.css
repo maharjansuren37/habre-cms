@@ -1,0 +1,41 @@
+/* Same shape as content/post-delete.module.css - a short question, not a
+   focused task, so it stays inside the admin shell. */
+.confirm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--measure);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.thumb {
+  width: 8rem;
+  height: 8rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface-sunken);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* The default button, recolored to danger text - matches post-delete's own
+   measured 6.0:1 light / 7.8:1 dark against --color-surface. */
+.delete {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.delete:hover {
+  background: var(--color-danger-subtle);
+}

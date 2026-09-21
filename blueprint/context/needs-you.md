@@ -69,11 +69,15 @@ not tidying; it is what keeps the open list true.
            Blocks `scaffold` on `api`. Fix: `sudo -u postgres createuser -s appuser`
 -->
 
-- [ ] **Public URL for the R2 images bucket** - accounts/access; your Cloudflare
-      account. Either the bucket's `r2.dev` address (rate-limited, meant for
-      testing) or a custom domain such as `media.surenmaharjan.fyi`; goes in
-      `R2_PUBLIC_URL`, which is still empty in the local `.env`. Blocks item 5
-      (Images). `open` (architect, 2026-09-15; narrowed by host, 2026-09-16)
+- [ ] **A custom domain for the R2 images bucket, before production** -
+      accounts/access; your Cloudflare account. `R2_PUBLIC_URL` is now set to
+      the bucket's `r2.dev` address for development, which is fine to build
+      against but is rate-limited and not meant for real traffic - see
+      `spec`'s note on item 5a. Swap it for a custom domain (e.g.
+      `media.surenmaharjan.fyi`) before this ships to production. Blocks
+      nothing now; needed by `deploy` for item 5. `open` (architect,
+      2026-09-15; narrowed by host, 2026-09-16; local value set, spec,
+      2026-09-22)
 - [ ] **A production R2 token for images - and, recommended, a production
       bucket** - credentials; your Cloudflare account. The token in the local
       `.env` is development's; reusing it in production would put laptop test

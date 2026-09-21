@@ -12,6 +12,14 @@ const envSchema = databaseEnvSchema.extend({
   // and https here is what makes the session cookie Secure.
   ADMIN_URL: z.url({ protocol: /^https?$/ }),
   JWT_SECRET: z.string().min(32, { message: "JWT_SECRET must be at least 32 characters" }),
+  // R2 (item 5a): the account and bucket the app writes uploads to, and the
+  // public URL images are served from - never derived from the others, since
+  // a bucket can be public through a custom domain or the r2.dev address.
+  R2_ACCOUNT_ID: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
+  R2_BUCKET: z.string().min(1),
+  R2_PUBLIC_URL: z.url({ protocol: /^https?$/ }),
 });
 
 export const env = parseEnv(envSchema, process.env);

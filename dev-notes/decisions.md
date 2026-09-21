@@ -727,3 +727,56 @@ rows tied at `null` and made ordering unverifiable. Beat: leaving tests to
 work around it individually. Cost: none - every future test seeding published
 posts should pass an explicit `publishedAt` when order matters, rather than
 relying on insertion order.
+
+## D54 - The media library lists every uploaded file to every role; only deletion is ownership-scoped for authors (2026-09-22)
+
+**Chose:** `listMedia` returns every row, unscoped by actor, to every signed-in
+role; `deleteMedia`/`findMediaForUser` alone check `uploaded_by` for an author.
+
+Beat: siloing the library per author, which the plan's permission table
+("Media: author - upload; delete own") could be read to imply but never
+actually states for *listing*. The product scope is "media library **to
+reuse them**", which requires seeing what other people uploaded, not just
+your own - siloing would make "reuse" impossible for anyone but the original
+uploader. Cost: none identified; revisit if a future role needs a narrower
+view than "everything, minus who may delete it".
+
+## D55 - Alt text is required at upload, stored once on the media row, and not editable afterward in this item (2026-09-22)
+
+**Chose:** `altTextSchema` refuses an empty value at upload time; there is no
+UI to edit it later, and the data model holds one `alt_text` value per file,
+not one per block-use.
+
+Beat: making it optional and nagging about it later, which is exactly the
+kind of accessibility debt this project's own findings ledger already
+carries several open items for (F-29, and others). This item is the only
+place in v1 that touches alt text, so requiring it here is the cheapest way
+to guarantee every image item 5b places already has one. Cost: no way to fix
+a typo'd alt text without re-uploading, until a future item adds an edit
+screen - acceptable for v1's scope.
+
+## D56 - Storage keys are generated (`randomUUID + detected extension`), never derived from the client's filename (2026-09-22)
+
+**Chose:** `generateStorageKey` builds the R2 object key from `crypto
+.randomUUID()` plus the extension `image-size` detected from the real bytes.
+The client's original filename is kept only in the `filename` column, for
+display.
+
+Beat: keeping the client's name in the key, which would need its own
+sanitizing (path separators, length, collisions) and can still collide
+between two different uploads of, say, `photo.jpg`. Cost: none - the key is
+never shown to anyone, so its opacity costs nothing in the UI.
+
+## D57 - An upload's real bytes decide its image type, via `image-size`, not the browser's declared `Content-Type` (2026-09-22)
+
+**Chose:** `detectImage` runs `image-size` against the actual buffer and maps
+the four types it can return (`jpg`/`png`/`webp`/`gif`) to this project's
+allowed set; a value the browser's `Content-Type` header claims is never
+trusted on its own.
+
+Beat: trusting the header, which a crafted upload can set to anything - the
+same reasoning the project already applies to blocks (validated at the
+boundary, never assumed from the client). Cost: a handful of image formats
+`image-size` cannot detect are refused even if genuinely images, which is the
+intended behaviour - the allowed set is JPEG/PNG/WebP/GIF only, matching the
+plan's own upload restriction.

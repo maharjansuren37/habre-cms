@@ -130,6 +130,8 @@ mostly the page itself, not spinners.
 - **Nav (item 3):** the sidebar's first section - one entry, "Posts". Pages,
   Media, Settings and Users each add their own entry when they ship, rather
   than appearing now as dead links; `/admin` itself redirects to `/admin/posts`.
+  **"Media" added in item 5a**, second in the list (ship order, not the
+  eventual Posts/Pages/Media/Settings/Users order named above).
 - **Lists:** a table in a bordered card; title is the link, slug underneath in
   muted text; status, author, last changed, then a right-aligned "Delete" link
   in `--color-danger` (6.0:1 light / 7.8:1 dark on the row background - the
@@ -148,6 +150,24 @@ mostly the page itself, not spinners.
   with `?deleted=<title>`, read once and shown as the same success banner the
   mockup's own publish example uses - item 4's publish/unpublish should reuse
   this pattern rather than invent a second one.
+- **Media library (item 5a, not in the mockups):** no mockup covered this
+  screen - `prototype`'s pages predate it and are already consumed and
+  deleted, so it is built from the conventions above rather than a fresh
+  design pass. Upload control (file input, an "Alt text" field required
+  before the primary "Upload" button will do anything useful, both native
+  form controls so the upload works with JavaScript off) sits in its own
+  bordered card above a **thumbnail grid** - list's own table shape does not
+  fit a screen whose whole point is the image. Each card is bordered like a
+  list row, `auto-fill, minmax(12rem, 1fr)` so it reflows rather than
+  scrolling sideways: thumbnail (`object-fit: cover`, sunken-surface
+  background so a transparent PNG still shows its edges), filename, then two
+  muted lines - dimensions and size, then uploader and date, matching the
+  list's own "last changed" wording pattern, then a "Delete" link (shown only
+  when the viewer may use it), same `--color-danger` text as *Lists*' own -
+  each one given a visually-hidden filename suffix (`post-list.tsx`'s
+  pattern), since a grid of identical "Delete" links has nothing else to
+  tell them apart by (F-73). Empty state is one muted sentence, matching the
+  existing empty-list convention. Screenshots: `blueprint/reference/5a-media-library/`.
 - **Editor:** the sidebar is dropped - top bar with back link, status badge and
   save state on the left, Save draft and Publish on the right. Title is a large
   borderless field; "Web address" (never "slug") shown beneath with Change. Blocks
