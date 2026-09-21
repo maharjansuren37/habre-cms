@@ -31,7 +31,7 @@ async function logIn(page: Page, user: TestUser) {
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL("**/admin");
+  await page.waitForURL("**/admin/posts");
 }
 
 async function writeBody(page: Page, text: string) {

@@ -126,11 +126,27 @@ mostly the page itself, not spinners.
   becomes one top row (site left, user and Log out right) with
   `grid-template-rows: auto 1fr`, so the header never stretches. The site's own
   title and logo replace "Habre CMS" in item 7.
-- **Placeholder page** (`/admin` until item 3): page title "Hello, {name}" and one
-  muted line "You're logged in as {role}." Nothing else - no dashboard widgets.
+- **Nav (item 3):** the sidebar's first section - one entry, "Posts". Pages,
+  Media, Settings and Users each add their own entry when they ship, rather
+  than appearing now as dead links; `/admin` itself redirects to `/admin/posts`.
 - **Lists:** a table in a bordered card; title is the link, slug underneath in
-  muted text; status, author, last changed. Filter tabs (All / Drafts / Published)
-  with counts above, search on the right.
+  muted text; status, author, last changed, then a right-aligned "Delete" link
+  in `--color-danger` (6.0:1 light / 7.8:1 dark on the row background - the
+  word carries the meaning, not the color alone). Filter tabs (All / Drafts /
+  Published) with counts above, search on the right, both plain GET so they
+  work with JavaScript off. A search or filter with zero matches shows one
+  muted line under the table - the empty state below is only for a genuinely
+  empty list, and its "New post" button would be wrong advice otherwise. Past
+  20 posts, Previous/Next links carry the active tab and search forward.
+- **Delete confirmation (item 3, not in the mockups):** its own page inside
+  the admin shell - a short question, not a focused task, so it keeps the
+  sidebar rather than dropping it the way the editor does. The post's title,
+  one sentence saying it cannot be undone, a quiet "Cancel" and a default
+  button reading "Delete post" recolored to `--color-danger` text and border
+  (the same measured 6.0:1 / 7.8:1). A successful delete redirects to the list
+  with `?deleted=<title>`, read once and shown as the same success banner the
+  mockup's own publish example uses - item 4's publish/unpublish should reuse
+  this pattern rather than invent a second one.
 - **Editor:** the sidebar is dropped - top bar with back link, status badge and
   save state on the left, Save draft and Publish on the right. Title is a large
   borderless field; "Web address" (never "slug") shown beneath with Change. Blocks

@@ -74,8 +74,7 @@ export function PostForm({ title, slug, blocks, version, problem }: PostFormProp
     <Form method="post" onSubmit={handleSubmit} className={styles.editor}>
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
-          {/* The posts list arrives in item 3; until then, back to the admin home. */}
-          <Link to="/admin" className={styles.back}>
+          <Link to="/admin/posts" className={styles.back}>
             ← Posts
           </Link>
           <span className={styles.badge}>Draft</span>

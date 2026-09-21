@@ -86,19 +86,31 @@ export async function createDraftFor(
   email: string,
   title: string,
   blocks: unknown[],
+  options: { status?: "draft" | "published" } = {},
 ): Promise<string> {
+  const status = options.status ?? "draft";
   let id = "";
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into entries (type, title, slug, blocks, author_id)
+      insert into entries (type, title, slug, blocks, status, author_id)
       select 'post', ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
-             ${sql.json(blocks as never)}, id
+             ${sql.json(blocks as never)}, ${status}, id
       from users where email = ${email}
       returning id
     `;
     id = row.id;
   });
   return id;
+}
+
+/** Test-only: whether an entry with this id still exists - for delete tests. */
+export async function entryExists(id: string): Promise<boolean> {
+  let exists = false;
+  await withDatabase(async (sql) => {
+    const rows = await sql<{ id: string }[]>`select id from entries where id = ${id}`;
+    exists = rows.length === 1;
+  });
+  return exists;
 }
 
 /** Test-only: the blocks and version stored for one entry, as the database holds them. */

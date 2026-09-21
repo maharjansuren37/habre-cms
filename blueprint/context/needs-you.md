@@ -97,9 +97,11 @@ not tidying; it is what keeps the open list true.
 
 - [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin
       shell** (NVDA, VoiceOver or Orca) - manual verification; no automated
-      check hears what is announced. Done during item 1's `verify`, from its
+      check hears what is announced. Covers the shell's first nav section
+      (item 3) and, from item 3, the posts list's filter tabs and search, and
+      the delete confirmation screen. Done during item 1's `verify`, from its
       `--manual` walkthrough. Blocks nothing now; `preflight` needs it (design.md
-      lists it as unchecked). `open` (spec, 2026-09-15)
+      lists it as unchecked). `open` (spec, 2026-09-15; widened, item 3)
 
 - [ ] **Fill `APP_URL` and `JWT_SECRET` in your local `.env`** - credentials;
       it is your secrets file, so no agent writes to it. `APP_URL=http://127.0.0.1:3000`;

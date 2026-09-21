@@ -36,8 +36,10 @@ test("logging in from a protected page returns to that page", async ({ page }) =
 
   await logIn(page);
 
-  await expect(page).toHaveURL("/admin");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hello, Amara Okafor");
+  // /admin itself redirects to the posts list (item 3) - the same admin area
+  // the protected page asked for.
+  await expect(page).toHaveURL("/admin/posts");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
 });
 
 test("a wrong password is refused without saying which part was wrong", async ({ page }) => {
@@ -80,11 +82,11 @@ test("five failed logins lock the email, even for the right password", async ({ 
 test("a logged-in visitor to the login page is sent to the admin", async ({ page }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin");
+  await expect(page).toHaveURL("/admin/posts");
 
   await page.goto("/admin/login");
 
-  await expect(page).toHaveURL("/admin");
+  await expect(page).toHaveURL("/admin/posts");
 });
 
 test("a cross-site POST is refused before reaching the action", async ({ request }) => {
@@ -121,12 +123,12 @@ test("a deactivated user is refused with the same message", async ({ page }) => 
 test("revoking a user's sessions sends them to login on their next request", async ({ page }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin");
+  await expect(page).toHaveURL("/admin/posts");
 
   await revokeSessions(user.email);
   await page.reload();
 
-  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin");
+  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fposts");
 });
 
 test("logging out ends the session, including any copy of its cookie", async ({
@@ -135,7 +137,7 @@ test("logging out ends the session, including any copy of its cookie", async ({
 }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin");
+  await expect(page).toHaveURL("/admin/posts");
   const sessionCookies = await context.cookies();
 
   await page.getByRole("button", { name: "Log out" }).click();
