@@ -1,6 +1,10 @@
 # Habre CMS site block only (D17). Imported by the server's main Caddyfile with
 # `import /etc/caddy/sites/habre-cms.caddy`; installed by deploy/setup-server.sh.
 #
+# One app answers both hostnames (D22, item 4c) - the app itself tells them
+# apart by Host header (app/lib/host-routing.ts), Caddy just forwards both to
+# the same port.
+#
 # No `bind`: the server has no IPv6 address today, so IPv6 clients cannot reach
 # this. If it ever gets one, re-check F-13 before serving over IPv6.
 cms.surenmaharjan.fyi {
@@ -19,4 +23,25 @@ cms.surenmaharjan.fyi {
 	# reverse_proxy sets X-Forwarded-For to the connecting address, which the
 	# login rate limit reads (app/features/auth/client-ip.ts, F-07).
 	reverse_proxy 127.0.0.1:3000
+}
+
+surenmaharjan.fyi {
+	encode zstd gzip
+
+	# Its own log file, not shared with cms's: the two hostnames serve very
+	# different traffic (anonymous visitors vs a handful of admins), and a
+	# shared file would make one's volume hide the other's.
+	log {
+		output file /var/log/caddy/habre-cms-public-access.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+	reverse_proxy 127.0.0.1:3000
+}
+
+# The apex is canonical; www is a redirect only, never a second copy of the
+# site (project-plan section 6, Hostnames).
+www.surenmaharjan.fyi {
+	redir https://surenmaharjan.fyi{uri} permanent
 }

@@ -110,12 +110,15 @@ not tidying; it is what keeps the open list true.
       rendered as real elements), and the 404 page (item 4b). Blocks nothing
       now; `preflight` needs it before a real release. `open` (spec, 2026-09-21)
 
-- [ ] **Fill `APP_URL` and `JWT_SECRET` in your local `.env`** - credentials;
-      it is your secrets file, so no agent writes to it. `APP_URL=http://127.0.0.1:3000`;
-      generate the secret with the command in `.env.example`. Blocks `npm run dev`,
-      `npm start` and `npm run test:e2e` locally from item 1 step 6 on (the server
-      refuses to start without them); CI's `verify` needs neither. Production
-      values are `host`'s. `open` (build, 2026-09-15)
+- [ ] **Fill `PUBLIC_URL`, `ADMIN_URL` and `JWT_SECRET` in your local `.env`** -
+      credentials; it is your secrets file, so no agent writes to it. Item 4c
+      splits the single `APP_URL` into two - set both to
+      `http://127.0.0.1:3000` for local development (equal origins mean the
+      app redirects nothing, per D22); generate the secret with the command in
+      `.env.example`. Blocks `npm run dev`, `npm start` and `npm run test:e2e`
+      locally (the server refuses to start without them); CI's `verify` needs
+      none of them. Production values are `host`'s. `open` (build, 2026-09-15;
+      reworded for the `APP_URL` split, spec, 2026-09-21)
 
 ## Done
 

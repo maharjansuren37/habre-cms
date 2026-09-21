@@ -5,9 +5,12 @@ import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 // server refuses to start with a missing or invalid variable. Later items add
 // theirs here and to .env.example.
 const envSchema = databaseEnvSchema.extend({
-  // The public origin: checked against the Origin of state-changing requests,
+  // The public site's origin (D22). Equal to ADMIN_URL in development and any
+  // single-host test server, which is what makes the app redirect nothing.
+  PUBLIC_URL: z.url({ protocol: /^https?$/ }),
+  // The admin's origin: checked against the Origin of state-changing requests,
   // and https here is what makes the session cookie Secure.
-  APP_URL: z.url({ protocol: /^https?$/ }),
+  ADMIN_URL: z.url({ protocol: /^https?$/ }),
   JWT_SECRET: z.string().min(32, { message: "JWT_SECRET must be at least 32 characters" }),
 });
 

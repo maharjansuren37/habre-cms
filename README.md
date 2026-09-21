@@ -23,11 +23,11 @@ Needs Node 26 and Docker.
     npm run create-admin -- --email you@example.org --name "Your Name"
     npm run dev                 # http://127.0.0.1:3000 - log in at /admin/login
 
-In `.env`, the web app needs `DATABASE_URL`, `APP_URL` (`http://127.0.0.1:3000`
-locally; the public `https://` address in production) and `JWT_SECRET` (at least
-32 characters - `.env.example` has the command that generates one). The server
-refuses to start without them. `db:migrate` and `create-admin` need only
-`DATABASE_URL`.
+In `.env`, the web app needs `DATABASE_URL`, `PUBLIC_URL` and `ADMIN_URL`
+(both `http://127.0.0.1:3000` locally; the real `https://` addresses in
+production - D22) and `JWT_SECRET` (at least 32 characters - `.env.example`
+has the command that generates one). The server refuses to start without
+them. `db:migrate` and `create-admin` need only `DATABASE_URL`.
 
 There is no sign-up page: the first admin is created with `create-admin`, which
 asks for the password twice without showing it. Run the same command on the

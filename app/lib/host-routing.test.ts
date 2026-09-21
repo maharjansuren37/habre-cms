@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { resolveHostRouting } from "./host-routing.ts";
+
+const HOSTS = {
+  publicHost: "surenmaharjan.fyi",
+  adminHost: "cms.surenmaharjan.fyi",
+  publicOrigin: "https://surenmaharjan.fyi",
+  adminOrigin: "https://cms.surenmaharjan.fyi",
+};
+
+function decide(overrides: {
+  method?: string;
+  pathname: string;
+  search?: string;
+  requestHost: string;
+  publicHost?: string;
+  adminHost?: string;
+}) {
+  return resolveHostRouting({
+    method: "GET",
+    search: "",
+    ...HOSTS,
+    ...overrides,
+  });
+}
+
+test("allows everything when the two hosts are equal (development, single-host test server)", () => {
+  assert.deepEqual(
+    decide({
+      pathname: "/admin/posts",
+      requestHost: "127.0.0.1:3000",
+      publicHost: "127.0.0.1:3000",
+      adminHost: "127.0.0.1:3000",
+    }),
+    { kind: "allow" },
+  );
+});
+
+test("answers /healthz on the admin host without redirecting", () => {
+  assert.deepEqual(decide({ pathname: "/healthz", requestHost: HOSTS.adminHost }), {
+    kind: "allow",
+  });
+});
+
+test("answers /healthz on the public host without redirecting", () => {
+  assert.deepEqual(decide({ pathname: "/healthz", requestHost: HOSTS.publicHost }), {
+    kind: "allow",
+  });
+});
+
+test("redirects the admin host's bare / to /admin", () => {
+  assert.deepEqual(decide({ pathname: "/", requestHost: HOSTS.adminHost }), {
+    kind: "redirect",
+    to: "/admin",
+  });
+});
+
+test("refuses a POST to / on the admin host rather than redirecting it", () => {
+  assert.deepEqual(decide({ method: "POST", pathname: "/", requestHost: HOSTS.adminHost }), {
+    kind: "not-found",
+  });
+});
+
+test("allows an admin path on the admin host", () => {
+  assert.deepEqual(decide({ pathname: "/admin/posts", requestHost: HOSTS.adminHost }), {
+    kind: "allow",
+  });
+});
+
+test("does not treat a path that merely starts with 'admin' as an admin path", () => {
+  assert.deepEqual(decide({ pathname: "/adminfoo", requestHost: HOSTS.adminHost }), {
+    kind: "redirect",
+    to: "https://surenmaharjan.fyi/adminfoo",
+  });
+});
+
+test("redirects a public path on the admin host to the public host, query string included", () => {
+  assert.deepEqual(
+    decide({ pathname: "/posts/hello", search: "?ref=x", requestHost: HOSTS.adminHost }),
+    { kind: "redirect", to: "https://surenmaharjan.fyi/posts/hello?ref=x" },
+  );
+});
+
+test("refuses a non-GET/HEAD public path on the admin host rather than redirecting it", () => {
+  assert.deepEqual(
+    decide({ method: "POST", pathname: "/posts/hello", requestHost: HOSTS.adminHost }),
+    { kind: "not-found" },
+  );
+});
+
+test("redirects an admin path on the public host to the admin host, query string included", () => {
+  assert.deepEqual(
+    decide({ pathname: "/admin/posts", search: "?page=2", requestHost: HOSTS.publicHost }),
+    { kind: "redirect", to: "https://cms.surenmaharjan.fyi/admin/posts?page=2" },
+  );
+});
+
+test("refuses a non-GET/HEAD admin path on the public host rather than redirecting it", () => {
+  assert.deepEqual(
+    decide({ method: "POST", pathname: "/admin/posts", requestHost: HOSTS.publicHost }),
+    { kind: "not-found" },
+  );
+});
+
+test("allows a public path on the public host", () => {
+  assert.deepEqual(decide({ pathname: "/posts/hello", requestHost: HOSTS.publicHost }), {
+    kind: "allow",
+  });
+});
+
+test("refuses a request whose host matches neither", () => {
+  assert.deepEqual(decide({ pathname: "/", requestHost: "evil.example" }), {
+    kind: "not-found",
+  });
+});

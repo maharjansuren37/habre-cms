@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// These run against the second web server, started with APP_URL=https://... as
+// These run against the second web server, started with ADMIN_URL=https://... as
 // if Caddy were in front of it. Everything here uses the request API rather than
 // a browser: what is being tested is which origin the server thinks it has, and
 // the session cookie is Secure on that server, so a real browser over http could

@@ -4,11 +4,13 @@ import {
   Links,
   Meta,
   Outlet,
+  redirect,
   Scripts,
   ScrollRestoration,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
 import { env } from "#app/lib/env.server.ts";
+import { resolveHostRouting } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 
@@ -18,9 +20,28 @@ import "./app.css";
 // On the root route so every action, now and in later items, is covered
 // without having to remember it.
 export const middleware: Route.MiddlewareFunction[] = [
+  // Ahead of every other check (D22): an admin path on the wrong host, or the
+  // wrong host entirely, is resolved before touching auth, CSRF or a loader.
+  function routeByHost({ request }) {
+    const url = new URL(request.url);
+    const publicUrl = new URL(env.PUBLIC_URL);
+    const adminUrl = new URL(env.ADMIN_URL);
+    const decision = resolveHostRouting({
+      method: request.method,
+      pathname: url.pathname,
+      search: url.search,
+      requestHost: url.host,
+      publicHost: publicUrl.host,
+      adminHost: adminUrl.host,
+      publicOrigin: publicUrl.origin,
+      adminOrigin: adminUrl.origin,
+    });
+    if (decision.kind === "redirect") throw redirect(decision.to);
+    if (decision.kind === "not-found") throw data("Not Found", { status: 404 });
+  },
   function refuseCrossSiteRequests({ request }) {
-    const appOrigin = new URL(env.APP_URL).origin;
-    if (!isAllowedRequest(request.method, request.headers, appOrigin)) {
+    const adminOrigin = new URL(env.ADMIN_URL).origin;
+    if (!isAllowedRequest(request.method, request.headers, adminOrigin)) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",
