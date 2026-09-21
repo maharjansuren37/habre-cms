@@ -62,6 +62,22 @@ apex `surenmaharjan.fyi` serves nothing.
   closed a P0 (every list block stored as `[object Object]`), stored XSS through
   Editor.js's own render path, and two ways to save an empty body over a real
   post - each now covered by a test shown to fail when the repair is reverted.
+- **Item 2b, inline formatting** - shipped through **PR #4 with CI green**. Bold,
+  italic and links stored as canonical `{ text, bold?, italic?, href? }` runs
+  (`blocks_format` v2, D28-D32), never HTML; links checked against an allowlist;
+  the format marker enforced at both ends. Two independent `reviewer` passes
+  found and closed six findings, then three more after the first repair round
+  (a toolbar focus ring invisible against hover, a NUL-character fix that missed
+  lone surrogates, an unmeasured contrast claim) - all repaired and shipped in
+  the same item. Three P3s remain open (F-50, F-51) or unverified (F-52), none
+  blocking.
+- **Item 3, manage posts** - shipped through **PR #5 with CI green**.
+  `/admin/posts` lists, filters (All/Drafts/Published, with counts), searches
+  and paginates (20 a page); delete asks for confirmation first. 148 unit tests,
+  39 browser tests; list load p95 20.2 ms, delete p95 68.9 ms against 2,000
+  seeded rows (1 s bar). Review found 11 findings; 2 repaired and shipped
+  (leaking CSS selectors, unqualified SQL columns), 9 remain open or unverified
+  at P3.
 - **Server** (`ocwebserver`, Ubuntu 24.04): Node 26.8.2, PostgreSQL 16.15 on
   localhost, systemd `habre-cms.service` as `habre_cms`, Caddy terminating HTTPS.
   Secrets in `/etc/habre-cms/production.env` (mode 600); backup credentials
@@ -116,8 +132,8 @@ apex `surenmaharjan.fyi` serves nothing.
 
 ## Verify with
 
-    npm run verify            # typecheck, lint, 110 unit tests, build
-    npm run test:e2e          # 25 browser tests; needs docker compose up -d
+    npm run verify            # typecheck, lint, 148 unit tests, build
+    npm run test:e2e          # 39 browser tests; needs docker compose up -d
     curl -sS https://cms.surenmaharjan.fyi/healthz
 
 ## Running it by hand

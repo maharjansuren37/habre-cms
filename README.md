@@ -6,8 +6,11 @@ block editor, and the CMS serves the public site itself - no developer needed to
 put something online. It is for small organisations with a handful of admins,
 editors and authors.
 
-**Status: early.** Admin login works; writing, publishing and the public site are
-the next items. Nothing is deployed yet.
+**Status: in progress, live.** Admin login, writing posts with inline formatting
+(bold, italic, links), and managing them (list, filter, search, delete) all
+work, and are deployed to production at `https://cms.surenmaharjan.fyi`.
+Publishing to a public site, images, pages, site settings and users/roles are
+next - see `blueprint/build-plan.md`.
 
 ## Running it
 
@@ -43,8 +46,23 @@ release.
 
 ## Deploying it
 
-Not deployed yet. The server it will run on is prepared, and everything needed to
-rebuild it lives in `deploy/`:
+**Deployed** to a single Oracle Cloud VPS (`ocwebserver`) - production only, no
+staging. The app is **built locally or in CI, never on the server**, then copied
+over with `rsync` and released atomically:
+
+    npm ci && npm run verify && npm run build && npm ci --omit=dev
+    # rsync app/ build/ db/ scripts/ server.js package.json package-lock.json
+    # and production node_modules to /srv/habre-cms/releases/<commit-sha>
+    # then, on the server, as the habre_cms user, from that release directory:
+    node --env-file=/etc/habre-cms/production.env db/migrate.ts   # if there are pending migrations
+    sudo ln -sfn /srv/habre-cms/releases/<commit-sha> /srv/habre-cms/current
+    sudo systemctl restart habre-cms
+
+Rollback is repointing `current` back to the previous release and restarting -
+seconds, no rebuild - **except a release that ran a migration**, which cannot be
+undone this way (reversing code does not reverse a schema).
+
+`deploy/` holds what makes this reproducible:
 
 - `setup-server.sh` - installs Node and PostgreSQL, creates the service user,
   database and secrets, installs the service, the Caddy site file and the nightly
@@ -54,8 +72,7 @@ rebuild it lives in `deploy/`:
 - `backup-db.sh` with `habre-cms-backup.{service,timer}` - nightly `pg_dump` to a
   private object-storage bucket, checked before upload.
 
-The app is built locally or in CI and copied to the server with `rsync`; it is
-never built there. `dev-notes/status.md` records what is set up and what is still
+`dev-notes/status.md` records the release currently live and what is still
 missing.
 
 ## How this project is built
