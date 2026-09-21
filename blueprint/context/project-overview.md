@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-21 at `main` `c7ff306`. Decision
-numbers (D1-D46) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-21 at `main` `4165637`. Decision
+numbers (D1-D53) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -100,9 +100,10 @@ nothing should be added to the design that they did not call for.
 - Unit-testable logic goes in `.ts` files beside a `*.test.ts` - `node --test`
   cannot run `.tsx`.
 
-### Hostnames (D22 - decided, built in item 4c)
+### Hostnames (D22 - built and live, item 4c)
 
-One app answers two hostnames; Caddy proxies both to the same process.
+One app answers two hostnames; Caddy proxies both to the same process. Live in
+production since the item 4c deploy (release `4165637`, 2026-09-21).
 
 | Hostname | Serves |
 |---|---|
@@ -110,26 +111,37 @@ One app answers two hostnames; Caddy proxies both to the same process.
 | `cms.surenmaharjan.fyi` | the admin: `/admin/*`; `/` redirects to `/admin` |
 | `www.surenmaharjan.fyi` | redirects to the apex (in Caddy) |
 
-- **Config:** `PUBLIC_URL` and `ADMIN_URL` replace today's single `APP_URL`.
-  When equal (development, browser tests on one port) the app acts as one host
-  and redirects nothing.
-- **Routing by host, before any route runs:** admin path on the public host ->
-  same path on the admin host; public path on the admin host -> public host.
-  GET/HEAD only, **temporary** redirects; any other method on the wrong host
-  gets 404. `/healthz` answers on both. A host matching neither gets 404.
+- **Config:** `PUBLIC_URL` and `ADMIN_URL` replaced `APP_URL`, which no longer
+  exists anywhere in the app, config, `.env.example` or the README. Equal in
+  development (the app then acts as one host and redirects nothing); a third
+  Playwright server (`127.0.0.1` / `localhost`) exercises the real split.
+- **Routing by host, before any route runs** - a pure decision function,
+  `app/lib/host-routing.ts`, wired into `app/root.tsx` as the `routeByHost`
+  middleware: admin path on the public host -> same path on the admin host;
+  public path on the admin host -> public host. GET/HEAD only, **temporary**
+  redirects; any other method on the wrong host gets 404. `/healthz` answers
+  on both. A host matching neither gets 404 - **and nothing logs it** (F-70,
+  open P2).
 - **Admin stays under `/admin`** - the prefix keeps admin and public routes from
   colliding and lets development run on one host. `/cms` was rejected.
-- Admin "view" links are absolute on `PUBLIC_URL`; public pages never link to
-  the admin. Browser tests need two local hostnames (`127.0.0.1`, `localhost`).
-- **Until item 4c ships:** the app reads one `APP_URL`, and production runs on
-  `cms.surenmaharjan.fyi` only; the apex serves nothing.
+- Admin "View site" link is absolute on `PUBLIC_URL`; public pages never link
+  to the admin.
+- **Verified live:** `https://surenmaharjan.fyi/` (public, reachable for the
+  first time), `https://cms.surenmaharjan.fyi/admin/login`, and
+  `https://www.surenmaharjan.fyi` redirecting to the apex, all confirmed
+  serving after the deploy (`dev-notes/status.md`).
 
 ### Routes
 
 - **Public** (server-rendered HTML, no login, works without JS): `/` latest
-  published posts · `/posts/:slug` one post · `/:slug` one page · `/healthz`
-  (exists, reports database reachability). Unknown or draft content -> 404.
-  Reserved page slugs: `admin`, `posts`, `api`, `healthz`.
+  published posts, newest 10, no pagination (D47) · `/posts/:slug` one post,
+  its blocks rendered through JSX only, never an HTML-building helper
+  (`render.tsx`, D26/D28) - both live at `surenmaharjan.fyi` since item 4c
+  split the hostnames · `/:slug` one page (item 6 - not yet
+  built) · `/healthz` (exists, reports database reachability). A draft or
+  missing post 404s inside the public site's own header/footer chrome, not
+  root's bare error page (D51). Reserved page slugs: `admin`, `posts`, `api`,
+  `healthz`.
 - **Admin** (login required): `/admin/login`, `/admin/logout` (exist since item
   1) · `/admin` redirects to `/admin/posts` rather than rendering anything
   itself (D34, item 3; `home.ts`, no longer `home.tsx` - it only throws a
@@ -208,8 +220,9 @@ container blocks with `children`.
 - **All authorization, validation and rendering happen on the server.** The
   browser only runs the editor and uploads.
 - Login -> JWT (7 days) in an **httpOnly, Secure, SameSite=Lax cookie**,
-  host-only on the admin hostname (no `Domain`), so it never reaches the public
-  site once D22 lands.
+  host-only on the admin hostname (no `Domain`) - now that D22's split is
+  live, it never reaches the public site at all (F-71's comment describing
+  the old single-origin behaviour is stale, open).
 - **Every admin request loads the user from the database**, rejects a
   deactivated user or a `token_version` mismatch, and **reads the role from the
   database, never the token** - removals and role changes take effect at once
@@ -218,8 +231,11 @@ container blocks with `children`.
   `X-Forwarded-For` entry, which Caddy sets; IPv6 keyed per /64). Logged: failed
   logins, role changes, deactivations, password resets.
 - **CSRF:** SameSite cookie plus an origin check in root middleware
-  (`app/root.tsx`) - today against `APP_URL`, after item 4c against `ADMIN_URL`
-  only, so every state-changing request to the public host is refused.
+  (`app/root.tsx`), scoped to `ADMIN_URL` only (item 4c) - the public site has
+  no forms in v1, so a state-changing request there is refused by Origin
+  mismatch alone, with no separate host check. **Revisit this scoping the
+  moment a public-facing form is added** (none planned before item 7 at the
+  earliest).
 - Permissions: **author** - own posts (create, edit, publish, delete), upload
   media, delete own media; **editor** - all posts, pages and media; **admin** -
   everything plus settings and users.
@@ -253,7 +269,8 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   `/etc/habre-cms/production.env` (mode 600, generated on the server, never
   printed), backup credentials separately in root-only
   `/etc/habre-cms/backup.env`. Non-secret settings (`NODE_ENV`, `PORT`,
-  `APP_URL`) live in the unit.
+  `PUBLIC_URL`, `ADMIN_URL`) live in the unit - `APP_URL` no longer exists
+  (item 4c).
 - **Backups:** nightly `pg_dump` at 02:30 UTC to a private R2 bucket
   (`deploy/backup-db.sh`), dump checked before upload and its stored size
   re-read after. **Restore proven** by running the app against a restored copy.
@@ -265,52 +282,68 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   **Rollback proven** 2026-09-16: back in 5 s, forward in 3 s, each confirmed by
   the behaviour only that release has. **A release with a migration cannot be
   rolled back this way** - reversing code does not reverse a schema (F-19).
+  **Nor can a release that changes the systemd unit's env vars, by symlink
+  alone** - discovered by item 4c's `APP_URL` -> `PUBLIC_URL`/`ADMIN_URL`
+  rename (F-72, fixed): the pre-4c unit file is saved at
+  `/etc/habre-cms/habre-cms.service.pre-4c` so a rollback to `0ad8300`
+  restores the unit alongside the symlink, not just the symlink.
 - **Caddy** handles HTTPS and renews certificates. The repository owns only
-  `deploy/caddy/habre-cms.caddy`, imported by the server's main Caddyfile -
-  **never replace the main Caddyfile** (D17, amended). The app listens on
-  `127.0.0.1`; ports 3000 and 5432 are closed in both firewalls.
+  `deploy/caddy/habre-cms.caddy` - now three site blocks (`cms.`, the public
+  apex, and a `www` redirect, since item 4c) - imported by the server's main
+  Caddyfile - **never replace the main Caddyfile** (D17, amended). The app
+  listens on `127.0.0.1`; ports 3000 and 5432 are closed in both firewalls.
 - **IPv4 only:** no IPv6 on the VM, no AAAA record; no `bind` in the site file.
   If IPv6 appears, re-check F-13 (an AAAA on the apex affects both hostnames).
 - **No Docker on the server;** Docker is used only for the development database.
 - **Portable:** everything rebuildable from the repository, a backup and fresh
   secrets (a rebuild generates new ones).
-- **Env vars read today:** `DATABASE_URL`, `APP_URL`, `JWT_SECRET`, `PORT`,
-  `NODE_ENV`. `R2_*` from item 5; `PUBLIC_URL`/`ADMIN_URL` replace `APP_URL` in
-  item 4c.
+- **Env vars read today:** `DATABASE_URL`, `PUBLIC_URL`, `ADMIN_URL`,
+  `JWT_SECRET`, `PORT`, `NODE_ENV` - `APP_URL` no longer exists (item 4c).
+  `R2_*` from item 5.
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.
 
 ## Current state
 
-- **Build plan: items 1, 2 (2a and 2b), 3, and 4a done** - archived under
-  `blueprint/history/features/`. Item 4 split into 4a/4b/4c at spec time
-  (item 4a was too big to review as one bundle with the public renderer and
-  the hostname split); 4a is done, **4b and 4c are not started**. Nothing in
-  flight (`current-work.md` is empty). `prototype` has run (`design.md`
-  exists).
-- **Writing, managing, and now publishing posts all work, in development
-  only.** `/admin/posts/new` and `/admin/posts/:id` save drafts through
-  Editor.js, with structured inline formatting (bold, italic, links) stored as
+- **Build plan: item 4 is fully done** - items 1, 2 (2a and 2b), 3, and 4 (4a,
+  4b, 4c) are all checked off and archived under `blueprint/history/features/`.
+  Nothing in flight (`current-work.md` is empty). `prototype` has run and its
+  mockups are **fully consumed and deleted**; `design.md` stays as the
+  permanent record of what they decided.
+- **The public site is real and live in production.** `/` lists the newest 10
+  published posts, newest first (D47), each linking to its own
+  `/posts/:slug`, which renders the post's blocks - text, headings, lists,
+  inline bold/italic/link formatting - through JSX only, never an
+  HTML-building helper (`render.tsx`, D26/D28). A draft or missing post 404s
+  inside the site's own header/footer chrome (D51), not root's bare error
+  page. The header/footer are fixed placeholder text until item 7 wires up
+  `site_settings` (D48). Measured against the quality bar, not assumed: p95
+  for both routes is single-digit milliseconds against the production build,
+  far under the 500 ms target. **Reachable at its real address**,
+  `https://surenmaharjan.fyi`, since item 4c's deploy - not only under
+  `cms.surenmaharjan.fyi/` as before.
+- **Writing, managing, publishing and reading posts all work, in production
+  as well as development.** `/admin/posts/new` and `/admin/posts/:id` save
+  drafts through Editor.js, with structured inline formatting stored as
   canonical runs in `blocks_format` `v2` (D28), never HTML. `/admin/posts`
-  lists them - role-scoped, filterable by status, searchable by title,
-  paginated at 20 a page - and `/admin/posts/:id/delete` removes one after a
-  confirmation screen (item 3, D34-D40). **As of item 4a, the editor also
-  publishes and unpublishes** (D42-D46): a `Publish`/`Unpublish` button next
-  to Save, only once a post has been saved once (D45); `published_at` is set
-  the first time and kept across every later unpublish, per the schema's own
-  comment (`0002_entries.sql`) rather than a new decision. **Production has
-  none of `0002_entries.sql`, `0003_blocks_v2.sql` applied** - the next deploy
-  needs `migrate` to run both, in order, before the release; neither item 3
-  nor item 4a added a schema change.
+  lists them - role-scoped, filterable, searchable, paginated - and
+  `/admin/posts/:id/delete` removes one after a confirmation screen (item 3).
+  The editor also publishes and unpublishes (item 4a, D42-D46): a
+  `Publish`/`Unpublish` button next to Save, only once a post has been saved
+  once (D45); `published_at` is set the first time and kept across every
+  later unpublish, per the schema's own comment rather than a new decision.
+  **Production has all three migrations applied** (`0001_users.sql`,
+  `0002_entries.sql`, `0003_blocks_v2.sql`) as of the item-4 deploy.
 - **What item 2b settled, for the items that read it:** a piece of text is a
   list of `{ text, bold?, italic?, href? }` runs, canonical (one stored form per
   text); links are checked against an allowlist enforced at both the parser and
   the schema (D30); the format marker is enforced at both ends so a stale write
   or an unreadable row fails loudly rather than silently (D31); values
-  PostgreSQL cannot hold in `jsonb` are refused at the boundary (D32); **item
-  4b's public renderer still must render through JSX, never an HTML-building
-  helper** (D26, amended by D28); a post's address is chosen once at creation
-  (D25); untrusted structure is bounded by name rather than hoped about (D27).
+  PostgreSQL cannot hold in `jsonb` are refused at the boundary (D32); the
+  public renderer must render through JSX, never an HTML-building helper
+  (D26, amended by D28) - **item 4b is that renderer**, now built; a post's
+  address is chosen once at creation (D25); untrusted structure is bounded by
+  name rather than hoped about (D27).
 - **What item 3 settled, for item 4a to reuse rather than re-invent:**
   `listEntries(actor, query)` and its `{ entries, total, totalPages, counts }`
   shape are load-bearing - `saveEntry`'s content+status save reads through the
@@ -324,31 +357,58 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
 - **What item 4a settled, for item 4b and later items to reuse:** `saveEntry`
   (renamed from `updateDraft`, closing F-40) takes an optional status
   transition and applies it in the *same* atomic update as the content save,
-  never two requests (D42) - the pattern for any future action that changes
-  both content and a status flag together. `banner.ts` is now the one place a
-  redirect-with-announcement to `/admin/posts` is built (D46); a future
-  row-level action on that list should call `bannerRedirect`, not write the
-  string again. The success banner has **no "view it on the site" link yet**
-  (D44) - item 4b adds it once `/posts/:slug` is real.
-- **It is live and working, but four items behind.** Production serves
-  `https://cms.surenmaharjan.fyi` from release `52c2670` - **item 1 (admin
-  login) only**: that release predates item 2a (`52c2670` ships only
-  `db/migrations/0001_users.sql`, confirmed directly on the server), so
-  **items 2a, 2b, 3 and 4a have none of their code or migrations in
-  production yet**. An admin account exists and the owner has logged in
-  through a browser. The first release `48e5052` shipped with a P0 - behind
-  Caddy every form POST was rejected, so login was impossible - fixed by
-  `fix/trust-forwarded-proto` (D23) and proven in production. **Until item
-  4c, everything is on `cms`; the apex serves nothing.**
-- **Also done outside the build loop:** `preflight` (no-go for real users, its
-  two P1s now closed or accepted), `host` (server, backups, restore, rollback),
-  two `deploy` runs (both before item 2b), and `docs` (real README, proven by
-  running its commands).
+  never two requests (D42). `banner.ts` is now the one place a
+  redirect-with-announcement to `/admin/posts` is built (D46). The success
+  banner had **no "view it on the site" link** - item 4b did not add it
+  either, since a link still needs a real target the reader can trust; worth
+  revisiting now that `/posts/:slug` exists.
+- **What item 4b settled, for item 4c and later items to reuse:**
+  `renderBlocks`/`renderRuns` (`app/features/blocks/render.tsx`) take a plain
+  `Block[]`/`Run[]`, not an `Entry` - entry-type-agnostic on purpose, so item
+  6 (pages) reuses the same renderer rather than building a second one
+  (Data and contracts, archived `04b`). The public layout's header/footer
+  live in a shared `Chrome` component used by both the normal page and its
+  `ErrorBoundary` (D52) - React Router's error boundary *replaces* its
+  route's own component entirely rather than nesting inside it, so any future
+  public route adding its own `ErrorBoundary` should follow the same shape or
+  lose its chrome. **A pre-existing, unrelated defect surfaced while
+  verifying this item, filed as F-69**: `server/app.ts` never passes a
+  `mode` to `createRequestHandler`, so every error has been sanitized as if
+  in production - regardless of `NODE_ENV` - since item 1; `root.tsx`'s own
+  dev-mode stack trace has never actually shown one. Left open for a future
+  item; no end-user impact, since production is supposed to sanitize anyway.
+- **What item 4c settled, for item 5 and later items to reuse:**
+  `resolveHostRouting` (`app/lib/host-routing.ts`) is a pure function -
+  `{ method, pathname, search, requestHost, publicHost, adminHost,
+  publicOrigin, adminOrigin }` in, `allow` / `redirect` / `not-found` out -
+  the contract any future host-aware redirect reuses. **No new decisions** -
+  D22 already settled the domains, the `/admin` prefix and the redirect
+  semantics; this item only implemented what D22 recorded. The one thing worth
+  naming for later readers: CSRF is scoped to `ADMIN_URL` only, not both
+  hosts, on the assumption the public site has no forms - revisit that
+  assumption before item 7 adds one.
+- **Production is caught up.** Release `4165637` (deployed 2026-09-21) carries
+  everything through item 4c - items 1, 2a, 2b, 3, 4a, 4b and 4c, all of it,
+  behind both live hostnames. The previous release, `0ad8300`, was items 1-3
+  only; no new migration shipped with item 4 (`0001`-`0003` were already
+  applied by the `0ad8300` deploy). This is the first deploy where a
+  symlink-only rollback would have been wrong (F-72, fixed) - the systemd
+  unit's env vars changed (`APP_URL` -> `PUBLIC_URL`/`ADMIN_URL`), so the
+  pre-4c unit was saved alongside the pre-4c release for a paired restore.
+  The first release, `48e5052`, had shipped with a P0 - behind Caddy every
+  form POST was rejected, so login was impossible - fixed by
+  `fix/trust-forwarded-proto` (D23) and proven in production.
+- **Also done outside the build loop:** `preflight` (no-go for real users at
+  first release, its findings now closed or accepted; a second milestone
+  audit before this item-4 deploy raised F-72, repaired same-day), `host`
+  (server, backups, restore, rollback), three `deploy` runs, and `docs` (real
+  README, proven by running its commands).
 - **`main` is pushed and in sync.** Item 2a went in through pull request #3,
-  item 2b through pull request #4, item 3 through pull request #5, and
-  **item 4a through pull request #6**, all with CI green before merge - the
-  loop the workflow recommends. CI runs `verify` only, so the browser tests
-  covering the worst defects in every item still gate nothing (F-17).
+  item 2b through pull request #4, item 3 through pull request #5, item 4a
+  through pull request #6, item 4b through pull request #7, and **item 4c
+  through pull request #8**, all with CI green before merge - the loop the
+  workflow recommends. CI runs `verify` only, so the browser tests covering
+  the worst defects in every item still gate nothing (F-17).
 - **Item 2b's review, across two independent passes, found and closed six
   findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
   un-bolding text with no way to save it back; an app-wide selection-colour
@@ -372,37 +432,53 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   on the search box, two possible screen-reader gaps, and two stale reference
   screenshots.
 - **Item 4a's review found two findings, and closed both within the item** -
-  the first time a review's own findings were fully closed (not just fixed)
-  before shipping, rather than carried to a later pass. Archived as
-  `4a/F-57` (the delete/publish/unpublish banner text was attacker-controlled
-  and unbounded - fixed by capping it to the title's own 200-character limit
-  in `readBanner`; the "no proof this happened" half is deliberately left as
-  an accepted low-reach property of URL-param banners) and `4a/F-65` (the
-  banner-redirect one-liner had drifted to three copies across two files -
-  extracted into `banner.ts` alongside F-57's fix, since both touched the
-  same code). F-40 (`updateDraft`'s misleading name, found in item 3's
-  review) was fixed in the same item, by the `saveEntry` rename - still
-  `fixed`, not yet `closed`, since it was fixed in the step before this
-  item's own review ran, and stays in the live ledger rather than being
-  archived here.
-- **Open findings:** 35 in the ledger, **none above P2** and nothing `open` or
-  `fixed` at P0/P1. P2: F-16, F-48 `fixed` (F-16's restore proven, `preflight`
-  closes) · F-17, F-18, F-25, F-29 open · F-22 unverified. P3: F-07, F-40,
-  F-41, F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
+  the first time a review's own findings were fully closed before shipping,
+  rather than carried to a later pass. Archived as `4a/F-57` (the
+  delete/publish/unpublish banner text was attacker-controlled and unbounded
+  - fixed by capping it to the title's own 200-character limit) and
+  `4a/F-65` (the banner-redirect one-liner had drifted to three copies -
+  extracted into `banner.ts`). F-40 (`updateDraft`'s misleading name) was
+  fixed in the same item by the `saveEntry` rename.
+- **Item 4b's review found three findings, and closed all three within the
+  item too** (archived as `04b/F-66`, `04b/F-67`, `04b/F-68`): the public
+  layout's `ErrorBoundary` showed less diagnostic detail in development than
+  root's own does (fixed by mirroring root's pattern, though its practical
+  effect waits on F-69); two of six new tests lacked shown-to-fail proof
+  (both proven afterward, no code change needed); `design.md`'s contrast
+  table had no row for a pairing this item actually introduced (added: 5.9
+  light / 7.8 dark, both comfortably passing AA). F-69 (above) stayed open,
+  as an unrelated discovery.
+- **Item 4c's review found two findings, both left open (P2/P3, neither
+  blocking):** F-70 - `routeByHost`'s two refusal branches (wrong method on
+  the wrong host; a host matching neither) log nothing, unlike the CSRF
+  middleware two lines below it in the same file - a detection gap, not a
+  bypass. F-71 - the session cookie's comment still describes the pre-split,
+  single-origin reality ("the public site receives it but never reads it"),
+  when the cookie now never reaches the public site at all. **Preflight's
+  milestone audit before this deploy found a third, F-72** (the env-var
+  rename breaking the proven symlink-only rollback) - **repaired same-day**,
+  see *Production is caught up* above.
+- **Findings ledger: 39 total, none above P2** and nothing `open` or `fixed`
+  at P0/P1. P2: F-48, F-72 `fixed` · F-16 `closed` · F-18 `accepted` ·
+  F-17, F-25, F-29, F-69, F-70 open · F-22 unverified. P3: F-07, F-40, F-41,
+  F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
   F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-50, F-51, F-55, F-56,
-  F-58, F-59, F-61, F-62, F-64 open. **F-15 [P1] was accepted by the
-  owner** - nothing alerts when the live system breaks, until `monitor` runs.
-- **Next:** `context` regeneration is done (this file); `spec` item 4b
-  (Render the public site) to keep building, or `deploy` first to carry items
-  2b, 3 and 4a to production (needs `migrate` for `0002` and `0003` in order
-  before the release - `0003` is unaffected by 4a, which added no migration).
-- **Remaining items, in order:** 4b Render the public site · 4c Split the
-  hostnames (D22) · 5 Images · 6 Pages · 7 Site settings and menu · 8 Users
-  and roles.
+  F-58, F-59, F-61, F-62, F-64, F-71 open. **F-15 [P1] remains accepted by
+  the owner** - nothing alerts when the live system breaks, until `monitor`
+  runs.
+- **Next:** `context` regeneration is done (this file); `spec` item 5
+  (Images - R2 upload, media library) is the next unchecked build item.
+  `monitor` is also worth running soon, now the public site is live and has
+  real visitors reachable for the first time.
+- **Remaining items, in order:** 5 Images · 6 Pages · 7 Site settings and
+  menu · 8 Users and roles.
 - **Waiting on the user** (`needs-you.md`): a public URL for the R2 images
   bucket and a production R2 token (both item 5); an UptimeRobot account
   (`monitor`, F-15); a screen-reader and keyboard pass over login, the admin
   shell, the posts list (filter tabs, search, delete confirmation) and the
-  block editor including its inline toolbar (F-18, F-29); deleting the old
-  `hone.surenmaharjan.fyi` DNS record. The images bucket, backup bucket, server
-  software and local `.env` lines are **done**.
+  block editor including its inline toolbar (F-18, accepted for this release
+  by the owner); **a screen-reader and keyboard pass over the public site** -
+  home, one post, the 404 - still open, and now live in production, not just
+  development; deleting the old `hone.surenmaharjan.fyi` DNS record. The
+  images bucket, backup bucket, server software and local `.env` lines are
+  **done**.

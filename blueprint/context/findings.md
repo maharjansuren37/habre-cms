@@ -10,6 +10,14 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-72 [P2] fixed - Item 4c's env-var rename breaks the proven symlink-only rollback for this specific release
+
+**File:** /etc/systemd/system/habre-cms.service on `ocwebserver`; deploy/habre-cms.service in the repo
+**Found:** 2026-09-21 by preflight (milestone audit before deploying items 4a-4c to production)
+**Why it matters:** Rollback was proven 2026-09-16 as "repoint the `current` symlink back, restart" - 5 seconds, no other change. That proof assumed the systemd unit's `Environment=` lines stay constant across releases. Item 4c's own code change removes `APP_URL` entirely and requires `PUBLIC_URL`/`ADMIN_URL` instead, and the live unit on `ocwebserver` still reads `Environment=APP_URL=https://cms.surenmaharjan.fyi` (checked directly, 2026-09-21) - so deploying `4165637` requires editing that file too. If this release is later rolled back by symlink alone (matching the proven procedure), the restored release (`0ad8300`, item 3) would start against `PUBLIC_URL`/`ADMIN_URL` and never read the `APP_URL` it actually needs, if the unit file is not *also* rolled back with it - or the reverse, a same-release-only symlink rollback leaving a mismatched unit. The previous three releases never faced this because none of them changed which environment variables the code reads.
+**Suggested fix:** Before editing the live unit file for this deploy, copy it aside (e.g. `sudo cp /etc/systemd/system/habre-cms.service /etc/habre-cms/habre-cms.service.pre-4c`) so a rollback to `0ad8300` can restore both the symlink and that exact prior unit file together, not just the symlink. Record this as part of the release note in `dev-notes/status.md` so the next person rolling back knows to check for a paired unit-file change, not just assume the proven symlink-only procedure still applies.
+**Resolution:** Repaired 2026-09-21 by deploy, exactly as suggested: before touching the live unit, `sudo cp /etc/systemd/system/habre-cms.service /etc/habre-cms/habre-cms.service.pre-4c` (mode 600), confirmed present before the new unit was installed. Rolling back to `0ad8300` now means restoring both together - `sudo ln -sfn /srv/habre-cms/releases/0ad8300 /srv/habre-cms/current && sudo cp /etc/habre-cms/habre-cms.service.pre-4c /etc/systemd/system/habre-cms.service && sudo systemctl daemon-reload && sudo systemctl restart habre-cms` - recorded in `dev-notes/status.md`'s rollback line for this release. Status `fixed` for `preflight` to re-check and close.
+
 ### F-70 [P2] open - Host-routing refusals are silent - no security event is logged for a wrong-host admin attempt or an unrecognized host
 
 **File:** app/root.tsx:23-40 (`routeByHost`)
@@ -168,13 +176,15 @@
 **Why it matters:** After this change nothing imports it - the only occurrence left in the tree is a comment in `server/app.ts:8`. It may still be required by `@react-router/dev`'s build for the node server target, and it is where the `@remix-run/node-fetch-server` version range comes from, so removing it blindly could break the build or float the transitive version. An unused direct dependency is still code shipped and maintained (`fundamentals.md`, Dependencies).
 **Suggested fix:** Its own small change, not this one: remove it, run `npm run verify` and `npm run test:e2e`, and keep it with a comment saying why if the build needs it.
 
-### F-16 [P2] fixed - The backup has never been restored
+### F-16 [P2] closed - The backup has never been restored
 
 **File:** deploy/backup-db.sh:1
 **Found:** 2026-09-16 by preflight (first-release audit)
 **Why it matters:** The quality bar promises at most 24 h of data loss and a rebuild in under an hour, and both rest on a restore nobody has performed. The mechanism is proven as far as it can be today - one run dumped, verified with `pg_restore --list`, uploaded, and the object's size was re-read from the bucket - but production's database has **0 tables** (migrations have never run there), so the dump is an empty database and restoring it proves nothing about the schema the code needs. Not a P1 only because there is no content to lose yet; it becomes one the moment anyone writes a post.
 **Suggested fix:** `host`, immediately after the first `deploy` runs migrations: restore the newest dump into a scratch database and start the app against it (the dump is mode 600 root, so copy it for the `postgres` user first), then record the evidence here.
 **Resolution:** Repaired 2026-09-16 by deploy, after release `52c2670` and with the schema in place. A fresh nightly backup ran (`habre_cms-20260916T024823Z.dump`, 7314 bytes, unit result `success`), was restored into a scratch database `habre_cms_restore_test` owned by the app's role, and **the application itself was started against that copy** - not merely opened in a database client, which only proves the file parses. Evidence: the restored copy holds `users` and `schema_migrations` with `0001_users.sql` recorded; `scripts/create-admin.ts` created an account against it; the app answered `/healthz` `{"status":"ok","database":"up"}`; a wrong password returned the form's own error (400) and **the right password returned 302 to `/admin`** - a real session issued from restored data. The scratch database was dropped and the throwaway account went with it. Recovery time for this data volume is seconds; the untested part that remains is a restore onto a **fresh server**, which is the D9 hour-long rebuild path. Status `fixed` for `preflight` to re-check and close.
+
+**Closed 2026-09-21 by preflight** (milestone audit before deploying items 4a-4c). Re-checked against the live server rather than re-running the original test: `habre-cms-backup.timer` has fired nightly without interruption since the original fix - `journalctl` shows successful uploads on 2026-09-19 (`...T024004Z.dump`, 7504 bytes), 2026-09-20 (`...T023041Z.dump`, 7504 bytes) and 2026-09-21 (`...T023218Z.dump`, 7504 bytes), each logging `uploaded ... - no BACKUP_HEARTBEAT_URL set` (the missing heartbeat is F-15, separately accepted). The database now holds real schema (`users`, `entries`, `schema_migrations`, migrations `0001`-`0003` applied) rather than the empty one the original test restored, and the backup mechanism has not changed since. **Residual, unchanged from the original resolution:** a restore onto a genuinely fresh server (the full D9 rebuild path) is still untested - closing this only confirms the restore-and-start proof continues to hold for the mechanism itself. Status `closed`.
 
 ### F-17 [P2] open - The browser tests that cover login never run automatically
 
@@ -183,12 +193,13 @@
 **Why it matters:** `e2e/auth.spec.ts` holds 10 tests covering the item-1 behaviours nothing else asserts end to end - rate limiting, the cross-site refusal, deactivated users, session revocation, logout. They need a database, CI has none, and `verify` excludes them, so they run only when someone remembers locally. A regression in any of those reaches `main` with every gate green.
 **Suggested fix:** `ci` - add a job with a PostgreSQL service container that runs `npm run test:e2e`, or state in `AGENTS.md` that these are a manual pre-release gate and run them as part of `deploy`.
 
-### F-18 [P2] open - Keyboard and screen-reader behaviour has never been checked
+### F-18 [P2] accepted - Keyboard and screen-reader behaviour has never been checked
 
 **File:** blueprint/context/design.md (Accessibility bar: WCAG 2.2 AA, listed unchecked)
 **Found:** 2026-09-16 by preflight (first-release audit)
 **Why it matters:** The project holds itself to WCAG 2.2 AA, and the only two screens that exist - `/admin/login` and the admin shell - have never been driven by keyboard alone or heard through a screen reader. No automated check hears what is announced; the open line in `needs-you.md` has been there since item 1's spec. Contrast was measured in `design.md`, so this is about focus order, focus visibility, labels and announcements.
 **Suggested fix:** The user, from item 1's `verify --manual` walkthrough (NVDA, VoiceOver or Orca); `verify` records the result and closes the `needs-you.md` line.
+**Resolution:** **Accepted 2026-09-21 by the owner**, for this release specifically (items 4a-4c to production): shipping without a manual keyboard/screen-reader pass, same as the prior three releases. The scope has grown since this was first found - it now covers the admin shell, the block editor's two popovers, and (new in item 4b) the public site - and none of it has had a manual pass. Not closed: the three open lines in `needs-you.md` (block editor, admin shell/login, public site) stay open, and `preflight` reports this again at the next milestone audit until one actually happens.
 
 ### F-19 [P3] open - The one migration has no reverse, and nothing says that is intended
 

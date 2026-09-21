@@ -12,44 +12,61 @@ The `docs` skill maintains it.
 ## Where this stands
 
 **Goal:** a CMS non-technical editors can run a website with. 8 build items;
-items 1, 2 (2a and 2b) and 3 are shipped, `main` is at `0ad8300` and in sync
-with origin, and the working tree is clean.
+items 1, 2 (2a and 2b), 3, and now 4 (4a, 4b, 4c - the hostname split) are
+shipped. `main` is at `4165637` and in sync with origin.
 
-**Production** serves `https://cms.surenmaharjan.fyi` from release `0ad8300`
-(deployed 2026-09-21) - **items 1, 2a, 2b and 3, all of it.** The previous
-release, `52c2670`, was item 1 only; `0002_entries.sql` and
-`0003_blocks_v2.sql` were both pending until this deploy. Until item 4, the
-apex `surenmaharjan.fyi` serves nothing.
+**Production** now answers **two hostnames**: `https://cms.surenmaharjan.fyi`
+(admin) and `https://surenmaharjan.fyi` (public site, live for the first
+time), both from release `4165637` (deployed 2026-09-21) - **items 1, 2a, 2b,
+3, 4a, 4b and 4c, all of it.** The previous release, `0ad8300`, was items 1-3;
+no new migration shipped with item 4 (0001-0003 were already applied).
 
-- **Deploy, 2026-09-21:** built from a clean clone of `main` at `0ad8300`
-  (never on the server, never from a working tree) - `npm ci` -> `npm run
-  verify` (exit 0, 148 tests) -> `npm run build` -> `npm ci --omit=dev` ->
-  rsynced to `/srv/habre-cms/releases/0ad8300` (`app/`, `build/`, `db/`,
-  `scripts/`, `server.js`, `package.json`, `package-lock.json`, production
-  `node_modules`). **First attempt at the migration failed** -
-  `db/migrate.ts` resolves `#app/...` through plain Node's `imports` map to
-  real `.ts` source, which the release bundle had not included (only
-  `build/`, `db/`, `scripts/` were synced); fixed by syncing `app/` too.
-  Migrations then ran clean: `sudo -u habre_cms node
-  --env-file=/etc/habre-cms/production.env db/migrate.ts` from the new
-  release, against production, **while `52c2670` was still live and
-  serving** - safe because item 1's code never references `entries`.
-  Verified after: `schema_migrations` has all three files;
-  `\d entries` matches the migration exactly, `blocks_format` defaults to
-  `'v2'`, the format check constraint is present, 0 rows (no backfill work -
-  the table was empty). `current` repointed to `0ad8300`, service restarted.
-  Verified serving: `/healthz` `{"status":"ok","database":"up"}`;
-  `/admin/login` 200; `/admin` and `/admin/posts` unauthenticated both 302 to
-  login with the right `redirectTo` (not a 500 - proves the new schema is
-  reachable); a wrong-password POST returned the app's own 400
-  `credentialsRefused` page, not a crash - a real path touching `users`. No
-  errors in the journal since the restart.
-- **Rollback, if needed:** `sudo ln -sfn /srv/habre-cms/releases/52c2670
-  /srv/habre-cms/current && sudo systemctl restart habre-cms` - seconds, no
-  rebuild. **The migration does not reverse with it** (F-19): `entries` would
-  still exist and item 1's code still ignores it, so this is safe, but a
-  future release that migrates destructively needs its own rollback plan, not
-  this one by habit.
+- **Deploy, 2026-09-21 (item 4a/4b/4c to production):** built from a clean
+  clone of `main` at `4165637` (never on the server, never from a working
+  tree) - `npm ci` -> `npm run verify` (exit 0, 165 unit tests) -> `npm run
+  test:e2e` (56 browser tests, incl. the host-routing/hostname-split suite) ->
+  `npm run build` -> `npm ci --omit=dev` -> rsynced to
+  `/srv/habre-cms/releases/4165637` (`app/`, `build/`, `db/`, `scripts/`,
+  `server.js`, `package.json`, `package-lock.json`, production
+  `node_modules`). No pending migrations (`db/migrate.ts` against production:
+  "No pending migrations").
+  **This release also required two infrastructure changes, not just a code
+  swap** - item 4c renamed `APP_URL` to `PUBLIC_URL`/`ADMIN_URL`, so the app
+  now refuses to start without both:
+  - **F-72 repaired first:** the live systemd unit was copied aside to
+    `/etc/habre-cms/habre-cms.service.pre-4c` (mode 600) before being
+    overwritten, so a rollback to `0ad8300` can restore the matching unit
+    alongside the symlink rather than leaving them mismatched.
+  - The repo's `deploy/habre-cms.service` (now setting `PUBLIC_URL`/
+    `ADMIN_URL` instead of `APP_URL`) and `deploy/caddy/habre-cms.caddy` (now
+    three site blocks - `cms.`, the apex, and a `www` redirect, where before
+    only `cms.` existed) were installed to `/etc/systemd/system/` and
+    `/etc/caddy/sites/`. `daemon-reload`, `current` repointed to `4165637`,
+    `habre-cms` restarted, Caddy reloaded (`caddy validate` passed first).
+    **One hiccup:** the reload initially failed - `caddy validate`, run
+    directly as root to check the config, had itself created
+    `/var/log/caddy/habre-cms-public-access.log` owned by `root`, which the
+    `caddy` user then couldn't open; `chown caddy:caddy` on that one file and
+    the reload succeeded.
+  Verified serving, through both hostnames, not `localhost`: `/healthz` on
+  both -> `{"status":"ok","database":"up"}`; `https://surenmaharjan.fyi/` ->
+  200 with `<title>Habre CMS</title>` (the public home page, live for the
+  first time); `https://www.surenmaharjan.fyi/` -> 301 to the apex;
+  `https://cms.surenmaharjan.fyi/admin/login` -> 200; an admin path requested
+  on the public host redirects to the admin host and vice versa (D22,
+  confirmed live); a wrong-password POST -> 403 cross-site refusal (expected -
+  curl has no session/CSRF context), not a crash. No errors in the journal
+  since the restart.
+- **Rollback, if needed - not symlink alone, because the unit changed too:**
+  `sudo ln -sfn /srv/habre-cms/releases/0ad8300 /srv/habre-cms/current &&
+  sudo cp /etc/habre-cms/habre-cms.service.pre-4c
+  /etc/systemd/system/habre-cms.service && sudo systemctl daemon-reload &&
+  sudo systemctl restart habre-cms` - then also restore the previous Caddy
+  site file (only the `cms.` block) if the apex should stop serving. No
+  migration to reverse. **This is the first release where a symlink-only
+  rollback would have been wrong** (F-72) - future releases that touch the
+  unit or Caddy config need the same paired-restore treatment, not the old
+  proven procedure by habit.
 
 ## Done, with evidence
 
@@ -95,8 +112,13 @@ apex `surenmaharjan.fyi` serves nothing.
 
 ## Next
 
-1. **`spec` item 4** (publish to the public site - the D22 hostname split).
+1. **Item 4 is fully shipped and deployed** - `spec` item 5 (Images) next, or
+   `monitor` to check the public site's UptimeRobot check reflects the new
+   hostname.
 2. `ci` would close F-17 by giving CI a PostgreSQL service.
+3. A full `docs` regeneration of this file is due - this entry records the
+   item-4 deploy only; the "Done"/"Open" sections below still describe the
+   state through item 3.
 
 ## Open / not done
 
