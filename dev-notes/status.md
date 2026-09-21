@@ -11,14 +11,45 @@ The `docs` skill maintains it.
 
 ## Where this stands
 
-**Goal:** a CMS non-technical editors can run a website with. 8 build items; item
-1 and item 2a are shipped, `main` is at `8800f97` and in sync with origin, and
-the working tree is clean.
+**Goal:** a CMS non-technical editors can run a website with. 8 build items;
+items 1, 2 (2a and 2b) and 3 are shipped, `main` is at `0ad8300` and in sync
+with origin, and the working tree is clean.
 
-**Production** serves `https://cms.surenmaharjan.fyi` from release `52c2670` -
-**login only**. Item 2a's code and its `entries` table are **not** there: the next
-deploy must run `migrate` for `0002_entries.sql` before shipping the release.
-Until item 4, the apex `surenmaharjan.fyi` serves nothing.
+**Production** serves `https://cms.surenmaharjan.fyi` from release `0ad8300`
+(deployed 2026-09-21) - **items 1, 2a, 2b and 3, all of it.** The previous
+release, `52c2670`, was item 1 only; `0002_entries.sql` and
+`0003_blocks_v2.sql` were both pending until this deploy. Until item 4, the
+apex `surenmaharjan.fyi` serves nothing.
+
+- **Deploy, 2026-09-21:** built from a clean clone of `main` at `0ad8300`
+  (never on the server, never from a working tree) - `npm ci` -> `npm run
+  verify` (exit 0, 148 tests) -> `npm run build` -> `npm ci --omit=dev` ->
+  rsynced to `/srv/habre-cms/releases/0ad8300` (`app/`, `build/`, `db/`,
+  `scripts/`, `server.js`, `package.json`, `package-lock.json`, production
+  `node_modules`). **First attempt at the migration failed** -
+  `db/migrate.ts` resolves `#app/...` through plain Node's `imports` map to
+  real `.ts` source, which the release bundle had not included (only
+  `build/`, `db/`, `scripts/` were synced); fixed by syncing `app/` too.
+  Migrations then ran clean: `sudo -u habre_cms node
+  --env-file=/etc/habre-cms/production.env db/migrate.ts` from the new
+  release, against production, **while `52c2670` was still live and
+  serving** - safe because item 1's code never references `entries`.
+  Verified after: `schema_migrations` has all three files;
+  `\d entries` matches the migration exactly, `blocks_format` defaults to
+  `'v2'`, the format check constraint is present, 0 rows (no backfill work -
+  the table was empty). `current` repointed to `0ad8300`, service restarted.
+  Verified serving: `/healthz` `{"status":"ok","database":"up"}`;
+  `/admin/login` 200; `/admin` and `/admin/posts` unauthenticated both 302 to
+  login with the right `redirectTo` (not a 500 - proves the new schema is
+  reachable); a wrong-password POST returned the app's own 400
+  `credentialsRefused` page, not a crash - a real path touching `users`. No
+  errors in the journal since the restart.
+- **Rollback, if needed:** `sudo ln -sfn /srv/habre-cms/releases/52c2670
+  /srv/habre-cms/current && sudo systemctl restart habre-cms` - seconds, no
+  rebuild. **The migration does not reverse with it** (F-19): `entries` would
+  still exist and item 1's code still ignores it, so this is safe, but a
+  future release that migrates destructively needs its own rollback plan, not
+  this one by habit.
 
 ## Done, with evidence
 
@@ -48,24 +79,19 @@ Until item 4, the apex `surenmaharjan.fyi` serves nothing.
 
 ## Next
 
-1. **`spec` item 2b** (inline formatting: bold, italic, links as structured runs,
-   moving `blocks_format` to `v2` with a migration) - or item 3 (posts list)
-   first if that is wanted sooner.
-2. **`deploy`** whenever item 2a should be live: `migrate` for `0002_entries.sql`
-   against production **first**, then the release.
-3. `ci` would close F-17 by giving CI a PostgreSQL service.
+1. **`spec` item 4** (publish to the public site - the D22 hostname split).
+2. `ci` would close F-17 by giving CI a PostgreSQL service.
 
 ## Open / not done
 
-- **Nothing of item 2a is in production.** Writing works in development only.
 - **Browser tests gate nothing** (F-17): CI runs `verify` only, and the tests
-  covering item 2a's P0 and both P1s are in the Playwright suite.
+  covering every item's worst defects are in the Playwright suite.
 - **No alerting on a failed backup** - the heartbeat is built but
   `BACKUP_HEARTBEAT_URL` is deliberately unset (owner's decision); a failed
   backup tells nobody.
 - **Accessibility never checked by hand** (F-18) - now also covering the editor's
   two popovers, which is where the real WCAG risk sits.
-- **20 findings in the ledger**, none blocking: F-15 P1 accepted by the owner
+- **30 findings in the ledger**, none blocking: F-15 P1 accepted by the owner
   (no alerting until `monitor`); the rest are P2/P3 or unverified leads.
 - **No CSP** until item 5; **no staging**; single server, down until noticed.
 - Waiting on the owner (`needs-you.md`): R2 public URL and a production R2 token

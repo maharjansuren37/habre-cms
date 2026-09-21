@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-21 at `main` `12ff5e1`. Decision
-numbers (D1-D33) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-21 at `main` `0ad8300`. Decision
+numbers (D1-D41) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -130,12 +130,24 @@ One app answers two hostnames; Caddy proxies both to the same process.
   published posts · `/posts/:slug` one post · `/:slug` one page · `/healthz`
   (exists, reports database reachability). Unknown or draft content -> 404.
   Reserved page slugs: `admin`, `posts`, `api`, `healthz`.
-- **Admin** (login required): `/admin/login`, `/admin/logout`, `/admin` (exist
-  since item 1) · `/admin/posts[/new|/:id]` (all roles; authors only their own,
-  with inline bold/italic/link formatting since item 2b) ·
-  `/admin/pages[/new|/:id]` (editor, admin) · `/admin/media` (all roles) ·
-  `/admin/settings` (admin) · `/admin/users[/:id]` - add, change role, reset
-  password, deactivate (admin).
+- **Admin** (login required): `/admin/login`, `/admin/logout` (exist since item
+  1) · `/admin` redirects to `/admin/posts` rather than rendering anything
+  itself (D34, item 3; `home.ts`, no longer `home.tsx` - it only throws a
+  redirect, so it moved to the project's resource-route shape) ·
+  `/admin/posts` - the list: role-scoped table (authors see only their own),
+  filter tabs **All / Drafts / Published** with counts, title search, 20 posts
+  a page (D38, no new index - D39) · `/admin/posts/new`, `/admin/posts/:id` -
+  edit (all roles; authors only their own, with inline bold/italic/link
+  formatting since item 2b) · `/admin/posts/:id/delete` - a GET confirmation
+  screen then a POST delete, same shape as edit's ownership check (D36); the
+  list redirects to `/admin/posts?deleted=<title>` afterwards (D37) ·
+  `/admin/pages[/new|/:id]` (editor, admin, item 6 - not yet built) ·
+  `/admin/media` (all roles, item 5 - not yet built) · `/admin/settings`
+  (admin, item 7 - not yet built) · `/admin/users[/:id]` - add, change role,
+  reset password, deactivate (admin, item 8 - not yet built).
+- **The admin shell's nav list grows one entry per shipped section** (D35) -
+  today only "Posts"; a nav item for a route that does not exist yet is a dead
+  link, so each remaining item adds its own entry when it ships.
 - **The first admin is created by a server command (`npm run create-admin`),
   never a web setup page.**
 
@@ -266,15 +278,18 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
 
 ## Current state
 
-- **Build plan: items 1 and 2 done** (both 2a and 2b) - archived under
-  `blueprint/history/features/`. Nothing in flight (`current-work.md` is empty).
-  `prototype` has run (`design.md` exists).
-- **Writing works, in development only.** `/admin/posts/new` and
-  `/admin/posts/:id` save drafts through Editor.js; text, heading and list
-  blocks carry structured inline formatting - bold, italic, links - stored as
-  canonical runs in `blocks_format` `v2` (D28), never HTML. **Production has
-  neither `0002_entries.sql` nor `0003_blocks_v2.sql` applied** - the next
-  deploy needs `migrate` to run both, in order, before the release.
+- **Build plan: items 1, 2 (2a and 2b) and 3 done** - archived under
+  `blueprint/history/features/`. Nothing in flight (`current-work.md` is
+  empty). `prototype` has run (`design.md` exists).
+- **Writing and managing posts both work, in development only.**
+  `/admin/posts/new` and `/admin/posts/:id` save drafts through Editor.js, with
+  structured inline formatting (bold, italic, links) stored as canonical runs
+  in `blocks_format` `v2` (D28), never HTML. `/admin/posts` lists them -
+  role-scoped, filterable by status, searchable by title, paginated at 20 a
+  page - and `/admin/posts/:id/delete` removes one after a confirmation screen
+  (item 3, D34-D40). **Production has neither `0002_entries.sql` nor
+  `0003_blocks_v2.sql` applied** - the next deploy needs `migrate` to run both,
+  in order, before the release; item 3 added no schema change.
 - **What item 2b settled, for the items that read it:** a piece of text is a
   list of `{ text, bold?, italic?, href? }` runs, canonical (one stored form per
   text); links are checked against an allowlist enforced at both the parser and
@@ -284,21 +299,33 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   4's public renderer still must render through JSX, never an HTML-building
   helper** (D26, amended by D28); a post's address is chosen once at creation
   (D25); untrusted structure is bounded by name rather than hoped about (D27).
-- **It is live and working.** Production serves `https://cms.surenmaharjan.fyi`
-  from release `52c2670` (item 1 and 2a only - **item 2b has not been deployed
-  yet**); an admin account exists and the owner has logged in through a browser.
-  The first release `48e5052` shipped with a P0 - behind Caddy every form POST
-  was rejected, so login was impossible - fixed by `fix/trust-forwarded-proto`
-  (D23) and proven in production. **Until item 4, everything is on `cms`; the
-  apex serves nothing.**
+- **What item 3 settled, for item 4 to reuse rather than re-invent:**
+  `listEntries(actor, query)` and its `{ entries, total, totalPages, counts }`
+  shape are load-bearing - publish/unpublish should call the same function
+  rather than a second query (D34's routes table entry); a successful
+  redirect-producing action reports itself through `?deleted=<title>` (D37, and
+  item 4's publish/unpublish should use the same param shape); `PAGE_SIZE` is
+  server-only, the client works from a derived `totalPages` (D40, discovered by
+  React Router's build refusing to bundle a server constant into the browser).
+- **It is live and working, but three items behind.** Production serves
+  `https://cms.surenmaharjan.fyi` from release `52c2670` - **item 1 (admin
+  login) only**: that release predates item 2a (`52c2670` ships only
+  `db/migrations/0001_users.sql`, confirmed directly on the server), so
+  **items 2a, 2b and 3 have none of their code or migrations in production
+  yet**. An admin account exists and the owner has logged in through a
+  browser. The first release `48e5052` shipped with a P0 - behind Caddy every
+  form POST was rejected, so login was impossible - fixed by
+  `fix/trust-forwarded-proto` (D23) and proven in production. **Until item 4,
+  everything is on `cms`; the apex serves nothing.**
 - **Also done outside the build loop:** `preflight` (no-go for real users, its
   two P1s now closed or accepted), `host` (server, backups, restore, rollback),
   two `deploy` runs (both before item 2b), and `docs` (real README, proven by
   running its commands).
-- **`main` is pushed and in sync.** Item 2a went in through pull request #3 and
-  **item 2b through pull request #4**, both with CI green before merge - the
-  loop the workflow recommends. CI runs `verify` only, so the browser tests
-  covering the worst defects in both items still gate nothing (F-17).
+- **`main` is pushed and in sync.** Item 2a went in through pull request #3,
+  item 2b through pull request #4, and **item 3 through pull request #5**, all
+  with CI green before merge - the loop the workflow recommends. CI runs
+  `verify` only, so the browser tests covering the worst defects in every item
+  still gate nothing (F-17).
 - **Item 2b's review, across two independent passes, found and closed six
   findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
   un-bolding text with no way to save it back; an app-wide selection-colour
@@ -308,25 +335,37 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   first repair round, found three more** (F-48, F-49, F-53 - a toolbar focus
   ring invisible against hover, the NUL fix not covering lone surrogates, and an
   unmeasured contrast claim in `design.md`), all repaired and shipped in the
-  same item. Three findings from that second pass remain open at P3 (F-50, F-51)
-  and unverified (F-52) - none blocking.
-- **Open findings:** 19 in the ledger, **none above P2** and nothing `open` or
-  `fixed` at P0/P1. F-16 [P2] `fixed` (restore proven, `preflight` closes) ·
-  F-17 [P2], F-18 [P2], F-29 [P2] open · F-22 [P2] unverified · F-25 [P2] open ·
-  F-38, F-39, F-40, F-41 [P3] `fixed`, F-23, F-24, F-26, F-27 [P3] open ·
-  F-19, F-20 [P3] open · F-31, F-13 [P3] unverified · F-07 [P3] `fixed` ·
-  F-48, F-49 [P3] `fixed` · F-50, F-51 [P3] open · F-52 [P3] unverified · F-53
-  [P3] `fixed`. **F-15 [P1] was accepted by the owner** - nothing alerts when
-  the live system breaks, until `monitor` runs.
-- **Next:** `context` regeneration is done (this file); `deploy` would carry
-  item 2b to production and needs `migrate` for `0002` and `0003` first, in
-  order - or `spec` item 3 (Manage posts) to keep building before deploying.
-- **Remaining items, in order:** 3 Manage posts · 4 Publish to the public site
-  (includes the D22 hostname split) · 5 Images · 6 Pages · 7 Site settings and
-  menu · 8 Users and roles.
+  same item. Three findings from that second pass remain open at P3 (F-50,
+  F-51) and unverified (F-52) - none blocking.
+- **Item 3's review found eleven findings; two were repaired and shipped in
+  the same item** (F-54 - four bare element selectors in `post-list.module.css`
+  leaking into the global stylesheet; F-60 - unqualified `author_id`/`status`/
+  `title` columns in a query newly joined to `users`, which the repair itself
+  nearly reintroduced in a fourth query before it was caught in review of the
+  fix). The other nine (F-55 through F-59, F-61 through F-64) are `open` or
+  `unverified` at P3 - a server/browser timezone mismatch on the "last changed"
+  date, a page-past-the-end showing a false "no matches", an uncapped
+  attacker-controlled delete banner, a doubled auth check, an extra redirect
+  hop through the guarded `/admin`, no submit control on the search box, two
+  possible screen-reader gaps, and two stale reference screenshots.
+- **Open findings:** 30 in the ledger, **none above P2** and nothing `open` or
+  `fixed` at P0/P1. P2: F-16 `fixed` (restore proven, `preflight` closes) ·
+  F-17, F-18, F-29 open · F-22 unverified · F-25 open. P3: F-07, F-41, F-48,
+  F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
+  F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-40, F-50, F-51, F-55, F-56,
+  F-57, F-58, F-59, F-61, F-62, F-64 open. **F-15 [P1] was accepted by the
+  owner** - nothing alerts when the live system breaks, until `monitor` runs.
+- **Next:** `context` regeneration is done (this file); `spec` item 4 (Publish
+  to the public site) to keep building, or `deploy` first to carry items 2b and
+  3 to production (needs `migrate` for `0002` and `0003` in order before the
+  release).
+- **Remaining items, in order:** 4 Publish to the public site (includes the
+  D22 hostname split) · 5 Images · 6 Pages · 7 Site settings and menu · 8 Users
+  and roles.
 - **Waiting on the user** (`needs-you.md`): a public URL for the R2 images
   bucket and a production R2 token (both item 5); an UptimeRobot account
   (`monitor`, F-15); a screen-reader and keyboard pass over login, the admin
-  shell and the block editor including its inline toolbar (F-18, F-29); deleting
-  the old `hone.surenmaharjan.fyi` DNS record. The images bucket, backup bucket,
-  server software and local `.env` lines are **done**.
+  shell, the posts list (filter tabs, search, delete confirmation) and the
+  block editor including its inline toolbar (F-18, F-29); deleting the old
+  `hone.surenmaharjan.fyi` DNS record. The images bucket, backup bucket, server
+  software and local `.env` lines are **done**.
