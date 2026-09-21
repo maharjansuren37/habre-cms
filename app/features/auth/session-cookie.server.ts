@@ -13,8 +13,9 @@ const sessionCookie = createCookie("habre_session", {
   path: "/",
   maxAge: SESSION_LIFETIME_SECONDS,
   // https in production. Browser tests run the production build over http on
-  // 127.0.0.1, which is why this follows APP_URL rather than NODE_ENV.
-  secure: new URL(env.APP_URL).protocol === "https:",
+  // 127.0.0.1, which is why this follows ADMIN_URL rather than NODE_ENV. The
+  // session is only ever issued or read on the admin host.
+  secure: new URL(env.ADMIN_URL).protocol === "https:",
 });
 
 /** Whether the request sent a session cookie at all, readable or not. */

@@ -10,6 +10,22 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-70 [P2] open - Host-routing refusals are silent - no security event is logged for a wrong-host admin attempt or an unrecognized host
+
+**File:** app/root.tsx:23-40 (`routeByHost`)
+**Found:** 2026-09-21 by review (scope: current, item 4c; lens: security)
+**Why it matters:** `routeByHost` throws a bare 404 for two cases and logs neither: a non-GET/HEAD request to an admin path on the public host, and a request whose host matches neither `PUBLIC_URL` nor `ADMIN_URL`. The second case should be unreachable in production - F-22's evidence confirms only Caddy reaches the app, on 127.0.0.1 with the other ports closed, and Caddy forwards only the two configured hostnames - which is exactly why it is worth logging rather than silently swallowing: if it ever fires, the network assumption behind the whole security model has been violated, and nothing here would tell anyone. Compare `refuseCrossSiteRequests` two lines below, in the same middleware array, which logs every refusal via `logSecurityEvent({ event: "request_refused", reason: "cross_site", ... })` - the new middleware sits right next to that pattern and does not follow it. `fundamentals.md`'s Logging section: "Log the security-relevant events: failed authentication, access denied, and anything that changes permissions... Detection you never wrote is the one gap no later audit can close retroactively." OWASP Top 10:2025 A09, Logging & Alerting Failures. Not exploitable on its own - the request is correctly refused either way - so this is a detection gap, not a bypass.
+**Suggested fix:** Call `logSecurityEvent` with a new reason (e.g. `"wrong_host"`) before throwing the 404 in `routeByHost`, mirroring `refuseCrossSiteRequests`'s shape (`method`, `path`, `ip`, plus the host that was actually requested).
+**Resolution:**
+
+### F-71 [P3] open - A cookie comment now describes a reality the hostname split already removed
+
+**File:** app/features/auth/session-cookie.server.ts:9-12
+**Found:** 2026-09-21 by review (scope: current, item 4c; lens: quality)
+**Why it matters:** The comment reads "`path: '/'`... The public site receives it but never reads it." That was accurate when public and admin shared one origin (pre-item-4c): a `/`-scoped cookie on a single host really did reach every public path too. Once `PUBLIC_URL` and `ADMIN_URL` are genuinely different hosts (production, and the two-hostname test server added in this item), the session cookie is host-only with no `Domain` attribute, so it is never sent to the public site's origin at all - "receives it but never reads it" describes a risk that no longer exists there, replaced by a stronger guarantee the comment doesn't mention. `fundamentals.md`, Comments: "A comment that has drifted from the code is worse than none, because it is believed" - a future reader could take this line to mean the public site is still in the cookie's blast radius and needs care it no longer needs. Still true today only because development runs `PUBLIC_URL === ADMIN_URL`.
+**Suggested fix:** Reword to note the split: e.g. "In development, where `PUBLIC_URL === ADMIN_URL`, the public paths on that one host receive it too but never read it; once the hostnames differ (production), the cookie is host-only and never reaches the public site at all."
+**Resolution:**
+
 ### F-48 [P2] fixed - The three inline toolbar buttons have no perceivable focus indicator, and the spec asked for one
 
 **File:** app/features/content/post-form.module.css:135-136

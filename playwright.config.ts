@@ -2,9 +2,13 @@ import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
-// A second server started as if it were behind Caddy: its APP_URL is https,
+// A second server started as if it were behind Caddy: its ADMIN_URL is https,
 // so a request must carry X-Forwarded-Proto: https to look same-origin (F-21).
 const PROXIED_PORT = 3101;
+// A third server with genuinely different PUBLIC_URL/ADMIN_URL hosts on one
+// port (D22's own answer to "browser tests need two local hostnames") - the
+// only way to exercise app/lib/host-routing.ts's redirects and 404s for real.
+const HOST_SPLIT_PORT = 3102;
 
 // The tests' helpers reach the development database, and the server needs its
 // secrets. Variables already set in the environment win over the file.
@@ -22,8 +26,9 @@ export default defineConfig({
   webServer: [
     {
       // Tests the production build, which is what ships. Needs the dev database running.
-      // APP_URL must match the test origin, or the cross-site check refuses logins.
-      command: `npm run build && PORT=${PORT} APP_URL=http://127.0.0.1:${PORT} npm start`,
+      // PUBLIC_URL/ADMIN_URL must match the test origin, or the cross-site check refuses
+      // logins. Equal, so the app is single-host here and redirects nothing.
+      command: `npm run build && PORT=${PORT} PUBLIC_URL=http://127.0.0.1:${PORT} ADMIN_URL=http://127.0.0.1:${PORT} npm start`,
       url: `http://127.0.0.1:${PORT}/healthz`,
       // Never reuse: a server left running from an earlier run keeps serving the
       // build it started with, so a run can pass against code that is no longer
@@ -37,8 +42,17 @@ export default defineConfig({
       // serving before it starts on the same build output. Without the wait it
       // would start on whatever build/ held from a previous run, which is how a
       // deliberately reverted fix once passed every test here.
-      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${PROXIED_PORT} APP_URL=https://127.0.0.1:${PROXIED_PORT} npm start`,
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${PROXIED_PORT} PUBLIC_URL=https://127.0.0.1:${PROXIED_PORT} ADMIN_URL=https://127.0.0.1:${PROXIED_PORT} npm start`,
       url: `http://127.0.0.1:${PROXIED_PORT}/healthz`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      // Also waits for the primary build (same reason as the proxied server
+      // above): npm start reads whatever is in build/, and starting while it
+      // is still being written serves a build no test intended to run against.
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${HOST_SPLIT_PORT} PUBLIC_URL=http://127.0.0.1:${HOST_SPLIT_PORT} ADMIN_URL=http://localhost:${HOST_SPLIT_PORT} npm start`,
+      url: `http://127.0.0.1:${HOST_SPLIT_PORT}/healthz`,
       reuseExistingServer: false,
       timeout: 120_000,
     },
