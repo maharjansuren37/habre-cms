@@ -1,0 +1,57 @@
+/* Ported from prototypes/public-post.html's .article* rules (item 4b). */
+
+.article {
+  max-width: calc(var(--measure) + var(--space-5) * 2);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+  font-size: var(--text-lg);
+  line-height: var(--leading-reading);
+}
+
+.meta {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.title {
+  margin-bottom: var(--space-6);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.body > * + * {
+  margin-top: var(--space-5);
+}
+
+.body h2,
+.body h3 {
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.body h2 {
+  margin-top: var(--space-7);
+  font-size: var(--text-xl);
+}
+
+.body h3 {
+  margin-top: var(--space-6);
+  font-size: var(--text-lg);
+}
+
+.body ul,
+.body ol {
+  padding-left: var(--space-5);
+}
+
+.body li + li {
+  margin-top: var(--space-2);
+}
+
+.back {
+  display: inline-block;
+  margin-top: var(--space-7);
+  font-size: var(--text-md);
+}

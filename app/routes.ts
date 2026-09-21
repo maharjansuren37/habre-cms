@@ -1,7 +1,10 @@
 import { index, layout, type RouteConfig, route } from "@react-router/dev/routes";
 
 export default [
-  index("features/public-site/home.tsx"),
+  layout("features/public-site/layout.tsx", [
+    index("features/public-site/home.tsx"),
+    route("posts/:slug", "features/public-site/post.tsx"),
+  ]),
   route("healthz", "features/public-site/healthz.ts"),
   route("admin/login", "features/auth/login.tsx"),
   route("admin/logout", "features/auth/logout.ts"),

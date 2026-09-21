@@ -57,6 +57,7 @@ Mockups (throwaway): `prototypes/login.html`, `posts-list.html`,
 | `--color-text` on `--color-bg` | 15.6 | 15.2 |
 | `--color-text-muted` on `--color-surface` | 6.3 | 7.3 |
 | `--color-text-muted` on `--color-surface-sunken` (worst case) | 5.5 | 8.1 |
+| `--color-text-muted` on `--color-bg` (public site: dates, footer, empty state - item 4b) | 5.9 | 7.8 |
 | `--color-accent` (links) on `--color-bg` | 6.0 | 8.4 |
 | `--color-accent` on `--color-accent-subtle` (active nav) | 5.5 | 6.9 |
 | `--color-on-accent` on `--color-accent` (primary button) | 6.4 | 8.4 |

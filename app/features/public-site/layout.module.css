@@ -1,0 +1,48 @@
+/* Ported from prototypes/public-post.html's <style> block (item 4b). */
+
+.header {
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.headerInner,
+.footerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+}
+
+.brand {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.footer {
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.notFound {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+  font-size: var(--text-lg);
+}
+
+/* Development only (F-66) - a real bug's stack trace, not shown in production. */
+.stack {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+}

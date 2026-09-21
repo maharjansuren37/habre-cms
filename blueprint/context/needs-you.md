@@ -103,6 +103,13 @@ not tidying; it is what keeps the open list true.
       `--manual` walkthrough. Blocks nothing now; `preflight` needs it (design.md
       lists it as unchecked). `open` (spec, 2026-09-15; widened, item 3)
 
+- [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
+      VoiceOver or Orca) - manual verification; nobody has looked at these
+      screens with a screen reader, unlike the admin screens above. Covers
+      the home page, one post (including inline bold/italic/link formatting
+      rendered as real elements), and the 404 page (item 4b). Blocks nothing
+      now; `preflight` needs it before a real release. `open` (spec, 2026-09-21)
+
 - [ ] **Fill `APP_URL` and `JWT_SECRET` in your local `.env`** - credentials;
       it is your secrets file, so no agent writes to it. `APP_URL=http://127.0.0.1:3000`;
       generate the secret with the command in `.env.example`. Blocks `npm run dev`,
