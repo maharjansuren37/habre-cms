@@ -1,0 +1,35 @@
+/* A short question, not a focused task - stays inside the admin shell rather
+   than dropping the sidebar the way the editor does. */
+.confirm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--measure);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* The default button (surface + border), recolored to danger text - not the
+   only signal, since the button already says "Delete post" (design.md,
+   Buttons). Text on --color-surface measures 6.0:1 light / 7.8:1 dark
+   (design.md). */
+.delete {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.delete:hover {
+  background: var(--color-danger-subtle);
+}

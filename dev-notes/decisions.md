@@ -493,3 +493,98 @@ never fires and the ring has to hang off that class. Cost: these rules are
 coupled to internal class names of a library that does not promise them, so an
 Editor.js upgrade is the moment to re-measure; both are guarded by browser tests
 that were shown to fail with the rules removed.
+
+## D34 - `/admin` redirects to `/admin/posts`, rather than becoming the list itself (2026-09-21)
+
+**Chose:** `/admin`'s loader always throws a redirect to `/admin/posts`, which
+is the real list route.
+
+Beat: rendering the list directly at the bare `/admin` path, which is what
+`home.tsx`'s own comment ("makes /admin the posts list") read as on a literal
+reading. `project-plan.md`'s Routes table names `/admin/posts` explicitly as
+its own route, comma-separated from `/new` and `/:id` - the redirect satisfies
+both that table and the comment's intent, and gives every future admin section
+(`/admin/pages`, `/admin/media`, …) the same shape: a named index route, not an
+overloaded root. Cost: one extra redirect hop on first arrival at `/admin`
+(see D40).
+
+## D35 - The admin nav grows one entry per shipped section, not five with four disabled (2026-09-21)
+
+**Chose:** the sidebar shows only "Posts" - the one section that is real.
+Pages, Media, Settings and Users each add their own entry when their own item
+ships.
+
+Beat: showing all five now, with the unbuilt four greyed out or disabled -
+`design.md`'s full five-item description describes the *finished* shell, and a
+nav item pointing at a route that does not exist yet is a dead link regardless
+of styling. Cost: the nav's shape changes visibly at every future item that
+adds a section, rather than being stable from day one.
+
+## D36 - Delete is a two-screen confirmation, not a JS dialog or an inline toggle (2026-09-21)
+
+**Chose:** `GET /admin/posts/:id/delete` shows a confirmation page; `POST` on
+the same route performs the delete.
+
+Beat: a JavaScript `confirm()` dialog, which breaks the moment JavaScript is
+off (D10: forms work without it); and an inline row toggle ("Delete? Cancel /
+Confirm"), a second interaction pattern invented for one button when
+`post-edit.tsx` already has the exact GET-then-POST shape this reuses. Cost:
+one extra screen between clicking Delete and it happening - the point, not a
+side effect.
+
+## D37 - A successful delete's message reaches the list through `?deleted=<title>` (2026-09-21)
+
+**Chose:** the redirect after a delete carries the removed title as a query
+param, read once by the list's loader and shown as a success banner.
+
+Beat: inventing a new mechanism, when the `posts-list.html` mockup already
+shows this exact banner shape after a redirect-producing action (its "is
+published." example). Item 4's publish/unpublish should reuse the same param
+shape for its own banner rather than a second one. Cost: the param is plain
+text in the URL, readable and shareable, and reflected back unbounded and
+unverified - a finding the item's own review caught (F-57), not fixed here.
+
+## D38 - `PAGE_SIZE = 20` (2026-09-21)
+
+**Chose:** the list shows 20 posts a page.
+
+Beat: no pagination at all, which the quality bar's "a few thousand entries"
+scale rules out directly; and a larger page size, which the mockup's own row
+count did not suggest was needed. Cost: at a few thousand entries, up to a few
+hundred pages - acceptable at this project's stated scale.
+
+## D39 - No new database index for the list's search or filter (2026-09-21)
+
+**Chose:** `listEntries`'s `type`/`status` filter and `ilike` search run as a
+sequential scan, with no new index.
+
+Beat: adding one now, which would need `pg_trgm` for the `ilike` half - a new
+dependency the minimal-dependencies constraint makes its own decision, not a
+passenger on this one - for a scan that is sub-millisecond at "a few thousand"
+rows. The same judgment already recorded for the slug lookup (F-27). Cost:
+revisit if the entries table ever grows past what a sequential scan comfortably
+covers.
+
+## D40 - `PAGE_SIZE` stays server-only; the client works from a derived `totalPages` (2026-09-21)
+
+**Chose:** `listEntries` computes and returns `totalPages` itself; the client
+component never imports the constant.
+
+Not a choice between two options so much as a build-time correction: computing
+the page count from `PAGE_SIZE` directly in the client component tried to pull
+a server-only constant into the browser bundle, and React Router's build
+correctly refused it - server code cannot reach the client (`code-splitting`
+docs). Cost: none - the derived number is strictly what the client needed
+anyway.
+
+## D41 - `home.tsx` became `home.ts` once it held no UI (2026-09-21)
+
+**Chose:** the redirect-only `/admin` route is a `.ts` file exporting only a
+`loader`, matching the project's own resource-route convention (`logout.ts`).
+
+Its placeholder markup - "Hello, {name}" - left with item 3's redirect, and
+what remained was a loader that always throws, never a component. Coding
+standards already name this shape ("Resource routes … are `.ts` files
+exporting only `loader`/`action`"); keeping the `.tsx` extension and an unused
+default export would have been the second way to write the same thing. Cost:
+none.

@@ -3,7 +3,12 @@ import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat } from "./blocks-format.ts";
 import type { EntryInput } from "./entry-input.ts";
+import type { PostListQuery } from "./post-list-query.ts";
 import { nextFreeSlug, slugFromTitle } from "./slug.ts";
+
+// A page of the list, in one screenful. Comfortably below the quality bar's
+// scale (a few thousand entries -> at most a few hundred pages).
+export const PAGE_SIZE = 20;
 
 export type Entry = {
   id: string;
@@ -37,15 +42,22 @@ function toEntry({ blocksFormat, ...entry }: EntryRow): Entry {
   return entry;
 }
 
-/** Authors see only their own entries; editors and admins see every one. */
+/**
+ * Authors see only their own entries; editors and admins see every one.
+ * Qualified to `e` (F-60): every caller aliases its `entries` reference the
+ * same way, so this stays correct wherever it is composed into a query that
+ * also joins another table - `listEntries` joins `users`, which happens to
+ * have no `author_id` column today, but an unqualified fragment would have
+ * broken silently the day it did.
+ */
 function ownedBy(actor: Actor) {
-  return actor.role === "author" ? sql`and author_id = ${actor.id}` : sql``;
+  return actor.role === "author" ? sql`and e.author_id = ${actor.id}` : sql``;
 }
 
 export async function findEntryForUser(id: string, actor: Actor): Promise<Entry | null> {
   const [row] = await sql<EntryRow[]>`
-    select ${entryColumns} from entries
-    where id = ${id} and type = 'post' ${ownedBy(actor)}
+    select ${entryColumns} from entries e
+    where e.id = ${id} and e.type = 'post' ${ownedBy(actor)}
   `;
   return row ? toEntry(row) : null;
 }
@@ -98,17 +110,17 @@ export async function updateDraft(
   actor: Actor,
 ): Promise<UpdateResult> {
   const [row] = await sql<EntryRow[]>`
-    update entries set
+    update entries e set
       title = ${input.title},
       blocks = ${sql.json(input.blocks)},
       blocks_format = ${BLOCKS_FORMAT},
       version = version + 1,
       updated_at = now()
-    where id = ${id} and version = ${version} and type = 'post' ${ownedBy(actor)}
+    where e.id = ${id} and e.version = ${version} and e.type = 'post' ${ownedBy(actor)}
       -- Only over a row this build can read: a tab opened before a format change
       -- would otherwise replace newer content with the old format (F-46). Such a
       -- row changes nothing here, and findEntryForUser below refuses it loudly.
-      and blocks_format = ${BLOCKS_FORMAT}
+      and e.blocks_format = ${BLOCKS_FORMAT}
     returning ${entryColumns}
   `;
   if (row) return { ok: true, entry: toEntry(row) };
@@ -116,4 +128,73 @@ export async function updateDraft(
   // No row changed: either this person cannot see it at all, or its version moved.
   const existing = await findEntryForUser(id, actor);
   return existing ? { ok: false, reason: "stale" } : { ok: false, reason: "not_found" };
+}
+
+/** One row of the list - lighter than `Entry`, since the list never needs `blocks`. */
+export type PostSummary = {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+  authorName: string;
+  updatedAt: Date;
+};
+
+export type PostList = {
+  entries: PostSummary[];
+  // Matches the current status and search.
+  total: number;
+  totalPages: number;
+  // Independent of the search: what each tab's own count reads.
+  counts: { all: number; draft: number; published: number };
+};
+
+export async function listEntries(actor: Actor, query: PostListQuery): Promise<PostList> {
+  // Qualified to `e` (F-60), matching `ownedBy` - these compose into a query
+  // that joins `users`, and an unqualified `status`/`title` would go from
+  // "happens to be unambiguous" to a runtime "column reference is ambiguous"
+  // the day `users` gains a same-named column.
+  const statusFilter = query.status === "all" ? sql`` : sql`and e.status = ${query.status}`;
+  const searchFilter = query.q === "" ? sql`` : sql`and e.title ilike ${`%${query.q}%`}`;
+
+  const [rows, totalRows, statusCounts] = await Promise.all([
+    sql<PostSummary[]>`
+      select e.id, e.title, e.slug, e.status, u.name as "authorName", e.updated_at as "updatedAt"
+      from entries e join users u on u.id = e.author_id
+      where e.type = 'post' ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+      order by e.updated_at desc
+      limit ${PAGE_SIZE} offset ${(query.page - 1) * PAGE_SIZE}
+    `,
+    sql<{ total: number }[]>`
+      select count(*)::int as total from entries e
+      where e.type = 'post' ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+    `,
+    sql<{ status: "draft" | "published"; count: number }[]>`
+      select status, count(*)::int as count from entries e
+      where e.type = 'post' ${ownedBy(actor)}
+      group by status
+    `,
+  ]);
+
+  const draft = statusCounts.find((row) => row.status === "draft")?.count ?? 0;
+  const published = statusCounts.find((row) => row.status === "published")?.count ?? 0;
+  const total = totalRows[0]?.total ?? 0;
+
+  return {
+    entries: rows,
+    total,
+    // PAGE_SIZE stays server-only; the client works from this number instead.
+    totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    counts: { all: draft + published, draft, published },
+  };
+}
+
+/** The deleted post's own title, for the list's success message - or `null`
+ *  when there was nothing this actor could delete (not found, or not theirs). */
+export async function deleteEntry(id: string, actor: Actor): Promise<{ title: string } | null> {
+  const [row] = await sql<{ title: string }[]>`
+    delete from entries e where e.id = ${id} and e.type = 'post' ${ownedBy(actor)}
+    returning title
+  `;
+  return row ?? null;
 }

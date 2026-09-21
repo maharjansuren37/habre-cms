@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-16 at `main` `6f9c1ea`. Decision
-numbers (D1-D27) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-21 at `main` `12ff5e1`. Decision
+numbers (D1-D33) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -28,10 +28,10 @@ online (D1).
 
 **First version (the 8 build items):** admin login with a 1-week session and no
 public signup; posts and pages written in a block editor (text, heading, image,
-list); draft / publish / unpublish; image upload and a reusable media library;
-a public site rendered from published content with one built-in theme; site
-title, logo and navigation menu; three roles; light and dark mode in admin and
-public site.
+list) with structured inline formatting (bold, italic, links); draft / publish /
+unpublish; image upload and a reusable media library; a public site rendered
+from published content with one built-in theme; site title, logo and navigation
+menu; three roles; light and dark mode in admin and public site.
 
 **Deliberately deferred - do not build:**
 
@@ -60,7 +60,7 @@ decision.
 | Styling | Plain CSS: custom properties for light/dark tokens, CSS Modules. **No Tailwind** | `prototype` tokens map straight to CSS variables (D12); look in `blueprint/context/design.md` |
 | Auth | JWT with `jose` 6.2.12 (installed); passwords with `node:crypto` scrypt. **No auth library** | (D6) |
 | Validation | Zod 4.6.5 at every trust boundary | |
-| Editor | Editor.js 2.31.6 + header and list tools | Saves the `{id, type, data}` block shape directly (D13) |
+| Editor | Editor.js 2.31.6 + header and list tools, with structured inline formatting (bold, italic, link) via an in-repo HTML scanner - never raw HTML | Saves the `{id, type, data}` block shape directly (D13); inline runs are D28-D30 |
 | Media | Cloudflare R2 via `aws4fetch` 1.0.20; `image-size` 2.0.4 | Uploads through the app server (D7) |
 | Lint / format | Biome 2.5.13 | (D19) |
 | Tests | `node:test` unit tests; Playwright 1.63.0 (Chromium) browser tests | |
@@ -88,9 +88,10 @@ nothing should be added to the design that they did not call for.
   (`db.server.ts`, `env.server.ts`, `same-origin.ts`, `security-log.server.ts`).
 - `server.js` (+ `server/app.ts`): the Node entry - Vite middleware in dev; in
   production serves `build/client` itself and sets security headers (D18).
-- `db/migrations/NNNN_name.sql` (`0001_users.sql`, `0002_entries.sql`), `db/migrate.ts`;
-  `scripts/create-admin.ts`; `deploy/` - `setup-server.sh`, `habre-cms.service`,
-  `caddy/habre-cms.caddy` (written by `host`); `e2e/*.spec.ts`.
+- `db/migrations/NNNN_name.sql` (`0001_users.sql`, `0002_entries.sql`,
+  `0003_blocks_v2.sql`), `db/migrate.ts`; `scripts/create-admin.ts`; `deploy/` -
+  `setup-server.sh`, `habre-cms.service`, `caddy/habre-cms.caddy` (written by
+  `host`); `e2e/*.spec.ts`.
 - **Imports:** `#app/...` with explicit `.ts`/`.tsx` extensions. **Never a `~/`
   alias** - plain `node` cannot resolve it.
 - **Boundary per file, not per directory:** `*.server.ts` = server only (the
@@ -130,7 +131,8 @@ One app answers two hostnames; Caddy proxies both to the same process.
   (exists, reports database reachability). Unknown or draft content -> 404.
   Reserved page slugs: `admin`, `posts`, `api`, `healthz`.
 - **Admin** (login required): `/admin/login`, `/admin/logout`, `/admin` (exist
-  since item 1) · `/admin/posts[/new|/:id]` (all roles; authors only their own) ·
+  since item 1) · `/admin/posts[/new|/:id]` (all roles; authors only their own,
+  with inline bold/italic/link formatting since item 2b) ·
   `/admin/pages[/new|/:id]` (editor, admin) · `/admin/media` (all roles) ·
   `/admin/settings` (admin) · `/admin/users[/:id]` - add, change role, reset
   password, deactivate (admin).
@@ -143,9 +145,9 @@ One app answers two hostnames; Caddy proxies both to the same process.
   `role` (admin | editor | author), `token_version`, `deactivated_at`,
   `created_at`, `updated_at` (exists: `0001_users.sql`)
 - **entries** - posts **and** pages in one table (D5): `id`, `type` (post |
-  page), `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`,
-  `status` (draft | published), `published_at`, `author_id` -> users, `version`,
-  `created_at`, `updated_at`
+  page), `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`
+  (**`v2`** - structured inline runs, D28), `status` (draft | published),
+  `published_at`, `author_id` -> users, `version`, `created_at`, `updated_at`
 - **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`, `width`,
   `height`, `alt_text`, `uploaded_by` -> users, `created_at`
 - **site_settings** - single row: `site_title`, `logo_media_id` -> media,
@@ -153,10 +155,27 @@ One app answers two hostnames; Caddy proxies both to the same process.
 - **schema_migrations** - owned by the migration runner: `filename`,
   `applied_at`. No library owns any other table.
 
-**Blocks:** an ordered list of `{id, type, data}`. Text is **structured data,
-never raw HTML**, escaped on render (inline formatting is decided in item 2's
-spec). Image blocks store a **media id, not a URL**. A page builder later adds
+**Blocks:** an ordered list of `{id, type, data}`. A page builder later adds
 container blocks with `children`.
+
+- **Text is a list of runs**, never raw HTML: `{ text, bold?, italic?, href? }`
+  (`blocks_format` `v2`, D28). Runs are canonical - one stored form per text -
+  and are parsed from and serialized back to Editor.js's HTML fragment by an
+  in-repo scanner, not a library (D29). Escaped on render either way.
+- **Links are checked against an allowlist** - `http:`, `https:`, `mailto:`, a
+  site-relative `/path`, or a `#fragment` - enforced by both the parser and the
+  stored schema, because Editor.js's own link field accepts any `scheme:`
+  including `javascript:` (D30).
+- **Image blocks store a media id, not a URL.** The URL is resolved at render
+  time, so a bucket or domain change never touches content. (Item 5, not yet
+  built.)
+- **The format marker is enforced at both ends** (D31): the database refuses a
+  write whose `blocks_format` is not the current one, the reader refuses a row
+  whose format this build does not understand, and a save requires the row's
+  own current format so a stale tab cannot silently downgrade newer content.
+- **Values PostgreSQL cannot hold in `jsonb`** - U+0000, lone surrogates - are
+  refused at the trust boundary (parser, schema, and the post title) rather than
+  reaching the database as a 500 (D32).
 
 **Data rules:**
 
@@ -190,14 +209,18 @@ container blocks with `children`.
   everything plus settings and users.
 - **Uploads:** 10 MB cap; JPEG, PNG, WebP, GIF only - **no SVG**.
 - Content-Security-Policy is deliberately unset until item 5 lands.
+- **Editor.js's own injected CSS is overridden only inside the editor**
+  (`.canvas`-scoped, one class more specific than the library's rule, so it wins
+  on specificity rather than injection order) - D33.
 
 ### Quality bar (`blueprint/context/quality-bar.md`)
 
-Public pages < 500 ms p95 server-side; admin saves < 1 s p95. Up to ~10 admin
-users, a few thousand entries, media files and daily page views. Down until
-noticed, but an uptime alert; at most 24 h of data loss (nightly off-server
-backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
-10:2025. Accessibility standard: WCAG 2.2 AA, recorded in `design.md`.
+Public pages < 500 ms p95 server-side; admin saves < 1 s p95 (measured for
+formatted posts: p95 65.1 ms). Up to ~10 admin users, a few thousand entries,
+media files and daily page views. Down until noticed, but an uptime alert; at
+most 24 h of data loss (nightly off-server backup); rebuild on a fresh server in
+under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
+2.2 AA, recorded in `design.md`.
 
 ## Constraints
 
@@ -243,56 +266,67 @@ backup); rebuild on a fresh server in under 1 hour. Security standard: OWASP Top
 
 ## Current state
 
-- **Build plan: item 1 done, item 2 half done** - *Admin login* and **2a *Write a
-  post*** are shipped (archived under `blueprint/history/features/`). Item 2 was
-  split: **2b *Inline formatting*** - bold, italic and links as structured runs -
-  is the next unchecked item. Nothing in flight (`current-work.md` is empty).
+- **Build plan: items 1 and 2 done** (both 2a and 2b) - archived under
+  `blueprint/history/features/`. Nothing in flight (`current-work.md` is empty).
   `prototype` has run (`design.md` exists).
 - **Writing works, in development only.** `/admin/posts/new` and
   `/admin/posts/:id` save drafts through Editor.js; text, heading and list
-  blocks are stored as plain text in `blocks_format` `v1` (D26). **Production has
-  neither the code nor the `entries` table** - the next deploy needs
-  `0002_entries.sql` applied through `migrate` first.
-- **What item 2a settled, for the items that read it:** blocks are
-  `{id, type, data}` with plain text; **item 4's public renderer must render
-  through JSX, never an HTML-building helper**, and the `title` column is stored
-  raw (D26); a post's address is chosen once at creation (D25); untrusted
-  structure is bounded by name rather than hoped about (D27); database-backed
-  tests live in the Playwright suite because CI has no database (D24).
+  blocks carry structured inline formatting - bold, italic, links - stored as
+  canonical runs in `blocks_format` `v2` (D28), never HTML. **Production has
+  neither `0002_entries.sql` nor `0003_blocks_v2.sql` applied** - the next
+  deploy needs `migrate` to run both, in order, before the release.
+- **What item 2b settled, for the items that read it:** a piece of text is a
+  list of `{ text, bold?, italic?, href? }` runs, canonical (one stored form per
+  text); links are checked against an allowlist enforced at both the parser and
+  the schema (D30); the format marker is enforced at both ends so a stale write
+  or an unreadable row fails loudly rather than silently (D31); values
+  PostgreSQL cannot hold in `jsonb` are refused at the boundary (D32); **item
+  4's public renderer still must render through JSX, never an HTML-building
+  helper** (D26, amended by D28); a post's address is chosen once at creation
+  (D25); untrusted structure is bounded by name rather than hoped about (D27).
 - **It is live and working.** Production serves `https://cms.surenmaharjan.fyi`
-  from release `52c2670`; an admin account exists and the owner has logged in
-  through a browser. The first release `48e5052` shipped with a P0 - behind
-  Caddy every form POST was rejected, so login was impossible - fixed by
-  `fix/trust-forwarded-proto` (D23) and proven in production.
-  **Until item 4, everything is on `cms`; the apex serves nothing.**
+  from release `52c2670` (item 1 and 2a only - **item 2b has not been deployed
+  yet**); an admin account exists and the owner has logged in through a browser.
+  The first release `48e5052` shipped with a P0 - behind Caddy every form POST
+  was rejected, so login was impossible - fixed by `fix/trust-forwarded-proto`
+  (D23) and proven in production. **Until item 4, everything is on `cms`; the
+  apex serves nothing.**
 - **Also done outside the build loop:** `preflight` (no-go for real users, its
   two P1s now closed or accepted), `host` (server, backups, restore, rollback),
-  two `deploy` runs, and `docs` (real README, proven by running its commands).
-- **`main` is pushed and in sync**, and item 2a went in through **pull request #3
-  with CI green** - the first item CI checked before it reached `main`. CI runs
-  `verify` only, so the browser tests covering item 2a's worst defects still gate
-  nothing (F-17).
-- **Item 2a's review is worth knowing about:** four independent passes found a P0
-  (every list stored as `[object Object]`, because `@editorjs/list` saves objects
-  not strings), stored XSS through Editor.js's own render path, and two ways to
-  save an empty body over a real post. All closed, each covered by a test shown
-  to fail when the repair is reverted. **Self-review missed all three** - they
-  shared one assumption with the code.
-- **Open findings:** F-16 [P2] `fixed` (restore proven, `preflight` closes) ·
-  F-17 [P2] browser tests never run in CI · F-18 [P2] accessibility never checked
-  by hand, now also covering the editor's two popovers · F-22, F-25, F-29 [P2] ·
-  F-19, F-20, F-23, F-24, F-26, F-27, F-37, F-38, F-39, F-40 [P3] · F-41 [P3]
-  `fixed` · F-07 [P3] `fixed` · F-13, F-31 [P3] `unverified`. **F-15 [P1] was
-  accepted by the owner** - nothing alerts when the live system breaks, until
-  `monitor` runs.
-- **Next:** `spec` **2b - Inline formatting**, or item 3 if the posts list is
-  wanted first. A deploy would carry item 2a to production and needs `migrate`
-  for `0002_entries.sql` beforehand.
-- **Remaining items, in order:** 2b Inline formatting · 3 Manage posts · 4 Publish
-  to the public site (includes the D22 hostname split) · 5 Images · 6 Pages ·
-  7 Site settings and menu · 8 Users and roles.
-- **Waiting on the user** (`needs-you.md`): a public URL for the R2 images bucket
-  and a production R2 token (both item 5); an UptimeRobot account (`monitor`,
-  F-15); a screen-reader and keyboard pass over login and the admin shell
-  (F-18); deleting the old `hone.surenmaharjan.fyi` DNS record. The images
-  bucket, backup bucket, server software and local `.env` lines are **done**.
+  two `deploy` runs (both before item 2b), and `docs` (real README, proven by
+  running its commands).
+- **`main` is pushed and in sync.** Item 2a went in through pull request #3 and
+  **item 2b through pull request #4**, both with CI green before merge - the
+  loop the workflow recommends. CI runs `verify` only, so the browser tests
+  covering the worst defects in both items still gate nothing (F-17).
+- **Item 2b's review, across two independent passes, found and closed six
+  findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
+  un-bolding text with no way to save it back; an app-wide selection-colour
+  override that rested on a misreading; refusal messages that named the wrong
+  rule; a stale-format write with no guard; a missing format check on read; and
+  a NUL character reaching the database as a 500. **The second pass, after the
+  first repair round, found three more** (F-48, F-49, F-53 - a toolbar focus
+  ring invisible against hover, the NUL fix not covering lone surrogates, and an
+  unmeasured contrast claim in `design.md`), all repaired and shipped in the
+  same item. Three findings from that second pass remain open at P3 (F-50, F-51)
+  and unverified (F-52) - none blocking.
+- **Open findings:** 19 in the ledger, **none above P2** and nothing `open` or
+  `fixed` at P0/P1. F-16 [P2] `fixed` (restore proven, `preflight` closes) ·
+  F-17 [P2], F-18 [P2], F-29 [P2] open · F-22 [P2] unverified · F-25 [P2] open ·
+  F-38, F-39, F-40, F-41 [P3] `fixed`, F-23, F-24, F-26, F-27 [P3] open ·
+  F-19, F-20 [P3] open · F-31, F-13 [P3] unverified · F-07 [P3] `fixed` ·
+  F-48, F-49 [P3] `fixed` · F-50, F-51 [P3] open · F-52 [P3] unverified · F-53
+  [P3] `fixed`. **F-15 [P1] was accepted by the owner** - nothing alerts when
+  the live system breaks, until `monitor` runs.
+- **Next:** `context` regeneration is done (this file); `deploy` would carry
+  item 2b to production and needs `migrate` for `0002` and `0003` first, in
+  order - or `spec` item 3 (Manage posts) to keep building before deploying.
+- **Remaining items, in order:** 3 Manage posts · 4 Publish to the public site
+  (includes the D22 hostname split) · 5 Images · 6 Pages · 7 Site settings and
+  menu · 8 Users and roles.
+- **Waiting on the user** (`needs-you.md`): a public URL for the R2 images
+  bucket and a production R2 token (both item 5); an UptimeRobot account
+  (`monitor`, F-15); a screen-reader and keyboard pass over login, the admin
+  shell and the block editor including its inline toolbar (F-18, F-29); deleting
+  the old `hone.surenmaharjan.fyi` DNS record. The images bucket, backup bucket,
+  server software and local `.env` lines are **done**.

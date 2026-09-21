@@ -1,4 +1,4 @@
-import { Form, Outlet, useNavigation } from "react-router";
+import { Form, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -29,6 +29,19 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           Habre CMS
           <a href="/">View site ↗</a>
         </div>
+        {/* The first section to ship (item 3); Pages, Media, Settings and Users
+            each add their own entry when they ship, rather than appearing now
+            as dead links to routes that do not exist yet. */}
+        <nav aria-label="Admin">
+          <ul className={styles.nav}>
+            <li>
+              <NavLink to="/admin/posts">
+                <PostsIcon />
+                Posts
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
         <div className={styles.user}>
           <div>
             <p>{user.name}</p>
@@ -50,5 +63,24 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function PostsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6M8 13h8M8 17h5" />
+    </svg>
   );
 }

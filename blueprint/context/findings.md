@@ -204,3 +204,82 @@ Deployment evidence, 2026-09-16 by deploy (release `48e5052`): a POST to `/admin
 **Suggested fix:** Correct F-11's residual wording to "many IPv4 addresses, or one IPv6 /48 if the CMS is served over IPv6" and have the user re-confirm. `host`: record whether the CMS hostname has an AAAA record; the cheapest mitigation is serving it over IPv4 only. Otherwise accept explicitly, or also count failures under a /48 key with a higher limit.
 **Resolution:** Checked 2026-09-16 by build: `cms.surenmaharjan.fyi` is a CNAME to `surenmaharjan.fyi`, which has A `161.33.89.75` and no AAAA, so the hostname does not resolve over IPv6 today. Still unverified: DNS is not an access control - if the VPS has a public IPv6 address and Caddy listens on it, a client can connect to that address directly with the CMS hostname. `host` must check `ip -6 addr` on `ocwebserver` and Caddy's bind addresses, and note that an AAAA added to the root domain also applies to `cms` through the CNAME.
 Evidence from the user, 2026-09-16, on `ocwebserver`: `ip -6 addr show scope global` is empty and there is no IPv6 default route; Caddy listens on `*:443` and `*:80` with no `bind`. With no public IPv6 address and no AAAA record, the CMS cannot be reached over IPv6, so the /48 attack is not possible on today's deployment. It becomes valid again if the VM gets IPv6; recorded for `host` in `project-plan.md` section 8 (put `bind 0.0.0.0` in `habre-cms.caddy`, or re-check this finding then). Status left `unverified`: marking it `invalid` is a `review` verdict or the user's call, not build's.
+
+### F-54 [P3] fixed - Four bare element selectors in `post-list.module.css` leak out of the CSS Module
+
+**File:** app/features/content/post-list.module.css:90,96,105,111,115
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** CSS Modules scope class names, not element selectors. `table`, `th`, `td`, `tr:last-child td` and `tbody tr:hover` are emitted verbatim into the global stylesheet - confirmed in the built chunk (`build/client/assets/post-list-*.css`): `table{border-collapse:collapse;width:100%;…}th{padding:…}td{…}`. Every other CSS Module in the project scopes under its own class; this is the only one that does not. Harmless while one table exists. It bites the moment another admin table renders on a page that still has this chunk loaded (client-side navigation keeps stylesheets around) - item 5's media library or item 8's users list would silently inherit this table's width, padding and border rules.
+**Suggested fix:** Prefix all five with `.list` (`.list table`, `.list th`, `.list td`, `.list tr:last-child td`, `.list tbody tr:hover`) - the markup already nests the table inside `.list`.
+**Resolution:** Repaired 2026-09-21 by build. All five rules prefixed with `.list`. Evidence: the built chunk now reads `._list_18e61_82 table{…}` etc. for every one of the five - no bare element selector left in the chunk; a screenshot (`repair-f54-list.png`) shows the table rendering identically. `npm run verify` -> exit 0, 148 tests. Status `fixed`.
+
+### F-55 [P3] open - The list's "Last changed" date is formatted in the server's timezone, not the reader's
+
+**File:** app/features/content/post-list.tsx:175-181 (`formatUpdatedAt`)
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** `toLocaleDateString` with no `timeZone` option uses the *runtime's* zone. Measured: a row stored at `2026-09-20T23:30:00Z` rendered `21 Sept 2026` from a server in `Australia/Adelaide` and `20 Sept 2026` from a UTC browser (checked both with `TZ=… node`). Two consequences: a React 19 hydration mismatch for any row whose date crosses midnight between the two zones (logged, and React re-renders that subtree); and, with JavaScript off - D10's own premise - the reader is permanently shown the *server's* date, never their own. Production runs UTC while the owner is UTC+5:45, so a post saved before ~05:45 local shows the previous day.
+**Suggested fix:** Format the date in the loader with an explicit `timeZone: "UTC"` (or leave formatting to the client only, inside a `<time dateTime={…}>` with `suppressHydrationWarning`) so server and browser agree.
+
+### F-56 [P3] open - A page number past the last page shows "no matches" with no way back
+
+**File:** app/features/content/post-list.tsx:94-118
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: correctness)
+**Why it matters:** Verified live: with 26 posts, `/admin/posts?page=9` answers 200 and renders "No posts match this filter or search." - untrue, since no filter or search is active - because the branch only checks `list.entries.length === 0`, not whether `query.page` is actually within `totalPages`. The pagination block (and its only way back, "Previous") sits inside the `entries.length > 0` branch, so there is no way back from this page except editing the URL. Reachable without crafting: bookmark page 2, then delete posts until fewer than 20 remain, and open the bookmark.
+**Suggested fix:** In the loader, when `query.page > list.totalPages && list.total > 0`, redirect to the last real page (`listHref({...query, page: list.totalPages})`).
+
+### F-57 [P3] open - The delete success banner's text is attacker-controlled and unbounded
+
+**File:** app/features/content/post-list.tsx:34,61-67
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: security)
+**Why it matters:** `deletedTitle` is read straight from `?deleted=` with no length bound and no proof a delete actually happened. Script injection is closed - `Message` renders it as a plain text child, confirmed against the running build with `?deleted=<script>alert(1)</script>` (the DOM shows the escaped text, `grep -c '<script>alert(1)</script>'` over the full response including the hydration payload is 0) - but a crafted link (`/admin/posts?deleted=Your%20site%20was%20suspended.%20Call%20…`) renders a genuine green success banner with a check icon, saying whatever the sender chose, to a logged-in admin on a real admin page. A 5,000-character value also rendered fine (20 KB response), so there is no cap either. Reach is low - needs an authenticated victim to click a link - hence P3, not higher. OWASP Top 10:2025 A06 Insecure Design.
+**Suggested fix:** Cap the param (`.slice(0, 200)`, matching the title's own cap) at minimum. More robust: carry the message through a single-use flash cookie instead of a URL param, so it cannot be supplied by a link at all.
+
+### F-58 [P3] open - `requireUser` runs twice on the delete confirmation route
+
+**File:** app/features/content/post-delete.tsx:11
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** `post-delete.tsx` is a child of the admin-shell layout, which already exports `requireUser` as middleware covering every route inside it (confirmed against the installed React Router docs: parent middleware runs before child, for document and `.data` requests). This route additionally declares its own `requireUser` on line 11, so every request runs two JWT verifications and two `findUserById` database reads. Harmless - the redundancy is defensive, not wrong - but it is an inconsistency: `post-list.tsx` sits in the same layout and correctly declares nothing.
+**Suggested fix:** Drop line 11 and a comment noting the layout already guards it - or, if the explicitness is wanted, add the same line to `post-list.tsx` so the convention is one thing, not two.
+
+### F-59 [P3] open - Every login costs an extra redirect hop through `/admin`
+
+**File:** app/features/auth/safe-redirect.ts:1, app/features/auth/login.tsx:29
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: performance)
+**Why it matters:** `DEFAULT_DESTINATION` and the already-logged-in redirect both still point at `/admin`, which `home.ts` then 302s to `/admin/posts`. Verified: `POST /admin/login` -> `302 /admin` -> `302 /admin/posts`. Worse than a wasted round trip: `/admin` sits inside the guarded layout, so that hop also runs `requireUser` and the layout's own loader (another database read for the user) before throwing the second redirect. Small at this project's scale, but it is a needless doubling of exactly the request every session starts with.
+**Suggested fix:** Point both at `/admin/posts` directly; or move the `admin` route outside `layout(...)` in `routes.ts` so the redirect resolves for free, before the guard runs.
+
+### F-60 [P3] fixed - The list's SQL fragments use unqualified column names inside a JOIN
+
+**File:** app/features/content/entries.server.ts:46-48 (`ownedBy`), 146-147 (`statusFilter`, `searchFilter`)
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** `ownedBy` emits `and author_id = …`, and the new `statusFilter`/`searchFilter` emit `and status = …` / `and title ilike …` - all unqualified, while `listEntries`'s row and total queries join `entries e` to `users u`. Unambiguous today only because `users` happens to own no `author_id`, `status` or `title` column. A future column on `users` with one of those names (item 8, "deactivate a user", is a plausible source of a `users.status`) turns this into a runtime `column reference "status" is ambiguous` on the posts list - not a compile error, since raw SQL has no static check.
+**Suggested fix:** Qualify the three fragments as `e.author_id` / `e.status` / `e.title`, and alias `entries` as `e` in `findEntryForUser` and `updateDraft` too so every caller of `ownedBy` is consistent.
+**Resolution:** Repaired 2026-09-21 by build. `ownedBy`, `statusFilter` and `searchFilter` now all qualify to `e.`; every call site (`findEntryForUser`, `updateDraft`, `deleteEntry`, and all three of `listEntries`'s internal queries) aliases `entries` as `e`. **The repair caught its own instance of the bug while landing** - `listEntries`'s tab-count query had no `e` alias and would have thrown `missing FROM-clause entry for table "e"` the moment `ownedBy` required one; found by re-reading every call site, not by the error occurring. Smoke-tested against the dev database: every function (list in three modes, find, update, delete, both cross-author checks) returns identical results to before. `npm run verify` -> exit 0, 148 tests; `npm run test:e2e` -> 39 passed. Status `fixed`.
+
+### F-61 [P3] open - Deleting a post loses the reader's place in the list
+
+**File:** app/features/content/post-delete.tsx:43
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** The redirect after a delete is always the bare `/admin/posts?deleted=…`, so an author on page 3 of the Drafts tab with a search active lands back on page 1 of All. Minor, but the confirm screen already has the referring list's state available and simply does not carry it.
+**Suggested fix:** Carry `status`/`q`/`page` through the confirm screen as hidden form fields and append them to the redirect target alongside `deleted`.
+
+### F-62 [P3] open - The search box has no submit control
+
+**File:** app/features/content/post-list.tsx:81-93
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: accessibility)
+**Why it matters:** Enter submits the form (valid HTML - one non-hidden field allows implicit submission), but there is no visible or accessible button, so speech-input and switch-access users have no target to activate. Confirmed in the rendered screenshot (`verify-list.png`): a bare input with no adjacent control. Not a hard WCAG failure on its own, but it is the only interactive control on the page with no operable element besides the field itself.
+**Suggested fix:** Add a submit button - an icon button with visually-hidden text ("Search") is enough, matching the search icon convention elsewhere in the mockups.
+
+### F-63 [P3] unverified - Two possible screen-reader gaps in the new list and delete flow
+
+**File:** app/features/content/post-list.tsx:61-67 (filter tabs), app/features/admin-shell/layout.tsx:36-43 (nav)
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: accessibility)
+**Why it matters:** Reasoned from the markup, **not measured with a screen reader** - flagged as unverified rather than a confirmed failure. (a) Both the sidebar's `NavLink` and the active filter tab carry `aria-current="page"`, so a screen reader has two things asserting "this is the current page" on one screen; the tabs are a filter state, not a location, so `aria-current="true"` would be more accurate there. (b) The post-delete success `Message` uses `role="status"`, but the element arrives already populated - inserted with its content on client navigation, or present at load with JavaScript off - and a live region populated that way is unreliably announced, with no focus moved to it. A screen-reader user may get no confirmation that a delete succeeded.
+**Suggested fix:** Change the tabs' `aria-current` to `"true"`. For the delete confirmation, verify with an actual screen reader as part of the existing widened `needs-you.md` line before treating either half as settled.
+
+### F-64 [P3] open - Two screenshots in the reference folder show a stale, pre-filter version of the list
+
+**File:** blueprint/reference/3-manage-posts/list-light.png, list-dark.png
+**Found:** 2026-09-21 by review (independent `reviewer` agent; scope: current; lens: quality)
+**Why it matters:** These two were captured after Step 2 (no filter tabs, no search box, no Delete column) and left in place after Steps 3 and 4 added all three; `verify-list.png` in the same folder shows what actually shipped. Two screenshots of the same screen disagreeing with each other in one reference folder is the same failure F-44 was raised for: a record that shows something untrue is believed by the next reader who has no way to tell which one is current.
+**Suggested fix:** Delete `list-light.png` and `list-dark.png`, or rename them `step2-list-*.png` so they read as history rather than the current state.

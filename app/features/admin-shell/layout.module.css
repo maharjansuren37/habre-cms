@@ -26,6 +26,43 @@
   color: var(--color-text-muted);
 }
 
+.nav {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--color-surface-hover);
+}
+
+/* NavLink sets this on the active route - no extra class needed. */
+.nav a[aria-current="page"] {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.nav svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex: none;
+}
+
 .user {
   display: grid;
   gap: var(--space-2);
@@ -71,6 +108,11 @@
     padding: var(--space-3);
     border-right: 0;
     border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .nav {
+    order: 1;
+    flex: 1 1 100%;
   }
 
   .user {
