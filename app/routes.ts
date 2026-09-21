@@ -13,6 +13,8 @@ export default [
     route("admin/posts", "features/content/post-list.tsx"),
     // A short question, not a focused task - keeps the sidebar (post-delete.tsx).
     route("admin/posts/:id/delete", "features/content/post-delete.tsx"),
+    route("admin/media", "features/media/media-list.tsx"),
+    route("admin/media/:id/delete", "features/media/media-delete.tsx"),
   ]),
   // Outside the admin shell on purpose: the editor drops the sidebar (design.md).
   route("admin/posts/new", "features/content/post-new.tsx"),
