@@ -165,7 +165,7 @@ test("a post with no title is refused, and nothing is written", async ({ page })
   await writeBody(page, "Body without a title.");
   await page.getByRole("button", { name: "Save draft" }).click();
 
-  await expect(page.getByText("Give your post a title before saving.")).toBeVisible();
+  await expect(page.getByText("Give it a title before saving.")).toBeVisible();
   expect(page.url()).toContain("/admin/posts/new");
   expect((await entriesBy(author.email)).count).toBe(0);
 });

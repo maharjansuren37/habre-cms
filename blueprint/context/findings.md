@@ -10,6 +10,22 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-84 [P3] open - `SecurityEvent`'s new `role` field is a bare `string`, though `requireRole` always has the real `Role` type in hand
+
+**File:** app/lib/security-log.server.ts:16; app/features/auth/require-role.server.ts:27
+**Found:** 2026-09-22 by review (scope: current, item 6a; lens: quality) - found while re-examining the F-82 repair
+**Why it matters:** `requireRole` calls `logSecurityEvent({ ..., role: user.role, ... })` where `user.role` is already typed `Role` (imported in the same file), but the event's own field is declared `role: string`, discarding that. The same observation F-81 made about `bannerRedirect`'s `target` applies here: `fundamentals.md`'s Types section asks for typing the boundary, and this is one call site away from being exact for free.
+**Suggested fix:** `import type { Role } from "#app/features/users/roles.ts"` in `security-log.server.ts` and change the new variant's `role: string` to `role: Role`.
+**Resolution:**
+
+### F-83 [P3] unverified - Item 6a's pages screens reproduce three pre-existing unverified/open posts accessibility findings
+
+**File:** app/features/content/page-list.tsx:69-98 (filter tabs, search form); app/features/admin-shell/layout.tsx:39-61 (nav)
+**Found:** 2026-09-22 by review (scope: current, item 6a; lens: accessibility)
+**Why it matters:** `page-list.tsx` was deliberately copied from `post-list.tsx` (item 6a's own Decisions), and the copy carries three patterns already recorded against the posts screen, none of them yet checked against a rendered page: **F-62** - the search input has no visible or accessible submit control, reproduced verbatim in `page-list.tsx`'s search form. **F-63(a)** - the sidebar's `NavLink` (now including the new "Pages" entry) and the active filter tab both carry `aria-current="page"`, so a screen reader gets two "this is current" signals on one screen; the new Pages nav item adds a second location where this now happens. **F-63(b)** - the success banner shown after publish/unpublish/delete on `page-list.tsx` (`<Message tone="success" role="status" .../>` via the shared `Message` component) is populated before the live region exists, the same as the posts list's own banner. None of these are new defects - they are the identical, already-recorded pattern reaching a second screen - but F-62 and F-63 are scoped by file and line to `post-list.tsx` and would not be re-examined against `page-list.tsx` by a future pass that reads those entries literally.
+**Suggested fix:** No code change from this finding alone. When F-62/F-63 are addressed for posts, apply the same fix to `page-list.tsx` in the same pass rather than rediscovering it there later - or close this entry alongside them if the two lists are revisited together.
+**Resolution:**
+
 ### F-79 [P3] unverified - A captioned image's alt text is announced twice in a row by a screen reader
 
 **File:** app/features/blocks/render.tsx:38-52 (the `image` case)

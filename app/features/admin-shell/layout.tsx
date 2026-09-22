@@ -33,9 +33,10 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           Habre CMS
           <a href={publicUrl}>View site ↗</a>
         </div>
-        {/* Posts shipped in item 3; Media is item 5a's own entry, added here in
-            ship order - Pages, Settings and Users still add theirs when they
-            ship, rather than appearing now as dead links (D35). */}
+        {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a - each
+            added here in ship order (D35); Settings and Users still add theirs
+            when they ship. Pages is editor/admin only (requireRole), so an
+            author never sees a link to a screen they'd get a 404 from. */}
         <nav aria-label="Admin">
           <ul className={styles.nav}>
             <li>
@@ -50,6 +51,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 Media
               </NavLink>
             </li>
+            {user.role !== "author" && (
+              <li>
+                <NavLink to="/admin/pages">
+                  <PagesIcon />
+                  Pages
+                </NavLink>
+              </li>
+            )}
           </ul>
         </nav>
         <div className={styles.user}>
@@ -111,6 +120,27 @@ function MediaIcon() {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <circle cx="8.5" cy="8.5" r="1.5" />
       <path d="m21 15-5-5L5 21" />
+    </svg>
+  );
+}
+
+// A page laid out top to bottom, distinguishable from Posts' folded-corner
+// document (page-list.tsx's own empty-state icon uses the same shape).
+function PagesIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
     </svg>
   );
 }

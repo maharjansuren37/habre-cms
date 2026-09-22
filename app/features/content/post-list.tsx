@@ -5,16 +5,16 @@ import fieldStyles from "#app/lib/ui/field.module.css";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/post-list";
 import { readBanner } from "./banner.ts";
-import { listEntries, type PostSummary } from "./entries.server.ts";
-import styles from "./post-list.module.css";
-import { type PostListQuery, type PostStatus, parsePostListQuery } from "./post-list-query.ts";
+import { type EntrySummary, listEntries } from "./entries.server.ts";
+import styles from "./entry-list.module.css";
+import { type EntryListQuery, type EntryStatus, parseEntryListQuery } from "./entry-list-query.ts";
 
 // "New post" is a navigation link, not a submit, but reads as the one primary
 // button on the page - the Button component's own classes, not a second copy.
 const NEW_POST_CLASS = `${buttonStyles.button} ${buttonStyles.primary}`;
 
 const STATUS_LABEL = { draft: "Draft", published: "Published" } as const;
-const TABS: { status: PostStatus; label: string }[] = [
+const TABS: { status: EntryStatus; label: string }[] = [
   { status: "all", label: "All" },
   { status: "draft", label: "Drafts" },
   { status: "published", label: "Published" },
@@ -27,8 +27,8 @@ export function meta(_: Route.MetaArgs) {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   const url = new URL(request.url);
-  const query = parsePostListQuery(url);
-  const list = await listEntries(actor, query);
+  const query = parseEntryListQuery(url);
+  const list = await listEntries("post", actor, query);
   // Read once: a successful delete, publish or unpublish redirects here with
   // the title it acted on, matching the mockup's own success-banner example
   // (design.md) - the `?deleted=` shape item 4a reuses rather than inventing.
@@ -37,7 +37,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 /** A tab or a page link's target - only the params that differ from the default. */
-function listHref(query: Partial<PostListQuery>): string {
+function listHref(query: Partial<EntryListQuery>): string {
   const params = new URLSearchParams();
   if (query.status && query.status !== "all") params.set("status", query.status);
   if (query.q) params.set("q", query.q);
@@ -121,7 +121,7 @@ export default function PostList({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function PostTable({ posts }: { posts: PostSummary[] }) {
+function PostTable({ posts }: { posts: EntrySummary[] }) {
   return (
     <div className={styles.list}>
       <table>
@@ -146,10 +146,10 @@ function PostTable({ posts }: { posts: PostSummary[] }) {
           {posts.map((post) => (
             <tr key={post.id}>
               <td>
-                <Link className={styles.postTitle} to={`/admin/posts/${post.id}`}>
+                <Link className={styles.entryTitle} to={`/admin/posts/${post.id}`}>
                   {post.title}
                 </Link>
-                <span className={styles.postSlug}>/posts/{post.slug}</span>
+                <span className={styles.entrySlug}>/posts/{post.slug}</span>
               </td>
               <td className={styles.colStatus}>
                 <span className={[styles.badge, styles[post.status]].join(" ")}>

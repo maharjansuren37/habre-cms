@@ -12,7 +12,8 @@ export type SecurityEvent =
     }
   | { event: "login_rate_limited"; scope: "email" | "ip" | "server"; ip: string }
   | { event: "logout"; userId: string }
-  | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string };
+  | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
+  | { event: "request_refused"; reason: "role"; path: string; role: string; ip: string };
 
 export function logSecurityEvent(entry: SecurityEvent): void {
   console.warn(JSON.stringify(entry));

@@ -13,7 +13,7 @@ export const entryInputSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, { message: "Give your post a title before saving." })
+    .min(1, { message: "Give it a title before saving." })
     .max(200, { message: "Titles can be up to 200 characters." })
     // PostgreSQL refuses U+0000 in a text column, so a crafted title reached the
     // insert and answered 500 (F-47's residual). Refused at the boundary, the

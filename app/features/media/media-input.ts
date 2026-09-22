@@ -9,8 +9,8 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 /**
  * Whether an upload's declared size is small enough to read, checked before
- * the body is parsed - the same guard `isPostBodySizeAllowed` applies to a
- * post save, against the upload cap instead of the post one.
+ * the body is parsed - the same guard `isEntryBodySizeAllowed` applies to an
+ * entry save, against the upload cap instead of the entry one.
  */
 export function isUploadSizeAllowed(headers: Headers): boolean {
   const declared = Number(headers.get("Content-Length"));

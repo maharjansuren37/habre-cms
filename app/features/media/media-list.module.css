@@ -71,7 +71,7 @@
   font-size: var(--text-xs);
 }
 
-/* Same shape as content/post-list.module.css's .deleteLink - danger text is
+/* Same shape as content/entry-list.module.css's .deleteLink - danger text is
    not the only signal, the word "Delete" is always there. */
 .delete {
   display: inline-block;

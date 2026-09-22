@@ -93,9 +93,16 @@ export async function createDraftFor(
   email: string,
   title: string,
   blocks: unknown[],
-  options: { status?: "draft" | "published"; publishedAt?: Date } = {},
+  options: {
+    status?: "draft" | "published";
+    publishedAt?: Date;
+    /** Defaults to "post" - most callers are posts tests; item 6a's pages
+     *  tests pass "page" to seed a page instead. */
+    type?: "post" | "page";
+  } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";
+  const type = options.type ?? "post";
   // A real publish always sets this (item 4a); a test row claiming to be
   // published needs one too, or anything ordering by it (item 4b's public
   // home) sees every seeded row tie at null.
@@ -104,7 +111,7 @@ export async function createDraftFor(
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
       insert into entries (type, title, slug, blocks, status, published_at, author_id)
-      select 'post', ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
+      select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
              ${sql.json(blocks as never)}, ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id

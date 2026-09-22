@@ -3,22 +3,23 @@ import { test } from "node:test";
 import { nextFreeSlug, slugFromTitle } from "./slug.ts";
 
 test("a title becomes lowercase words joined by hyphens", () => {
-  assert.equal(slugFromTitle("Hello, World!"), "hello-world");
+  assert.equal(slugFromTitle("Hello, World!", "post"), "hello-world");
 });
 
 test("accents are folded rather than dropped", () => {
-  assert.equal(slugFromTitle("Café life in Zürich"), "cafe-life-in-zurich");
+  assert.equal(slugFromTitle("Café life in Zürich", "post"), "cafe-life-in-zurich");
 });
 
 test("a long title is cut to 80 characters with no trailing hyphen", () => {
-  const slug = slugFromTitle("word ".repeat(60));
+  const slug = slugFromTitle("word ".repeat(60), "post");
   assert.ok(slug.length <= 80, `expected at most 80 characters, got ${slug.length}`);
   assert.doesNotMatch(slug, /-$/);
 });
 
-test("a title with nothing usable in it still produces an address", () => {
-  assert.equal(slugFromTitle("!!! ??? ..."), "post");
-  assert.equal(slugFromTitle(""), "post");
+test("a title with nothing usable in it falls back to the entry type's own name", () => {
+  assert.equal(slugFromTitle("!!! ??? ...", "post"), "post");
+  assert.equal(slugFromTitle("", "post"), "post");
+  assert.equal(slugFromTitle("", "page"), "page");
 });
 
 test("an unused address is returned unchanged", () => {

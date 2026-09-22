@@ -27,7 +27,7 @@ test("a title longer than the entry title's own cap is truncated, not shown as-i
 });
 
 test("bannerRedirect builds the exact query readBanner reads back", () => {
-  const response = bannerRedirect("published", "My Post");
+  const response = bannerRedirect("published", "My Post", "/admin/posts");
   assert.equal(response.status, 302);
   const location = response.headers.get("Location");
   assert.equal(location, "/admin/posts?published=My%20Post");
@@ -35,4 +35,9 @@ test("bannerRedirect builds the exact query readBanner reads back", () => {
     verb: "published",
     title: "My Post",
   });
+});
+
+test("bannerRedirect points at whichever list it is given", () => {
+  const response = bannerRedirect("deleted", "About", "/admin/pages");
+  assert.equal(response.headers.get("Location"), "/admin/pages?deleted=About");
 });
