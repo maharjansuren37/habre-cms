@@ -73,10 +73,10 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 4a. **Publish and unpublish** - a draft/published toggle on the post editor, reusing the existing status column and the `?deleted=`-style redirect banner
   - [x] 4b. **Render the public site** - home page, one post, 404, in the built-in theme, still on the single existing hostname
   - [x] 4c. **Split the hostnames** (D22) - `PUBLIC_URL`/`ADMIN_URL`, host-based routing and redirects, the CSRF check, and the Caddy/DNS changes to serve `surenmaharjan.fyi` and `cms.surenmaharjan.fyi` from one app
-- [ ] 5. **Images** - upload to R2, insert into a post, media library to reuse them
+- [x] 5. **Images** - upload to R2, insert into a post, media library to reuse them
   - [x] 5a. **Media storage and library** - `media` table, R2 client, upload with validation, `/admin/media` list and delete
   - [x] 5b. **Insert images into posts** - an image block in the editor, backed by the media library
-  - [ ] 5c. **Render images on the public site** - resolve a media id to its URL at render time
+  - [x] 5c. **Render images on the public site** - resolve a media id to its URL at render time
 - [ ] 6. **Pages** - create, edit and publish static pages, served at their own URLs
 - [ ] 7. **Site settings and menu** - title, logo, navigation shown on the public site
 - [ ] 8. **Users and roles** - admin adds editors and authors; permissions enforced on the server

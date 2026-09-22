@@ -1,4 +1,6 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
+import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -82,6 +84,28 @@ test("a published post renders its blocks and inline formatting as real elements
   await expect(page.getByRole("heading", { level: 2, name: "A heading" })).toBeVisible();
   await expect(page.locator("main li")).toHaveText(["item one", "item two"]);
   await expect(page.locator("main em")).toHaveText("item two");
+});
+
+test("a published image block shows a caption of the media's own alt text", async ({ page }) => {
+  // Uploading needs a logged-in session; viewing the published post afterward does not.
+  await logIn(page, author);
+  const origin = new URL(page.url()).origin;
+  const { id: mediaId } = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
+  try {
+    await createDraftFor(
+      author.email,
+      "Captioned Post",
+      [{ id: "b1", type: "image", data: { mediaId } }],
+      { status: "published" },
+    );
+
+    await page.goto("/posts/captioned-post");
+    const figure = page.locator("main figure");
+    await expect(figure.locator("img")).toHaveAttribute("alt", "A fixture pixel");
+    await expect(figure.locator("figcaption")).toHaveText("A fixture pixel");
+  } finally {
+    await deleteTestMedia(mediaId);
+  }
 });
 
 test("markup in a post's text renders as text on the public page, never runs", async ({ page }) => {

@@ -39,14 +39,16 @@ export function renderBlocks(blocks: Block[], mediaById: Record<string, ImageMed
         const media = mediaById[block.data.mediaId];
         if (!media) return null;
         return (
-          <img
-            key={block.id}
-            src={media.url}
-            alt={media.altText}
-            width={media.width}
-            height={media.height}
-            loading="lazy"
-          />
+          <figure key={block.id}>
+            <img
+              src={media.url}
+              alt={media.altText}
+              width={media.width}
+              height={media.height}
+              loading="lazy"
+            />
+            <figcaption>{media.altText}</figcaption>
+          </figure>
         );
       }
       default: {
