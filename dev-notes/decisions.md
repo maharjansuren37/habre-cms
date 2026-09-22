@@ -780,3 +780,93 @@ boundary, never assumed from the client). Cost: a handful of image formats
 `image-size` cannot detect are refused even if genuinely images, which is the
 intended behaviour - the allowed set is JPEG/PNG/WebP/GIF only, matching the
 plan's own upload restriction.
+
+## D58 - A custom Editor.js tool places images, not the `@editorjs/image` package (2026-09-22)
+
+**Chose:** a hand-written `Tool` class (`app/features/blocks/image-tool.client.ts`)
+rather than the official npm package.
+
+Beat: bending `@editorjs/image` to this project's shape - its `uploader`
+callbacks return `{ file: { url } }`, storing a URL, which item 5a's own
+contract already ruled out ("a media id is the only thing a block will ever
+store"), and it has no "pick from an existing library" mode of its own.
+Matches this project's existing precedent of a small in-repo piece for an
+exact fit (D29's inline-run scanner, not a library). Cost: this project's
+first hand-written Editor.js Tool UI - more code than a dependency line, but
+code this app fully controls.
+
+## D59 - Placing an image only picks from the existing library; there is no upload-in-editor (2026-09-22)
+
+**Chose:** the image tool's dialog lists what `/admin/media` already holds.
+Uploading a brand-new image still needs its own trip to `/admin/media` first.
+
+Beat: rebuilding the upload path (validation, R2 write, alt text capture)
+inside a Tool class, which would roughly double this item's surface for a
+convenience nobody had asked for yet - and would not match the official
+tool's usual upload-first UX, which was rejected for the same reason as D58.
+Cost: placing a brand-new image needs two screens, not one - flagged against
+"ease of use is the product" at the item's own review gate; easy to add
+later if it turns out to matter.
+
+## D60 - An image block's url/alt/dimensions resolve server-side, in the loader that already has the entry (2026-09-22)
+
+**Chose:** `collectImageMediaIds` -> one `findMediaByIds` query -> a
+`mediaById` lookup passed into `toEditorJs`/`renderBlocks`, built once per
+page by the loader - never fetched per-block by the tool itself.
+
+Beat: every image block self-fetching its own preview on mount (closer to
+the official tool's usual shape), which would mean one request per image in
+a post and a visible loading state on every open. Cost: `renderBlocks` and
+`toEditorJs` both take a `mediaById` lookup now, and every future caller
+(item 6's pages) has to supply it the same way.
+
+## D61 - A `mediaId` that no longer resolves degrades silently rather than being prevented (2026-09-22)
+
+**Chose:** deleting a media file that a post's block still references is
+allowed; the block renders as "no longer available" in the editor and drops
+silently on the public site.
+
+Beat: blocking the delete or cascade-cleaning references - a block's
+`mediaId` is JSON, not a foreign key, so nothing stops the delete anyway, and
+solving that was real scope this item did not need to carry to be useful.
+Matches the plan's own stance elsewhere ("R2 down means images missing, text
+still served"). Cost: a writer can end up with a quietly broken block until
+they notice it themselves in the editor.
+
+## D62 - The media picker endpoint clamps an out-of-range page rather than returning an empty result (2026-09-22)
+
+**Chose:** `/admin/media/picker` clamps a requested page to the last real one
+before responding, via `clampToLastPage` (`app/features/media/media-list-query.ts`).
+
+Beat: leaving it to return an empty page past the end, which F-56 and F-75
+had already found twice in the list screens - closed here before it became a
+third instance for `review` to find again. Cost: none.
+
+## D63 - An image block with no `mediaId` ever chosen is dropped by the tool's own `validate()`, not sent to the server (2026-09-22)
+
+**Chose:** `ImageTool.validate()` returns `false` unless `mediaId` is a
+string, so Editor.js drops an abandoned "+ Image" placeholder from the saved
+output entirely.
+
+Not in the original spec - discovered while building: without it, an
+abandoned placeholder would submit as `{ mediaId: undefined }`, which
+`blocksSchema` could only refuse with a raw Zod sentence naming no way to fix
+it - the same shape of rough edge F-51 already found for an empty list
+block. Beat: leaving the server to refuse it. Cost: none; matches how
+Editor.js already drops an empty paragraph.
+
+## D64 - Code that closes a native `<dialog>` and moves focus elsewhere must close it first (2026-09-22)
+
+**Chose:** in `image-tool.client.ts`'s thumbnail click handler, `dialog.close()`
+runs *before* the callback that re-renders the block and focuses its new
+button - not after.
+
+Not in the original spec - discovered repairing F-76 (picking an image left
+keyboard focus on `<body>`). The first fix attempted - moving the `.focus()`
+call earlier, while the dialog was still open - did not work and was proven
+not to work (`document.activeElement` stayed off the target): everything
+outside an open modal `<dialog>` is **inert** per the platform's own rules,
+so nothing outside it can take focus while it is still open, regardless of
+which line the `.focus()` call sits on. Beat: custom focus-trap bookkeeping
+to work around the inertness. Cost: none - a rule for any future native
+`<dialog>` in this app: close it before touching focus outside it, not after.

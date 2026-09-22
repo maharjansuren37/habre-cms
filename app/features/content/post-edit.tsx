@@ -2,6 +2,10 @@ import { data } from "react-router";
 import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
+import { findMediaByIds } from "#app/features/media/media.server.ts";
+import { buildMediaUrl } from "#app/features/media/media-url.ts";
+import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
@@ -32,7 +36,21 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
-  return { entry };
+  // One query for every image block this entry has, so reopening it shows
+  // them immediately - no picker round trip, no per-image fetch.
+  const rows = await findMediaByIds(collectImageMediaIds(entry.blocks));
+  const mediaById: Record<string, ImageMediaSummary> = Object.fromEntries(
+    rows.map((row) => [
+      row.id,
+      {
+        url: buildMediaUrl(env.R2_PUBLIC_URL, row.storageKey),
+        altText: row.altText,
+        width: row.width,
+        height: row.height,
+      },
+    ]),
+  );
+  return { entry, mediaById };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -84,12 +102,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPost({ loaderData, actionData }: Route.ComponentProps) {
-  const { entry } = loaderData;
+  const { entry, mediaById } = loaderData;
   return (
     <PostForm
       title={entry.title}
       slug={entry.slug}
       blocks={entry.blocks}
+      mediaById={mediaById}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.

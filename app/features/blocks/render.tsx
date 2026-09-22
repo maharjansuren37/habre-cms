@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import type { Block } from "./blocks.ts";
+import type { Block, ImageMediaSummary } from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
 
 /**
@@ -9,8 +9,13 @@ import type { Run } from "./inline-runs.ts";
  *
  * Takes a plain `Block[]`, not an `Entry` - entry-type-agnostic on purpose, so
  * item 6 (pages) reuses this rather than a second renderer.
+ *
+ * `mediaById` resolves an image block's id to a real url - built once by the
+ * loader (`collectImageMediaIds` -> a single query), not fetched per block.
+ * An id with no entry renders nothing: the plan's own stance is that a
+ * missing image drops silently while the surrounding text still serves.
  */
-export function renderBlocks(blocks: Block[]) {
+export function renderBlocks(blocks: Block[], mediaById: Record<string, ImageMediaSummary> = {}) {
   return blocks.map((block) => {
     switch (block.type) {
       case "text":
@@ -30,9 +35,23 @@ export function renderBlocks(blocks: Block[]) {
           </List>
         );
       }
+      case "image": {
+        const media = mediaById[block.data.mediaId];
+        if (!media) return null;
+        return (
+          <img
+            key={block.id}
+            src={media.url}
+            alt={media.altText}
+            width={media.width}
+            height={media.height}
+            loading="lazy"
+          />
+        );
+      }
       default: {
-        // Exhaustive: a fourth block type (item 5's image block) fails here
-        // at compile time, not silently at render time.
+        // Exhaustive: a fifth block type fails here at compile time, not
+        // silently at render time.
         const exhaustive: never = block;
         throw new Error(`Unknown block type: ${JSON.stringify(exhaustive)}`);
       }

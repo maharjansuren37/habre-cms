@@ -11,3 +11,13 @@ export function parseMediaListPage(url: URL): number {
   const raw = Number(url.searchParams.get("page"));
   return Number.isInteger(raw) ? Math.min(Math.max(raw, MIN_PAGE), MAX_PAGE) : MIN_PAGE;
 }
+
+/**
+ * Clamps a requested page to the last real one - the same bug F-56 and F-75
+ * already found twice in the list screens, closed here before the picker
+ * (`media-picker.ts`) becomes a third instance. A page past the end returns
+ * the last real page's data, never an empty result.
+ */
+export function clampToLastPage(page: number, totalPages: number): number {
+  return Math.min(page, totalPages);
+}

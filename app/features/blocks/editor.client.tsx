@@ -2,7 +2,8 @@ import EditorJS, { type OutputData } from "@editorjs/editorjs";
 import Header from "@editorjs/header";
 import List from "@editorjs/list";
 import { useEffect, useRef } from "react";
-import { type Block, toEditorJs } from "./blocks.ts";
+import { type Block, type ImageMediaSummary, toEditorJs } from "./blocks.ts";
+import { ImageTool } from "./image-tool.client.ts";
 
 // Built into Editor.js; the names are its own. Shortcuts: Ctrl/Cmd+B, I, K.
 const INLINE_TOOLS = ["bold", "italic", "link"];
@@ -18,10 +19,14 @@ const INLINE_TOOLS = ["bold", "italic", "link"];
  */
 export function BlockEditor({
   initialBlocks,
+  mediaById = {},
   contentRef,
   onChange,
 }: {
   initialBlocks: Block[];
+  /** Resolves each image block's media id - read once, at mount, the same as
+   *  `initialBlocks`. */
+  mediaById?: Record<string, ImageMediaSummary>;
   // Deliberately not Editor.js's own OutputData: the caller only forwards what
   // comes back to the server, and this keeps its types off the server side.
   contentRef: { current: (() => Promise<{ blocks: unknown[] }>) | null };
@@ -66,8 +71,14 @@ export function BlockEditor({
           toolbox: { title: "List" },
           config: { defaultStyle: "unordered", maxLevel: 1 },
         },
+        // No inline toolbar: the block holds no text to select. Its own
+        // toolbox title and icon are a static getter on the class.
+        image: {
+          class: ImageTool as never,
+          inlineToolbar: false,
+        },
       },
-      data: toEditorJs(initialBlocks) as OutputData,
+      data: toEditorJs(initialBlocks, mediaById) as OutputData,
       onChange: () => latestOnChange.current(),
     });
 

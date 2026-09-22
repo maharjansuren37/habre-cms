@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-21 at `main` `4165637`. Decision
-numbers (D1-D53) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-22 at `main` `d4950b6`. Decision
+numbers (D1-D57) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -66,10 +66,11 @@ decision.
 | Tests | `node:test` unit tests; Playwright 1.63.0 (Chromium) browser tests | |
 | Monitoring | UptimeRobot on `/healthz`, alerts by email; logs to the systemd journal | |
 
-- **Not installed until their item:** `aws4fetch` and `image-size` (item 5)
-  (D20). Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list`
-  2.0.9 arrived with item 2a, pinned exactly; their shipped `.ts` types use
-  `enum`, so `app/types/editorjs.d.ts` describes what this app uses.
+- **`aws4fetch` 1.0.20 and `image-size` 2.0.4 arrived with item 5a** (D20),
+  pinned exactly, alongside the five `R2_*` variables in `env.server.ts`.
+  Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list` 2.0.9
+  arrived with item 2a, pinned exactly; their shipped `.ts` types use `enum`,
+  so `app/types/editorjs.d.ts` describes what this app uses.
 - **React Router 8 is newer than an agent's training.** The installed docs in
   `node_modules/react-router/docs/` are the authority; React Router's agent skill
   is at `.claude/skills/react-router/`. This app is **Framework Mode**.
@@ -158,12 +159,17 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
   `/admin/posts?deleted=<title>` afterwards (D37), the same mechanism
   publish/unpublish now share (`banner.ts`) ·
   `/admin/pages[/new|/:id]` (editor, admin, item 6 - not yet built) ·
-  `/admin/media` (all roles, item 5 - not yet built) · `/admin/settings`
-  (admin, item 7 - not yet built) · `/admin/users[/:id]` - add, change role,
-  reset password, deactivate (admin, item 8 - not yet built).
+  `/admin/media` (all roles - every signed-in role sees every upload, D54) and
+  `/admin/media/:id/delete` (ownership-scoped for authors, the same
+  404-not-403 pattern as posts) - item 5a, built; inserting an image into a
+  post (5b) and rendering one on the public site (5c) are not yet built ·
+  `/admin/settings` (admin, item 7 - not yet built) · `/admin/users[/:id]` -
+  add, change role, reset password, deactivate (admin, item 8 - not yet
+  built).
 - **The admin shell's nav list grows one entry per shipped section** (D35) -
-  today only "Posts"; a nav item for a route that does not exist yet is a dead
-  link, so each remaining item adds its own entry when it ships.
+  "Posts" and, since item 5a, "Media"; a nav item for a route that does not
+  exist yet is a dead link, so each remaining item adds its own entry when it
+  ships.
 - **The first admin is created by a server command (`npm run create-admin`),
   never a web setup page.**
 
@@ -177,7 +183,14 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
   (**`v2`** - structured inline runs, D28), `status` (draft | published),
   `published_at`, `author_id` -> users, `version`, `created_at`, `updated_at`
 - **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`, `width`,
-  `height`, `alt_text`, `uploaded_by` -> users, `created_at`
+  `height`, `alt_text`, `uploaded_by` -> users, `created_at` (exists:
+  `0004_media.sql`, item 5a). Every signed-in role sees every upload; only
+  deletion is ownership-scoped for authors (D54). Alt text is required at
+  upload, stored once on the row, and not yet editable afterward (D55).
+  `storage_key` is a generated `randomUUID` plus the detected extension,
+  never derived from the client's filename (D56); the real bytes, not the
+  browser's declared `Content-Type`, decide the image type via `image-size`
+  (D57).
 - **site_settings** - single row: `site_title`, `logo_media_id` -> media,
   `navigation` (JSON list of `{label, pageId | url}`), `updated_at`
 - **schema_migrations** - owned by the migration runner: `filename`,
@@ -195,8 +208,13 @@ container blocks with `children`.
   stored schema, because Editor.js's own link field accepts any `scheme:`
   including `javascript:` (D30).
 - **Image blocks store a media id, not a URL.** The URL is resolved at render
-  time, so a bucket or domain change never touches content. (Item 5, not yet
-  built.)
+  time through one `buildMediaUrl(publicUrl, storageKey)` helper that both
+  5b's editor preview and 5c's public renderer will call, so a bucket or
+  domain change never touches content. The `media` table and its
+  storage/upload path exist since item 5a; the image block itself (5b) and
+  its public rendering (5c) are not yet built. The table has no caption
+  column - `design.md`'s "muted caption" line under images is a gap 5c still
+  has to resolve.
 - **The format marker is enforced at both ends** (D31): the database refuses a
   write whose `blocks_format` is not the current one, the reader refuses a row
   whose format this build does not understand, and a save requires the row's
@@ -299,17 +317,22 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   secrets (a rebuild generates new ones).
 - **Env vars read today:** `DATABASE_URL`, `PUBLIC_URL`, `ADMIN_URL`,
   `JWT_SECRET`, `PORT`, `NODE_ENV` - `APP_URL` no longer exists (item 4c).
-  `R2_*` from item 5.
+  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
+  `R2_PUBLIC_URL` since item 5a - the app now refuses to start without them,
+  the same as `JWT_SECRET`.
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.
 
 ## Current state
 
-- **Build plan: item 4 is fully done** - items 1, 2 (2a and 2b), 3, and 4 (4a,
-  4b, 4c) are all checked off and archived under `blueprint/history/features/`.
-  Nothing in flight (`current-work.md` is empty). `prototype` has run and its
-  mockups are **fully consumed and deleted**; `design.md` stays as the
-  permanent record of what they decided.
+- **Build plan: items 1-4 and item 5a are done** - items 1, 2 (2a, 2b), 3,
+  4 (4a, 4b, 4c) and 5a are all checked off and archived under
+  `blueprint/history/features/`. Item 5 (Images) is in progress: 5a shipped
+  (storage and the media library); 5b (insert images into posts) and 5c
+  (render images on the public site) are next. Nothing in flight
+  (`current-work.md` is empty). `prototype` has run and its mockups are
+  **fully consumed and deleted**; `design.md` stays as the permanent record
+  of what they decided.
 - **The public site is real and live in production.** `/` lists the newest 10
   published posts, newest first (D47), each linking to its own
   `/posts/:slug`, which renders the post's blocks - text, headings, lists,
@@ -387,11 +410,42 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   naming for later readers: CSRF is scoped to `ADMIN_URL` only, not both
   hosts, on the assumption the public site has no forms - revisit that
   assumption before item 7 adds one.
-- **Production is caught up.** Release `4165637` (deployed 2026-09-21) carries
-  everything through item 4c - items 1, 2a, 2b, 3, 4a, 4b and 4c, all of it,
-  behind both live hostnames. The previous release, `0ad8300`, was items 1-3
-  only; no new migration shipped with item 4 (`0001`-`0003` were already
-  applied by the `0ad8300` deploy). This is the first deploy where a
+- **What item 5a built, for 5b and 5c to build against:** any signed-in
+  writer can upload a JPEG/PNG/WebP/GIF up to 10 MB to Cloudflare R2 through
+  `/admin/media`, see it in a shared library - every role sees every upload
+  (D54) - and delete their own (authors) or any (editor/admin) upload behind
+  a confirmation screen, the same 404-not-403 pattern as posts. Upload
+  validates the real image bytes with `image-size` rather than trusting the
+  browser's `Content-Type` (D57); the R2 object is written before the
+  database row on upload, and the row is removed before the object on
+  delete, both per the plan's own data rules. Alt text is required at
+  upload and captured once on the media row, not per block-use (D55) - the
+  only place in v1 that touches it, so every image 5b places already has
+  one. Storage keys are generated (`randomUUID` plus the detected
+  extension), never derived from the client's filename (D56). **What 5b and
+  5c reuse rather than re-derive** (`Data and contracts`, archived `05a`):
+  the `media` table's exact shape; a media id is the only thing a block will
+  ever store, resolved to a URL at read time through one `buildMediaUrl`
+  helper; the table carries no caption column, which 5c still has to
+  resolve against `design.md`'s "muted caption" line. Review found three
+  findings, all repaired and closed within the item (archived as `05a/F-73`
+  - the delete link had no per-item accessible name, unlike posts' own
+  already-solved version of the same problem; `05a/F-74` - a failed R2
+  delete showed a generic error page even though the row, the actual source
+  of truth, was already gone; `05a/F-75` - a page number past the last page
+  showed a false empty state, the same bug F-56 found for posts).
+- **Production is one item behind `main`.** Release `4165637` (deployed
+  2026-09-21) carries everything through item 4c - items 1, 2a, 2b, 3, 4a, 4b
+  and 4c, all of it, behind both live hostnames. Item 5a (`d4950b6`, merged
+  2026-09-22) has not been deployed: production has no `media` table, no R2
+  credentials in `/etc/habre-cms/production.env`, and `/admin/media` does not
+  exist there yet - nothing urgent on its own, since 5a is storage and a
+  library screen with nothing wired to the post editor or the public site
+  yet, but it means `deploy` has real work queued, including the still-open
+  production R2 token and bucket (`needs-you.md`). The previous release,
+  `0ad8300`, was items 1-3 only; no new migration shipped with item 4
+  (`0001`-`0003` were already applied by the `0ad8300` deploy). This is the
+  first deploy where a
   symlink-only rollback would have been wrong (F-72, fixed) - the systemd
   unit's env vars changed (`APP_URL` -> `PUBLIC_URL`/`ADMIN_URL`), so the
   pre-4c unit was saved alongside the pre-4c release for a paired restore.
@@ -405,10 +459,11 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   README, proven by running its commands).
 - **`main` is pushed and in sync.** Item 2a went in through pull request #3,
   item 2b through pull request #4, item 3 through pull request #5, item 4a
-  through pull request #6, item 4b through pull request #7, and **item 4c
-  through pull request #8**, all with CI green before merge - the loop the
-  workflow recommends. CI runs `verify` only, so the browser tests covering
-  the worst defects in every item still gate nothing (F-17).
+  through pull request #6, item 4b through pull request #7, item 4c through
+  pull request #8, and **item 5a through pull request #9**, all with CI
+  green before merge - the loop the workflow recommends. CI runs `verify`
+  only, so the browser tests covering the worst defects in every item still
+  gate nothing (F-17).
 - **Item 2b's review, across two independent passes, found and closed six
   findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
   un-bolding text with no way to save it back; an app-wide selection-colour
@@ -465,20 +520,29 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-50, F-51, F-55, F-56,
   F-58, F-59, F-61, F-62, F-64, F-71 open. **F-15 [P1] remains accepted by
   the owner** - nothing alerts when the live system breaks, until `monitor`
-  runs.
-- **Next:** `context` regeneration is done (this file); `spec` item 5
-  (Images - R2 upload, media library) is the next unchecked build item.
-  `monitor` is also worth running soon, now the public site is live and has
+  runs. Item 5a's own review found three findings (`05a/F-73`, `05a/F-74`,
+  `05a/F-75`), all repaired and closed within the item - archived with the
+  feature rather than carried in this ledger, so the 39-total count above is
+  unchanged by item 5a shipping.
+- **Next:** `context` regeneration is done (this file); `spec` item 5b
+  (insert images into posts - an Editor.js image block backed by the media
+  library) is the next unchecked build item. `deploy` also has item 5a
+  queued once the production R2 token and bucket exist (`needs-you.md`).
+  `monitor` is still worth running soon, now the public site is live and has
   real visitors reachable for the first time.
-- **Remaining items, in order:** 5 Images · 6 Pages · 7 Site settings and
-  menu · 8 Users and roles.
-- **Waiting on the user** (`needs-you.md`): a public URL for the R2 images
-  bucket and a production R2 token (both item 5); an UptimeRobot account
-  (`monitor`, F-15); a screen-reader and keyboard pass over login, the admin
-  shell, the posts list (filter tabs, search, delete confirmation) and the
-  block editor including its inline toolbar (F-18, accepted for this release
-  by the owner); **a screen-reader and keyboard pass over the public site** -
-  home, one post, the 404 - still open, and now live in production, not just
-  development; deleting the old `hone.surenmaharjan.fyi` DNS record. The
-  images bucket, backup bucket, server software and local `.env` lines are
-  **done**.
+- **Remaining items, in order:** 5b Insert images into posts · 5c Render
+  images on the public site · 6 Pages · 7 Site settings and menu · 8 Users
+  and roles.
+- **Waiting on the user** (`needs-you.md`): a custom domain for the R2
+  images bucket, and a production R2 token and bucket, both before item 5
+  reaches production - the local `.env`'s `R2_PUBLIC_URL` is now set to the
+  bucket's `r2.dev` address, which item 5a built and shipped against, but
+  that address is rate-limited and not meant for real traffic; an
+  UptimeRobot account (`monitor`, F-15); a screen-reader and keyboard pass
+  over login, the admin shell, the posts list (filter tabs, search, delete
+  confirmation) and the block editor including its inline toolbar (F-18,
+  accepted for this release by the owner); **a screen-reader and keyboard
+  pass over the public site** - home, one post, the 404 - still open, and
+  now live in production, not just development; deleting the old
+  `hone.surenmaharjan.fyi` DNS record. The dev images bucket, backup bucket,
+  server software and local `.env` lines are **done**.

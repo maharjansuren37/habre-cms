@@ -51,13 +51,36 @@ const listBlock = z.object({
   }),
 });
 
-export const blockSchema = z.discriminatedUnion("type", [textBlock, headingBlock, listBlock]);
+// The only thing a block ever stores for an image - never a url, alt text or
+// caption (item 5a's own contract: those live on the media row and are
+// resolved at read time, so a bucket or domain change never touches content).
+const imageBlock = z.object({
+  id: blockId,
+  type: z.literal("image"),
+  data: z.object({ mediaId: z.uuid() }),
+});
+
+export const blockSchema = z.discriminatedUnion("type", [
+  textBlock,
+  headingBlock,
+  listBlock,
+  imageBlock,
+]);
 export const blocksSchema = z.array(blockSchema).max(200);
 
 export type Block = z.infer<typeof blockSchema>;
 
+/** A resolved image block's other half - looked up by media id at read time,
+ *  never stored on the block itself. */
+export type ImageMediaSummary = { url: string; altText: string; width: number; height: number };
+
 /** What Editor.js calls each block type, and what this project calls it. */
-const EDITOR_JS_TYPES = { paragraph: "text", header: "heading", list: "list" } as const;
+const EDITOR_JS_TYPES = {
+  paragraph: "text",
+  header: "heading",
+  list: "list",
+  image: "image",
+} as const;
 
 /**
  * `@editorjs/list` 2.0.9 saves each item as `{ content, meta, items }`, not as a
@@ -184,6 +207,13 @@ export function fromEditorJs(input: unknown): FromEditorJs {
       });
       continue;
     }
+    if (type === "image") {
+      const image = block.data as { mediaId?: unknown };
+      // The uuid shape is enforced below by blocksSchema, the same place
+      // every other block's data shape is enforced - not re-checked here.
+      blocks.push({ id: block.id, type, data: { mediaId: image.mediaId } });
+      continue;
+    }
     const data = block.data as { text?: unknown; level?: unknown };
     const text = toRuns(String(data.text ?? ""), index + 1);
     if (!text.ok) return text;
@@ -210,10 +240,17 @@ export function fromEditorJs(input: unknown): FromEditorJs {
  * The inverse, for loading a saved entry back into the editor. Editor.js
  * sanitizes on save and on paste, **never on render** - its tools assign
  * `innerHTML` - so text goes through `runsToHtml`, which escapes it (F-33).
+ *
+ * `mediaById` resolves each image block's id to what the tool needs to show
+ * a preview - the caller (the loader, which already queried the database)
+ * builds it once for the whole entry, not per block. A missing entry means
+ * the file was deleted from the library after being placed (spec's own
+ * Decisions: degrades rather than being prevented).
  */
-export function toEditorJs(blocks: Block[]): {
-  blocks: { id: string; type: string; data: unknown }[];
-} {
+export function toEditorJs(
+  blocks: Block[],
+  mediaById: Record<string, ImageMediaSummary> = {},
+): { blocks: { id: string; type: string; data: unknown }[] } {
   return {
     blocks: blocks.map((block) => {
       if (block.type === "list") {
@@ -232,6 +269,16 @@ export function toEditorJs(blocks: Block[]): {
           },
         };
       }
+      if (block.type === "image") {
+        const media = mediaById[block.data.mediaId];
+        return {
+          id: block.id,
+          type: "image",
+          data: media
+            ? { mediaId: block.data.mediaId, ...media }
+            : { mediaId: block.data.mediaId, missing: true },
+        };
+      }
       return {
         id: block.id,
         type: block.type === "heading" ? "header" : "paragraph",
@@ -239,4 +286,14 @@ export function toEditorJs(blocks: Block[]): {
       };
     }),
   };
+}
+
+/** The unique media ids a set of blocks references, for the loader to resolve
+ *  in one query rather than one per image. */
+export function collectImageMediaIds(blocks: Block[]): string[] {
+  const ids = new Set<string>();
+  for (const block of blocks) {
+    if (block.type === "image") ids.add(block.data.mediaId);
+  }
+  return [...ids];
 }

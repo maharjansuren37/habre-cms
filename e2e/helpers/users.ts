@@ -17,44 +17,51 @@ export function createAdmin(name = "E2E Admin"): TestUser {
   return { email, name, password: PASSWORD };
 }
 
-/** Runs one statement against the development database, then disconnects. */
-async function withDatabase(run: (sql: postgres.Sql) => Promise<unknown>): Promise<void> {
+/** Runs one statement against the development database, then disconnects.
+ *  Exported for other helper modules (e.g. `media.ts`) - one pool-per-call
+ *  pattern, not a shared connection. */
+export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): Promise<T> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is not set - browser tests need .env");
   const sql = postgres(databaseUrl, { max: 1 });
   try {
-    await run(sql);
+    return await run(sql);
   } finally {
     await sql.end();
   }
 }
 
 export function deactivateUser(email: string): Promise<void> {
-  return withDatabase((sql) => sql`update users set deactivated_at = now() where email = ${email}`);
+  return withDatabase(async (sql) => {
+    await sql`update users set deactivated_at = now() where email = ${email}`;
+  });
 }
 
 export function revokeSessions(email: string): Promise<void> {
-  return withDatabase(
-    (sql) => sql`update users set token_version = token_version + 1 where email = ${email}`,
-  );
+  return withDatabase(async (sql) => {
+    await sql`update users set token_version = token_version + 1 where email = ${email}`;
+  });
 }
 
 /** Test cleanup only - the product deactivates users, never deletes them. */
 export function deleteTestUser(email: string): Promise<void> {
-  return withDatabase((sql) => sql`delete from users where email = ${email}`);
+  return withDatabase(async (sql) => {
+    await sql`delete from users where email = ${email}`;
+  });
 }
 
 /** Test-only: create-admin makes admins, and some tests need another role. */
 export function setRole(email: string, role: "admin" | "editor" | "author"): Promise<void> {
-  return withDatabase((sql) => sql`update users set role = ${role} where email = ${email}`);
+  return withDatabase(async (sql) => {
+    await sql`update users set role = ${role} where email = ${email}`;
+  });
 }
 
 /** Test cleanup: entries reference their author, so they go first. */
 export function deleteEntriesBy(email: string): Promise<void> {
-  return withDatabase(
-    (sql) =>
-      sql`delete from entries where author_id in (select id from users where email = ${email})`,
-  );
+  return withDatabase(async (sql) => {
+    await sql`delete from entries where author_id in (select id from users where email = ${email})`;
+  });
 }
 
 /** How many entries this author has, and the version of their newest one. */

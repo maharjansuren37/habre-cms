@@ -55,6 +55,7 @@ Mockups (throwaway): `prototypes/login.html`, `posts-list.html`,
 | Pair | Light | Dark |
 |---|---|---|
 | `--color-text` on `--color-bg` | 15.6 | 15.2 |
+| `--color-text` on `--color-surface` (card and dialog titles, filenames - item 5b) | 16.75 | 14.07 |
 | `--color-text-muted` on `--color-surface` | 6.3 | 7.3 |
 | `--color-text-muted` on `--color-surface-sunken` (worst case) | 5.5 | 8.1 |
 | `--color-text-muted` on `--color-bg` (public site: dates, footer, empty state - item 4b) | 5.9 | 7.8 |
@@ -172,8 +173,42 @@ mostly the page itself, not spinners.
   save state on the left, Save draft and Publish on the right. Title is a large
   borderless field; "Web address" (never "slug") shown beneath with Change. Blocks
   get a hover background and a drag handle in the left margin; a round + button
-  opens a menu of the four block types, each with a one-line description. Image
-  blocks show the alt text field directly below the image.
+  opens a menu of the four block types, each with a one-line description. **Image
+  blocks show the media's own alt text as a read-only line beneath the image, not
+  an editable field** - this line originally said "field", written before item 5a
+  decided alt text is one value per file, captured once at upload (D55); there is
+  nowhere in the post editor to edit it, by design, not by omission.
+- **Image block and picker (item 5b, not in the mockups):** a bordered card
+  (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
+  other card border in the app) holding either a centered "Choose image" button
+  (default button style) or, once chosen, the image itself at up to full column
+  width with 12px radius, a plain-text line of its alt text below
+  (`--color-text-muted` on `--color-surface`, 6.3:1 light / 7.3:1 dark - already
+  tabled above) and a quiet "Change image" button. A media id with no matching
+  row (the file was deleted from the library after being placed) shows the same
+  card with "This image is no longer available." in place of the image, and the
+  same "Choose image" button to replace it - never a crash. "Choose image" opens
+  a native `<dialog>` (`showModal()`, so Escape and the platform's own focus trap
+  are free): a bordered header with the title and a quiet "Close" button, then a
+  thumbnail grid reusing the media library's own card shape - each thumbnail a
+  full `<button>` whose visible filename is its own accessible name, no
+  visually-hidden suffix needed (unlike the list screens' identical "Delete"
+  links, F-73 - nothing else in this grid needs telling apart by anything but
+  the name). A click on the backdrop (the dialog element itself, outside its
+  rendered box) closes it the same as Escape or Close, selecting nothing.
+  Previous/Next between pages below the grid; an empty library shows one muted
+  sentence and a link to `/admin/media` (opens in a new tab, so the post is
+  never left mid-edit). All text in the block and the dialog is
+  `--color-text`/`--color-text-muted` on `--color-surface` - the dialog title and
+  every thumbnail's filename measure **16.75:1 light / 14.07:1 dark**
+  (`--color-text` on `--color-surface`; not previously its own row in the table
+  above despite being the same pairing the toolbar's own icons already use -
+  added below). Every button (Choose image, Change image, Close, Previous, Next)
+  reuses the existing default/quiet button styles and their already-measured
+  `--color-border-control` edge (3.3:1 light / 3.7:1 dark) - nothing here
+  introduces a new button variant. The backdrop is a flat `rgb(0 0 0 / 0.4)`
+  scrim, decorative rather than a contrast-graded pairing. Screenshots:
+  `blueprint/reference/5b-image-block/`.
 - **Inline formatting** (item 2b, not in the mockups): selecting text opens
   Editor.js's own inline toolbar with exactly **Bold, Italic, Link** (shortcuts
   Ctrl/Cmd+B, I, K) in text and list blocks; the link field opens beneath it.

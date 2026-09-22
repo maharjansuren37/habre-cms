@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -24,14 +25,6 @@ test.afterEach(async () => {
   await deleteEntriesBy(author.email);
   await deleteTestUser(author.email);
 });
-
-async function logIn(page: Page, user: TestUser) {
-  await page.goto("/admin/login");
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL("**/admin/posts");
-}
 
 test("the list is scoped by role, and the tabs' counts match", async ({ page }) => {
   const other = createAdmin("Other List Author");
