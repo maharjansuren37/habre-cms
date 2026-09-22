@@ -50,6 +50,13 @@
   margin-top: var(--space-2);
 }
 
+.body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
 .back {
   display: inline-block;
   margin-top: var(--space-7);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Block, fromEditorJs, toEditorJs } from "./blocks.ts";
+import { type Block, collectImageMediaIds, fromEditorJs, toEditorJs } from "./blocks.ts";
 
 const editorBlock = (type: string, data: unknown, id = "abc123") => ({
   blocks: [{ id, type, data }],
@@ -197,9 +197,9 @@ test("a saved list loads back into the shape the list tool reads", () => {
 });
 
 test("a block type this version cannot store is refused, and the message names it", () => {
-  const result = fromEditorJs(editorBlock("image", { file: { url: "https://example.org/a.png" } }));
+  const result = fromEditorJs(editorBlock("quote", { text: "cannot be stored yet" }));
   assert.equal(result.ok, false);
-  assert.match(result.ok === false ? result.message : "", /"image"/);
+  assert.match(result.ok === false ? result.message : "", /"quote"/);
 });
 
 test("the message names which block failed, not just that one did", () => {
@@ -352,6 +352,54 @@ test("the item cap stops the mapper walking a huge list, not just refusing it", 
   }));
   fromEditorJs(editorBlock("list", { style: "unordered", items }));
   assert.ok(highestRead <= 501, `read up to item ${highestRead}, expected to stop around 500`);
+});
+
+test("a well-formed image block is accepted", () => {
+  const mediaId = "550e8400-e29b-41d4-a716-446655440000";
+  const result = fromEditorJs(editorBlock("image", { mediaId }));
+  assert.deepEqual(result, {
+    ok: true,
+    blocks: [{ id: "abc123", type: "image", data: { mediaId } }],
+  });
+});
+
+test("an image block with a non-uuid mediaId is refused", () => {
+  const result = fromEditorJs(editorBlock("image", { mediaId: "not-a-uuid" }));
+  assert.equal(result.ok, false);
+  assert.match(result.ok === false ? result.message : "", /^Block 1 could not be saved/);
+});
+
+test("toEditorJs resolves a known image id and marks an unknown one missing", () => {
+  const mediaId = "550e8400-e29b-41d4-a716-446655440000";
+  const missingId = "660e8400-e29b-41d4-a716-446655440001";
+  const blocks: Block[] = [
+    { id: "a", type: "image", data: { mediaId } },
+    { id: "b", type: "image", data: { mediaId: missingId } },
+  ];
+  const media = {
+    url: "https://media.example/a.jpg",
+    altText: "A photo",
+    width: 800,
+    height: 600,
+  };
+  assert.deepEqual(toEditorJs(blocks, { [mediaId]: media }), {
+    blocks: [
+      { id: "a", type: "image", data: { mediaId, ...media } },
+      { id: "b", type: "image", data: { mediaId: missingId, missing: true } },
+    ],
+  });
+});
+
+test("collectImageMediaIds dedupes ids across several blocks", () => {
+  const mediaId = "550e8400-e29b-41d4-a716-446655440000";
+  const otherId = "660e8400-e29b-41d4-a716-446655440001";
+  const blocks: Block[] = [
+    { id: "a", type: "image", data: { mediaId } },
+    { id: "b", type: "text", data: { text: [{ text: "hi" }] } },
+    { id: "c", type: "image", data: { mediaId } },
+    { id: "d", type: "image", data: { mediaId: otherId } },
+  ];
+  assert.deepEqual(collectImageMediaIds(blocks), [mediaId, otherId]);
 });
 
 test("a block id carrying a character the database cannot store is refused", () => {

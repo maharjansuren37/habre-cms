@@ -85,6 +85,30 @@ export async function listMedia(page: number): Promise<MediaList> {
   };
 }
 
+export type MediaSummaryRow = {
+  id: string;
+  storageKey: string;
+  altText: string;
+  width: number;
+  height: number;
+};
+
+/**
+ * Every image block a post references, resolved in one query - not one per
+ * block. Unscoped by actor, matching `listMedia`'s own rule (every
+ * signed-in role sees every upload, D54). An id with no matching row is
+ * simply absent from the result; the caller (the loader) treats that as
+ * "no longer available" rather than an error.
+ */
+export async function findMediaByIds(ids: string[]): Promise<MediaSummaryRow[]> {
+  if (ids.length === 0) return [];
+  return sql<MediaSummaryRow[]>`
+    select id, storage_key as "storageKey", alt_text as "altText", width, height
+    from media
+    where id = any(${ids})
+  `;
+}
+
 /**
  * One file, scoped for the delete-confirmation screen only - an author gets
  * `null` for someone else's upload, the same answer a missing id gets

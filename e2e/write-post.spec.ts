@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -25,14 +26,6 @@ test.afterEach(async () => {
   await deleteEntriesBy(author.email);
   await deleteTestUser(author.email);
 });
-
-async function logIn(page: Page, user: TestUser) {
-  await page.goto("/admin/login");
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL("**/admin/posts");
-}
 
 async function writeBody(page: Page, text: string) {
   // Editor.js owns a contenteditable canvas rather than a form field.
@@ -92,6 +85,7 @@ test("the block menu lists only the types this version can store", async ({ page
     "Text",
     "Heading",
     "List",
+    "Image",
   ]);
 });
 

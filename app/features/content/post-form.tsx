@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
-import type { Block } from "#app/features/blocks/blocks.ts";
+import type { Block, ImageMediaSummary } from "#app/features/blocks/blocks.ts";
 import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
@@ -17,12 +17,23 @@ type PostFormProps = {
   /** Empty for a post that has not been saved yet. */
   slug: string;
   blocks: Block[];
+  /** Resolves each image block's media id, so reopening a post shows its
+   *  images immediately - a new post has none to resolve. */
+  mediaById?: Record<string, ImageMediaSummary>;
   status: "draft" | "published";
   version: number;
   problem: SaveProblem;
 };
 
-export function PostForm({ title, slug, blocks, status, version, problem }: PostFormProps) {
+export function PostForm({
+  title,
+  slug,
+  blocks,
+  mediaById = {},
+  status,
+  version,
+  problem,
+}: PostFormProps) {
   const navigation = useNavigation();
   const submit = useSubmit();
   // A post with no address yet has never been saved, so there is nothing to
@@ -175,6 +186,7 @@ export function PostForm({ title, slug, blocks, status, version, problem }: Post
         {isEditorReady ? (
           <BlockEditor
             initialBlocks={blocks}
+            mediaById={mediaById}
             contentRef={readEditor}
             onChange={() => setUnsavedChanges(true)}
           />
