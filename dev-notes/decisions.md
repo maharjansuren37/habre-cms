@@ -870,3 +870,21 @@ so nothing outside it can take focus while it is still open, regardless of
 which line the `.focus()` call sits on. Beat: custom focus-trap bookkeeping
 to work around the inertness. Cost: none - a rule for any future native
 `<dialog>` in this app: close it before touching focus outside it, not after.
+
+## D65 - A public image's caption is its existing alt text, not a new field (2026-09-22)
+
+**Chose:** the public renderer's `<figcaption>` shows the same `altText`
+already stored on the media row and already resolved into every entry's
+`mediaById` lookup - no new column, no new input anywhere in the app.
+
+Beat: adding a per-placement caption field on the block or a caption column
+on `media`. Alt text is already one value per file, captured once at upload
+(D55), and the post editor's own preview already shows that value as a
+read-only line under the image - reusing it publicly is the same choice made
+a second time, not a new one, and a second field would be a second piece of
+text an editor has to keep in sync with the first. Cost: the image's `alt`
+and the visible caption say the same thing, so a screen reader announces it
+twice in a row (`<figcaption>` is not an image's accessible name or
+description in any browser) - accepted rather than fixed, tracked as F-79
+pending the project's own screen-reader pass, because emptying `alt` instead
+is not a reliable substitute and nothing has actually heard it yet.

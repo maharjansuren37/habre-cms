@@ -10,6 +10,14 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-79 [P3] unverified - A captioned image's alt text is announced twice in a row by a screen reader
+
+**File:** app/features/blocks/render.tsx:38-52 (the `image` case)
+**Found:** 2026-09-22 by review (scope: current, item 5c; lens: accessibility)
+**Why it matters:** The image keeps its `alt={media.altText}` and the new `<figcaption>` right after it renders that exact same string visibly. Browsers do not treat `<figcaption>` as an image's accessible name or description - there is no automatic association - so a screen reader announces the alt text once as the image's own accessible name and then again, unchanged, as the next block of text it reads. This is a deliberate, reasoned tradeoff recorded in the spec itself (`current-work.md`'s Decisions, carried into the archived spec at `ship`): a second caption field was rejected because alt text is already one value per file (D55) and the admin editor's own preview already shows the same duplication. **Not a WCAG 2.2 AA violation** - SC 1.1.1 is satisfied by the alt text alone, and there is no success criterion against redundant announcement - so this is a UX rough edge, not a confirmed defect, and P3 rather than higher. **Unverified** because nobody has actually heard it: the project's own open `needs-you.md` line for a screen-reader pass over the public site now covers this case too, and this entry exists so the residual survives in the durable ledger once `ship` resets `current-work.md` - the spec's own Decisions section does not.
+**Suggested fix:** None unless the upcoming screen-reader pass finds it genuinely confusing. If it does, the smallest change is emptying the image's `alt=""` and relying on the visible `<figcaption>` alone (a legitimate pattern when a caption already serves as the description) - not adding a second data field.
+**Resolution:**
+
 ### F-78 [P3] open - `manage-posts.spec.ts`'s "editor sees all posts" count races against every other spec file's own test data under parallel workers
 
 **File:** e2e/manage-posts.spec.ts:29-53 ("the list is scoped by role, and the tabs' counts match")
