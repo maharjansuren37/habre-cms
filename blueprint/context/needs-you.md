@@ -113,8 +113,10 @@ not tidying; it is what keeps the open list true.
       VoiceOver or Orca) - manual verification; nobody has looked at these
       screens with a screen reader, unlike the admin screens above. Covers
       the home page, one post (including inline bold/italic/link formatting
-      rendered as real elements), and the 404 page (item 4b). Blocks nothing
-      now; `preflight` needs it before a real release. `open` (spec, 2026-09-21)
+      rendered as real elements), one page (item 6b, once built - same
+      typography and block rendering as a post, minus the byline), and the
+      404 page (item 4b). Blocks nothing now; `preflight` needs it before a
+      real release. `open` (spec, 2026-09-21; widened, item 6b)
 
 - [ ] **Fill `PUBLIC_URL`, `ADMIN_URL` and `JWT_SECRET` in your local `.env`** -
       credentials; it is your secrets file, so no agent writes to it. Item 4c

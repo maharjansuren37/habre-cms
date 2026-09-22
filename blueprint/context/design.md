@@ -236,8 +236,10 @@ mostly the page itself, not spinners.
   16.75 / 14.07 (F-53: the border was credited with a job it cannot do). Keyboard and screen-reader use is **not yet verified** (`needs-you.md`).
   Screenshots: `blueprint/reference/2b-inline-toolbar/`.
 - **Public site:** header with logo, site title and the navigation menu; article
-  with date and author above the title; images full column width with 12px radius
-  and muted caption; footer on `--color-bg`.
+  with date and author above the title **on a post** - a page (item 6b) has no
+  byline, since it is static reference content rather than a dated article;
+  images full column width with 12px radius and muted caption; footer on
+  `--color-bg`.
 - **Words:** plain language, no CMS jargon. "Web address" not "slug", "Log in"
   not "Sign in", "Last changed" not "Modified".
 
