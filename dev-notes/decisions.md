@@ -986,3 +986,38 @@ risk, since `write-post.spec.ts` already covers the identical code path for
 posts extensively. The underlying flakiness is unresolved, not just avoided;
 worth a `debug` pass before a page builder needs to drive an already-populated
 block reliably.
+
+## D72 - A public page has no byline, unlike a post (2026-09-23)
+
+**Chose:** `/:slug` renders a page's title and body only - no date, no author -
+where `/posts/:slug` shows both above the title.
+
+`design.md`'s "article with date and author above the title" was written
+describing item 4b's post page specifically, and item 6b is not bound to repeat
+it for a different kind of content. A page (About, Contact) is static
+reference content, not a dated article; showing "12 March 2026 · Jane" under a
+page like "About" would be misleading rather than helpful. Cost: `design.md`
+had to be reworded to say the byline is posts-only rather than a blanket rule,
+so a page carries the reasoning as write-up, not just as an absence.
+
+## D73 - The article typography is copied into `page.module.css`, not shared with `post.module.css` (2026-09-23)
+
+**Chose:** `page.tsx`'s CSS (article/title/body/image/figure/figcaption rules)
+is a literal copy of `post.module.css`'s own rules, minus `.meta` and `.back`.
+
+`fundamentals.md`: "copy the second time, extract on the third." This is the
+second near-identical consumer of that typography, not the third - a shared
+`article.module.css` earns its place when a third one shows up, likely a page
+builder's own content area. Cost: the two files will drift apart by hand if
+either is tuned later without remembering the other exists; worth extracting
+the moment a third consumer appears rather than letting a fourth arrive first.
+
+## D74 - A public page has no "back" link (2026-09-23)
+
+**Chose:** unlike `/posts/:slug`'s "← All posts", a page has nothing linking
+back to a list.
+
+`/` is a real list of posts a reader came from; there is no equivalent list of
+pages (no public page index exists, and none is planned before item 7's
+navigation menu). Cost: none yet - revisit once item 7 adds a navigation menu,
+since a page reached from that menu may then want a way back to it.

@@ -145,6 +145,75 @@ test("a draft's URL 404s inside the public chrome, not root's bare error page", 
   await expect(page.getByText("Page not found.")).toBeVisible();
 });
 
+test("a published page renders its blocks, including an image with caption, at its own address", async ({
+  page,
+}) => {
+  await logIn(page, author);
+  const origin = new URL(page.url()).origin;
+  const { id: mediaId } = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
+  try {
+    await createDraftFor(
+      author.email,
+      "Rendered Page",
+      [
+        { id: "b1", type: "heading", data: { level: 2, text: [{ text: "A heading" }] } },
+        {
+          id: "b2",
+          type: "list",
+          data: { style: "bullet", items: [[{ text: "item one" }], [{ text: "item two" }]] },
+        },
+        { id: "b3", type: "image", data: { mediaId } },
+      ],
+      { status: "published", type: "page" },
+    );
+
+    await page.goto("/rendered-page");
+    await expect(page.getByRole("heading", { level: 1, name: "Rendered Page" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "A heading" })).toBeVisible();
+    await expect(page.locator("main li")).toHaveText(["item one", "item two"]);
+    const figure = page.locator("main figure");
+    await expect(figure.locator("img")).toHaveAttribute("alt", "A fixture pixel");
+    await expect(figure.locator("figcaption")).toHaveText("A fixture pixel");
+  } finally {
+    await deleteTestMedia(mediaId);
+  }
+});
+
+test("markup in a page's text renders as text on the public page, never runs", async ({ page }) => {
+  await createDraftFor(
+    author.email,
+    "Page XSS Check",
+    [
+      {
+        id: "b1",
+        type: "text",
+        data: { text: [{ text: "use <img src=x onerror=\"document.title='XSS-FIRED'\"> here" }] },
+      },
+    ],
+    { status: "published", type: "page" },
+  );
+
+  await page.goto("/page-xss-check");
+  expect(await page.title()).not.toBe("XSS-FIRED");
+  expect(await page.locator("main img").count()).toBe(0);
+  await expect(page.getByText("use <img", { exact: false })).toBeVisible();
+});
+
+test("a draft page's URL 404s inside the public chrome, and so does an unclaimed slug", async ({
+  page,
+}) => {
+  await createDraftFor(author.email, "Hidden Draft Page", [], { status: "draft", type: "page" });
+
+  const draftResponse = await page.goto("/hidden-draft-page");
+  expect(draftResponse?.status()).toBe(404);
+  await expect(page.getByText("Page not found.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Habre CMS" })).toBeVisible();
+
+  const missingResponse = await page.goto("/does-not-exist-either");
+  expect(missingResponse?.status()).toBe(404);
+  await expect(page.getByText("Page not found.")).toBeVisible();
+});
+
 /** The 95th-percentile duration of `samples` GET requests, in milliseconds. */
 async function measureP95(request: APIRequestContext, url: string, samples = 30): Promise<number> {
   const durations: number[] = [];
@@ -160,11 +229,16 @@ async function measureP95(request: APIRequestContext, url: string, samples = 30)
 
 test("public pages meet the quality bar's 500ms p95 (server-side)", async ({ request }) => {
   await createDraftFor(author.email, "Timing Post", [], { status: "published" });
+  await createDraftFor(author.email, "Timing Page", [], { status: "published", type: "page" });
 
   const homeP95 = await measureP95(request, "/");
   const postP95 = await measureP95(request, "/posts/timing-post");
-  console.log(`p95: GET / = ${homeP95.toFixed(1)}ms, GET /posts/:slug = ${postP95.toFixed(1)}ms`);
+  const pageP95 = await measureP95(request, "/timing-page");
+  console.log(
+    `p95: GET / = ${homeP95.toFixed(1)}ms, GET /posts/:slug = ${postP95.toFixed(1)}ms, GET /:slug = ${pageP95.toFixed(1)}ms`,
+  );
 
   expect(homeP95).toBeLessThan(500);
   expect(postP95).toBeLessThan(500);
+  expect(pageP95).toBeLessThan(500);
 });

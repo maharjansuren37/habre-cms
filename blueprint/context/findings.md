@@ -10,6 +10,14 @@
 > is `open` or `fixed`, then archives resolved findings with the work item and
 > resets this file.
 
+### F-86 [P3] open - `public-site.spec.ts`'s home-page "newest first" test is a second instance of F-78's race, on a different query
+
+**File:** e2e/public-site.spec.ts:23-37 ("the home page lists only published posts, newest first")
+**Found:** 2026-09-23 by review (scope: current, item 6b; lens: tests) - reproduced twice while proving item 6b's own tests, not part of this item's diff
+**Why it matters:** `listPublishedPosts` (the home page's query) is unscoped by author - by design, every visitor sees every published post - so it reads whatever any concurrently-running spec file has published at that instant. This test asserts the home page's link list is exactly `["Newer Published", "Older Published"]`; under Playwright's default `workers: 2` it failed twice in this pass with a third title present (`"My published post"`, confirmed by grep to come from `manage-posts.spec.ts:34`, a different file running at the same time). Same root cause F-78 already named for `manage-posts.spec.ts`'s "All" tab count - an unscoped query racing against another file's own test data - just a second location it reaches. Not introduced by item 6b: `listPublishedPosts` and this test both predate it (item 4b); item 6b only added its own, correctly-isolated page tests to the same file. Reproduced: `npx playwright test` (full suite) failed it twice across two runs in this pass; `npx playwright test e2e/public-site.spec.ts e2e/manage-posts.spec.ts --workers=1` passed every test in both files.
+**Suggested fix:** Same shape F-78 already proposes: assert a lower bound or the delta this test itself created rather than an exact global list, or serialize this test relative to other files' publishing tests. Worth fixing alongside F-78 in one pass rather than separately, since both are the identical pattern.
+**Resolution:**
+
 ### F-84 [P3] open - `SecurityEvent`'s new `role` field is a bare `string`, though `requireRole` always has the real `Role` type in hand
 
 **File:** app/lib/security-log.server.ts:16; app/features/auth/require-role.server.ts:27

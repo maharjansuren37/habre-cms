@@ -4,6 +4,11 @@ export default [
   layout("features/public-site/layout.tsx", [
     index("features/public-site/home.tsx"),
     route("posts/:slug", "features/public-site/post.tsx"),
+    // A single dynamic segment, registered after the literal "posts/:slug"
+    // and "admin/*" routes above - path depth keeps it from ever matching
+    // them, and reserved slugs (D68) keep a page from ever claiming one of
+    // their names in the first place.
+    route(":slug", "features/public-site/page.tsx"),
   ]),
   route("healthz", "features/public-site/healthz.ts"),
   route("admin/login", "features/auth/login.tsx"),
