@@ -119,19 +119,19 @@
   background: var(--color-surface-hover);
 }
 
-.postTitle {
+.entryTitle {
   color: var(--color-text);
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
   text-decoration: none;
 }
 
-.postTitle:hover {
+.entryTitle:hover {
   color: var(--color-accent);
   text-decoration: underline;
 }
 
-.postSlug {
+.entrySlug {
   display: block;
   color: var(--color-text-muted);
   font-size: var(--text-xs);

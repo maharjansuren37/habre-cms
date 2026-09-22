@@ -1,22 +1,23 @@
 import { type Block, fromEditorJs } from "#app/features/blocks/blocks.ts";
 import { entryInputSchema } from "./entry-input.ts";
 
-// A post of 200 blocks at the per-block cap is far smaller than this. The limit
-// bounds what one authenticated request can make the server buffer - the same
-// guard login has (F-01, where three 100 MB bodies took the process past 1.5 GB).
-const MAX_POST_BODY_BYTES = 1024 * 1024;
+// An entry of 200 blocks at the per-block cap is far smaller than this. The
+// limit bounds what one authenticated request can make the server buffer - the
+// same guard login has (F-01, where three 100 MB bodies took the process past
+// 1.5 GB).
+const MAX_ENTRY_BODY_BYTES = 1024 * 1024;
 
 /**
  * Whether a save's declared size is small enough to read. A missing
  * Content-Length means a body of unknown size, which a form submission from the
  * editor never sends.
  */
-export function isPostBodySizeAllowed(headers: Headers): boolean {
+export function isEntryBodySizeAllowed(headers: Headers): boolean {
   const declared = Number(headers.get("Content-Length"));
-  return Number.isFinite(declared) && declared > 0 && declared <= MAX_POST_BODY_BYTES;
+  return Number.isFinite(declared) && declared > 0 && declared <= MAX_ENTRY_BODY_BYTES;
 }
 
-export type PostFormResult =
+export type EntryFormResult =
   | { ok: true; title: string; blocks: Block[] }
   | { ok: false; message: string };
 
@@ -24,7 +25,7 @@ export type PostFormResult =
  * Turns a submitted form into validated input, or into the one sentence the
  * writer reads. The author is never taken from here - it comes from the session.
  */
-export function parsePostForm(form: FormData): PostFormResult {
+export function parseEntryForm(form: FormData): EntryFormResult {
   // An absent field is not an empty post. The editor adds `blocks` as it
   // submits, so a submission without it never came from the editor - a native
   // submit with JavaScript off, a keypress before hydration, a truncated body -
@@ -54,7 +55,7 @@ export function parsePostForm(form: FormData): PostFormResult {
   if (!input.success) {
     return {
       ok: false,
-      message: input.error.issues[0]?.message ?? "This post could not be saved.",
+      message: input.error.issues[0]?.message ?? "This could not be saved.",
     };
   }
   return { ok: true, title: input.data.title, blocks: input.data.blocks };

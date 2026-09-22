@@ -1,4 +1,4 @@
-/* Same shape as content/post-delete.module.css - a short question, not a
+/* Same shape as content/entry-delete.module.css - a short question, not a
    focused task, so it stays inside the admin shell. */
 .confirm {
   display: grid;

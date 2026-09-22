@@ -3,8 +3,10 @@ import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat } from "./blocks-format.ts";
 import type { EntryInput } from "./entry-input.ts";
-import type { PostListQuery } from "./post-list-query.ts";
-import { nextFreeSlug, slugFromTitle } from "./slug.ts";
+import type { EntryListQuery } from "./entry-list-query.ts";
+import { type EntryType, nextFreeSlug, RESERVED_PAGE_SLUGS, slugFromTitle } from "./slug.ts";
+
+export type { EntryType };
 
 // A page of the list, in one screenful. Comfortably below the quality bar's
 // scale (a few thousand entries -> at most a few hundred pages).
@@ -12,7 +14,7 @@ export const PAGE_SIZE = 20;
 
 export type Entry = {
   id: string;
-  type: "post" | "page";
+  type: EntryType;
   title: string;
   slug: string;
   blocks: Block[];
@@ -54,28 +56,38 @@ function ownedBy(actor: Actor) {
   return actor.role === "author" ? sql`and e.author_id = ${actor.id}` : sql``;
 }
 
-export async function findEntryForUser(id: string, actor: Actor): Promise<Entry | null> {
+export async function findEntryForUser(
+  type: EntryType,
+  id: string,
+  actor: Actor,
+): Promise<Entry | null> {
   const [row] = await sql<EntryRow[]>`
     select ${entryColumns} from entries e
-    where e.id = ${id} and e.type = 'post' ${ownedBy(actor)}
+    where e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
   `;
   return row ? toEntry(row) : null;
 }
 
-export async function createDraft(input: EntryInput, authorId: string): Promise<Entry> {
-  const base = slugFromTitle(input.title);
+export async function createDraft(
+  type: EntryType,
+  input: EntryInput,
+  authorId: string,
+): Promise<Entry> {
+  const base = slugFromTitle(input.title, type);
   // Only addresses that could collide with this one, not the whole table.
   const taken = await sql<{ slug: string }[]>`
-    select slug from entries where type = 'post' and slug like ${`${base}%`}
+    select slug from entries where type = ${type} and slug like ${`${base}%`}
   `;
-  const slug = nextFreeSlug(
-    base,
-    taken.map((row) => row.slug),
-  );
+  // A page can never take an address a route already answers to, or one
+  // reserved for a route that does not exist yet (item 6a) - folded into the
+  // same free-address search a title collision already goes through, so
+  // "Admin" becomes /admin-2 with no separate refusal.
+  const reserved = type === "page" ? RESERVED_PAGE_SLUGS : [];
+  const slug = nextFreeSlug(base, [...taken.map((row) => row.slug), ...reserved]);
 
   const [row] = await sql<EntryRow[]>`
     insert into entries ${sql({
-      type: "post",
+      type,
       title: input.title,
       slug,
       // sql.json, not JSON.stringify: the column is jsonb, and a string would
@@ -122,6 +134,7 @@ function transitionUpdate(transition: StatusTransition | undefined) {
  * unpublish, not only ever touch a draft (F-40).
  */
 export async function saveEntry(
+  type: EntryType,
   id: string,
   input: EntryInput,
   version: number,
@@ -136,7 +149,7 @@ export async function saveEntry(
       version = version + 1,
       updated_at = now()
       ${transitionUpdate(transition)}
-    where e.id = ${id} and e.version = ${version} and e.type = 'post' ${ownedBy(actor)}
+    where e.id = ${id} and e.version = ${version} and e.type = ${type} ${ownedBy(actor)}
       -- Only over a row this build can read: a tab opened before a format change
       -- would otherwise replace newer content with the old format (F-46). Such a
       -- row changes nothing here, and findEntryForUser below refuses it loudly.
@@ -146,12 +159,12 @@ export async function saveEntry(
   if (row) return { ok: true, entry: toEntry(row) };
 
   // No row changed: either this person cannot see it at all, or its version moved.
-  const existing = await findEntryForUser(id, actor);
+  const existing = await findEntryForUser(type, id, actor);
   return existing ? { ok: false, reason: "stale" } : { ok: false, reason: "not_found" };
 }
 
 /** One row of the list - lighter than `Entry`, since the list never needs `blocks`. */
-export type PostSummary = {
+export type EntrySummary = {
   id: string;
   title: string;
   slug: string;
@@ -160,8 +173,8 @@ export type PostSummary = {
   updatedAt: Date;
 };
 
-export type PostList = {
-  entries: PostSummary[];
+export type EntryList = {
+  entries: EntrySummary[];
   // Matches the current status and search.
   total: number;
   totalPages: number;
@@ -169,7 +182,11 @@ export type PostList = {
   counts: { all: number; draft: number; published: number };
 };
 
-export async function listEntries(actor: Actor, query: PostListQuery): Promise<PostList> {
+export async function listEntries(
+  type: EntryType,
+  actor: Actor,
+  query: EntryListQuery,
+): Promise<EntryList> {
   // Qualified to `e` (F-60), matching `ownedBy` - these compose into a query
   // that joins `users`, and an unqualified `status`/`title` would go from
   // "happens to be unambiguous" to a runtime "column reference is ambiguous"
@@ -178,20 +195,20 @@ export async function listEntries(actor: Actor, query: PostListQuery): Promise<P
   const searchFilter = query.q === "" ? sql`` : sql`and e.title ilike ${`%${query.q}%`}`;
 
   const [rows, totalRows, statusCounts] = await Promise.all([
-    sql<PostSummary[]>`
+    sql<EntrySummary[]>`
       select e.id, e.title, e.slug, e.status, u.name as "authorName", e.updated_at as "updatedAt"
       from entries e join users u on u.id = e.author_id
-      where e.type = 'post' ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+      where e.type = ${type} ${ownedBy(actor)} ${statusFilter} ${searchFilter}
       order by e.updated_at desc
       limit ${PAGE_SIZE} offset ${(query.page - 1) * PAGE_SIZE}
     `,
     sql<{ total: number }[]>`
       select count(*)::int as total from entries e
-      where e.type = 'post' ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+      where e.type = ${type} ${ownedBy(actor)} ${statusFilter} ${searchFilter}
     `,
     sql<{ status: "draft" | "published"; count: number }[]>`
       select status, count(*)::int as count from entries e
-      where e.type = 'post' ${ownedBy(actor)}
+      where e.type = ${type} ${ownedBy(actor)}
       group by status
     `,
   ]);
@@ -209,11 +226,15 @@ export async function listEntries(actor: Actor, query: PostListQuery): Promise<P
   };
 }
 
-/** The deleted post's own title, for the list's success message - or `null`
+/** The deleted entry's own title, for the list's success message - or `null`
  *  when there was nothing this actor could delete (not found, or not theirs). */
-export async function deleteEntry(id: string, actor: Actor): Promise<{ title: string } | null> {
+export async function deleteEntry(
+  type: EntryType,
+  id: string,
+  actor: Actor,
+): Promise<{ title: string } | null> {
   const [row] = await sql<{ title: string }[]>`
-    delete from entries e where e.id = ${id} and e.type = 'post' ${ownedBy(actor)}
+    delete from entries e where e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
     returning title
   `;
   return row ?? null;
@@ -238,8 +259,8 @@ export async function listPublishedPosts(limit: number): Promise<PublicPostSumma
   `;
 }
 
-/** One published post's full content, for its own page. */
-export type PublicPost = {
+/** One published entry's full content, for its own page. */
+export type PublicEntry = {
   title: string;
   blocks: Block[];
   publishedAt: Date;
@@ -248,19 +269,22 @@ export type PublicPost = {
 
 /** What the columns below return; the format is checked, then left out - same
  *  reason `toEntry` does this for the admin side. */
-type PublicPostRow = PublicPost & { blocksFormat: string };
+type PublicEntryRow = PublicEntry & { blocksFormat: string };
 
 /**
- * A published post by its address, or `null` if there is none - a draft and a
- * missing slug get the same answer, so a post's existence is never leaked by
+ * A published entry by its address, or `null` if there is none - a draft and a
+ * missing slug get the same answer, so an entry's existence is never leaked by
  * its status (the same rule `findEntryForUser` applies for ownership).
  */
-export async function findPublishedPost(slug: string): Promise<PublicPost | null> {
-  const [row] = await sql<PublicPostRow[]>`
+export async function findPublishedEntry(
+  type: EntryType,
+  slug: string,
+): Promise<PublicEntry | null> {
+  const [row] = await sql<PublicEntryRow[]>`
     select e.title, e.blocks, e.blocks_format as "blocksFormat",
       e.published_at as "publishedAt", u.name as "authorName"
     from entries e join users u on u.id = e.author_id
-    where e.type = 'post' and e.status = 'published' and e.slug = ${slug}
+    where e.type = ${type} and e.status = 'published' and e.slug = ${slug}
   `;
   if (!row) return null;
   const { blocksFormat, ...post } = row;

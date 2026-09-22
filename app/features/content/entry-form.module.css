@@ -51,7 +51,7 @@
   background: currentColor;
 }
 
-/* Same two tones as post-list.module.css - measured there (design.md). */
+/* Same two tones as entry-list.module.css - measured there (design.md). */
 .draft {
   background: var(--color-warning-subtle);
   color: var(--color-warning);

@@ -5,27 +5,43 @@ import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { isReadableEditorContent } from "./editor-content.ts";
-import styles from "./post-form.module.css";
+import styles from "./entry-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
 export type SaveProblem = { kind: "invalid"; message: string } | { kind: "stale" } | null;
 
 const STATUS_LABEL = { draft: "Draft", published: "Published" } as const;
 
-type PostFormProps = {
+// The handful of things a post and a page editor say differently. Shared
+// rather than copied (item 6a's own Decisions): the save/publish state
+// machine below is complex and has a history of subtle bugs fixed once in one
+// place (F-34, F-42, D64) - duplicating it risks a fix landing in only one copy.
+const ENTRY_COPY = {
+  post: { backHref: "/admin/posts", backLabel: "Posts", titlePlaceholder: "Post title" },
+  page: { backHref: "/admin/pages", backLabel: "Pages", titlePlaceholder: "Page title" },
+} as const;
+
+/** A page is served at the site root; a post keeps its `/posts/` prefix. */
+function addressFor(entryType: "post" | "page", slug: string): string {
+  return entryType === "post" ? `/posts/${slug}` : `/${slug}`;
+}
+
+type EntryFormProps = {
+  entryType: "post" | "page";
   title: string;
-  /** Empty for a post that has not been saved yet. */
+  /** Empty for an entry that has not been saved yet. */
   slug: string;
   blocks: Block[];
-  /** Resolves each image block's media id, so reopening a post shows its
-   *  images immediately - a new post has none to resolve. */
+  /** Resolves each image block's media id, so reopening an entry shows its
+   *  images immediately - a new entry has none to resolve. */
   mediaById?: Record<string, ImageMediaSummary>;
   status: "draft" | "published";
   version: number;
   problem: SaveProblem;
 };
 
-export function PostForm({
+export function EntryForm({
+  entryType,
   title,
   slug,
   blocks,
@@ -33,10 +49,11 @@ export function PostForm({
   status,
   version,
   problem,
-}: PostFormProps) {
+}: EntryFormProps) {
   const navigation = useNavigation();
   const submit = useSubmit();
-  // A post with no address yet has never been saved, so there is nothing to
+  const copy = ENTRY_COPY[entryType];
+  // An entry with no address yet has never been saved, so there is nothing to
   // publish - only Save, which creates it (as a draft, as today).
   const isSaved = slug !== "";
   // Editor.js owns its DOM, so its content is read on demand rather than held in
@@ -105,8 +122,8 @@ export function PostForm({
     <Form method="post" onSubmit={handleSubmit} className={styles.editor}>
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
-          <Link to="/admin/posts" className={styles.back}>
-            ← Posts
+          <Link to={copy.backHref} className={styles.back}>
+            ← {copy.backLabel}
           </Link>
           <span className={[styles.badge, styles[status]].join(" ")}>{STATUS_LABEL[status]}</span>
           <span className={styles.saveState} aria-live="polite">
@@ -167,20 +184,21 @@ export function PostForm({
       <input type="hidden" name="version" value={version} />
 
       <div className={styles.canvas}>
-        <label className={styles.titleLabel} htmlFor="post-title">
+        <label className={styles.titleLabel} htmlFor="entry-title">
           Title
         </label>
         <input
-          id="post-title"
+          id="entry-title"
           className={styles.title}
           name="title"
           defaultValue={title}
-          placeholder="Post title"
+          placeholder={copy.titlePlaceholder}
           autoComplete="off"
           onChange={() => setUnsavedChanges(true)}
         />
         <p className={styles.address}>
-          Web address: <span>{slug === "" ? "chosen when you first save" : `/posts/${slug}`}</span>
+          Web address:{" "}
+          <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
         </p>
 
         {isEditorReady ? (
@@ -192,7 +210,7 @@ export function PostForm({
           />
         ) : (
           <p className={styles.needsJs}>
-            The editor needs JavaScript. Turn it on and reload to write your post.
+            The editor needs JavaScript. Turn it on and reload to write your {entryType}.
           </p>
         )}
       </div>

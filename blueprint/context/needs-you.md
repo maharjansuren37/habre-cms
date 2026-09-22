@@ -101,11 +101,13 @@ not tidying; it is what keeps the open list true.
 
 - [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin
       shell** (NVDA, VoiceOver or Orca) - manual verification; no automated
-      check hears what is announced. Covers the shell's first nav section
-      (item 3) and, from item 3, the posts list's filter tabs and search, and
-      the delete confirmation screen. Done during item 1's `verify`, from its
-      `--manual` walkthrough. Blocks nothing now; `preflight` needs it (design.md
-      lists it as unchecked). `open` (spec, 2026-09-15; widened, item 3)
+      check hears what is announced. Covers the shell's nav (from item 3, the
+      posts list's filter tabs and search and its delete confirmation screen;
+      from item 6a, the same for the pages list, its editor and its delete
+      confirmation, plus the "Pages" nav entry itself). Done during item 1's
+      `verify`, from its `--manual` walkthrough. Blocks nothing now;
+      `preflight` needs it (design.md lists it as unchecked). `open` (spec,
+      2026-09-15; widened, item 3; widened, item 6a)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these

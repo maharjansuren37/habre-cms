@@ -7,7 +7,7 @@ import { Button } from "#app/lib/ui/button.tsx";
 import type { Route } from "./+types/post-delete";
 import { bannerRedirect } from "./banner.ts";
 import { deleteEntry, findEntryForUser } from "./entries.server.ts";
-import styles from "./post-delete.module.css";
+import styles from "./entry-delete.module.css";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
@@ -32,16 +32,16 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, context }: Route.LoaderArgs) {
   // findEntryForUser already returns null for someone else's post, the same as
   // for a post that does not exist - existence stays private either way.
-  const entry = await findEntryForUser(requirePostId(params.id), context.get(userContext));
+  const entry = await findEntryForUser("post", requirePostId(params.id), context.get(userContext));
   if (!entry) throw data("Not Found", { status: 404 });
   return { entry };
 }
 
 export async function action({ params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
-  const deleted = await deleteEntry(id, context.get(userContext));
+  const deleted = await deleteEntry("post", id, context.get(userContext));
   if (!deleted) throw data("Not Found", { status: 404 });
-  return bannerRedirect("deleted", deleted.title);
+  return bannerRedirect("deleted", deleted.title, "/admin/posts");
 }
 
 export default function DeletePost({ loaderData }: Route.ComponentProps) {

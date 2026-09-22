@@ -1,7 +1,7 @@
 import { data, Link } from "react-router";
 import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
 import { renderBlocks } from "#app/features/blocks/render.tsx";
-import { findPublishedPost } from "#app/features/content/entries.server.ts";
+import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -13,7 +13,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const post = await findPublishedPost(params.slug);
+  const post = await findPublishedEntry("post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
   // never leaked by its status (item 4b's D-5; matches findEntryForUser's
   // own rule for ownership on the admin side).

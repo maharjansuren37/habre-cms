@@ -888,3 +888,101 @@ twice in a row (`<figcaption>` is not an image's accessible name or
 description in any browser) - accepted rather than fixed, tracked as F-79
 pending the project's own screen-reader pass, because emptying `alt` instead
 is not a reliable substitute and nothing has actually heard it yet.
+
+## D66 - `entries.server.ts` takes a `type: EntryType` parameter, rather than a parallel `pages.server.ts` (2026-09-22)
+
+**Chose:** every function in `entries.server.ts` (`findEntryForUser`,
+`createDraft`, `saveEntry`, `listEntries`, `deleteEntry`,
+`findPublishedEntry`) takes `type: EntryType` as its first parameter,
+consistently, and now serves both posts and pages.
+
+Beat: a second, near-identical `pages.server.ts`. The data-layer functions
+are the same operation over the same table - the `entries` table has carried
+a `type` column since item 1 - so the reason to change is shared, not merely
+similar-looking: this is extraction, not premature abstraction. Cost: every
+call site names its entry type explicitly (`"post"` or `"page"`), which is
+one line of insurance against the wrong list reading the wrong rows, not
+boilerplate.
+
+## D67 - The post and page editors share one `EntryForm` component; the list and delete screens do not (2026-09-22)
+
+**Chose:** `PostForm` was renamed to `EntryForm` and parametrized
+(`entryType: "post" | "page"`), reused by both `post-new.tsx`/`post-edit.tsx`
+and `page-new.tsx`/`page-edit.tsx`. `page-list.tsx` and `page-delete.tsx` were
+instead copied from their post-* counterparts and adapted.
+
+Beat: copying the form too (this project's usual "copy the second time,
+extract on the third" default), and sharing the list/delete screens too. The
+form's save/publish state machine is complex and has a real history of
+subtle bugs fixed once in one place (F-34 - a native submit wiping the body;
+F-42 - the same failure mode for `readEditor`; D64 - dialog focus
+management) - duplicating it risks a future fix landing in only one copy. The
+list and delete screens hold little beyond markup and a loader, so that risk
+does not apply to them, and each can grow its own columns or filters later
+without fighting a shared component. Cost: one `ENTRY_COPY` lookup table in
+`entry-form.tsx` for the handful of things a post and a page editor say
+differently (back link, address prefix, title placeholder).
+
+## D68 - Reserved page addresses are absorbed into the free-slug search, not refused as an error (2026-09-22)
+
+**Chose:** `RESERVED_PAGE_SLUGS` (`admin`, `posts`, `api`, `healthz`) are
+unioned into `createDraft`'s "taken" list whenever `type === "page"`, so a
+page titled "Admin" silently becomes `/admin-2` - the exact mechanism a
+second "Hello world" already goes through. `api` is reserved even though no
+`/api` route exists yet, so a page cannot occupy an address a later item
+needs.
+
+Beat: refusing the save with a new validation error. Cost: none - no new
+message for a writer to read, no new code path to test beyond the existing
+free-address search.
+
+## D69 - A role restriction is enforced by a new, reusable `requireRole` middleware, refusing with 404 rather than 403 (2026-09-22)
+
+**Chose:** `app/features/auth/require-role.server.ts` exports
+`requireRole(allowed: readonly Role[])`, a route-level (not layout-level)
+middleware that throws `data("Not Found", { status: 404 })` for a
+disallowed role - the same shape `findEntryForUser` already uses for an
+ownership refusal.
+
+Beat: a 403 Forbidden, or an inline check duplicated per route. 404 keeps
+every access refusal in this app answering the same way, and does not signal
+that a restricted feature exists to a role that cannot reach it. Route-level
+rather than layout-level because posts and pages share the admin-shell
+layout but not a role restriction. Cost: none; reusable as-is by item 8 for
+admin-only routes (settings, users).
+
+## D70 - A role refusal is logged, matching every other access refusal in the app (2026-09-22)
+
+**Chose:** `requireRole` calls `logSecurityEvent` (a new
+`request_refused`/`reason: "role"` variant - `path`, `role`, `ip`) before
+throwing its 404.
+
+Not in the original spec - found by `review` (F-82): `refuseCrossSiteRequests`
+and every login outcome already log their refusals, and a role check is
+exactly the "access denied" fundamentals.md's Logging section names.
+Beat: leaving it silent, matching `findEntryForUser`'s own unlogged
+ownership refusal (accepted there as a pre-existing gap, not repeated here
+in new code). Cost: none.
+
+## D71 - Editing an existing entry is proven in e2e by a title change, not a body change, for pages specifically (2026-09-22)
+
+**Chose:** `e2e/manage-pages.spec.ts`'s "edit its content" step changes the
+page's title (a plain `<input>`) rather than retyping into the loaded
+Editor.js block.
+
+Not in the original spec - discovered repairing F-80: three different
+techniques for retyping into an *already-loaded* Editor.js block (click+End,
+click+Ctrl/Cmd+A, with and without confirming the DOM changed first) each
+passed some test runs and silently saved stale content on others, with no
+reproducible cause found after real investigation (a standalone debug script
+with explicit waits, console and screenshot capture). Beat: continuing to
+guess at a fourth technique, against this workflow's own "stop guessing
+after the second try" rule. The title exercises the identical `saveEntry`
+round trip deterministically, matching this project's own precedent of not
+driving a flaky rich-text interaction when it is not worth what it adds
+(`write-post.spec.ts`: "Driving the floating menu proved too flaky"). Cost:
+no e2e coverage yet of editing an existing page's *body* specifically - low
+risk, since `write-post.spec.ts` already covers the identical code path for
+posts extensively. The underlying flakiness is unresolved, not just avoided;
+worth a `debug` pass before a page builder needs to drive an already-populated
+block reliably.

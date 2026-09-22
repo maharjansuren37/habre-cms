@@ -78,5 +78,7 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 5b. **Insert images into posts** - an image block in the editor, backed by the media library
   - [x] 5c. **Render images on the public site** - resolve a media id to its URL at render time
 - [ ] 6. **Pages** - create, edit and publish static pages, served at their own URLs
+  - [x] 6a. **Manage pages** - admin list/create/edit/delete for pages, restricted to editors and admins, generalizing the entries table's existing `type` column and the post editor
+  - [ ] 6b. **Render pages on the public site** - `/:slug` resolves a published page and renders it in the built-in theme, the same as a post
 - [ ] 7. **Site settings and menu** - title, logo, navigation shown on the public site
 - [ ] 8. **Users and roles** - admin adds editors and authors; permissions enforced on the server

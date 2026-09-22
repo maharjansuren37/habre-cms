@@ -9,8 +9,8 @@ import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
-import { PostForm } from "./post-form.tsx";
-import { isPostBodySizeAllowed, parsePostForm, parseVersion } from "./post-form-input.ts";
+import { EntryForm } from "./entry-form.tsx";
+import { isEntryBodySizeAllowed, parseEntryForm, parseVersion } from "./entry-form-input.ts";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
@@ -32,7 +32,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const entry = await findEntryForUser(requirePostId(params.id), context.get(userContext));
+  const entry = await findEntryForUser("post", requirePostId(params.id), context.get(userContext));
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
@@ -55,13 +55,13 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
-  if (!isPostBodySizeAllowed(request.headers)) {
+  if (!isEntryBodySizeAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
   const form = await request.formData();
   // A native submit with no JavaScript carries no `intent` at all - the
   // buttons that set it only render once the editor has mounted (F-34's same
-  // condition) - and that has to fall through to `parsePostForm`'s own
+  // condition) - and that has to fall through to `parseEntryForm`'s own
   // missing-blocks message below, not a new "action could not be read" one.
   const intent = intentSchema.safeParse(form.get("intent") ?? "save");
   if (!intent.success) {
@@ -70,7 +70,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  const parsed = parsePostForm(form);
+  const parsed = parseEntryForm(form);
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },
@@ -83,6 +83,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const result = await saveEntry(
+    "post",
     id,
     { title: parsed.title, blocks: parsed.blocks },
     version,
@@ -96,15 +97,18 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // Publish and unpublish return to the list with the same success-banner
   // pattern the delete flow already uses (design.md); a plain save stays on
   // the editor and shows its new version instead.
-  if (intent.data === "publish") return bannerRedirect("published", result.entry.title);
-  if (intent.data === "unpublish") return bannerRedirect("unpublished", result.entry.title);
+  if (intent.data === "publish")
+    return bannerRedirect("published", result.entry.title, "/admin/posts");
+  if (intent.data === "unpublish")
+    return bannerRedirect("unpublished", result.entry.title, "/admin/posts");
   return { problem: null, version: result.entry.version };
 }
 
 export default function EditPost({ loaderData, actionData }: Route.ComponentProps) {
   const { entry, mediaById } = loaderData;
   return (
-    <PostForm
+    <EntryForm
+      entryType="post"
       title={entry.title}
       slug={entry.slug}
       blocks={entry.blocks}

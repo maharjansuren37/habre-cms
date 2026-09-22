@@ -3,13 +3,21 @@
  * editors as "Web address", never "slug" (design.md, Words).
  */
 
+export type EntryType = "post" | "page";
+
 // Long enough to stay readable in a URL, short enough to keep the column sane.
 const MAX_LENGTH = 80;
 // A title of only punctuation or emoji leaves nothing; every entry still needs
 // an address, and the type name is a truthful one.
-const FALLBACK = "post";
+const FALLBACK: Record<EntryType, string> = { post: "post", page: "page" };
 
-export function slugFromTitle(title: string): string {
+// Addresses a page can never be handed, whether or not one is already taken in
+// the database - `admin` and `posts` are routes this app already answers,
+// `healthz` is the health check, and `api` is reserved for a route that does
+// not exist yet, so a page cannot claim it first (item 6a).
+export const RESERVED_PAGE_SLUGS = ["admin", "posts", "api", "healthz"] as const;
+
+export function slugFromTitle(title: string, type: EntryType): string {
   const slug = title
     .normalize("NFKD")
     // Strip the accents NFKD just separated: café -> cafe, not caf.
@@ -20,7 +28,7 @@ export function slugFromTitle(title: string): string {
     .slice(0, MAX_LENGTH)
     // Slicing can leave a trailing hyphen where a word was cut.
     .replace(/-+$/g, "");
-  return slug === "" ? FALLBACK : slug;
+  return slug === "" ? FALLBACK[type] : slug;
 }
 
 /**
