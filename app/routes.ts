@@ -23,6 +23,7 @@ export default [
     route("admin/media", "features/media/media-list.tsx"),
     route("admin/media/picker", "features/media/media-picker.ts"),
     route("admin/media/:id/delete", "features/media/media-delete.tsx"),
+    route("admin/settings", "features/settings/settings.tsx"),
   ]),
   // Outside the admin shell on purpose: the editor drops the sidebar (design.md).
   route("admin/posts/new", "features/content/post-new.tsx"),

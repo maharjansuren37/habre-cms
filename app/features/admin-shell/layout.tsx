@@ -1,6 +1,7 @@
 import { Form, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import type { Route } from "./+types/layout";
@@ -10,17 +11,21 @@ export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
 // The loader is what makes client-side navigations call the server, so the
 // middleware checks the user on those too (React Router middleware docs).
-export function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   // "/" on this host redirects to /admin (D22), so the link has to be
   // absolute on the public host rather than the site-relative "/" it used
   // to be - env is server-only, so it crosses the loader boundary like `user`.
-  return { user: context.get(userContext), publicUrl: env.PUBLIC_URL };
+  return {
+    user: context.get(userContext),
+    publicUrl: env.PUBLIC_URL,
+    settings: await getSiteSettings(env.R2_PUBLIC_URL),
+  };
 }
 
 const ROLE_NAMES = { admin: "Admin", editor: "Editor", author: "Author" } as const;
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { user, publicUrl } = loaderData;
+  const { user, publicUrl, settings } = loaderData;
   const navigation = useNavigation();
   const isLoggingOut =
     navigation.state === "submitting" && navigation.formAction === "/admin/logout";
@@ -28,15 +33,18 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   return (
     <div className={styles.admin}>
       <aside className={styles.sidebar}>
-        {/* The site's own title and logo arrive with site settings (item 7). */}
         <div className={styles.site}>
-          Habre CMS
+          <span className={styles.siteName}>
+            {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.siteLogo} />}
+            {settings.siteTitle}
+          </span>
           <a href={publicUrl}>View site ↗</a>
         </div>
-        {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a - each
-            added here in ship order (D35); Settings and Users still add theirs
-            when they ship. Pages is editor/admin only (requireRole), so an
-            author never sees a link to a screen they'd get a 404 from. */}
+        {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
+            Settings in item 7a - each added here in ship order (D35); Users
+            still adds its own when it ships. Pages is editor/admin only and
+            Settings is admin only (requireRole), so a role that would get a
+            404 from the route never sees a link to it. */}
         <nav aria-label="Admin">
           <ul className={styles.nav}>
             <li>
@@ -56,6 +64,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 <NavLink to="/admin/pages">
                   <PagesIcon />
                   Pages
+                </NavLink>
+              </li>
+            )}
+            {user.role === "admin" && (
+              <li>
+                <NavLink to="/admin/settings">
+                  <SettingsIcon />
+                  Settings
                 </NavLink>
               </li>
             )}
@@ -141,6 +157,25 @@ function PagesIcon() {
     >
       <rect x="4" y="3" width="16" height="18" rx="2" />
       <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
     </svg>
   );
 }

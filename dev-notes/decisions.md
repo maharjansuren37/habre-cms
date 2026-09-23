@@ -1021,3 +1021,57 @@ back to a list.
 pages (no public page index exists, and none is planned before item 7's
 navigation menu). Cost: none yet - revisit once item 7 adds a navigation menu,
 since a page reached from that menu may then want a way back to it.
+
+## D75 - Item 7 split into 7a (site title and logo) and 7b (navigation menu) (2026-09-23)
+
+**Chose:** one spec covering a new table, a new admin screen, a reused picker
+dialog, and a reorderable list editor was too big for one review cycle - the
+same size call items 4, 5 and 6 each made.
+
+7a ships the site's identity (title, logo); 7b (unbuilt) adds the navigation
+menu on top of the same `site_settings` row. Cost: none - the plan already
+supports sub-items, and 7b can build on 7a's table and route without any
+rework.
+
+## D76 - `site_settings` migrated whole, including the unused `navigation` column (2026-09-23)
+
+**Chose:** the singleton table's full shape - `site_title`, `logo_media_id`,
+`navigation`, `updated_at` - lands in item 7a's own migration, even though
+nothing reads or writes `navigation` until 7b.
+
+The alternative was a second migration on the same table when 7b starts. Cost:
+a column that sits unused for one item's duration - cheaper than a second
+migration, and the shape was already settled in the plan.
+
+## D77 - `site_settings.logo_media_id` is a real foreign key, unlike a block's image reference (2026-09-23)
+
+**Chose:** `references media (id) on delete set null`, rather than the JSON,
+no-FK pattern block content uses for image ids (D61).
+
+A block's image reference degrades silently at render time because it is JSON
+inside `entries.blocks` - adding a real constraint there would need a new
+mechanism. `site_settings.logo_media_id` is a plain column, so a real FK keeps
+it valid for free instead of needing that same "no matching row" handling
+built again. Cost: a deleted-media-row save must be guarded against the FK
+violation this creates (see F-89's repair) - a real constraint doing its job,
+same shape as F-25's unhandled slug clash.
+
+## D78 - The logo picker duplicates the image block's dialog rather than sharing it (2026-09-23)
+
+**Chose:** `logo-picker.client.ts` is a near-identical copy of
+`blocks/image-tool.client.ts`'s dialog (fetch, grid, pagination, focus
+handling), not a shared component.
+
+`fundamentals.md`: "copy the second time, extract on the third." This is the
+dialog's second use. Cost: a fix to one (e.g. F-88's keyboard-focus repair,
+first found and fixed on the image block as F-76) has to be applied to the
+other by hand until a third consumer justifies extracting one component.
+
+## D79 - The public footer shows the site title as text, not the logo again (2026-09-23)
+
+**Chose:** the header carries the logo and title; the footer repeats only the
+title.
+
+No mockup or `design.md` line asked for the logo twice on one page. Cost:
+none - if a future design pass wants the footer branded further, it is a
+small, separate change.
