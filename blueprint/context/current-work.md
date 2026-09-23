@@ -114,6 +114,20 @@ rather than assuming the existing link/focus tokens transfer unmeasured.
   default. *Done when:* the new test(s) pass and the full suite (`npm run
   test:e2e`) still passes.
 
+- [x] **Step 5 - Repair F-94** - the settings form now has many `type="submit"`
+  buttons (each row's Move up/Move down/Remove, then Add item, then Save), so
+  pressing Enter in a text field targets whichever is first in DOM order, not
+  Save - confirmed live: with a row present it lands on that row's own
+  (disabled) "Move up", so Enter does nothing; with none present it lands on
+  "Add item", so Enter appends a blank row instead of saving. Add a hidden
+  default submit button (`intent=save`, `visually-hidden`, `tabIndex={-1}`,
+  `aria-hidden`) as the first focusable descendant of the `<Form>`, so
+  implicit submission always saves regardless of what else is in the form -
+  the standard fix for "several submit buttons, one intended default." *Done
+  when:* typing a new site title and pressing Enter saves it (the banner
+  shows and the title persists on reload), both with at least one nav row
+  present and with none.
+
 ## Files and areas
 
 - New: `app/features/settings/navigation-input.ts`,

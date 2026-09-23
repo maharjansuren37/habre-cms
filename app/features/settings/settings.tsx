@@ -159,6 +159,25 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <Message tone="error" title={actionData.problem} className={styles.banner} />
       )}
       <Form method="post" className={styles.form}>
+        {/* The form now has several type="submit" buttons (each nav row's
+            Move up/Move down/Remove, then Add item, then Save) - pressing
+            Enter in a text field implicitly submits via whichever comes
+            first in the DOM, not Save (F-94: with a row present that is a
+            disabled "Move up", so Enter does nothing; with none present it
+            is "Add item", so Enter adds a blank row instead of saving).
+            A hidden button carrying the Save intent, first in the DOM,
+            makes Enter always save - the standard fix for "several submit
+            buttons, one intended default." Never focusable or announced:
+            it exists only for the browser's own implicit-submission rule,
+            not as a second Save control a person could find. */}
+        <button
+          type="submit"
+          name="intent"
+          value="save"
+          className="visually-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
         <Field
           label="Site title"
           name="siteTitle"
