@@ -59,8 +59,8 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   release when it is promoted (expected October 2026). React Router 8 requires
   >= 22.22.
 - **Framework:** React Router **8.3.1**, framework mode; React **19.3.0**;
-  Vite **8.3.0**. Served by a plain `node:http` server through React Router's
-  Node adapter - no Express. v8 is newer than an agent's training; its installed
+  Vite **8.3.0**. Served by a plain `node:http` server through
+  `@remix-run/node-fetch-server` (see *Node server* below) - no Express. v8 is newer than an agent's training; its installed
   docs in `node_modules/react-router/docs/` are the authority.
 - **Database:** PostgreSQL **16** (Ubuntu 24.04 packages). Driver `postgres`
   **3.4.9**, raw SQL. Migrations are numbered `.sql` files applied by a small
@@ -79,7 +79,7 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   server entry (added by `scaffold`, D20).
 - **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with `@editorjs/header`
   **2.8.9** and `@editorjs/list` **2.0.9** (installed with item 2a, pinned exactly);
-  the image tool is settled in item 5's spec. Their shipped `.ts` types use `enum`,
+  the image tool is hand-written in the repo, not a package (D58). Their shipped `.ts` types use `enum`,
   which `erasableSyntaxOnly` forbids, so `app/types/editorjs.d.ts` describes the
   surface we use and `tsconfig.vite.json` maps the packages to it.
 - **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**.
@@ -297,8 +297,8 @@ One site per installation - no site id on any table (D8).
 - A page builder adds container block types with `children`; existing content
   stays valid. `blocks_format` versions the format for future changes.
 - **Text is stored as structured data, never raw HTML**, and escaped on render.
-  Which inline formatting is supported (bold, links, ...) is decided in item 2's
-  spec.
+  Inline formatting is bold, italic and links, stored as structured runs
+  (`blocks_format` v2, D28-D30).
 - **Image blocks store a media id, not a URL.** The URL is resolved at render
   time, so a bucket or domain change never touches content.
 
@@ -379,7 +379,7 @@ at hundreds of sites (D8).
 ## 8. Deployment - where and how does it ship?
 
 Known so far: an **Oracle Cloud VPS**, with **PostgreSQL 16 installed on the
-same server** (2026-09-16, `deploy/setup-server.sh`). Images go to **Cloudflare R2** (account not created yet).
+same server** (2026-09-16, `deploy/setup-server.sh`). Images go to **Cloudflare R2**.
 
 From `architect`:
 
@@ -387,9 +387,8 @@ From `architect`:
   (`PUBLIC_URL=https://surenmaharjan.fyi`), admin `cms.surenmaharjan.fyi`
   (`ADMIN_URL=https://cms.surenmaharjan.fyi`), `www` redirecting to the apex.
   `deploy/caddy/habre-cms.caddy` serves all three names, proxying the two app
-  hosts to the same port. Until item 4 ships, only `cms` is in it and the app
-  still reads a single `APP_URL=https://cms.surenmaharjan.fyi`. Production
-  values are set in production config, never in `.env.example`.
+  hosts to the same port. Production values are set in production config,
+  never in `.env.example`.
 - **One deployable application.** It listens on localhost only; **Caddy**
   (already installed) terminates HTTPS and proxies the domain to it. HTTPS is
   required - auth cookies are Secure.
@@ -397,7 +396,7 @@ From `architect`:
   role with access to nothing else. PostgreSQL listens on localhost only.
 - **Storage:** Cloudflare R2 bucket for images, with a public URL.
 - **Health check:** `/healthz`, reporting database reachability.
-- **Env vars:** `PUBLIC_URL`, `ADMIN_URL` (replacing `APP_URL` in item 4),
+- **Env vars:** `PUBLIC_URL`, `ADMIN_URL` (replaced `APP_URL`, item 4c),
   `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 - **Backups:** nightly database dump stored off the VPS - app and database share
@@ -487,7 +486,7 @@ decided; no billing in the first version.
   building on the server.
 - **Hosting:** Oracle Cloud VPS, with Caddy already installed for HTTPS. Must
   stay portable to another VPS (e.g. headless Ubuntu).
-- **Image storage:** Cloudflare R2 (account to be created by the user).
+- **Image storage:** Cloudflare R2.
 - **Auth:** JWT with a one-week lifetime for the MVP. The gap - a removed or
   demoted user keeping access until expiry - is closed by a database check on
   every admin request (section 6, D6).

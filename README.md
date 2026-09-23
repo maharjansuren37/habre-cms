@@ -6,11 +6,15 @@ block editor, and the CMS serves the public site itself - no developer needed to
 put something online. It is for small organisations with a handful of admins,
 editors and authors.
 
-**Status: in progress, live.** Admin login, writing posts with inline formatting
-(bold, italic, links), and managing them (list, filter, search, delete) all
-work, and are deployed to production at `https://cms.surenmaharjan.fyi`.
-Publishing to a public site, images, pages, site settings and users/roles are
-next - see `blueprint/build-plan.md`.
+**Status: MVP shipped, live.** All 8 build items are done and deployed to
+production: admin login and user/role management (admin, editor, author);
+writing posts and standalone pages in a block editor with inline formatting
+(bold, italic, links); uploading images into a reusable media library and
+placing them in posts and pages; draft/publish/unpublish; site title, logo
+and a navigation menu; a public site rendered from published content. Manage
+content at `https://cms.surenmaharjan.fyi`; the public site is
+`https://surenmaharjan.fyi`. What's next is undecided - see
+`blueprint/context/project-overview.md`'s *Current state*.
 
 ## Running it
 
@@ -25,13 +29,16 @@ Needs Node 26 and Docker.
 
 In `.env`, the web app needs `DATABASE_URL`, `PUBLIC_URL` and `ADMIN_URL`
 (both `http://127.0.0.1:3000` locally; the real `https://` addresses in
-production - D22) and `JWT_SECRET` (at least 32 characters - `.env.example`
-has the command that generates one). The server refuses to start without
-them. `db:migrate` and `create-admin` need only `DATABASE_URL`.
+production - D22), `JWT_SECRET` (at least 32 characters - `.env.example`
+has the command that generates one), and five `R2_*` variables for image
+uploads (a Cloudflare R2 bucket and API token - see `.env.example`). The
+server refuses to start without all of them. `db:migrate` and `create-admin`
+need only `DATABASE_URL`.
 
 There is no sign-up page: the first admin is created with `create-admin`, which
 asks for the password twice without showing it. Run the same command on the
-server after deploying.
+server after deploying. **After that, an admin can add further editors and
+authors from `/admin/users`** - `create-admin` is only for the very first one.
 
 ## Building it
 

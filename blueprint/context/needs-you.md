@@ -74,30 +74,43 @@ not tidying; it is what keeps the open list true.
       the bucket's `r2.dev` address for development, which is fine to build
       against but is rate-limited and not meant for real traffic - see
       `spec`'s note on item 5a. Swap it for a custom domain (e.g.
-      `media.surenmaharjan.fyi`) before this ships to production. Blocks
-      nothing now; needed by `deploy` for item 5. `open` (architect,
+      `media.surenmaharjan.fyi`) before this ships to production. **Risk
+      accepted by the owner, 2026-09-23: shipping on the `r2.dev` address for
+      now, custom domain after the MVP is live.** Blocks nothing now; needed
+      by `deploy` for item 5. `open` (architect,
       2026-09-15; narrowed by host, 2026-09-16; local value set, spec,
-      2026-09-22)
-- [ ] **A production R2 token for images - and, recommended, a production
-      bucket** - credentials; your Cloudflare account. The token in the local
-      `.env` is development's; reusing it in production would put laptop test
-      uploads beside real content and make a laptop leak a production leak.
-      Goes into `/etc/habre-cms/production.env` on the server, entered by you.
-      Needed when item 5 deploys, nothing blocked now. `open` (host, 2026-09-16)
+      2026-09-22; risk accepted, preflight, 2026-09-23)
+- [ ] **A production R2 token and bucket, actually separate from development's** -
+      credentials; your Cloudflare account. **Reopened by preflight,
+      2026-09-23** - the line below was closed too early: all five `R2_*`
+      variable *names* were present in `/etc/habre-cms/production.env`, but
+      checking the actual values (hashed for comparison, never printed) shows
+      `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_BUCKET` are byte-identical
+      to the ones in the local `.env` - production is running on the exact
+      development token and bucket, which is precisely what this line was
+      opened to prevent (a laptop compromise or a dev mistake reaches
+      production; test uploads sit beside real content). Create a second,
+      separate-scoped token and bucket in Cloudflare and put *those* values in
+      `/etc/habre-cms/production.env`. Directly blocks a real `deploy` of item
+      5 (media) - the app will run fine either way, but it will not be
+      isolated the way it's supposed to be. **Risk accepted by the owner,
+      2026-09-23: shipping on the shared dev/production token for now, will
+      separate them after the MVP is live.** (host, 2026-09-16; reopened by
+      preflight, 2026-09-23; risk accepted, preflight, 2026-09-23)
 - [ ] **Delete the `hone.surenmaharjan.fyi` DNS record** - access; your DNS.
       The hone app was removed from `ocwebserver` on 2026-09-15 (data archived
       to `~/backups/hone-2026-09-15.tar.gz`); the record now points at a server
       with no site for it. Blocks nothing. `open` (2026-09-15)
-- [ ] **UptimeRobot account with an alert email** - account; free tier.
-      Needed by `monitor`, nothing blocked yet. `open` (stack, 2026-09-15)
-
 - [ ] **Screen-reader and keyboard pass over the block editor** (NVDA, VoiceOver
       or Orca) - manual verification; no automated check hears what Editor.js
       announces, and `design.md` names the editor's blocks and block menu as the
       hardest part of the accessibility bar. Covers the + toolbox, the block
       settings menu, and - from item 2b - the inline toolbar (Bold, Italic,
       Link) and its link field. Done during item 2a's or 2b's `verify`.
-      Blocks nothing now; `preflight` needs it. `open` (spec, 2026-09-16)
+      **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
+      production without this; will do the accessibility pass after the MVP
+      is live.** Blocks nothing now; `preflight` needs it. `open` (spec,
+      2026-09-16; risk accepted, preflight, 2026-09-23)
 
 - [ ] **Screen-reader and keyboard pass over `/admin/login` and the admin
       shell** (NVDA, VoiceOver or Orca) - manual verification; no automated
@@ -115,10 +128,12 @@ not tidying; it is what keeps the open list true.
       the role/deactivate controls on your own account, plus the "Users" nav
       entry).
       Done during item 1's `verify`, from its `--manual` walkthrough.
-      Blocks nothing now; `preflight` needs it (design.md lists it as
+      **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
+      production without this; will do the accessibility pass after the MVP
+      is live.** Blocks nothing now; `preflight` needs it (design.md lists it as
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
-      widened, item 7b; widened, item 8)
+      widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these
@@ -127,8 +142,11 @@ not tidying; it is what keeps the open list true.
       rendered as real elements), one page (item 6b, once built - same
       typography and block rendering as a post, minus the byline), the
       header's navigation menu (item 7b), and the
-      404 page (item 4b). Blocks nothing now; `preflight` needs it before a
-      real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b)
+      404 page (item 4b). **Risk accepted by the owner, 2026-09-23: shipping
+      items 5-8 to production without this; will do the accessibility pass
+      after the MVP is live.** Blocks nothing now; `preflight` needs it before a
+      real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
+      risk accepted, preflight, 2026-09-23)
 
 - [ ] **Fill `PUBLIC_URL`, `ADMIN_URL` and `JWT_SECRET` in your local `.env`** -
       credentials; it is your secrets file, so no agent writes to it. Item 4c
@@ -142,6 +160,13 @@ not tidying; it is what keeps the open list true.
 
 ## Done
 
+- [x] **UptimeRobot account with an alert email** - account; free tier.
+      `done`: `/healthz` checked every 5 minutes on both hostnames with a
+      `"database":"up"` keyword check, plus SSL expiry alerts. Email delivery
+      proven by a real alert. **This line was still marked open** despite
+      `dev-notes/status.md` already recording it as done - found and closed
+      by `docs`, 2026-09-23. (stack, 2026-09-15; closed by monitor, evidence
+      reconciled by docs, 2026-09-23)
 - [x] **Private R2 bucket for database backups, and a token scoped to it** -
       accounts. `done` 2026-09-16: the owner created the bucket and put the
       credentials in `/etc/habre-cms/backup.env` on the server (root-only, mode
