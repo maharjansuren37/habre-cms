@@ -87,6 +87,12 @@ Also read `blueprint/project-plan.md`, `blueprint/build-plan.md`, and the archiv
 Report only what is actually wrong:
 
 - Missing required files, or a context file still holding its install stub.
+- **Always-loaded context over its budget.** Add up the bytes of every file
+  `CLAUDE.md` imports with `@`; `AGENTS.md` states the budget. Over it, name the
+  three largest and what in each could move out - closed entries, history,
+  detail a line and a link would carry. Every session pays for these files
+  before the user types a word: a real project reached 160 KB this way, most of
+  it closed findings and prose restating other files.
 - No verification command, or no test runner, when the project has real code.
 - **Drift from the loop.** The signals worth naming:
   - work committed directly to `main`
@@ -141,6 +147,12 @@ and neither is read by anything else:
 - **Open findings in `blueprint/context/findings.md`.** P2s and P3s carried
   across merges are specs half-written: three views accepting any HTTP method is
   one item, not three.
+- **What production is behind by** - the item sections still in
+  `blueprint/production-pending.md`: "production is N items behind, and needs"
+  the open lines. Merged is not live, and this is the only report that says so.
+- **The backlog, `blueprint/findings/backlog.md`** - the P3s `ship` moved out of
+  the index. Give the count; at five or more, name `spec`'s tidy item as an
+  option.
 
 Name a couple of the most useful, with their recorded reasons. **A deferred item
 nobody re-reads is a decision that quietly became a deletion**, and this is the

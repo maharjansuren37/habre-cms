@@ -5,7 +5,7 @@ description: "Set up automatic checks that run on push and on pull requests, usi
 
 # ci - make the checks run without being asked
 
-**Writes:** `dev-notes/status.md` · `blueprint/context/findings.md`
+**Writes:** `dev-notes/status.md` · `blueprint/context/findings.md` · `blueprint/findings/`
 
 Where this sits:
 
@@ -89,12 +89,19 @@ toolchain and runs each part's checks - Node plus the .NET SDK, `npm test` plus
 `dotnet test`. Either one job doing both in sequence, or one job per part in
 parallel.
 
-**If a contract is generated between them, verify it is current**: regenerate it
-and fail if the result differs from what is committed in `contracts/` at the
-product root - `architect` records the filename and the regeneration command in
-`AGENTS.md`. A stale contract is a
+**If a contract is generated between them** - `Kind:` in the product root's
+`AGENTS.md` says which it is - **verify it is current**: run `Regenerate:` from
+the directory that field names, and fail if the result differs from what is
+committed at `File:` under `contracts/` at the product root. `architect` fills
+both. A stale contract is a
 runtime failure that no unit test on either side will catch, because each part is
 individually correct against its own copy.
+
+**Then do the same for the clients.** `Generate clients:` gives a command per
+consuming part and the directory each runs from; run each one and fail on any
+difference. A generated client drifts exactly the way the contract does, and a
+part built against a stale client passes every check it owns - the contract
+itself being current says nothing about what was generated from it.
 
 **This job is the only check that runs without anyone asking.** `integrate`
 makes the same check, but only when someone remembers to run it - so if the
@@ -119,6 +126,14 @@ hope - and it is the only version of that claim anyone can check afterwards.
 
 Add a second job only when there is a real reason - that artifact, or a database
 service the tests genuinely need.
+
+**Browser tests run by default, database and all.** If the project has a
+browser test tool, add a job that runs it: a database service container for the
+tests that need one, the browser the tool installs, and the migrations applied
+before the tests start. Leaving it out is the user's call, asked for by name
+with its cost - never the default because it is more work. On a real project
+the browser tests covered the worst defects it ever had, and gated nothing for
+its whole life, because CI ran only the unit suite.
 
 **Branch on the platform:**
 
@@ -171,9 +186,8 @@ Then **stop**. Report:
 
 - what the config runs, and when
 - **every test command the project has that the pipeline does not run**, and
-  why. A browser test tool `stack` chose is the usual one - it often needs a
-  database service and a browser download, which is a real cost and the user's
-  call. Record the answer in the `ci` row of the Environments table, so "CI is
+  why. Browser tests are run by default, above; if the user chose to leave them
+  out, say so here with the reason they gave. Record the answer in the `ci` row of the Environments table, so "CI is
   green" is never read as "the browser tests passed"
 - that it passed locally
 - **that nothing has been pushed**, and that pushing is the user's call
@@ -186,7 +200,7 @@ hand, so the same checks can be run without the pipeline.
 **Then say what comes next: `context`.** It generates the overview the build
 loop reads, and it is the last planning step before `spec` starts on items.
 
-**When this skill repairs a finding** - a `preflight` blocker such as no automated checks, or a verification command that skips some - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in its **Resolution** line: the workflow ran and failed on a deliberately broken check. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
+**When this skill repairs a finding** - a `preflight` blocker such as no automated checks, or a verification command that skips some - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in the **Resolution** line of its entry, `blueprint/findings/<ID>.md`: the workflow ran and failed on a deliberately broken check. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
 
 ## Rules
 

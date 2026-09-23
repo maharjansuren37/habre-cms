@@ -5,7 +5,7 @@ description: "Build the spec in `blueprint/context/current-work.md` one small re
 
 # build - turn the spec into code, one reviewed step at a time
 
-**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/context/needs-you.md` · `blueprint/status/`
+**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `blueprint/status/`
 
 Where this sits:
 
@@ -38,6 +38,7 @@ Read the project's state before acting:
 
 - `blueprint/context/project-overview.md` - the source of truth for what this project is
 - `blueprint/context/coding-standards.md` - the conventions this project's code follows
+- `blueprint/context/fundamentals.md` - the pack's conventions; not loaded by default, so read it here
 - `blueprint/context/current-work.md` - the one item in flight, if any
 - `blueprint/context/findings.md` - open review findings against the current work
 
@@ -177,9 +178,10 @@ Work the spec's build steps in order, one at a time. For each step:
    on - add it under the spec's `## Decisions` now, while the reason is on screen;
    `ship` carries that section into `dev-notes/decisions.md`. If the
    step repaired a finding in `blueprint/context/findings.md`, set that finding to `fixed` and
-   note the repair in its **Resolution** line - never to `closed`, because a repair
+   note the repair in the **Resolution** line of its entry,
+   `blueprint/findings/<ID>.md` - never to `closed` at P0 or P1, because a repair
    is re-reviewed by `review` before it clears. A fix can introduce a worse
-   defect than the one it removed.
+   defect than the one it removed. A P2 or P3 is the exception in Step 4.
 
    Then offer a short choice:
 
@@ -247,8 +249,22 @@ Before handing off, read blueprint/context/findings.md. A P0 or P1 finding still
   spec's build steps (`- [ ] Repair F-03 - <title>`) so the repair is on the record
   and survives a context clear, then run it through Step 3 like any other step.
   Tick the step and mark the finding `fixed` together.
+- **A repair's test is written from that finding's own reproduction** - the
+  input, the path and the sequence the finding describes, not a nearby case the
+  repair makes easy to assert. Then **revert the repair and watch that test
+  fail**; put the repair back and watch it pass. A test that stays green with
+  the repair reverted asserts the repair, not the failure. On a real run a P1
+  was marked fixed with a passing test while the defect stood, because the test
+  never went down the failing path.
 - **Then run `review`** so those repairs are re-reviewed and can move to
-  `closed`. A repair never closes itself.
+  `closed`. A P0 or P1 repair never closes itself.
+- **A P2 or P3 you repaired, you may close** - only when its test was written
+  from the finding's reproduction and you **saw it fail with the repair
+  reverted** and pass with it back, as above. Set it to `closed`, and record in
+  **Resolution** the test, both runs, and `closed by build`. Anything short of
+  that stays `fixed` for `review`. On a real project a repaired P3 stayed
+  `fixed` for a week, loaded by every session, waiting for a pass that had
+  nothing left to learn from it.
 - **Never set `accepted`, `deferred` or `invalid`.** `accepted` is the user's explicit
   decision with a recorded reason; `invalid` is a `review` verdict backed
   by evidence. Neither is this skill's call.
@@ -259,10 +275,18 @@ review packet:
 - the branch name
 - what changed, grouped by file or area
 - checks run, with the exact command or proof used
-- how to try it by hand, or a pointer to `verify`
+- how to try it by hand, and **which done-whens, if any, were proven live
+  against the running app in Step 3 versus only by a green check** - that list
+  is what the next action reads
 - ledger state: any findings still `open` or `fixed`, by ID
 - known risks, skipped checks, or follow-ups
-- next action, usually `review` then `ship`
+- **next action:** `verify` first, when any behavioral done-when was proven
+  only by a green check rather than run against the real app - that is exactly
+  what `verify` exists for, and skipping it there leaves the spec's actual
+  promise unproven. Then `review`, then `ship`. **If every behavioral
+  done-when was already run live in Step 3, say so and name `review`
+  directly** - running `verify` again over work it already covers is not the
+  point of naming it in the chain.
 
 **In a multi-part project, post the packet** in `<product root>/blueprint/status/<this part>.md`:
 

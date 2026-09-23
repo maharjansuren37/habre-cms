@@ -101,6 +101,7 @@ Read the project's state before acting:
 
 - `blueprint/context/project-overview.md` - the source of truth for what this project is
 - `blueprint/context/coding-standards.md` - the conventions this project's code follows
+- `blueprint/context/fundamentals.md` - the pack's conventions; not loaded by default, so read it here
 - `blueprint/context/current-work.md` - the one item in flight, if any
 - `blueprint/context/findings.md` - open review findings against the current work
 
@@ -110,7 +111,11 @@ Then resolve what is being spec'd:
 - **No argument** - read `blueprint/build-plan.md` top to bottom and take the first
   unchecked leaf (a plain item, or the first unchecked sub-item under one that has
   been split). Completed items are checked off, so the first unchecked item is
-  always what is next.
+  always what is next. **If `blueprint/findings/backlog.md` holds five or more
+  findings, offer a tidy item first** - one fix spec repairing them in a batch,
+  grouped by file - and take the plan item if the user declines. The backlog is
+  not loaded, so nothing else brings it back; a P3 left there forever is a
+  finding that was deleted without anyone deciding to.
 - **A bug or small change** - this is a fix. It gets a spec marked `Type: Fix`
   with no build-plan number, and nothing is added to the plan. A fix repairs or
   adjusts what exists; it does not add a product capability.
@@ -124,10 +129,19 @@ progress is trackable from here on. Proceed either way.
 State which item you are spec'ing, and in which mode, before going further.
 
 **If `blueprint/history/abandoned/` holds a spec for this item**, say so, with its
-reason and branch, and ask whether to resume from it: restore it to
-`blueprint/context/current-work.md` with its ticks, check out the branch it
-names, and remove the abandoned note from the item's plan line - or write a new
-spec, leaving the archive as the record of the first attempt.
+reason and branch, and ask whether to resume from it - or write a new spec,
+leaving the archive as the record of the first attempt.
+
+To resume, **check out the branch before restoring anything.** The branch still
+carries its own committed `current-work.md` and `findings.md`, so checking it out
+brings the spec back with its ticks and the ledger back with it, and there is
+nothing to copy. Writing the archive onto `main` first only makes the checkout
+refuse: git will not overwrite a local change to that file. Restore from the
+archive only when the branch is gone, and then **drop the `**Abandoned:**` and
+`**Branch:**` lines and the whole `## Findings` section** that `ship --abandon`
+appended - that is the record of the attempt, not part of the spec, and its IDs
+are prefixed for the archive. Either way, remove the abandoned note from the
+item's plan line.
 
 **In a multi-part project, claim this part first** by writing
 `<product root>/blueprint/status/<this part>.md` - the path from `AGENTS.md`'s `Product root:`, **not** this part's
@@ -254,6 +268,11 @@ Write the spec to `blueprint/context/current-work.md`, filling every section:
     Choices this item makes that the plan does not already answer and later
     items will build on - an id type, a limit, a session rule - each with what
     it beat. `ship` records them in dev-notes/decisions.md. "None" is an answer.
+    ## Production needs
+    What production must have before this item can run there: new environment
+    variables by name, migrations, external accounts or services, a changed
+    host setting. `ship` carries it to blueprint/production-pending.md. "None"
+    is an answer.
     ## Notes
     Conventions and constraints to respect.
 
@@ -262,6 +281,12 @@ file, and the archive under `blueprint/history/` is not where anyone looks for w
 the project is shaped the way it is. On a real run a spec settled UUID ids, a
 password rule, logout on every device and a folder the layout never named - and
 none of it reached `dev-notes/decisions.md`, because nothing carried it there.
+
+**Production needs are how a release stops being a surprise.** On a real
+project four items merged before anyone noticed production lacked their
+environment variables and two migrations: each spec knew, and nothing carried
+it to the deploy. Name every variable the item's code reads that did not exist
+before, and every migration it adds.
 
 The build steps are a live checklist. `build` ticks each one off as it
 lands, so a session that resumes after a context clear reads which boxes are
@@ -275,6 +300,16 @@ number**, not "feels fast". A bar that no spec ever turns into a checkable
 criterion is decoration. If the item breaches the bar and that is intended, say so
 and route back to `architect`: changing the bar is an architecture decision, not
 something a spec settles quietly.
+
+**A done-when that needs a new kind of test says where that test runs.** A test
+that needs a database, a browser, a device or a network service cannot run
+wherever the others do. When a done-when asks for one, say which command runs
+it and where that command runs - locally, inside `verify`, in CI - and check
+that place has what the test needs. On a real run a spec asked for
+database-backed unit tests while `npm test` sat inside `verify`, which CI runs
+with no database: a done-when the project's own checks could never satisfy. If
+the place does not have it, the spec either adds a step that provides it or
+puts the test under a separate command and says CI does not run it.
 
 **A design record can be wrong, and building is how you find out.** `prototype`
 writes `design.md` from static mockups, which cannot show everything — a decision
@@ -333,7 +368,8 @@ step. Run the draft against each of these:
 - **Scope honesty.** Is anything creeping in that belongs to a later item? Is
   anything pushed out of scope that this genuinely cannot ship without?
 - **Done-whens.** Is each one observable and checkable by `verify`, or is
-  it a vague "it works"? Make it concrete.
+  it a vague "it works"? Make it concrete. Where does the test behind it run?
+  Can the command that checks it actually run there?
 - **Visual fidelity.** If this is visual work, is a reference actually linked, or
   are we about to build a design blind from prose?
 

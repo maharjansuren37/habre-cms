@@ -1,11 +1,11 @@
 ---
 name: ideate
-description: "Turn a rough idea into a filled-in project plan by interviewing about what you are building, who it is for, and what the first version must do - then writing `blueprint/project-plan.md` and a starting build-plan.md checklist. Pushes back on scope that is too big for a first version, and names what is deliberately not being built. With --rescope, changes the scope of a project that has already built things, carrying completed items and their history across rather than overwriting the plan. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks how to plan a project, or needs to change what an existing project is for."
+description: "Turn a rough idea into a filled-in project plan by interviewing about what you are building, who it is for, and what the first version must do - then writing `blueprint/project-plan.md` and a starting build-plan.md checklist. Pushes back on scope that is too big for a first version, and names what is deliberately not being built. Says plainly when an idea is not ready to build yet, rather than only cutting scope inside one assumed worth building, and records the project's non-negotiable commitments in `blueprint/context/principles.md`. With --rescope, changes the scope of a project that has already built things, carrying completed items and their history across rather than overwriting the plan. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks whether an idea is worth building, asks how to plan a project, or needs to change what an existing project is for."
 ---
 
 # ideate - turn a rough notion into a plan you can build from
 
-**Writes:** `blueprint/project-plan.md` · `blueprint/build-plan.md` · `dev-notes/decisions.md`
+**Writes:** `blueprint/project-plan.md` · `blueprint/build-plan.md` · `blueprint/context/principles.md` · `dev-notes/decisions.md`
 
 Where this sits:
 
@@ -22,9 +22,9 @@ empty.
 
 
 > **Multi-part project:** `blueprint/project-plan.md` and
-> `blueprint/context/quality-bar.md` (the bar the whole product is held to -
-> `architect` writes it at the root, not per part) live at the **product
-> root**, not this part. Resolve it from `AGENTS.md`'s `Product root:` field.
+> `blueprint/context/principles.md` live at the **product root**, not this
+> part - like `blueprint/context/quality-bar.md`, which `architect` writes
+> there next. Resolve the root from `AGENTS.md`'s `Product root:` field.
 > Everything else here is this part's own.
 
 ## Before you start
@@ -66,6 +66,13 @@ in a sentence:
 - **What does it store**, if anything?
 - **Constraints** - a deadline, a budget, something it must work with, a
   platform it must run on.
+- **Anything this project will never do or trade away, even under pressure?**
+  Different in kind from a constraint: a constraint is a fact about the
+  situation, this is a commitment the project holds itself to regardless of
+  the situation - "no ads, ever", "nothing leaves this machine", "one person
+  maintains this, so no dependency that needs a team to run". Real answers are
+  rare and short; "none" is a real answer too. This is what gets proposed and
+  written into `blueprint/context/principles.md` below.
 - **What already exists?** A prototype, a spreadsheet, a manual process it
   replaces. Existing things carry decisions worth knowing about.
 - **What should it feel like to use?** Only if it has a UI, and one or two
@@ -80,7 +87,28 @@ Ask only what is not already answered. If the user arrives with a clear
 description, confirm your reading of it and move on rather than interrogating
 them.
 
-## Step 2 - find the first version
+## Step 2 - decide whether this is worth building yet
+
+Before cutting scope, decide whether there is a first version worth cutting
+scope into. Say one of three things, out loud, before moving on:
+
+- **Go.** There is a real problem, a real user, and nothing already answers it
+  well enough that building this would be wasted effort. Move to Step 3.
+- **Not yet - a real answer is missing first.** Usually no identifiable user
+  ("everyone" from Step 1 left unresolved), or the problem turns out to already
+  have a good-enough answer nobody checked. Say exactly what is missing and
+  stop - do not invent an interview answer just to get past this step.
+- **This does not clear the bar, and here is why.** State the reason plainly -
+  the same posture `preflight` takes when it says no-go. **This is advisory,
+  never a refusal**: if the user still wants to build it, say so and continue
+  to Step 3. It is their project; the point of saying it is that the decision
+  gets made on purpose, not skipped.
+
+This is the same judgment the scope-cut step below already exercises, one step
+earlier and blunter: instead of asking *how small can the first version be*, it
+asks *is there a first version at all*.
+
+## Step 3 - find the first version
 
 **The most valuable thing this skill does is cut scope.** People describe the
 finished product; the plan needs the first useful version.
@@ -97,7 +125,7 @@ and why.** If the user disagrees, they are right - it is their project. But an
 unchallenged first version is almost always too big, and the cost of that is
 paid later, in a build that never quite finishes.
 
-## Step 3 - propose both plans, then stop
+## Step 4 - propose both plans, then stop
 
 Draft the content for the two planning docs, and show it before writing anything.
 
@@ -110,7 +138,7 @@ Draft the content for the two planning docs, and show it before writing anything
   asking the user the same question twice in one sitting, and losing the answer
   entirely between sessions.
 - **what is deliberately deferred, and to when** (section 11) - the output of
-  Step 2, which is the most valuable thing this skill does. A cut that is not
+  Step 3, which is the most valuable thing this skill does. A cut that is not
   written down is one that gets re-litigated.
 - **the UI/UX section** (section 7), if it has a UI - the feel, and any
   reference given
@@ -123,6 +151,15 @@ those in, and guessing at them here makes their interviews harder.
 look gets improvised much later, by whoever happens to be building the first
 screen. A rough sentence and a link to something the user likes is enough. "No
 strong opinion, wants it plain" is a real answer worth recording; blank is not.
+
+**`blueprint/context/principles.md`** - the project's non-negotiable
+commitments, from Step 1's own bullet. Short - most projects have zero to three
+real ones. State each as a commitment, not a feature: "no ads, ever", not "an
+ad-free experience". **"None recorded" is a real, complete answer** - do not
+invent one to fill the section. This file is distinct from
+`blueprint/context/quality-bar.md`, which `architect` writes next: that is
+measurable numbers this project is held to, this is what it will not trade away
+to hit them.
 
 **`blueprint/build-plan.md`** - the checklist:
 
@@ -139,11 +176,16 @@ in build order, into the Features section, and say `architect` splits them into
 each part's build plan.
 
 **Stop for approval.** These are the user's files, and everything downstream
-reads them.
+reads them - `principles.md` included, since `review` and `preflight` will
+audit against whatever it says.
 
-## Step 4 - write, and hand off
+## Step 5 - write, and hand off
 
-Write the approved content. Then say what comes next: `architect` to establish
+Write the approved content, including `principles.md`. **Write it even when the
+answer was "none"** - say so explicitly, the same reason `quality-bar.md` writes
+"not measured, no target" rather than leaving a line blank: an absent file and a
+real "none" read the same to a later reader only if the file says which one this
+is. Then say what comes next: `architect` to establish
 the shape and the quality bar, then `stack` to choose the technology against
 them, then `layout` and `scaffold` to build the project.
 
@@ -182,6 +224,19 @@ Then:
 - **Record it in `dev-notes/decisions.md` as superseding the original scope.**
   Numbers are permanent and a superseded entry is marked, never deleted - what a
   project stopped being explains as much as what it is.
+- **Leave an existing `principles.md` alone unless the user raises it.** A
+  rescope changes *what* the project is for, not what it will never trade away
+  to build it - those are different questions, and revisiting one just because
+  the other changed would re-litigate a settled commitment for no reason
+  connected to it. If the new scope genuinely conflicts with an existing
+  principle, say so and ask, rather than quietly picking a side.
+- **When there is no `principles.md` at all, ask Step 1's commitment question
+  and write one.** That is every project adopted through `setup`, which reports
+  the file unrecorded and sends the user here - **this skill is its only
+  writer, so "leave it alone" on a file that does not exist means it never gets
+  written.** Leaving it alone is about not re-opening a settled commitment, not
+  about declining to record a first one. "None" is still a real answer and
+  still gets written as one.
 - **Hand off to `setup` and `context`, not `stack` and `scaffold`.** There is
   code here already: `stack` refuses a project that has any, and `scaffold`
   installs a decision made long ago. `setup` re-reads what the repo actually is;

@@ -5,18 +5,19 @@ description: "The whole-project go-live audit: everything, once, before the firs
 
 # preflight - is this ready to be live at all?
 
-**Writes:** `blueprint/context/findings.md`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/`
 
 Where this sits:
 
     ship -> preflight -> host -> deploy -> monitor
     (`ci` runs much earlier, right after `scaffold`)
 
-> **Multi-part project:** `blueprint/project-plan.md` and
+> **Multi-part project:** `blueprint/project-plan.md`,
 > `blueprint/context/quality-bar.md` (the bar the whole product is held to -
-> `architect` writes it at the root, not per part) live at the **product
-> root**, not this part. Resolve it from `AGENTS.md`'s `Product root:` field.
-> Everything else here is this part's own.
+> `architect` writes it at the root, not per part), and
+> `blueprint/context/principles.md` (the product's own, from `ideate`) live at
+> the **product root**, not this part. Resolve it from `AGENTS.md`'s
+> `Product root:` field. Everything else here is this part's own.
 
 **There are two different questions, and the rest of the workflow only asks one.**
 `ship` asks *"is this change safe to merge?"* - one item, one branch, one session.
@@ -42,9 +43,9 @@ That is why it is a milestone gate rather than something run often.
 ## Step 1 - establish scope
 
 Read `blueprint/project-plan.md`, `blueprint/context/project-overview.md`,
-`blueprint/context/coding-standards.md`, `blueprint/context/findings.md`,
-`dev-notes/`, and the real state of the repository. Know the platform and the
-environments.
+`blueprint/context/coding-standards.md`, `blueprint/context/principles.md` if
+it exists, `blueprint/context/findings.md`, `dev-notes/`, and the real state of
+the repository. Know the platform and the environments.
 
 **Name the paths, do not say "the plan".** In a multi-part product the plan is the
 **product's**, at the root recorded in `AGENTS.md`'s `Product root:`, while the
@@ -215,6 +216,16 @@ If the file does not exist, that is a finding in its own right - `architect`
 writes it, and without it there is no standard to hold this to but a generic one
 that may be far stricter or far looser than this project needs.
 
+**Against the project's own principles**
+
+Read `blueprint/context/principles.md`, if `ideate` wrote one. A live violation
+of a stated commitment is a blocker at the same standing as a missed
+quality-bar number - both are the project failing to meet a bar it set for
+itself. Unlike the quality bar, **an absent file is not automatically a
+finding**: `ideate` writes "none recorded" explicitly when there is nothing to
+hold, so absence usually means `ideate` never ran on this project. Say which
+case this is rather than treating silence as either a pass or a gap.
+
 **Accessibility and performance**
 
 - WCAG on the main flows: keyboard reachability, focus visibility, contrast,
@@ -255,7 +266,8 @@ that may be far stricter or far looser than this project needs.
 Sort everything into four buckets, and lead with the verdict:
 
 - **Blockers** - must be fixed before going live. Each one goes into the findings
-  ledger as P0 or P1, so the existing machinery carries it.
+  ledger as P0 or P1, so the existing machinery carries it: a heading in the
+  index, the entry in `blueprint/findings/<ID>.md`, in `review`'s format.
 
   **On a re-run, close what was repaired.** A blocker no code fixes - backups, a
   host, a README, a rotated secret - is marked `fixed` with evidence by the skill
@@ -270,6 +282,9 @@ Sort everything into four buckets, and lead with the verdict:
   release goes out with them live, and the only difference from an accepted one
   is that something is meant to come back. Report them at every audit, never as
   resolved, until that skill has run.
+- **Backlog** - the count in `blueprint/findings/backlog.md`, naming any whose
+  file this release changed. P3s gate nothing, but a backlog nobody counts is a
+  deletion by another name.
 - **Not applicable** - with the reason. "No personal data collected, so no
   privacy policy needed" is a real result.
 - **Could not verify** - and what would be needed to verify it. **Never counted

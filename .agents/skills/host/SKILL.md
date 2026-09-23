@@ -5,7 +5,7 @@ description: "Provision what the project needs to run somewhere other than a lap
 
 # host - set up the places this runs
 
-**Writes:** `blueprint/context/findings.md` · `blueprint/context/needs-you.md` · `dev-notes/decisions.md` · `dev-notes/status.md`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `dev-notes/decisions.md` · `dev-notes/status.md`
 
 Where this sits:
 
@@ -277,8 +277,8 @@ remedy is **rotation** - removing the commit does not help, because it has
 already been copied.
 
 **When this skill repairs a finding** - that rotation, or a `preflight` blocker
-such as missing backups - **set it to `fixed`** with the evidence in its
-**Resolution** line: the new value works and the old one is revoked, a restore
+such as missing backups - **set it to `fixed`** with the evidence in the
+**Resolution** line of its entry, `blueprint/findings/<ID>.md`: the new value works and the old one is revoked, a restore
 from the backup ran. **Never `closed`**: `preflight` re-checks it and closes it,
 because a repair is examined by something other than what made it. Left `open`,
 it blocks every later `ship` in this part.

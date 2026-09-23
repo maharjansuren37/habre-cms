@@ -5,22 +5,24 @@ description: "Read-only code audit that records what it finds in the ledger at b
 
 # review - audit the code, and record what you find
 
-**Writes:** `blueprint/context/findings.md`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/`
 
 Where this sits:
 
     `build` -> review -> repairs -> review again -> `ship`
 
-> **Multi-part project:** `blueprint/project-plan.md` and
+> **Multi-part project:** `blueprint/project-plan.md`,
 > `blueprint/context/quality-bar.md` (the bar the whole product is held to -
-> `architect` writes it at the root, not per part) live at the **product
-> root**, not this part. Resolve it from `AGENTS.md`'s `Product root:` field.
-> Everything else here is this part's own.
+> `architect` writes it at the root, not per part), and
+> `blueprint/context/principles.md` (the product's own, from `ideate`) live at
+> the **product root**, not this part. Resolve it from `AGENTS.md`'s
+> `Product root:` field. Everything else here is this part's own.
 
 `verify` proves the *behavior* matches the spec. This checks the *code*:
 whether it is safe, consistent, and worth building on.
 
-It changes nothing except blueprint/context/findings.md. It never edits source, installs a
+It changes nothing except blueprint/context/findings.md and the entries in
+`blueprint/findings/`. It never edits source, installs a
 dependency, commits, merges, or starts product work.
 
 ## What this is not
@@ -64,6 +66,17 @@ and the performance and security lenses against a missing
 Report that as an unverified area in the summary rather than letting silence read
 as a pass.
 
+**A third file to check against, when it exists: `blueprint/context/principles.md`**
+- the project's own non-negotiable commitments, written by `ideate`. Different
+from the two standards above: those are code-level conventions, this is a
+project-level commitment the code as a whole either honors or breaks - an
+analytics call added to a project whose principles say "nothing leaves this
+machine" is a finding here regardless of how clean the code around it is. A
+missing file is not itself a gap the way a missing `coding-standards.md` is:
+"none recorded" is written explicitly when there is nothing to hold, so an
+absent file most often means `ideate` never ran, which is worth naming but is
+not a code finding.
+
 ## Input
 
 Scope and lens are separate controls, and either can be omitted.
@@ -91,6 +104,8 @@ Read the project's state before acting:
 
 - `blueprint/context/project-overview.md` - the source of truth for what this project is
 - `blueprint/context/coding-standards.md` - the conventions this project's code follows
+- `blueprint/context/fundamentals.md` - the pack's conventions; not loaded by default, so read it here
+- `blueprint/context/principles.md` - the project's non-negotiable commitments, if `ideate` recorded any
 - `blueprint/context/current-work.md` - the one item in flight, if any
 - `blueprint/context/findings.md` - open review findings against the current work
 
@@ -106,6 +121,17 @@ and never claim the committed work was fully covered.
 
 For `full`, state the excluded paths before starting, so generated code,
 dependencies, and build output do not consume the review.
+
+**A changed file git calls binary is a file nobody else can see.** `git diff`
+prints "Binary files a/x and b/x differ" for any file holding a NUL byte, and a
+text source file gets one when a raw control character is written into it
+instead of an escape - inside a regex is the usual way. Check the changed set
+for it explicitly: `git diff --numstat` prints `-` for both counts on such a
+file. **Read that file whole** rather than letting an empty diff read as no
+change, and **record it as a finding** - the diff is the only thing a
+pull-request reviewer sees, so the item's main change would otherwise ship
+reviewed by nothing but this skill. On a real run that file was the item's core
+new file, and neither `review` nor `ship` noticed.
 
 ## Step 2 - run the signals that already exist
 
@@ -142,7 +168,8 @@ The lenses:
 
 - **Quality** - duplicated logic, dead code, unreachable paths, oversized
   modules, abstractions that do not pay for themselves, a missing abstraction
-  that is causing real repetition, drift from blueprint/context/coding-standards.md.
+  that is causing real repetition, drift from blueprint/context/coding-standards.md,
+  and anything that breaks a commitment in `blueprint/context/principles.md`.
 - **Security** - judged against the posture in `blueprint/context/quality-bar.md`
   where it exists: what this handles, and what that obliges. Missing
   authentication or authorization, ownership taken from
@@ -206,7 +233,8 @@ and remediation, with the value redacted. Redact command output too.
 ## Step 4 - update the ledger
 
 `blueprint/context/findings.md` is the durable record. A chat report does not survive a context
-clear; the ledger does. It is the only file this skill writes. Create it with a
+clear; the ledger does. The ledger - that index and the entries under
+`blueprint/findings/` - is all this skill writes. Create the index with a
 `# Findings` heading if it is missing.
 
 **The ledger never scopes the review.** Review the code fresh in Step 3, then
@@ -214,16 +242,26 @@ record what you found. Working from the open findings as a checklist and
 verifying only those is the exact failure this file exists to prevent - a repair
 can introduce a defect no existing entry points at.
 
-One block per finding. The header line is a machine-readable contract and keeps
-this exact shape; the prose below it is for people:
+Each finding is two pieces. **The index heading** goes in
+`blueprint/context/findings.md`, which every session loads - so it is the
+heading and one `File:` line, nothing more. The heading is a machine-readable
+contract and keeps this exact shape, and **status lives only here**:
 
     ### F-03 [P0] open - Session cookie is readable from JavaScript
+    File: src/auth/session.ts:41
 
-    **File:** src/auth/session.ts:41
+**The entry** goes in `blueprint/findings/F-03.md`, read by whoever acts on it:
+
+    # F-03 - Session cookie is readable from JavaScript
+
     **Found:** 2026-08-31 by review (scope: current; lens: security)
     **Why it matters:** ...
     **Suggested fix:** ...
     **Resolution:**
+
+**"Why it matters" is at most three lines.** It is read by the skill that
+repairs the finding, not by every session, but a house style of paragraphs is
+what grew one project's ledger to 80 KB.
 
 IDs are sequential within the ledger, never reused and never renumbered while
 their entries live there - not even after one closes. A bare ID is scoped to the
@@ -248,7 +286,7 @@ into a confirmed high severity.
 | `unverified` | Suspected, no confirming evidence yet | No |
 | `open` | Confirmed, not repaired | **Yes** |
 | `fixed` | Repaired, not yet re-reviewed | **Yes** |
-| `closed` | Repaired, and re-checked by something other than what repaired it | No |
+| `closed` | Repaired, and re-checked by something other than what repaired it - or, at P2 or P3, repaired with a test seen failing first | No |
 | `deferred` | Not now, by the user's explicit decision, **naming the skill or milestone that will do it** | No |
 | `accepted` | Not fixing, by the user's explicit decision, reason recorded | No |
 | `invalid` | Re-examination proved it wrong, evidence recorded | No |
@@ -257,7 +295,10 @@ into a confirmed high severity.
 done when something other than what made it has looked at the result.
 
 - **A code finding:** `build` marks the repair `fixed`; only a pass of this skill
-  moves it to `closed`.
+  moves it to `closed`. **The exception is P2 and P3:** `build` closes those
+  itself when the repair's test was seen failing with the repair reverted, and
+  says so in **Resolution**. Re-examine one of those if its file is in scope -
+  a close is not immune to review - but it no longer waits for you.
 - **A finding no code fixes** - no backups, a leaked secret, a missing README,
   raised by `preflight` or `host`: the skill that does the repair (`host`,
   `deploy`, `docs`, `ci`, ...) marks it `fixed` with its evidence in
@@ -271,6 +312,9 @@ Then:
 - Record a risk worth tracking but unproven as `unverified`. It is a lead, and
   never gates a merge.
 - Update entries this pass re-examined, noting the evidence in **Resolution**.
+- **Findings in `blueprint/findings/backlog.md` are still live.** A P3 `ship`
+  moved there keeps its ID and status; close one the same way when this pass's
+  reviewed set covers its file, updating its heading in the backlog.
 - Move `fixed` to `closed` only when all three hold: this pass's reviewed set
   included the file, re-examining the repaired code confirmed the defect is gone
   *and* introduced nothing new, and the report names it as closed. An unrelated
@@ -315,7 +359,7 @@ list with no verdict reads as approval.
 
 ## Rules
 
-- **The ledger is the only file this skill writes.** Never edit, format, install,
+- **The ledger - the index and its entry files - is all this skill writes.** Never edit, format, install,
   commit, or delete anything else.
 - **A focused lens is not a broad audit.** State what was not reviewed.
 - **The ledger reports status; it never defines what to look at.**

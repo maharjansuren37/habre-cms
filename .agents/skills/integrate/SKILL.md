@@ -32,14 +32,16 @@ commit.
 
 The contract lives in **`contracts/` at the product root** - the path from
 `AGENTS.md`'s `Product root:` when running inside a part, never that part's own
-directory. `architect` records the filename and the regeneration command there.
+directory. `architect` records its name as `File:` and the command that rebuilds
+it as `Regenerate:`, in the contract block there.
 **If neither exists, stop and say so**: a contract this skill cannot locate is
 one nothing has been checking, which is a finding in itself and not something to
 work around by guessing.
 
-Regenerate the contract from whichever part owns it - usually the backend,
-because it is the one that can break it - and **compare against what is
-committed** in `contracts/`. Any difference is a failure.
+Run `Regenerate:` from the directory it names - it belongs to whichever part
+owns the contract, usually the backend, because it is the one that can break it -
+and **compare against what is committed** at `File:`. Any difference is a
+failure.
 
 A stale contract is a runtime failure that **neither side's tests will catch**.
 The backend is correct against its code. The client is correct against the

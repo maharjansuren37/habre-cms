@@ -48,12 +48,17 @@ cannot simply be renamed: its `AGENTS.md` `Product root:`, the root `AGENTS.md`
 listing and the board all name it, and `architect` has already written its build
 plan. Before any code exists, and after approval in Step 4, move it like this:
 
-1. Copy the part's `blueprint/` and `dev-notes/` somewhere outside it.
+1. Copy the part's `blueprint/` and `dev-notes/` somewhere outside it, **and keep
+   the text of its line in the root `AGENTS.md` listing.**
 2. Delete its line from the root `AGENTS.md` listing, then its directory.
 3. Seed the new path: `lib/seed-part.sh <product root> apps/web` - it writes the
    right `Product root:` and the listing, and keeps the board entry and status
    file, which are keyed on the part's name.
-4. Copy the saved `blueprint/` and `dev-notes/` back into the new directory.
+4. Copy the saved `blueprint/` and `dev-notes/` back into the new directory, then
+   **write the part's description back onto its new listing line.** Step 3 seeds
+   that line from the template, so what `architect` wrote about this part comes
+   back as `<what this part is>` - a placeholder, in the file every session reads
+   to learn what the parts are, and nothing in the move reports it.
 
 `lib/seed-part.sh` refuses step 3 while the old path is still listed, because two
 parts with one name would share a status file. Once code exists, moving a part is

@@ -128,15 +128,27 @@ Write `blueprint/context/project-overview.md`, covering:
 - **Scope** - what the first version includes, and what is explicitly deferred.
 - **Stack** - the chosen technologies and the reasoning that survived from the
   plan. An agent reading this should not re-litigate a settled decision.
-- **Architecture** - structure, data model, where logic lives, the auth boundary.
+- **Architecture** - structure, where logic lives, the auth boundary, and the
+  data model's entities by name. The fields, the endpoints and the decisions
+  behind them stay in the plan: name the section instead.
 - **Constraints** - anything that rules an approach out: hosting, budget, a
   platform requirement, an existing system it must fit.
-- **Current state** - which items are checked off, what is in flight, what is
-  next.
+- **Current state** - how many items are checked off, what is in flight, what
+  is next. Three lines; `blueprint/build-plan.md` is the record.
 
-Write it for an agent joining with no other context. Prefer concrete detail over
-summary: this file replaces reading everything else, so vagueness here becomes
-vagueness in every session that loads it.
+Write it for an agent joining with no other context: concrete, never vague -
+and **at most 8 KB**. Every session loads this file, so every kilobyte in it
+is paid for again and again. It orients; it does not replace the files it
+points at.
+
+**Link, never restate.** Open findings, needs-you lines, shipped items,
+decisions and the environments each have a file that is their record - name the
+file, do not copy it here. On a real project the overview restated the findings
+ledger and `needs-you.md` in prose and reached 29 KB; every change to either
+made the overview stale, and 12 of 33 commits were regenerating it. **If a
+section will not fit, it is restating something** - find what, and point at it.
+
+**Measure it before reporting** (`wc -c`). Over 8 KB, cut and measure again.
 
 Mark it as generated at the top, with the instruction to edit the plans instead.
 
@@ -157,7 +169,8 @@ regenerated one.
 
 If an overview already existed, say what this regeneration changed - new items,
 a changed stack, a resolved contradiction. If this is the first generation, say
-so. **Say whether `AGENTS.md`'s `## What this is` was filled, left alone because
+so. **Give its size**, so a file creeping toward the cap is seen before it
+passes it. **Say whether `AGENTS.md`'s `## What this is` was filled, left alone because
 it already had prose, or updated** - it is a user-owned file, so a write to it
 is never silent.
 

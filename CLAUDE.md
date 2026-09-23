@@ -7,7 +7,6 @@ loaded every session.
 @AGENTS.md
 
 @blueprint/context/project-overview.md
-@blueprint/context/fundamentals.md
 @blueprint/context/coding-standards.md
 @blueprint/context/ai-interaction.md
 @blueprint/context/current-work.md

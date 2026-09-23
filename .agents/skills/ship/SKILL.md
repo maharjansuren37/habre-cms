@@ -5,7 +5,7 @@ description: "Close out finished work: run a final safety pass, archive the spec
 
 # ship - log it, commit it, merge it
 
-**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/build-plan.md` · `blueprint/history/` · `dev-notes/decisions.md` · `blueprint/status/`
+**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `blueprint/build-plan.md` · `blueprint/history/` · `dev-notes/decisions.md` · `blueprint/production-pending.md` · `blueprint/status/`
 
 Where this sits:
 
@@ -97,37 +97,66 @@ the spec, but nobody reads an archive to learn why the project is shaped as it
 is: on a real run eight decisions a later item depended on lived only there,
 and `docs` was merely suggested.
 
-**Archive the resolved findings with it.** Append a `## Findings` section to the
-archive file holding every `closed`, `accepted`, or `invalid` entry at its final
-status, with `accepted` entries keeping their recorded reason. **A `deferred`
-entry is not resolved and stays in the ledger**, with its `Deferred to:` target:
-one archived as `accepted` was repaired an hour later by the very skill it named,
-and the repair had to be written into an archive nobody reads. Prefix each ID
-with the archive name so it stays unique forever: item 12's `F-03` becomes
-`12/F-03`. Then remove those entries from the ledger.
+**Carry the spec's `## Production needs` to `blueprint/production-pending.md`**,
+unless it says none. Append it under a `## <archive name>` heading (create the
+file with a `# Production pending` heading), one `- [ ]` line per need. The item
+is merged, but it is not live until `deploy` has met every line - and this file
+is the only place that says so.
 
-Unresolved entries - `open` or `fixed` at P2 or P3, and `unverified` leads - stay
-in the ledger with their IDs. They are never silently dropped. When nothing is
-left, reset `blueprint/context/findings.md` to its stub - the template's file,
-header included, because the header is where `docs`, `ci`, `deploy` and `monitor`
+**Archive the resolved findings with it.** Append a `## Findings` section to the
+archive file holding every `closed`, `accepted`, or `invalid` finding at its
+final status - its index heading followed by the body of its entry file,
+`blueprint/findings/<ID>.md`, with `accepted` entries keeping their recorded
+reason. **A `deferred` entry is not resolved and stays in the ledger**, with its
+`Deferred to:` target: one archived as `accepted` was repaired an hour later by
+the very skill it named, and the repair had to be written into an archive
+nobody reads. Prefix each ID with the archive name so it stays unique forever:
+item 12's `F-03` becomes `12/F-03`. Then remove those headings from the index
+and delete their entry files.
+
+**Move unresolved P3s to the backlog.** Every P3 still `open`, `fixed` or
+`unverified` moves its index heading and `File:` line to
+`blueprint/findings/backlog.md` (create it with a `# Findings backlog` heading);
+its entry file stays where it is and keeps its ID. The backlog is not loaded:
+`spec` offers a tidy item from it, and `review` still closes what it
+re-examines there. **Name each one moved in the report.** On a real project the
+index only grew - 100 findings raised, 26 P3s still open - and every session
+paid for all of them.
+
+Unresolved P0 to P2 entries and `unverified` leads above P3 stay in the index
+with their IDs. They are never silently dropped. When nothing is left, reset
+`blueprint/context/findings.md` to its stub - the template's file, header
+included, because the header is where `docs`, `ci`, `deploy` and `monitor`
 learn how a finding no code fixes gets closed:
 
     # Findings
 
-    > **Generated file.** The findings ledger: review findings raised by the `review`
-    > skill against the work in progress, each with a durable ID, a severity (P0-P3),
-    > and a status. `build` marks a repaired finding `fixed`; only a later `review`
-    > pass moves it to `closed`. **A finding no code fixes** - raised by `preflight`
-    > or `host`, such as missing backups or a leaked secret - is marked `fixed` with
-    > evidence by whichever skill repairs it, and `preflight` re-checks and closes it.
-    > `ship` refuses to merge while any P0 or P1 finding
-    > is `open` or `fixed`, then archives resolved findings with the work item and
-    > resets this file. A finding the user puts off rather than abandons is
-    > `deferred`, with a `Deferred to:` line naming the skill that will do it: it
-    > gates nothing, stays in the ledger through `ship`, and `preflight` reports it
-    > at every audit until that skill has run.
+    > **Generated file.** The findings index, loaded every session: one heading per
+    > live finding - `### F-03 [P0] open - <title>` and a `File:` line under it -
+    > and nothing else. The full entry is `blueprint/findings/F-03.md`, read when
+    > acting on that finding; **status lives only here**, evidence in the entry's
+    > **Resolution**. `review` raises code findings; `build` marks a repair `fixed`;
+    > only a later `review` pass moves it to `closed` - except a P2 or P3 whose
+    > repair `build` saw a test fail without, which `build` closes itself. **A
+    > finding no code fixes** - raised by `preflight` or `host`, such as missing
+    > backups or a leaked secret - is marked `fixed` with evidence by whichever
+    > skill repairs it, and `preflight` re-checks and closes it. `ship` refuses to
+    > merge while any P0 or P1 finding is `open` or `fixed`, then archives resolved
+    > findings with the work item, moves unresolved P3s to
+    > `blueprint/findings/backlog.md`, and resets this file. A finding the user puts
+    > off rather than abandons is `deferred`, with a
+    > `Deferred to:` line naming the skill that will do it: it gates nothing, stays
+    > in the ledger through `ship`, and `preflight` reports it at every audit until
+    > that skill has run.
 
     _No findings recorded._
+
+**Move the Done lines out of `blueprint/context/needs-you.md`.** Append every
+line under its `## Done` heading to `blueprint/history/needs-you-done.md`
+(create it with a `# Needs you - done` heading), under a `## <archive name>`
+heading, then leave `## Done` empty. Open lines are never touched. The file is
+loaded every session, and closed lines left in it are what grew it to thirteen
+kilobytes on a real project.
 
 Then reset `blueprint/context/current-work.md` to its stub:
 
@@ -296,6 +325,12 @@ aside because a skill found it inconvenient.
 1. **Keep the branch.** It is what makes this parking rather than deleting: the
    code stays where `build` left it. **Commit any uncommitted work to it first**
    (`wip: <name>`), with the user's go-ahead, or leaving the branch loses it.
+   **Stage new files too - `git add -A`, never `git commit -a`**, which commits
+   modified files and leaves an untracked one behind while reporting success. On
+   a real run the half-built step was a new file: the `wip:` commit said
+   `1 file changed`, and the only work the step exists to save stayed untracked,
+   to be carried onto `main` by Step 2 as a stray. **Check `git status` is clean
+   before moving on** - an instruction with no check is a suggestion.
    Note the branch name and its last commit. Delete the branch only on a separate,
    explicit request.
 2. **Move to `main`** - in a git worktree, the main checkout, as Step 4 describes.
@@ -303,9 +338,19 @@ aside because a skill found it inconvenient.
 3. **Archive the spec** to `blueprint/history/abandoned/YYYY-MM-DD-name.md`, read
    from the branch (`git show <branch>:<path to current-work.md>`) exactly as it
    stands, ticks included, followed by `**Abandoned:** <date> - <reason>` and
-   `**Branch:** <name> at <commit>`. Append this item's findings under
+   `**Branch:** <name> at <commit>`. **Read this item's findings from the branch
+   as well** (`git show <branch>:<path to findings.md>`, and each entry file the
+   same way, `git show <branch>:blueprint/findings/<ID>.md`): Step 2 has just moved
+   you to `main`, where the ledger is its stub, while the entries live on the
+   branch beside the code they describe. Reading the ledger from where you are
+   standing archives an empty section and reports it as done. Append them under
    `## Findings` at their current status - they are about code that never reached
-   `main` - and remove them from the ledger.
+   `main` - **each ID prefixed with the archive name**, so `F-01` becomes
+   `2026-09-22-submit-a-link/F-01`: the entries are leaving the ledger, the next
+   item's first finding will be `F-01` again, and the reason recorded above cites
+   these by ID. **Leave the branch's own ledger as it is** - it is what `spec`'s
+   resume brings back with the branch - and remove these entries from `main`'s
+   ledger only where they are actually in it.
 4. **Leave the item unchecked** in `blueprint/build-plan.md` and append a note to
    its line: `(abandoned <date> - blueprint/history/abandoned/<file>)`. A fix has
    no plan line.

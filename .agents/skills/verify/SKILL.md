@@ -5,7 +5,7 @@ description: "Prove the current work actually does what its spec says, by runnin
 
 # verify - prove it against the running app
 
-**Writes:** `blueprint/context/findings.md` · `blueprint/context/needs-you.md`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md`
 
 Where this sits:
 
@@ -222,7 +222,8 @@ for `review` or `ship` - no item is in flight. Report instead:
 
 **A regression does not go back to `build` the way a current-spec failure does.**
 There is no spec for it. Raise it in `blueprint/context/findings.md` with a
-severity, the same as `review` does, and let `spec` pick it up as a fix - that is
+severity, the same as `review` does - the heading there, the entry in
+`blueprint/findings/<ID>.md` - and let `spec` pick it up as a fix - that is
 the route a defect in shipped code already has, and this is one.
 
 **Say what this run cost.** Re-proving every shipped feature by observation is
@@ -252,6 +253,14 @@ real device, or a person looking at the page is not a failure and is not a
 pass - it is work waiting on a human, and unrecorded it reads as neither.
 This is what stops "I have not seen this" from quietly becoming "this
 works" by the time anyone reads the report.
+
+**Widen an open manual check rather than adding a second one**, and count it:
+the line carries `Widened: N`, raised by one each time an item adds to it.
+**At 3, stop widening and ask** - do the check now, or accept the risk. An
+accepted risk is `dropped` with the user's reason, and the next item starts a
+fresh line. On a real project the screen-reader line was widened by every item
+and then accepted all at once, at the end, as a single decision over a dozen
+screens nobody had heard.
 
 ## Rules
 

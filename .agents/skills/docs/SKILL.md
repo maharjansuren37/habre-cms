@@ -5,7 +5,7 @@ description: "Write and maintain the documentation a project actually needs: a r
 
 # docs - write down what the code cannot say
 
-**Writes:** `dev-notes/decisions.md` · `dev-notes/status.md` · `CHANGELOG.md` · `blueprint/context/findings.md`
+**Writes:** `dev-notes/decisions.md` · `dev-notes/status.md` · `CHANGELOG.md` · `blueprint/context/findings.md` · `blueprint/findings/`
 
 Where this sits:
 
@@ -191,7 +191,7 @@ default and it is usually wrong.
 What you wrote, what you moved, and what is still missing. Documentation gaps are
 worth naming even when you did not fill them.
 
-**When this skill repairs a finding** - a `preflight` blocker such as a scaffold-default README or absent dev-notes - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in its **Resolution** line: the README now says how to run the project, checked by following it. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
+**When this skill repairs a finding** - a `preflight` blocker such as a scaffold-default README or absent dev-notes - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in the **Resolution** line of its entry, `blueprint/findings/<ID>.md`: the README now says how to run the project, checked by following it. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
 
 ## Rules
 
