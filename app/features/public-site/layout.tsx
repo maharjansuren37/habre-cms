@@ -1,11 +1,34 @@
 import { isRouteErrorResponse, Link, Outlet } from "react-router";
+import { findPublishedPageSlugs } from "#app/features/content/entries.server.ts";
 import { getSiteSettings, type SiteSettings } from "#app/features/settings/settings.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
 
+type NavLink = { label: string; href: string };
+
+/**
+ * The saved navigation, resolved to real hrefs: a `url` item passes through
+ * as-is, a `pageId` item becomes `/${slug}` if its page is currently
+ * published, or is silently dropped otherwise (deleted or unpublished) - the
+ * same degrade-silently rule an image block's dangling `mediaId` already
+ * follows (D61), not a new one invented for this table.
+ */
+async function resolveNavigation(items: SiteSettings["navigation"]): Promise<NavLink[]> {
+  const pageIds = items.flatMap((item) => ("pageId" in item ? [item.pageId] : []));
+  const published = await findPublishedPageSlugs(pageIds);
+  const slugById = new Map(published.map((page) => [page.id, page.slug]));
+  return items.flatMap((item) => {
+    if ("url" in item) return [{ label: item.label, href: item.url }];
+    const slug = slugById.get(item.pageId);
+    return slug ? [{ label: item.label, href: `/${slug}` }] : [];
+  });
+}
+
 export async function loader() {
-  return { settings: await getSiteSettings(env.R2_PUBLIC_URL) };
+  const settings = await getSiteSettings(env.R2_PUBLIC_URL);
+  const navLinks = await resolveNavigation(settings.navigation);
+  return { settings, navLinks };
 }
 
 /**
@@ -14,7 +37,15 @@ export async function loader() {
  * Router's error-boundary docs), so without this shared shell a 404 would
  * lose the chrome around it rather than sit inside it (item 4b's D-5).
  */
-function Chrome({ settings, children }: { settings: SiteSettings; children: React.ReactNode }) {
+function Chrome({
+  settings,
+  navLinks,
+  children,
+}: {
+  settings: SiteSettings;
+  navLinks: NavLink[];
+  children: React.ReactNode;
+}) {
   return (
     <>
       <header className={styles.header}>
@@ -23,6 +54,21 @@ function Chrome({ settings, children }: { settings: SiteSettings; children: Reac
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.logo} />}
             {settings.siteTitle}
           </Link>
+          {navLinks.length > 0 && (
+            <nav aria-label="Site">
+              <ul className={styles.navList}>
+                {navLinks.map((link) => (
+                  <li key={link.href}>
+                    {/* Plain <a>, not <Link> - a page item's href is a known
+                        internal path, but a URL item's is whatever the admin
+                        typed (external, mailto:, a fragment), and this list
+                        mixes both without keeping the distinction around. */}
+                    <a href={link.href}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
         </div>
       </header>
       {children}
@@ -37,7 +83,7 @@ function Chrome({ settings, children }: { settings: SiteSettings; children: Reac
 
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   return (
-    <Chrome settings={loaderData.settings}>
+    <Chrome settings={loaderData.settings} navLinks={loaderData.navLinks}>
       <Outlet />
     </Chrome>
   );
@@ -58,9 +104,11 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
     siteTitle: "Habre CMS",
     logoMediaId: null,
     logoUrl: null,
+    navigation: [],
   };
+  const navLinks = loaderData?.navLinks ?? [];
   return (
-    <Chrome settings={settings}>
+    <Chrome settings={settings} navLinks={navLinks}>
       <main className={styles.notFound}>
         <p>{isNotFound ? "Page not found." : (devDetail?.message ?? "Something went wrong.")}</p>
         {devDetail?.stack && (
