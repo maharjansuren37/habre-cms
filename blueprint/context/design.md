@@ -115,7 +115,11 @@ mostly the page itself, not spinners.
   (`field-label`), hint below in muted text. Placeholder is never the label.
 - **Status badges:** pill with a leading dot; **Draft = warning amber, Published
   = success green.** The only two content statuses; the dot means color is not
-  the sole signal - the word is always there.
+  the sole signal - the word is always there. **The users list (item 8) adds a
+  second, unrelated pair for account status:** Active reuses the same success
+  green; Deactivated is muted (`--color-text-muted` on `--color-surface-sunken`,
+  5.5:1 light / 8.1:1 dark) rather than a warning color, since a deactivated
+  account is an administered state, not a problem to fix.
 - **Messages:** bordered banner with icon, bold first sentence, body text, and an
   optional action button on the right.
 - **Admin shell:** 15rem left sidebar - site name and logo with "View site",
