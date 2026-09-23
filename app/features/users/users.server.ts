@@ -77,6 +77,63 @@ export async function revokeSessions(id: string): Promise<void> {
   `;
 }
 
+/** Every user, all roles and both active and deactivated, for the admin-only list. */
+export async function listUsers(): Promise<User[]> {
+  return sql<User[]>`
+    select ${userColumns} from users order by name
+  `;
+}
+
+/**
+ * Changes a user's role and revokes their sessions in the same statement, so a
+ * demoted or promoted user's next request reads the new role rather than one
+ * still valid on an old token (D6 - role changes take effect immediately).
+ */
+export async function updateUserRole(id: string, role: Role): Promise<User | null> {
+  const [user] = await sql<User[]>`
+    update users
+    set role = ${role}, token_version = token_version + 1, updated_at = now()
+    where id = ${id}
+    returning ${userColumns}
+  `;
+  return user ?? null;
+}
+
+/** Sets a new password hash and revokes sessions in the same statement - the
+ *  same "takes effect immediately" rule `updateUserRole` follows. */
+export async function setUserPassword(id: string, passwordHash: string): Promise<User | null> {
+  const [user] = await sql<User[]>`
+    update users
+    set password_hash = ${passwordHash}, token_version = token_version + 1, updated_at = now()
+    where id = ${id}
+    returning ${userColumns}
+  `;
+  return user ?? null;
+}
+
+/** Deactivates a user and revokes their sessions in one statement - login and
+ *  every existing session are refused from their very next request. */
+export async function deactivateUser(id: string): Promise<User | null> {
+  const [user] = await sql<User[]>`
+    update users
+    set deactivated_at = now(), token_version = token_version + 1, updated_at = now()
+    where id = ${id}
+    returning ${userColumns}
+  `;
+  return user ?? null;
+}
+
+/** Restores login. Does not touch sessions - there are none left to revoke. */
+export async function reactivateUser(id: string): Promise<User | null> {
+  const [user] = await sql<User[]>`
+    update users
+    set deactivated_at = null, updated_at = now()
+    where id = ${id}
+    returning ${userColumns}
+  `;
+  return user ?? null;
+}
+
 function isUniqueViolation(error: unknown, constraint: string): boolean {
   return (
     error instanceof Error &&

@@ -1,0 +1,101 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.list {
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Element selectors would leak out of the module unscoped (F-54) - every
+   rule below is qualified under .list, which the markup nests the table inside. */
+.list table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.list th {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.list td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+  vertical-align: middle;
+}
+
+.list tr:last-child td {
+  border-bottom: 0;
+}
+
+.list tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.userName {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.userName:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+/* Pill with a leading dot; the word carries the meaning, not the color alone
+   (design.md, Status badges) - same shape as the posts/pages status badge. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+}
+
+.badge::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+/* Success green, measured 5.3:1 light / 8.4:1 dark (design.md). */
+.active {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+/* Muted, not a warning - deactivated is an ordinary administered state, not a
+   problem to fix. */
+.deactivated {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}

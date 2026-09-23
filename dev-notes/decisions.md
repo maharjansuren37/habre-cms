@@ -1136,3 +1136,62 @@ it reaches the component. `<Link>` is only correct for the internal subset,
 so using it would mean carrying an extra "is this internal" flag through the
 loader for no behavioral gain in a server-rendered app with no client-side
 transition to preserve. Cost: none observed.
+
+## D85 - No "last active admin" count check (2026-09-23)
+
+**Chose:** rely on the shape of the guards already in place - every
+`/admin/users*` route requires `requireRole(["admin"])`, and self-role-change
+and self-deactivation are refused outright (D86) - rather than a separate
+query counting active admins and refusing at zero.
+
+Whoever performs a role change or deactivation is themselves an active
+admin, and cannot change their own admin status as a side effect of
+managing someone else. So before any action on a *different* user, at least
+two active admins already exist (the actor, plus whoever admin status is
+about to be removed from), which means at least one (the actor) always
+remains afterward. Beats: a count-and-refuse check, which would be real
+code defending against a state the existing guards already make
+unreachable - and a branch that unreachable can never be exercised by a
+test.
+
+## D86 - Self-role-change and self-deactivation are refused; self password-reset is allowed (2026-09-23)
+
+**Chose:** `user-edit.tsx`'s action refuses `change-role` and
+`deactivate`/`reactivate` against the acting admin's own id (400, with an
+explanatory message, re-checked server-side regardless of what a request
+claims), but permits `reset-password` against your own account.
+
+The first two would either strip your own access or lock you out
+mid-session with no other admin needing to act - both are better done by a
+different admin, and refusing them is also what makes D85 hold. Password
+reset has no such asymmetry: it is your own credential. Resetting your own
+password still bumps `token_version` like any other token-revoking action
+(D6), so it logs you out and back to the login page immediately after -
+not special-cased, since a person resetting their own password is not
+surprised to be asked to log back in with it. Beats: exempting self-reset
+from the token bump, which would make self-service resets behave
+differently from admin-performed ones for no stated reason.
+
+## D87 - The admin sets a new user's initial password directly; no forced change on first login (2026-09-23)
+
+**Chose:** `user-new.tsx`'s create form takes a real password from the
+admin and stores it as-is - no "temporary password" flag, no forced-change
+screen on first login.
+
+Matches `create-admin.ts`'s existing pattern exactly, and password reset by
+email is already recorded as deferred (project-overview.md's Scope). Beats:
+a temporary-password flag and forced-change flow, which would be new schema
+and a new screen for a case the plan does not ask for.
+
+## D88 - F-84 (the pre-existing `request_refused`/`role` event's `role: string`) is left untouched by item 8 (2026-09-23)
+
+**Chose:** item 8's own new `SecurityEvent` variants (`role_changed`,
+`user_deactivated`, `user_reactivated`, `password_reset`) are typed `Role`
+from the start, but the existing `request_refused`/`role` variant F-84 flags
+keeps its `role: string` field rather than being widened in the same diff.
+
+Widening the existing line is an adjacent fix to code this item does not
+otherwise touch. Beats: folding it in anyway, which `ai-interaction.md`
+rules out directly - refactoring is its own item, never a passenger on
+someone else's diff. F-84 stays open in the ledger for a future pass that
+wants to close it outright.
