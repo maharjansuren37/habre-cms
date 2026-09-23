@@ -1,0 +1,17 @@
+import { withDatabase } from "./users.ts";
+
+const DEFAULT_SITE_TITLE = "Habre CMS";
+
+/**
+ * `site_settings` is a true singleton (item 7a) - unlike `entries` or
+ * `media`, no test can scope its own row away from another's. `public-site
+ * .spec.ts` and `smoke.spec.ts` both assert the literal default title, so
+ * every test here that changes it restores this default immediately after
+ * its own assertions, not only on success - this is the `afterEach` backstop
+ * for the case where a test fails partway through.
+ */
+export function resetSiteSettings(): Promise<void> {
+  return withDatabase(async (sql) => {
+    await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null where id = 1`;
+  });
+}

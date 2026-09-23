@@ -20,6 +20,17 @@
   font-weight: var(--weight-semibold);
 }
 
+.siteName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.siteLogo {
+  height: 1.25rem;
+  width: auto;
+}
+
 .site a {
   font-size: var(--text-xs);
   font-weight: var(--weight-regular);

@@ -104,10 +104,13 @@ not tidying; it is what keeps the open list true.
       check hears what is announced. Covers the shell's nav (from item 3, the
       posts list's filter tabs and search and its delete confirmation screen;
       from item 6a, the same for the pages list, its editor and its delete
-      confirmation, plus the "Pages" nav entry itself). Done during item 1's
-      `verify`, from its `--manual` walkthrough. Blocks nothing now;
-      `preflight` needs it (design.md lists it as unchecked). `open` (spec,
-      2026-09-15; widened, item 3; widened, item 6a)
+      confirmation, plus the "Pages" nav entry itself; from item 7a, the
+      settings form and its logo picker dialog - the same dialog shape as
+      the image block's, still itself unverified - plus the "Settings" nav
+      entry). Done during item 1's `verify`, from its `--manual` walkthrough.
+      Blocks nothing now; `preflight` needs it (design.md lists it as
+      unchecked). `open` (spec,
+      2026-09-15; widened, item 3; widened, item 6a; widened, item 7a)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these

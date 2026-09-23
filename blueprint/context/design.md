@@ -126,8 +126,10 @@ mostly the page itself, not spinners.
   CMS" with "View site ↗", then name, role and a quiet Log out button at the
   bottom - no nav list until the first admin section ships. Below `48rem` it
   becomes one top row (site left, user and Log out right) with
-  `grid-template-rows: auto 1fr`, so the header never stretches. The site's own
-  title and logo replace "Habre CMS" in item 7.
+  `grid-template-rows: auto 1fr`, so the header never stretches. **The site's
+  own title and logo replace "Habre CMS" as of item 7a** - the same
+  `site_settings` row the public header/footer read (`design.md`'s *Settings
+  screen* and *Public site* entries below).
 - **Nav (item 3):** the sidebar's first section - one entry, "Posts". Pages,
   Media, Settings and Users each add their own entry when they ship, rather
   than appearing now as dead links; `/admin` itself redirects to `/admin/posts`.
@@ -209,6 +211,21 @@ mostly the page itself, not spinners.
   introduces a new button variant. The backdrop is a flat `rgb(0 0 0 / 0.4)`
   scrim, decorative rather than a contrast-graded pairing. Screenshots:
   `blueprint/reference/5b-image-block/`.
+- **Settings screen (item 7a, not in the mockups):** like the media library
+  and image picker before it, this screen predates no mockup and is built
+  from the existing conventions rather than a fresh design pass. A single
+  bordered-card form (the same shape as every other admin form): "Site
+  title" as a labelled text field, then a "Logo" field below it - either a
+  centered "Choose logo" button (default style) or, once one is set, a small
+  preview image next to "Change logo" and "Remove logo" (both quiet buttons).
+  "Choose logo" and "Change logo" open the **identical dialog** the post
+  editor's image block already uses (same card grid, same Previous/Next,
+  same measured contrast) - a deliberately separate copy of it
+  (`logo-picker.client.ts`), not a shared component, since this is its
+  second use rather than its third (`fundamentals.md`). Save is the one
+  primary button at the bottom, success and error shown with the existing
+  `Message` banner. Keyboard and screen-reader use is **not yet verified**
+  (`needs-you.md`).
 - **Inline formatting** (item 2b, not in the mockups): selecting text opens
   Editor.js's own inline toolbar with exactly **Bold, Italic, Link** (shortcuts
   Ctrl/Cmd+B, I, K) in text and list blocks; the link field opens beneath it.
@@ -235,7 +252,9 @@ mostly the page itself, not spinners.
   at 1.29 / 1.30 against that background - **the icons are what identify it**, at
   16.75 / 14.07 (F-53: the border was credited with a job it cannot do). Keyboard and screen-reader use is **not yet verified** (`needs-you.md`).
   Screenshots: `blueprint/reference/2b-inline-toolbar/`.
-- **Public site:** header with logo, site title and the navigation menu; article
+- **Public site:** header with logo, site title (live as of item 7a; the
+  navigation menu itself is item 7b, not yet built) and the navigation menu;
+  article
   with date and author above the title **on a post** - a page (item 6b) has no
   byline, since it is static reference content rather than a dated article;
   images full column width with 12px radius and muted caption; footer on

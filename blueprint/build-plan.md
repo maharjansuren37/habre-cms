@@ -81,4 +81,6 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 6a. **Manage pages** - admin list/create/edit/delete for pages, restricted to editors and admins, generalizing the entries table's existing `type` column and the post editor
   - [x] 6b. **Render pages on the public site** - `/:slug` resolves a published page and renders it in the built-in theme, the same as a post
 - [ ] 7. **Site settings and menu** - title, logo, navigation shown on the public site
+  - [x] 7a. **Site title and logo** - a settings screen where an admin sets the site title and logo, replacing the placeholder in the admin shell and public site chrome
+  - [ ] 7b. **Navigation menu** - an ordered list of nav items (page or URL) editable in settings and rendered in the public header
 - [ ] 8. **Users and roles** - admin adds editors and authors; permissions enforced on the server
