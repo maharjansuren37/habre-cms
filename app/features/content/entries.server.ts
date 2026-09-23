@@ -259,6 +259,33 @@ export async function listPublishedPosts(limit: number): Promise<PublicPostSumma
   `;
 }
 
+/** One page, for the navigation editor's dropdown - every page regardless of
+ *  status, so an admin can link to a draft before it is published. */
+export type NavPageOption = {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+};
+
+export async function listPagesForNav(): Promise<NavPageOption[]> {
+  return sql<NavPageOption[]>`
+    select id, title, slug, status from entries where type = 'page' order by title
+  `;
+}
+
+/** Published pages among the given ids, for resolving a saved menu's page
+ *  links at render time - an id whose page is unpublished or deleted is
+ *  simply absent from the result (D61's same silent-degrade rule). */
+export async function findPublishedPageSlugs(
+  ids: string[],
+): Promise<{ id: string; slug: string }[]> {
+  if (ids.length === 0) return [];
+  return sql<{ id: string; slug: string }[]>`
+    select id, slug from entries where type = 'page' and status = 'published' and id = any(${ids})
+  `;
+}
+
 /** One published entry's full content, for its own page. */
 export type PublicEntry = {
   title: string;

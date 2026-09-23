@@ -252,13 +252,22 @@ mostly the page itself, not spinners.
   at 1.29 / 1.30 against that background - **the icons are what identify it**, at
   16.75 / 14.07 (F-53: the border was credited with a job it cannot do). Keyboard and screen-reader use is **not yet verified** (`needs-you.md`).
   Screenshots: `blueprint/reference/2b-inline-toolbar/`.
-- **Public site:** header with logo, site title (live as of item 7a; the
-  navigation menu itself is item 7b, not yet built) and the navigation menu;
-  article
+- **Public site:** header with logo, site title and the navigation menu, all
+  live as of item 7b; article
   with date and author above the title **on a post** - a page (item 6b) has no
   byline, since it is static reference content rather than a dated article;
   images full column width with 12px radius and muted caption; footer on
   `--color-bg`.
+- **Navigation menu** (item 7b): plain text links in the header, next to the
+  site title, `--color-text` with an underline on hover - the same pairing
+  `home.module.css`'s own post list already uses, not a new one invented for
+  this row. An empty menu renders no `<nav>` at all. Computed from the
+  tokens against the header's `--color-bg` background: text **15.62:1 light /
+  15.15:1 dark**, the `:focus-visible` ring (`--color-focus`, 2px, 2px offset,
+  the project's standard focus treatment) **6.01:1 light / 8.35:1 dark** -
+  both comfortably over the 4.5:1 text and 3:1 non-text bars. Hover adds only
+  an underline, so its contrast is the same as the default state's. Keyboard
+  and screen-reader use is **not yet verified** (`needs-you.md`).
 - **Words:** plain language, no CMS jargon. "Web address" not "slug", "Log in"
   not "Sign in", "Last changed" not "Modified".
 

@@ -31,6 +31,32 @@
   width: auto;
 }
 
+.navList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navList a {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.navList a:hover {
+  text-decoration: underline;
+}
+
+.navList a:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .footer {
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-bg);
