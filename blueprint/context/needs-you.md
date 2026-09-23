@@ -108,12 +108,17 @@ not tidying; it is what keeps the open list true.
       settings form and its logo picker dialog - the same dialog shape as
       the image block's, still itself unverified - plus the "Settings" nav
       entry; from item 7b, the settings screen's navigation editor - its
-      add/remove/move-up/move-down buttons and the page/URL fields per row).
+      add/remove/move-up/move-down buttons and the page/URL fields per row;
+      from item 8, the users list, the add-user form, and the manage-user
+      screen's three independent forms - change role, reset password,
+      deactivate/reactivate - including the self-guard note shown in place of
+      the role/deactivate controls on your own account, plus the "Users" nav
+      entry).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       Blocks nothing now; `preflight` needs it (design.md lists it as
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
-      widened, item 7b)
+      widened, item 7b; widened, item 8)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these

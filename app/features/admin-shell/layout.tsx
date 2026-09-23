@@ -41,10 +41,10 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <a href={publicUrl}>View site ↗</a>
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
-            Settings in item 7a - each added here in ship order (D35); Users
-            still adds its own when it ships. Pages is editor/admin only and
-            Settings is admin only (requireRole), so a role that would get a
-            404 from the route never sees a link to it. */}
+            Settings in item 7a, Users in item 8 - each added here in ship
+            order (D35). Pages is editor/admin only and Settings and Users are
+            admin only (requireRole), so a role that would get a 404 from the
+            route never sees a link to it. */}
         <nav aria-label="Admin">
           <ul className={styles.nav}>
             <li>
@@ -72,6 +72,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 <NavLink to="/admin/settings">
                   <SettingsIcon />
                   Settings
+                </NavLink>
+              </li>
+            )}
+            {user.role === "admin" && (
+              <li>
+                <NavLink to="/admin/users">
+                  <UsersIcon />
+                  Users
                 </NavLink>
               </li>
             )}
@@ -176,6 +184,26 @@ function SettingsIcon() {
     >
       <circle cx="12" cy="12" r="3" />
       <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   );
 }

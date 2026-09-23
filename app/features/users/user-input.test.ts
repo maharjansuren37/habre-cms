@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emailSchema, nameSchema, newPasswordSchema, newUserSchema } from "./user-input.ts";
+import {
+  createUserSchema,
+  emailSchema,
+  nameSchema,
+  newPasswordSchema,
+  newUserSchema,
+} from "./user-input.ts";
 
 function firstMessage(result: { success: boolean; error?: { issues: { message: string }[] } }) {
   return result.error?.issues[0]?.message;
@@ -57,4 +63,39 @@ test("a new user is normalised as a whole", () => {
     }),
     { email: "you@example.org", name: "You", password: "correct horse battery" },
   );
+});
+
+test("createUserSchema accepts each of the three roles", () => {
+  for (const role of ["admin", "editor", "author"] as const) {
+    const result = createUserSchema.safeParse({
+      email: "you@example.org",
+      name: "You",
+      password: "correct horse battery",
+      role,
+    });
+    assert.equal(result.success, true, role);
+    assert.equal(result.data?.role, role);
+  }
+});
+
+test("createUserSchema rejects a role outside the three", () => {
+  const result = createUserSchema.safeParse({
+    email: "you@example.org",
+    name: "You",
+    password: "correct horse battery",
+    role: "superadmin",
+  });
+  assert.equal(result.success, false);
+  assert.equal(firstMessage(result), "Choose a role.");
+});
+
+test("createUserSchema still enforces the existing email, name and password rules", () => {
+  const result = createUserSchema.safeParse({
+    email: "not an email",
+    name: "",
+    password: "short",
+    role: "author",
+  });
+  assert.equal(result.success, false);
+  assert.equal(result.error?.issues.length, 3);
 });
