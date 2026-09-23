@@ -1075,3 +1075,64 @@ title.
 No mockup or `design.md` line asked for the logo twice on one page. Cost:
 none - if a future design pass wants the footer branded further, it is a
 small, separate change.
+
+## D80 - Navigation reorder is move-up/move-down, not drag-and-drop (2026-09-23)
+
+**Chose:** per-row "Move up"/"Move down" submit buttons, disabled at the ends,
+over a drag handle.
+
+Keeps the editor working with no JavaScript (D10), matching the project's
+existing progressive-enhancement stance. Cost: one extra click per position
+moved, versus a drag gesture - accepted since a menu tops out at 20 items
+(the item's own cap). A future item can add drag-and-drop as a JS enhancement
+over the same server actions if this ever feels slow to use.
+
+## D81 - Add/remove/move on the navigation editor reshape the same form Save persists, with no separate draft storage (2026-09-23)
+
+**Chose:** every row-editing intent (`nav-add`, `nav-remove-N`,
+`nav-move-up-N`, `nav-move-down-N`) re-renders the draft from resubmitted
+form fields; only `intent=save` writes to the database.
+
+Beats a JS-driven local list state, which would leave the no-JS path unable
+to add or remove a row at all - and beats a second table or session-backed
+draft, which nothing else in this project uses for a form in progress. Cost:
+every reshape is a full page round-trip; accepted for a form this size.
+
+## D82 - A navigation row needs exactly one of a page or a URL, not a type toggle field (2026-09-23)
+
+**Chose:** the row carries both a page dropdown and a URL text field, with
+`draftRowsToNavItems` refusing a save where both or neither are filled,
+rather than a `kind` radio that switches which one is shown.
+
+A toggle would still have to render both fields to work without JS (there is
+no way to hide one without client script), so it buys nothing over checking
+the combination at save time. Cost: a row can be submitted in an invalid
+"both" or "neither" state and only rejected at Save, not prevented by the
+form shape itself.
+
+## D83 - `pageId` existence is checked at save time; publish status is checked at render time (2026-09-23)
+
+**Chose:** `draftRowsToNavItems` refuses a save whose `pageId` does not match
+`listPagesForNav()` (any status), but whether the linked page is currently
+published is decided later, when the public site resolves the menu.
+
+Mirrors the image block's own split (D60 exists-check at save-adjacent time /
+D61 silent degrade at render) rather than inventing a new rule for this
+table. `pageId` is deliberately not a foreign key on `site_settings`, unlike
+`logo_media_id` (D77) - so a page deleted after being added to the menu
+degrades the same way an image does: dropped silently at render. Cost: a
+menu item pointing at a since-deleted page is only caught by the editor
+screen's own inline note (F-95), not the database.
+
+## D84 - The public header renders every nav link as a plain `<a>`, not React Router's `<Link>` (2026-09-23)
+
+**Chose:** `Chrome` in `public-site/layout.tsx` renders the resolved
+`{label, href}` list with `<a href={href}>` for every item.
+
+A `pageId` item's href is a known internal path, but a `url` item's is
+whatever the admin typed - external, `mailto:`, or a `#fragment` - and the
+resolved list mixes both without keeping the distinction around by the time
+it reaches the component. `<Link>` is only correct for the internal subset,
+so using it would mean carrying an extra "is this internal" flag through the
+loader for no behavioral gain in a server-rendered app with no client-side
+transition to preserve. Cost: none observed.
