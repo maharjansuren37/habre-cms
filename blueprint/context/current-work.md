@@ -96,7 +96,7 @@ the server. This is the last unchecked item on the MVP build plan.
   "that email is already in use" message, nothing created; a non-admin gets
   404 from both the page and a direct POST.
 
-- [ ] **Step 4 - Manage a user: role, password, deactivation** -
+- [x] **Step 4 - Manage a user: role, password, deactivation** -
   `app/features/users/user-edit.tsx` (`requireRole(["admin"])`), registered as
   `admin/users/:id`. A `requireUserId` guard mirrors `post-edit.tsx`'s
   `requirePostId` (a non-UUID answers 404 rather than reaching the database).

@@ -26,6 +26,7 @@ export default [
     route("admin/settings", "features/settings/settings.tsx"),
     route("admin/users", "features/users/user-list.tsx"),
     route("admin/users/new", "features/users/user-new.tsx"),
+    route("admin/users/:id", "features/users/user-edit.tsx"),
   ]),
   // Outside the admin shell on purpose: the editor drops the sidebar (design.md).
   route("admin/posts/new", "features/content/post-new.tsx"),

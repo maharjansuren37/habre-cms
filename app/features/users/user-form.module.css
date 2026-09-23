@@ -49,3 +49,8 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+.actionForm {
+  display: grid;
+  gap: var(--space-3);
+}
