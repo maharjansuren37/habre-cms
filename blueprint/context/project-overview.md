@@ -5,8 +5,8 @@
 > session - edit the two planning docs and regenerate, rather than editing this
 > file directly.
 
-Generated 2026-09-22 at `main` `d4950b6`. Decision
-numbers (D1-D57) refer to `dev-notes/decisions.md` - read the entry before
+Generated 2026-09-23 at `main` `ef5d4d5`. Decision
+numbers (D1-D84) refer to `dev-notes/decisions.md` - read the entry before
 changing anything it covers.
 
 ## What this is
@@ -53,7 +53,7 @@ decision.
 | Layer | Choice | Why (decision) |
 |---|---|---|
 | Language | TypeScript 7.0.2, strict, `erasableSyntaxOnly` (no `enum`, `namespace`, parameter properties) | Node runs `.ts` by stripping types |
-| Runtime | Node.js 26 (dev 26.8.1, CI and production 26.8.2) | Supported to 2029, LTS due Oct 2026 (D15) |
+| Runtime | Node.js 26 everywhere `engines` requires it - installed versions differ by machine: 26.8.1 on the dev machine, 26.8.2 in production; CI installs whatever is newest under the `26` major at each run, not pinned to a patch | Supported to 2029, LTS due Oct 2026 (D15) |
 | Framework | React Router 8.3.1 framework mode, React 19.3.0, Vite 8.3.0, served by `node:http` - **no Express** | Small, low memory, forms work without JS (D10, D17) |
 | Node server | `@remix-run/node-fetch-server` 0.14.1, used directly in `server/app.ts` with `trustProxy: true` | `@react-router/node`'s wrapper passes no options, and without `trustProxy` the app misreads its own origin behind Caddy (D23) |
 | Database | PostgreSQL 16; `postgres` 3.4.9 driver, **raw SQL, no ORM**; numbered `.sql` migrations via `db/migrate.ts` | Four tables do not need an ORM (D11) |
@@ -71,9 +71,15 @@ decision.
   Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list` 2.0.9
   arrived with item 2a, pinned exactly; their shipped `.ts` types use `enum`,
   so `app/types/editorjs.d.ts` describes what this app uses.
+- **The image block (item 5b) is a hand-written Editor.js tool, not a
+  package** (D58) - `app/features/blocks/image-tool.client.ts` - so it added
+  no new dependency and no new line to the table above.
 - **React Router 8 is newer than an agent's training.** The installed docs in
   `node_modules/react-router/docs/` are the authority; React Router's agent skill
   is at `.claude/skills/react-router/`. This app is **Framework Mode**.
+- **No new dependency arrived with item 7 (7a or 7b).** The logo picker and the
+  navigation editor are both built from components and patterns already in the
+  app - no new package, no new line above.
 
 ## Architecture
 
@@ -90,9 +96,10 @@ nothing should be added to the design that they did not call for.
 - `server.js` (+ `server/app.ts`): the Node entry - Vite middleware in dev; in
   production serves `build/client` itself and sets security headers (D18).
 - `db/migrations/NNNN_name.sql` (`0001_users.sql`, `0002_entries.sql`,
-  `0003_blocks_v2.sql`), `db/migrate.ts`; `scripts/create-admin.ts`; `deploy/` -
-  `setup-server.sh`, `habre-cms.service`, `caddy/habre-cms.caddy` (written by
-  `host`); `e2e/*.spec.ts`.
+  `0003_blocks_v2.sql`, `0004_media.sql`, `0005_site_settings.sql`),
+  `db/migrate.ts`; `scripts/create-admin.ts`; `deploy/` - `setup-server.sh`,
+  `habre-cms.service`, `caddy/habre-cms.caddy` (written by `host`);
+  `e2e/*.spec.ts`.
 - **Imports:** `#app/...` with explicit `.ts`/`.tsx` extensions. **Never a `~/`
   alias** - plain `node` cannot resolve it.
 - **Boundary per file, not per directory:** `*.server.ts` = server only (the
@@ -130,19 +137,32 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
 - **Verified live:** `https://surenmaharjan.fyi/` (public, reachable for the
   first time), `https://cms.surenmaharjan.fyi/admin/login`, and
   `https://www.surenmaharjan.fyi` redirecting to the apex, all confirmed
-  serving after the deploy (`dev-notes/status.md`).
+  serving after the deploy (`dev-notes/status.md`). **This is still the item 4c
+  deploy only** - items 5a-7b below are merged to `main` but not yet deployed;
+  see *Current state*.
 
 ### Routes
 
 - **Public** (server-rendered HTML, no login, works without JS): `/` latest
   published posts, newest 10, no pagination (D47) · `/posts/:slug` one post,
   its blocks rendered through JSX only, never an HTML-building helper
-  (`render.tsx`, D26/D28) - both live at `surenmaharjan.fyi` since item 4c
-  split the hostnames · `/:slug` one page (item 6 - not yet
-  built) · `/healthz` (exists, reports database reachability). A draft or
-  missing post 404s inside the public site's own header/footer chrome, not
-  root's bare error page (D51). Reserved page slugs: `admin`, `posts`, `api`,
-  `healthz`.
+  (`render.tsx`, D26/D28), including a resolved image with a visible muted
+  caption beneath it (item 5c, D65) - both live at `surenmaharjan.fyi` since
+  item 4c split the hostnames · `/:slug` one page (item 6b): resolves a
+  published page through the same `findPublishedEntry` contract as a post,
+  renders through the identical `renderBlocks`, but with no byline and no
+  back link, since a page is static reference content, not a dated article
+  (D72-D74; `design.md`'s *Public site* line says so) · `/healthz` (exists,
+  reports database reachability). A draft or missing post or page 404s inside
+  the public site's own header/footer chrome, not root's bare error page
+  (D51). Reserved page slugs: `admin`, `posts`, `api`, `healthz` - enforced
+  since item 6a by folding them into the same free-address search a slug
+  collision already goes through (D68), not a separate refusal. **The header
+  now also carries a `<nav aria-label="Site">` of the saved navigation menu**
+  (item 7b) - each item either a resolved published-page link or a plain web
+  address, in order, next to the site title; an unpublished or deleted page
+  drops silently from the menu at render (D61's precedent), and an empty menu
+  renders no `<nav>` at all.
 - **Admin** (login required): `/admin/login`, `/admin/logout` (exist since item
   1) · `/admin` redirects to `/admin/posts` rather than rendering anything
   itself (D34, item 3; `home.ts`, no longer `home.tsx` - it only throws a
@@ -158,18 +178,44 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
   same shape as edit's ownership check (D36); the list redirects to
   `/admin/posts?deleted=<title>` afterwards (D37), the same mechanism
   publish/unpublish now share (`banner.ts`) ·
-  `/admin/pages[/new|/:id]` (editor, admin, item 6 - not yet built) ·
-  `/admin/media` (all roles - every signed-in role sees every upload, D54) and
+  `/admin/pages`, `/admin/pages/new`, `/admin/pages/:id`,
+  `/admin/pages/:id/delete` - item 6a: the identical
+  list/create/edit/publish/unpublish/delete shape as posts, restricted to
+  `editor` and `admin` (D69) - an author gets the same 404-not-403 an
+  ownership refusal already gives, and the "Pages" nav entry is hidden for
+  them too, so there is no dead link to a screen they cannot reach ·
+  `/admin/media` (all roles - every signed-in role sees every upload, D54),
   `/admin/media/:id/delete` (ownership-scoped for authors, the same
-  404-not-403 pattern as posts) - item 5a, built; inserting an image into a
-  post (5b) and rendering one on the public site (5c) are not yet built ·
-  `/admin/settings` (admin, item 7 - not yet built) · `/admin/users[/:id]` -
-  add, change role, reset password, deactivate (admin, item 8 - not yet
-  built).
+  404-not-403 pattern as posts) - item 5a - and `/admin/media/picker` (`GET`,
+  JSON, admin-guarded via the layout, no write capability) - item 5b, feeding
+  the post editor's image-picker dialog · the post editor itself can now
+  place an image block, and `/posts/:slug` renders it as a real, captioned
+  `<img>` - item 5b built the block and the picker, item 5c added the public
+  caption (D65), so image support (item 5) is fully built across upload,
+  placement and rendering ·
+  `/admin/settings` - **item 7, now fully built (7a + 7b)**: title, logo and
+  the navigation menu editor, admin only (`requireRole(["admin"])`, same
+  404-not-403 shape as pages). One `<Form>` saves all three together
+  (`updateSiteIdentity` and `updateNavigation`, still two functions - matches
+  `saveEntry`'s own split from `updateDraft`, F-40). The navigation section
+  (item 7b): a row per item (label, then either a page dropdown or a web
+  address - exactly one, checked at save), "Add item", per-row "Remove",
+  "Move up"/"Move down" (disabled at the ends) as separate `intent`-keyed
+  submit buttons on the same form (D42's pattern) - add/remove/move only
+  reshape the draft, never write to the database; `intent=save` validates
+  with `navigationSchema` and persists both `updateSiteIdentity` and
+  `updateNavigation`. A hidden default submit button (`intent=save`,
+  visually hidden, unreachable by Tab) makes plain Enter save regardless of
+  how many other submit buttons the form has grown (F-94, closed) ·
+  `/admin/users[/:id]` - add, change role, reset password, deactivate (admin,
+  item 8 - not yet built, the last unchecked item).
 - **The admin shell's nav list grows one entry per shipped section** (D35) -
-  "Posts" and, since item 5a, "Media"; a nav item for a route that does not
-  exist yet is a dead link, so each remaining item adds its own entry when it
-  ships.
+  "Posts", "Media" (item 5a), "Pages" (item 6a), "Settings" (item 7a), each
+  with its own icon; "Pages" is hidden from authors and "Settings" is admin
+  only - a nav item for a route that does not exist yet is a dead link, so
+  each remaining item adds its own entry when it ships. Item 7b added no new
+  nav entry - the navigation editor lives inside the existing "Settings"
+  screen.
 - **The first admin is created by a server command (`npm run create-admin`),
   never a web setup page.**
 
@@ -181,7 +227,15 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
 - **entries** - posts **and** pages in one table (D5): `id`, `type` (post |
   page), `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`
   (**`v2`** - structured inline runs, D28), `status` (draft | published),
-  `published_at`, `author_id` -> users, `version`, `created_at`, `updated_at`
+  `published_at`, `author_id` -> users, `version`, `created_at`, `updated_at`.
+  **Every read/write function in `entries.server.ts` takes `type` as its
+  first parameter** (D66, item 6a) - `findEntryForUser`, `createDraft`,
+  `saveEntry`, `listEntries`, `deleteEntry`, `findPublishedEntry` - so posts
+  and pages share one data layer rather than a parallel one. Item 7b added
+  two more read-only functions on the same layer: `listPagesForNav()` (every
+  page, any status - feeds the admin dropdown and the save-time existence
+  check) and `findPublishedPageSlugs(ids)` (published only - feeds the
+  public menu render).
 - **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`, `width`,
   `height`, `alt_text`, `uploaded_by` -> users, `created_at` (exists:
   `0004_media.sql`, item 5a). Every signed-in role sees every upload; only
@@ -190,9 +244,22 @@ production since the item 4c deploy (release `4165637`, 2026-09-21).
   `storage_key` is a generated `randomUUID` plus the detected extension,
   never derived from the client's filename (D56); the real bytes, not the
   browser's declared `Content-Type`, decide the image type via `image-size`
-  (D57).
+  (D57). Still no caption column - the public caption (post or page) reuses
+  this same `alt_text` value (D65).
 - **site_settings** - single row: `site_title`, `logo_media_id` -> media,
-  `navigation` (JSON list of `{label, pageId | url}`), `updated_at`
+  `navigation` (JSON list of `{label, pageId | url}`), `updated_at` (exists:
+  `0005_site_settings.sql`, item 7a - singleton via `id smallint primary key
+  default 1 check (id = 1)`). **`navigation` is now read and written**
+  (item 7b, `getSiteSettings`/`updateNavigation` in `settings.server.ts`) -
+  reserved and unused through 7a, this is the column's first real consumer.
+  `NavItem` is `{ label } & ({ pageId } | { url })`, validated by
+  `navigationSchema` (`app/features/settings/navigation-input.ts`): label
+  1-100 chars, `pageId` a UUID checked to exist (any status) at save time,
+  `url` checked with the same `isSafeHref` allowlist inline links use (D30) -
+  capped at 20 items. `pageId` is **not** a foreign key, unlike
+  `logo_media_id` (D77) - a deleted page degrades silently at render like an
+  image block's `mediaId` does (D60/D61), rather than being a database
+  constraint.
 - **schema_migrations** - owned by the migration runner: `filename`,
   `applied_at`. No library owns any other table.
 
@@ -206,22 +273,38 @@ container blocks with `children`.
 - **Links are checked against an allowlist** - `http:`, `https:`, `mailto:`, a
   site-relative `/path`, or a `#fragment` - enforced by both the parser and the
   stored schema, because Editor.js's own link field accepts any `scheme:`
-  including `javascript:` (D30).
-- **Image blocks store a media id, not a URL.** The URL is resolved at render
-  time through one `buildMediaUrl(publicUrl, storageKey)` helper that both
-  5b's editor preview and 5c's public renderer will call, so a bucket or
-  domain change never touches content. The `media` table and its
-  storage/upload path exist since item 5a; the image block itself (5b) and
-  its public rendering (5c) are not yet built. The table has no caption
-  column - `design.md`'s "muted caption" line under images is a gap 5c still
-  has to resolve.
+  including `javascript:` (D30). Item 7b's navigation `url` field reuses this
+  exact allowlist (`isSafeHref`) rather than a second one.
+- **Image blocks store a media id, not a URL** (`{ id, type: "image", data: {
+  mediaId } }`, nothing else) - built in item 5b. The URL is resolved at read
+  time through one `buildMediaUrl(publicUrl, storageKey)` helper, called from
+  a `mediaById` lookup (`collectImageMediaIds` -> one `findMediaByIds` query,
+  never one per image, D60) that every entry's editor loader and the public
+  post/page loader build the same way - item 6b's pages loader reuses the
+  identical contract verbatim. A `mediaId` with no matching row (the file was
+  deleted from the library after being placed) degrades silently rather than
+  being prevented (D61): the editor shows "no longer available", the public
+  page drops the block and serves the rest of the entry. On the public site
+  the image renders inside a `<figure>`, with a `<figcaption>` showing the
+  media's `alt_text` (item 5c, D65) - on both posts and pages. The image's
+  own `alt` attribute keeps the same text, so a screen reader announces it
+  twice in a row; accepted rather than fixed, tracked live as F-79 pending
+  the project's screen-reader pass. **This same silent-degrade rule was
+  reused a third time by item 7b's own navigation `pageId`** (D83) - the
+  pattern now has three independent consumers (image blocks, and since 7a
+  the logo, though that one is a real foreign key by contrast - D77 - and
+  now navigation items).
 - **The format marker is enforced at both ends** (D31): the database refuses a
   write whose `blocks_format` is not the current one, the reader refuses a row
   whose format this build does not understand, and a save requires the row's
   own current format so a stale tab cannot silently downgrade newer content.
 - **Values PostgreSQL cannot hold in `jsonb`** - U+0000, lone surrogates - are
-  refused at the trust boundary (parser, schema, and the post title) rather than
-  reaching the database as a 500 (D32).
+  refused at the trust boundary (parser, schema, and the entry title) rather
+  than reaching the database as a 500 (D32). **`site_settings.navigation` has
+  no equivalent format guard on read** - it is trusted as `NavItem[]` with no
+  runtime check, unlike `blocks_format`'s explicit marker; not reachable
+  through the app's own request surface today since the only writer always
+  validates first, but tracked as **F-96 (P3, open)** as a latent gap.
 
 **Data rules:**
 
@@ -238,27 +321,44 @@ container blocks with `children`.
 - **All authorization, validation and rendering happen on the server.** The
   browser only runs the editor and uploads.
 - Login -> JWT (7 days) in an **httpOnly, Secure, SameSite=Lax cookie**,
-  host-only on the admin hostname (no `Domain`) - now that D22's split is
-  live, it never reaches the public site at all (F-71's comment describing
-  the old single-origin behaviour is stale, open).
+  host-only on the admin hostname (no `Domain`) - since D22's split is live,
+  it never reaches the public site at all (F-71's comment describing the old
+  single-origin behaviour is stale, open).
 - **Every admin request loads the user from the database**, rejects a
   deactivated user or a `token_version` mismatch, and **reads the role from the
   database, never the token** - removals and role changes take effect at once
   (D6).
+- **A role restriction beyond login is a separate, reusable middleware**
+  (`requireRole`, D69, item 6a) - `app/features/auth/require-role.server.ts`,
+  route-level rather than layout-level since posts and pages share a layout
+  but not a role restriction. Refuses with the same 404-not-403 shape
+  `findEntryForUser` uses for ownership, and logs the refusal (D70). Used by
+  `/admin/pages*` (editor, admin only) and `/admin/settings*` (admin only,
+  since item 7a); reusable as-is by item 8's admin-only user routes.
+  - **Known residual (F-84, P3, open):** the log event's own `role` field is
+    typed `string` rather than the real `Role` union - a one-line tightening,
+    not a behavioral gap.
 - Login rate-limited per IP and per email (IP from the rightmost
   `X-Forwarded-For` entry, which Caddy sets; IPv6 keyed per /64). Logged: failed
-  logins, role changes, deactivations, password resets.
+  logins, role changes, deactivations, password resets, and a role-based access
+  refusal.
 - **CSRF:** SameSite cookie plus an origin check in root middleware
   (`app/root.tsx`), scoped to `ADMIN_URL` only (item 4c) - the public site has
   no forms in v1, so a state-changing request there is refused by Origin
-  mismatch alone, with no separate host check. **Revisit this scoping the
-  moment a public-facing form is added** (none planned before item 7 at the
-  earliest).
+  mismatch alone, with no separate host check. **Item 7b did not change
+  this** - the public header only renders links, no new public-facing form -
+  so this scoping is still worth revisiting the moment one is added, and
+  none is currently planned.
 - Permissions: **author** - own posts (create, edit, publish, delete), upload
   media, delete own media; **editor** - all posts, pages and media; **admin** -
-  everything plus settings and users.
+  everything plus settings and users. **Pages are editor/admin only, unlike
+  posts** - an author never sees the "Pages" nav entry and gets 404 on every
+  `/admin/pages*` route.
 - **Uploads:** 10 MB cap; JPEG, PNG, WebP, GIF only - **no SVG**.
-- Content-Security-Policy is deliberately unset until item 5 lands.
+- **Content-Security-Policy is deliberately unset "until item 5 lands"**
+  (`server.js:14`'s own comment) - item 5 has been fully shipped since item
+  5c, so that trigger fired some time ago and this is still due, not merely
+  deferred.
 - **Editor.js's own injected CSS is overridden only inside the editor**
   (`.canvas`-scoped, one class more specific than the library's rule, so it wins
   on specificity rather than injection order) - D33.
@@ -266,11 +366,26 @@ container blocks with `children`.
 ### Quality bar (`blueprint/context/quality-bar.md`)
 
 Public pages < 500 ms p95 server-side; admin saves < 1 s p95 (measured for
-formatted posts: p95 65.1 ms). Up to ~10 admin users, a few thousand entries,
-media files and daily page views. Down until noticed, but an uptime alert; at
-most 24 h of data loss (nightly off-server backup); rebuild on a fresh server in
-under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
-2.2 AA, recorded in `design.md`.
+formatted posts: p95 65.1 ms; pages in item 6a: p95 51.7 ms). A page's public
+route (item 6b) measured p95 3.5-4.3ms across three separate runs -
+comfortably under the bar, expected since it reuses the identical query and
+rendering path posts already measured at well under the target. The settings
+save and both new chrome reads (item 7a) were checked against the same bars
+during build and review - single-digit milliseconds each, not a formal
+repeated-run p95 - comfortably under either bar. **Item 7b's own save
+(title, logo and navigation together) and the header's new `<nav>` read on
+every public page load were checked against the same two bars during build
+and review and satisfied their done-when criteria**, but - unlike item 6b's
+formal repeated-run measurement - no specific p95 number was recorded for
+either; worth a formal measurement if this ever becomes the item under
+suspicion for a regression. Up to ~10
+admin users, a few thousand entries, media files and daily page views. Down
+until noticed, but an uptime alert; at most 24 h of data loss (nightly
+off-server backup); rebuild on a fresh server in under 1 hour. Security
+standard: OWASP Top 10:2025. Accessibility standard: WCAG 2.2 AA, recorded
+in `design.md`. Image resizing is explicitly out of v1
+(`quality-bar.md`: "Image size on public pages: not measured, no target in
+v1").
 
 ## Constraints
 
@@ -302,11 +417,11 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
   rolled back this way** - reversing code does not reverse a schema (F-19).
   **Nor can a release that changes the systemd unit's env vars, by symlink
   alone** - discovered by item 4c's `APP_URL` -> `PUBLIC_URL`/`ADMIN_URL`
-  rename (F-72, fixed): the pre-4c unit file is saved at
+  rename (F-72, closed): the pre-4c unit file is saved at
   `/etc/habre-cms/habre-cms.service.pre-4c` so a rollback to `0ad8300`
   restores the unit alongside the symlink, not just the symlink.
 - **Caddy** handles HTTPS and renews certificates. The repository owns only
-  `deploy/caddy/habre-cms.caddy` - now three site blocks (`cms.`, the public
+  `deploy/caddy/habre-cms.caddy` - three site blocks (`cms.`, the public
   apex, and a `www` redirect, since item 4c) - imported by the server's main
   Caddyfile - **never replace the main Caddyfile** (D17, amended). The app
   listens on `127.0.0.1`; ports 3000 and 5432 are closed in both firewalls.
@@ -316,233 +431,140 @@ under 1 hour. Security standard: OWASP Top 10:2025. Accessibility standard: WCAG
 - **Portable:** everything rebuildable from the repository, a backup and fresh
   secrets (a rebuild generates new ones).
 - **Env vars read today:** `DATABASE_URL`, `PUBLIC_URL`, `ADMIN_URL`,
-  `JWT_SECRET`, `PORT`, `NODE_ENV` - `APP_URL` no longer exists (item 4c).
-  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
-  `R2_PUBLIC_URL` since item 5a - the app now refuses to start without them,
-  the same as `JWT_SECRET`.
+  `JWT_SECRET`, `PORT`, `NODE_ENV`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` - the app refuses to
+  start without any of them (`env.server.ts`). `APP_URL` no longer exists
+  (item 4c). **`.env.example`'s own comment still files the five `R2_*`
+  variables under "needed by later items (not read yet)"** - stale since item
+  5a started reading them; a small tidy for `docs` or the next touch of that
+  file, not tracked as a findings-ledger entry since it is a comment, not
+  behavior.
 - **Rules from `AGENTS.md`:** never build on `main`; nothing committed without
   approval; never push or deploy without a separate yes.
 
 ## Current state
 
-- **Build plan: items 1-4 and item 5a are done** - items 1, 2 (2a, 2b), 3,
-  4 (4a, 4b, 4c) and 5a are all checked off and archived under
-  `blueprint/history/features/`. Item 5 (Images) is in progress: 5a shipped
-  (storage and the media library); 5b (insert images into posts) and 5c
-  (render images on the public site) are next. Nothing in flight
-  (`current-work.md` is empty). `prototype` has run and its mockups are
-  **fully consumed and deleted**; `design.md` stays as the permanent record
-  of what they decided.
-- **The public site is real and live in production.** `/` lists the newest 10
-  published posts, newest first (D47), each linking to its own
-  `/posts/:slug`, which renders the post's blocks - text, headings, lists,
-  inline bold/italic/link formatting - through JSX only, never an
-  HTML-building helper (`render.tsx`, D26/D28). A draft or missing post 404s
-  inside the site's own header/footer chrome (D51), not root's bare error
-  page. The header/footer are fixed placeholder text until item 7 wires up
-  `site_settings` (D48). Measured against the quality bar, not assumed: p95
-  for both routes is single-digit milliseconds against the production build,
-  far under the 500 ms target. **Reachable at its real address**,
-  `https://surenmaharjan.fyi`, since item 4c's deploy - not only under
-  `cms.surenmaharjan.fyi/` as before.
-- **Writing, managing, publishing and reading posts all work, in production
-  as well as development.** `/admin/posts/new` and `/admin/posts/:id` save
-  drafts through Editor.js, with structured inline formatting stored as
-  canonical runs in `blocks_format` `v2` (D28), never HTML. `/admin/posts`
-  lists them - role-scoped, filterable, searchable, paginated - and
-  `/admin/posts/:id/delete` removes one after a confirmation screen (item 3).
-  The editor also publishes and unpublishes (item 4a, D42-D46): a
-  `Publish`/`Unpublish` button next to Save, only once a post has been saved
-  once (D45); `published_at` is set the first time and kept across every
-  later unpublish, per the schema's own comment rather than a new decision.
-  **Production has all three migrations applied** (`0001_users.sql`,
-  `0002_entries.sql`, `0003_blocks_v2.sql`) as of the item-4 deploy.
-- **What item 2b settled, for the items that read it:** a piece of text is a
-  list of `{ text, bold?, italic?, href? }` runs, canonical (one stored form per
-  text); links are checked against an allowlist enforced at both the parser and
-  the schema (D30); the format marker is enforced at both ends so a stale write
-  or an unreadable row fails loudly rather than silently (D31); values
-  PostgreSQL cannot hold in `jsonb` are refused at the boundary (D32); the
-  public renderer must render through JSX, never an HTML-building helper
-  (D26, amended by D28) - **item 4b is that renderer**, now built; a post's
-  address is chosen once at creation (D25); untrusted structure is bounded by
-  name rather than hoped about (D27).
-- **What item 3 settled, for item 4a to reuse rather than re-invent:**
-  `listEntries(actor, query)` and its `{ entries, total, totalPages, counts }`
-  shape are load-bearing - `saveEntry`'s content+status save reads through the
-  same query, never a second one (D34's routes table entry); a successful
-  redirect-producing action reports itself through `?deleted=<title>` (D37) -
-  item 4a generalized this into `readBanner`/`bannerRedirect`
-  (`app/features/content/banner.ts`, D46), which delete now shares too;
-  `PAGE_SIZE` is server-only, the client works from a derived `totalPages`
-  (D40, discovered by React Router's build refusing to bundle a server
-  constant into the browser).
-- **What item 4a settled, for item 4b and later items to reuse:** `saveEntry`
-  (renamed from `updateDraft`, closing F-40) takes an optional status
-  transition and applies it in the *same* atomic update as the content save,
-  never two requests (D42). `banner.ts` is now the one place a
-  redirect-with-announcement to `/admin/posts` is built (D46). The success
-  banner had **no "view it on the site" link** - item 4b did not add it
-  either, since a link still needs a real target the reader can trust; worth
-  revisiting now that `/posts/:slug` exists.
-- **What item 4b settled, for item 4c and later items to reuse:**
-  `renderBlocks`/`renderRuns` (`app/features/blocks/render.tsx`) take a plain
-  `Block[]`/`Run[]`, not an `Entry` - entry-type-agnostic on purpose, so item
-  6 (pages) reuses the same renderer rather than building a second one
-  (Data and contracts, archived `04b`). The public layout's header/footer
-  live in a shared `Chrome` component used by both the normal page and its
-  `ErrorBoundary` (D52) - React Router's error boundary *replaces* its
-  route's own component entirely rather than nesting inside it, so any future
-  public route adding its own `ErrorBoundary` should follow the same shape or
-  lose its chrome. **A pre-existing, unrelated defect surfaced while
-  verifying this item, filed as F-69**: `server/app.ts` never passes a
-  `mode` to `createRequestHandler`, so every error has been sanitized as if
-  in production - regardless of `NODE_ENV` - since item 1; `root.tsx`'s own
-  dev-mode stack trace has never actually shown one. Left open for a future
-  item; no end-user impact, since production is supposed to sanitize anyway.
-- **What item 4c settled, for item 5 and later items to reuse:**
-  `resolveHostRouting` (`app/lib/host-routing.ts`) is a pure function -
-  `{ method, pathname, search, requestHost, publicHost, adminHost,
-  publicOrigin, adminOrigin }` in, `allow` / `redirect` / `not-found` out -
-  the contract any future host-aware redirect reuses. **No new decisions** -
-  D22 already settled the domains, the `/admin` prefix and the redirect
-  semantics; this item only implemented what D22 recorded. The one thing worth
-  naming for later readers: CSRF is scoped to `ADMIN_URL` only, not both
-  hosts, on the assumption the public site has no forms - revisit that
-  assumption before item 7 adds one.
-- **What item 5a built, for 5b and 5c to build against:** any signed-in
-  writer can upload a JPEG/PNG/WebP/GIF up to 10 MB to Cloudflare R2 through
-  `/admin/media`, see it in a shared library - every role sees every upload
-  (D54) - and delete their own (authors) or any (editor/admin) upload behind
-  a confirmation screen, the same 404-not-403 pattern as posts. Upload
-  validates the real image bytes with `image-size` rather than trusting the
-  browser's `Content-Type` (D57); the R2 object is written before the
-  database row on upload, and the row is removed before the object on
-  delete, both per the plan's own data rules. Alt text is required at
-  upload and captured once on the media row, not per block-use (D55) - the
-  only place in v1 that touches it, so every image 5b places already has
-  one. Storage keys are generated (`randomUUID` plus the detected
-  extension), never derived from the client's filename (D56). **What 5b and
-  5c reuse rather than re-derive** (`Data and contracts`, archived `05a`):
-  the `media` table's exact shape; a media id is the only thing a block will
-  ever store, resolved to a URL at read time through one `buildMediaUrl`
-  helper; the table carries no caption column, which 5c still has to
-  resolve against `design.md`'s "muted caption" line. Review found three
-  findings, all repaired and closed within the item (archived as `05a/F-73`
-  - the delete link had no per-item accessible name, unlike posts' own
-  already-solved version of the same problem; `05a/F-74` - a failed R2
-  delete showed a generic error page even though the row, the actual source
-  of truth, was already gone; `05a/F-75` - a page number past the last page
-  showed a false empty state, the same bug F-56 found for posts).
-- **Production is one item behind `main`.** Release `4165637` (deployed
-  2026-09-21) carries everything through item 4c - items 1, 2a, 2b, 3, 4a, 4b
-  and 4c, all of it, behind both live hostnames. Item 5a (`d4950b6`, merged
-  2026-09-22) has not been deployed: production has no `media` table, no R2
-  credentials in `/etc/habre-cms/production.env`, and `/admin/media` does not
-  exist there yet - nothing urgent on its own, since 5a is storage and a
-  library screen with nothing wired to the post editor or the public site
-  yet, but it means `deploy` has real work queued, including the still-open
-  production R2 token and bucket (`needs-you.md`). The previous release,
-  `0ad8300`, was items 1-3 only; no new migration shipped with item 4
-  (`0001`-`0003` were already applied by the `0ad8300` deploy). This is the
-  first deploy where a
-  symlink-only rollback would have been wrong (F-72, fixed) - the systemd
-  unit's env vars changed (`APP_URL` -> `PUBLIC_URL`/`ADMIN_URL`), so the
-  pre-4c unit was saved alongside the pre-4c release for a paired restore.
-  The first release, `48e5052`, had shipped with a P0 - behind Caddy every
-  form POST was rejected, so login was impossible - fixed by
-  `fix/trust-forwarded-proto` (D23) and proven in production.
+- **Build plan: items 1-7 are done.** Items 1, 2 (2a, 2b), 3, 4 (4a, 4b, 4c),
+  5 (5a, 5b, 5c), 6 (6a, 6b) and **7 (7a Site title and logo, 7b Navigation
+  menu)** are all checked off and archived under `blueprint/history/features/`.
+  **Item 8 (Users and roles) is the only unchecked item left on the build
+  plan.** `prototype` has run and its mockups are fully consumed and deleted;
+  `design.md` stays as the permanent record of what they decided.
+- **The public site now serves posts, pages, and a navigation menu, all from
+  the same live `site_settings` row.** `/` lists the newest 10 published
+  posts, newest first (D47), each linking to its own `/posts/:slug`. `/:slug`
+  (item 6b) resolves a published page the same way - `findPublishedEntry`,
+  `renderBlocks` - text, headings, lists, inline bold/italic/link formatting,
+  a captioned image, all through JSX only, never an HTML-building helper
+  (D26/D28). A page deliberately has no byline and no back link, unlike a
+  post (D72-D74). A draft or missing post or page 404s inside the site's own
+  header/footer chrome (D51), not root's bare error page. The header/footer
+  read the live `site_settings` row (item 7a, D48) - title and logo in the
+  header, title in the footer - and, **as of item 7b, the header also
+  renders the saved navigation menu** as a `<nav aria-label="Site">` next to
+  the title; an empty menu renders no `<nav>` at all.
+- **Writing, managing, publishing and reading posts and pages all work**, in
+  production as well as development, admin-side; pages, media, and now the
+  site's navigation are all live on the public site, though **none of this
+  is in production yet** (see below). `/admin/posts` and `/admin/pages`
+  mirror each other exactly - `/admin/pages*` restricted to `editor` and
+  `admin` (D69); an author gets the same 404 an ownership refusal already
+  gives, and never sees the "Pages" nav entry.
+- **What item 7a built and settled, item 7b built cleanly on top of, with no
+  rework:** `site_settings` as a real singleton table, `getSiteSettings`/
+  `updateSiteIdentity` touching only `site_title`/`logo_media_id`, and
+  `requireRole` guarding `/admin/settings*` admin-only. 7b added its own
+  `updateNavigation` (a sibling function, not a widened one - matches
+  `saveEntry`'s own split from `updateDraft`, F-40) and two new read
+  functions on `entries.server.ts`'s existing generic layer
+  (`listPagesForNav`, `findPublishedPageSlugs`) - **no schema change, no new
+  route, no new admin-shell nav entry.** The one carried-forward residual:
+  **F-93 (P3, open)** - the settings screen's `useRouteLoaderData` fallback
+  to a hardcoded id, unreachable today but a silent-data-loss risk if
+  `admin-shell/layout.tsx` is ever renamed.
+- **What item 7b itself built and settled:** reorder is move-up/move-down,
+  not drag-and-drop (D80, no-JS-first, matching D10); add/remove/move are
+  re-render-only intents on the same form Save persists, no separate draft
+  storage (D81); a row needs exactly one of a page or a URL, checked at save
+  rather than a type-toggle field (D82); `pageId` existence is checked at
+  save time, publish status at render time - mirroring the image block's own
+  split (D83); every rendered nav link is a plain `<a>`, not React Router's
+  `<Link>`, since the resolved list mixes internal and external hrefs with
+  no distinction kept around by render time (D84). **One regression was
+  found and fixed in the same pass:** F-94 (P2) - adding several
+  `type="submit"` buttons ahead of Save broke plain-Enter form submission
+  (it either did nothing or added a blank row) - fixed with a hidden default
+  submit button, verified with a real screen re-drive, and closed by review
+  before shipping. **Two residuals recorded, not fixed:** F-95 (P3) - a page
+  deleted after being linked reverts its row to "No page" with no visible
+  warning and blocks Save on an untouched row; F-96 (P3) - `navigation` is
+  trusted as `NavItem[]` on read with no runtime format guard, unlike
+  `blocks_format`'s explicit marker, though not reachable through the app's
+  own request surface today.
+- **Production is behind `main` by seven sub-items.** Release `4165637`
+  (deployed 2026-09-21) carries everything through item 4c. None of item 5's
+  three sub-items (5a `d4950b6`, 5b `984b756`, 5c `d74822e`), item 6a
+  (`e2f7f36`), item 6b (`8408f53`), item 7a (`bf055b0`), or **item 7b
+  (`ef5d4d5`)** has been deployed: production has no `media` or
+  `site_settings` table, no R2 credentials in
+  `/etc/habre-cms/production.env`, and none of `/admin/media`, the picker, a
+  captioned public image, `/admin/pages`, a public `/:slug`, `/admin/settings`,
+  or the public navigation menu exist there yet - visitors still see the
+  hardcoded "Habre CMS" chrome with no menu. Nothing urgent on its own, since
+  a writer cannot reach any of it until then, but `deploy` now has items 5,
+  6a, 6b, 7a and 7b queued as accumulated work, including the still-open
+  production R2 token and bucket (`needs-you.md`).
 - **Also done outside the build loop:** `preflight` (no-go for real users at
   first release, its findings now closed or accepted; a second milestone
-  audit before this item-4 deploy raised F-72, repaired same-day), `host`
-  (server, backups, restore, rollback), three `deploy` runs, and `docs` (real
-  README, proven by running its commands).
+  audit before the item-4 deploy raised F-72, closed), `host` (server,
+  backups, restore, rollback), three `deploy` runs, and `docs` (real README,
+  proven by running its commands).
 - **`main` is pushed and in sync.** Item 2a went in through pull request #3,
-  item 2b through pull request #4, item 3 through pull request #5, item 4a
-  through pull request #6, item 4b through pull request #7, item 4c through
-  pull request #8, and **item 5a through pull request #9**, all with CI
-  green before merge - the loop the workflow recommends. CI runs `verify`
-  only, so the browser tests covering the worst defects in every item still
-  gate nothing (F-17).
-- **Item 2b's review, across two independent passes, found and closed six
-  findings** (archived as `2b/F-37`, `2b/F-43`..`2b/F-47`): a heading's Bold
-  un-bolding text with no way to save it back; an app-wide selection-colour
-  override that rested on a misreading; refusal messages that named the wrong
-  rule; a stale-format write with no guard; a missing format check on read; and
-  a NUL character reaching the database as a 500. **The second pass, after the
-  first repair round, found three more** (F-48, F-49, F-53 - a toolbar focus
-  ring invisible against hover, the NUL fix not covering lone surrogates, and an
-  unmeasured contrast claim in `design.md`), all repaired and shipped in the
-  same item. Three findings from that second pass remain open at P3 (F-50,
-  F-51) and unverified (F-52) - none blocking.
-- **Item 3's review found eleven findings; two were repaired and shipped in
-  the same item** (F-54 - four bare element selectors in `post-list.module.css`
-  leaking into the global stylesheet; F-60 - unqualified `author_id`/`status`/
-  `title` columns in a query newly joined to `users`, which the repair itself
-  nearly reintroduced in a fourth query before it was caught in review of the
-  fix). The other nine (F-55 through F-59, F-61 through F-64) are `open` or
-  `unverified` at P3 - a server/browser timezone mismatch on the "last changed"
-  date, a page-past-the-end showing a false "no matches", a doubled auth
-  check, an extra redirect hop through the guarded `/admin`, no submit control
-  on the search box, two possible screen-reader gaps, and two stale reference
-  screenshots.
-- **Item 4a's review found two findings, and closed both within the item** -
-  the first time a review's own findings were fully closed before shipping,
-  rather than carried to a later pass. Archived as `4a/F-57` (the
-  delete/publish/unpublish banner text was attacker-controlled and unbounded
-  - fixed by capping it to the title's own 200-character limit) and
-  `4a/F-65` (the banner-redirect one-liner had drifted to three copies -
-  extracted into `banner.ts`). F-40 (`updateDraft`'s misleading name) was
-  fixed in the same item by the `saveEntry` rename.
-- **Item 4b's review found three findings, and closed all three within the
-  item too** (archived as `04b/F-66`, `04b/F-67`, `04b/F-68`): the public
-  layout's `ErrorBoundary` showed less diagnostic detail in development than
-  root's own does (fixed by mirroring root's pattern, though its practical
-  effect waits on F-69); two of six new tests lacked shown-to-fail proof
-  (both proven afterward, no code change needed); `design.md`'s contrast
-  table had no row for a pairing this item actually introduced (added: 5.9
-  light / 7.8 dark, both comfortably passing AA). F-69 (above) stayed open,
-  as an unrelated discovery.
-- **Item 4c's review found two findings, both left open (P2/P3, neither
-  blocking):** F-70 - `routeByHost`'s two refusal branches (wrong method on
-  the wrong host; a host matching neither) log nothing, unlike the CSRF
-  middleware two lines below it in the same file - a detection gap, not a
-  bypass. F-71 - the session cookie's comment still describes the pre-split,
-  single-origin reality ("the public site receives it but never reads it"),
-  when the cookie now never reaches the public site at all. **Preflight's
-  milestone audit before this deploy found a third, F-72** (the env-var
-  rename breaking the proven symlink-only rollback) - **repaired same-day**,
-  see *Production is caught up* above.
-- **Findings ledger: 39 total, none above P2** and nothing `open` or `fixed`
-  at P0/P1. P2: F-48, F-72 `fixed` · F-16 `closed` · F-18 `accepted` ·
+  2b through #4, item 3 through #5, 4a through #6, 4b through #7, 4c through
+  #8, 5a through #9, 5b through #10, 5c through #11, item 6a through pull
+  request #12, item 6b through pull request #13, item 7a through pull
+  request #14, and **item 7b through pull request #15**, all with CI green
+  before merge. CI runs `verify` only, so the browser tests covering the
+  worst defects in every item still gate nothing (F-17) - item 7a's own
+  review remains the sharpest example of that gap: F-92 (P1 - the logo image
+  resolving against the wrong URL and 404ing for every real visitor) was
+  found only once a real Playwright test rendered the page.
+- **Findings ledger: 45 entries live, none above P2.** P2: F-48, F-72 fixed ·
   F-17, F-25, F-29, F-69, F-70 open · F-22 unverified. P3: F-07, F-40, F-41,
-  F-49, F-53, F-54, F-60 `fixed` · F-13, F-31, F-52, F-63 unverified ·
-  F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-50, F-51, F-55, F-56,
-  F-58, F-59, F-61, F-62, F-64, F-71 open. **F-15 [P1] remains accepted by
-  the owner** - nothing alerts when the live system breaks, until `monitor`
-  runs. Item 5a's own review found three findings (`05a/F-73`, `05a/F-74`,
-  `05a/F-75`), all repaired and closed within the item - archived with the
-  feature rather than carried in this ledger, so the 39-total count above is
-  unchanged by item 5a shipping.
-- **Next:** `context` regeneration is done (this file); `spec` item 5b
-  (insert images into posts - an Editor.js image block backed by the media
-  library) is the next unchecked build item. `deploy` also has item 5a
-  queued once the production R2 token and bucket exist (`needs-you.md`).
-  `monitor` is still worth running soon, now the public site is live and has
-  real visitors reachable for the first time.
-- **Remaining items, in order:** 5b Insert images into posts · 5c Render
-  images on the public site · 6 Pages · 7 Site settings and menu · 8 Users
-  and roles.
-- **Waiting on the user** (`needs-you.md`): a custom domain for the R2
-  images bucket, and a production R2 token and bucket, both before item 5
-  reaches production - the local `.env`'s `R2_PUBLIC_URL` is now set to the
-  bucket's `r2.dev` address, which item 5a built and shipped against, but
-  that address is rate-limited and not meant for real traffic; an
-  UptimeRobot account (`monitor`, F-15); a screen-reader and keyboard pass
-  over login, the admin shell, the posts list (filter tabs, search, delete
-  confirmation) and the block editor including its inline toolbar (F-18,
-  accepted for this release by the owner); **a screen-reader and keyboard
-  pass over the public site** - home, one post, the 404 - still open, and
-  now live in production, not just development; deleting the old
+  F-49, F-53, F-54, F-60 fixed · F-13, F-31, F-52, F-63, F-79, F-83
+  unverified · F-19, F-20, F-23, F-24, F-26, F-27, F-38, F-39, F-50, F-51,
+  F-55, F-56, F-58, F-59, F-61, F-62, F-64, F-71, F-78, F-84, F-86, F-93,
+  **F-95, F-96** open. Every item's own findings are archived with that item
+  under `blueprint/history/features/`, most recently **07b** (three entries:
+  F-94 closed - found and fixed in the same review pass, then independently
+  re-verified closed, not left `fixed`; F-16 and F-18 also swept out of the
+  ledger into this archive per `ship`'s process, both unrelated to
+  navigation - F-16 the backup-restore proof from item 4's preflight,
+  F-18 the still-open accessibility-pass acceptance).
+- **Next:** this `context` regeneration is done; `spec` item 8 (Users and
+  roles) is the only remaining unchecked build item - the last one on the
+  MVP plan. The Content-Security-Policy decision is still due (unchanged
+  from the last regeneration), and `deploy` has items 5, 6a, 6b, 7a and 7b
+  queued as accumulated work once the production R2 token and bucket exist
+  (`needs-you.md`).
+- **Remaining items, in order:** 8 Users and roles - the last item on the
+  build plan. Once it ships, this project reaches the end of its planned
+  first version; what comes after (a page builder is the recorded likely
+  direction - section 11) is a decision for `ideate --rescope` or a fresh
+  `spec`, not an existing queued item.
+- **Waiting on the user** (`needs-you.md`): a custom domain for the R2 images
+  bucket, and a production R2 token and bucket, both before item 5 reaches
+  production; an UptimeRobot account (`monitor`, F-15); a screen-reader and
+  keyboard pass over login, the admin shell, the posts list, the pages list
+  (its editor and delete confirmation), the settings form and its logo
+  picker dialog, and - now widened by item 7b - the navigation editor's
+  add/remove/move-up/move-down buttons and page/URL fields; a screen-reader
+  and keyboard pass over the public site, including a page and - now
+  widened by item 7b - the header's navigation menu; deleting the old
   `hone.surenmaharjan.fyi` DNS record. The dev images bucket, backup bucket,
-  server software and local `.env` lines are **done**.
+  and server software lines are recorded as **done**. **The local `.env`
+  line (`PUBLIC_URL`/`ADMIN_URL`/`JWT_SECRET`) is still open in
+  `needs-you.md`** despite being satisfied since item 6b's `build` - the
+  same one-line tidy the last two regenerations both noted and neither
+  closed. Worth closing explicitly this time rather than carrying it to a
+  fourth regeneration.

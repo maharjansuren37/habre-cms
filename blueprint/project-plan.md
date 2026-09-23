@@ -52,9 +52,12 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
 - **Platform:** web - browser-based admin plus a server-rendered public site.
 - **Language:** TypeScript **7.0.2** (installed by `scaffold`) - all code.
 - **Lint / format:** Biome **2.5.13** (added by `scaffold`, D19).
-- **Runtime:** Node.js **26** on the dev machine, CI and the VPS - 26.8.2 today,
-  moving to the first 26 LTS release when it is promoted (expected October
-  2026). React Router 8 requires >= 22.22.
+- **Runtime:** Node.js **26** everywhere `engines` requires it. Installed
+  versions differ by machine: 26.8.1 on the dev machine, 26.8.2 in production;
+  CI installs whatever is newest under the `26` major at each run, not pinned
+  to a patch (`.github/workflows/ci.yml`). All will move to the first 26 LTS
+  release when it is promoted (expected October 2026). React Router 8 requires
+  >= 22.22.
 - **Framework:** React Router **8.3.1**, framework mode; React **19.3.0**;
   Vite **8.3.0**. Served by a plain `node:http` server through React Router's
   Node adapter - no Express. v8 is newer than an agent's training; its installed
@@ -457,9 +460,11 @@ From `stack`:
   app, and Editor.js (item 2) and R2 image URLs (item 5) decide what it must
   allow. Set it once item 5 lands; `preflight` should treat it as a decision
   with that trigger, not an oversight.
-- **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`, `APP_URL`,
-  `JWT_SECRET`, `PORT` and `NODE_ENV`; the rest are listed in `.env.example`
-  against the item that first reads them.
+- **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,
+  `PUBLIC_URL`, `ADMIN_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `PORT` and `NODE_ENV` -
+  the app now refuses to start without any of them (`AGENTS.md`'s Environments
+  table).
 - **Memory budget:** PostgreSQL tuned small (`shared_buffers` ~128 MB), app
   ~100 MB, Caddy ~30 MB.
 - **Server setup script** in the repository installs Node 26 and PostgreSQL 16
