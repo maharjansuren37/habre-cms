@@ -1195,3 +1195,19 @@ otherwise touch. Beats: folding it in anyway, which `ai-interaction.md`
 rules out directly - refactoring is its own item, never a passenger on
 someone else's diff. F-84 stays open in the ledger for a future pass that
 wants to close it outright.
+
+## D89 - Middleware, loaders and actions read the path from React Router's normalized `url`, never `request.url` (2026-09-28)
+
+**Chose:** any code that needs the request's path takes the `url` argument
+React Router passes to middleware, loaders and actions - `.data` suffix and
+`_routes`/`index` parameters already removed - rather than parsing
+`request.url`. Reading only `searchParams` from `request.url` stays acceptable.
+
+`request.url` ends in `.data` on every client-side navigation, which sent
+every production login to `https://surenmaharjan.fyi/admin.data` (host
+routing saw a non-admin path) and recorded `redirectTo=/admin/pages.data`
+for an expired session (fix `admin-data-host-redirect`). Beats: stripping
+`.data` ourselves, which duplicates the framework's normalization; and
+teaching `isAdminPath` about `/admin.data`, which patches one symptom and
+leaves every other path reader wrong. Costs: nothing at runtime; the two
+log lines that still read `request.url` are F-101.

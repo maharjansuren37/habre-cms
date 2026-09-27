@@ -131,6 +131,23 @@ test("revoking a user's sessions sends them to login on their next request", asy
   await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fposts");
 });
 
+test("a session ending during a client-side navigation returns to that page after login", async ({
+  page,
+}) => {
+  await page.goto("/admin/login");
+  await logIn(page);
+  await expect(page).toHaveURL("/admin/posts");
+
+  await revokeSessions(user.email);
+  // A nav link, not page.goto: the browser fetches /admin/pages.data, and the
+  // page to come back to must be recorded without that suffix.
+  await page.getByRole("link", { name: "Pages" }).click();
+  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fpages");
+
+  await logIn(page);
+  await expect(page).toHaveURL("/admin/pages");
+});
+
 test("logging out ends the session, including any copy of its cookie", async ({
   page,
   context,

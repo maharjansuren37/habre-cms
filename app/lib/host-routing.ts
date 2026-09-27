@@ -16,7 +16,9 @@ function isAdminPath(pathname: string): boolean {
  * (anything else on the wrong host is refused), `/healthz` answers on both,
  * and a host matching neither gets refused. Pure and host-value-only so it is
  * testable without a `Request` or the environment - `app/root.tsx` supplies
- * both from `request.url` and `env.PUBLIC_URL`/`env.ADMIN_URL`.
+ * both from React Router's normalized `url` (never the raw `request.url`,
+ * which ends in `.data` on client-side navigations) and
+ * `env.PUBLIC_URL`/`env.ADMIN_URL`.
  */
 export function resolveHostRouting(request: {
   method: string;

@@ -29,11 +29,15 @@ export async function findSessionUser(request: Request): Promise<SessionUser | n
  * sessions were revoked (D6). Refused requests go to the login page, which
  * sends them back here afterwards.
  */
-export const requireUser: MiddlewareFunction<Response> = async ({ request, context }, next) => {
+export const requireUser: MiddlewareFunction<Response> = async (
+  { request, url, context },
+  next,
+) => {
   const user = await findSessionUser(request);
 
   if (!user) {
-    const { pathname, search } = new URL(request.url);
+    // `url`, not `request.url`, which ends in `.data` on a client-side navigation.
+    const { pathname, search } = url;
     const loginUrl = `/admin/login?redirectTo=${encodeURIComponent(safeRedirect(pathname + search))}`;
     const headers = new Headers({ "Cache-Control": NO_STORE });
     // A cookie that no longer works - unreadable, expired, revoked - is removed.
