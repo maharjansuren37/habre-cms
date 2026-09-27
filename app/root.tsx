@@ -22,8 +22,9 @@ import "./app.css";
 export const middleware: Route.MiddlewareFunction[] = [
   // Ahead of every other check (D22): an admin path on the wrong host, or the
   // wrong host entirely, is resolved before touching auth, CSRF or a loader.
-  function routeByHost({ request }) {
-    const url = new URL(request.url);
+  // `url`, not `request.url`: on a client-side navigation the request is for
+  // `/admin.data`, which is not an admin path; `url` has the `.data` removed.
+  function routeByHost({ request, url }) {
     const publicUrl = new URL(env.PUBLIC_URL);
     const adminUrl = new URL(env.ADMIN_URL);
     const decision = resolveHostRouting({

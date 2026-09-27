@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { createAdmin, deleteTestUser } from "./helpers/users.ts";
 
 // Runs against the third web server (playwright.config.ts), started with
 // genuinely different PUBLIC_URL/ADMIN_URL hosts on one port - D22's own
-// answer to "browser tests need two local hostnames". Uses the request API
-// rather than a browser: what is being tested is app/lib/host-routing.ts's
-// redirect and refusal decisions, not anything rendered.
+// answer to "browser tests need two local hostnames". Mostly uses the request
+// API rather than a browser: what is being tested is app/lib/host-routing.ts's
+// redirect and refusal decisions, not anything rendered. Logging in is the
+// exception, because only a browser makes the client-side `.data` requests
+// that reach host routing with a path the framework has not cleaned up.
 const PORT = 3102;
 const PUBLIC = `http://127.0.0.1:${PORT}`;
 const ADMIN = `http://localhost:${PORT}`;
@@ -56,4 +59,28 @@ test("/healthz answers on both hosts without redirecting", async ({ request }) =
   const onAdmin = await request.get(`${ADMIN}/healthz`);
   expect(onPublic.status()).toBe(200);
   expect(onAdmin.status()).toBe(200);
+});
+
+test("a client-side data request for /admin on the admin host stays on the admin host", async ({
+  request,
+}) => {
+  // What the browser fetches when it navigates to /admin without reloading.
+  const response = await request.get(`${ADMIN}/admin.data`, { maxRedirects: 0 });
+  const body = await response.text();
+  expect(body).toContain("/admin/login");
+  expect(body).not.toContain(PUBLIC);
+});
+
+test("logging in on the admin host lands on the posts list on the admin host", async ({ page }) => {
+  const user = createAdmin("Host Split Admin");
+  try {
+    await page.goto(`${ADMIN}/admin/login`);
+    await page.getByLabel("Email").fill(user.email);
+    await page.getByLabel("Password").fill(user.password);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(`${ADMIN}/admin/posts`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
+  } finally {
+    await deleteTestUser(user.email);
+  }
 });

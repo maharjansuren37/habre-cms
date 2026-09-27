@@ -124,3 +124,6 @@ File: README.md:9-13
 
 ### F-99 [P3] open - `CHANGELOG.md` stops at the item-3 release; item 4's production deploy and items 5-8 are unrecorded
 File: CHANGELOG.md:7-12
+
+### F-101 [P3] open - Two security-event log lines still record the raw `.data` path
+File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
