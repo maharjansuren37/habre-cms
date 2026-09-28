@@ -32,7 +32,7 @@ to put content online.
 - Save as draft, publish, unpublish.
 - Upload images and reuse them from a media library.
 - Public site rendered from published content with one built-in theme.
-- Site settings: title, logo, navigation menu.
+- Site settings: title, logo, navigation menu, home page.
 - Users and roles:
   - **Author** - writes and publishes their own posts.
   - **Editor** - manages everyone's content.
@@ -219,7 +219,7 @@ process. Decided 2026-09-16; built in item 4.
 
 | Hostname | Serves |
 |---|---|
-| `surenmaharjan.fyi` | the public site: `/`, `/posts/:slug`, `/:slug` |
+| `surenmaharjan.fyi` | the public site: `/`, `/posts`, `/posts/:slug`, `/:slug` |
 | `cms.surenmaharjan.fyi` | the admin: `/admin/*`; `/` redirects to `/admin` |
 | `www.surenmaharjan.fyi` | redirects to `surenmaharjan.fyi` (in Caddy) |
 
@@ -248,7 +248,8 @@ process. Decided 2026-09-16; built in item 4.
 
 | Route | Shows |
 |---|---|
-| `/` | latest published posts |
+| `/` | the chosen home page, or the latest published posts if none is chosen (item 9) |
+| `/posts` | latest published posts (always) |
 | `/posts/:slug` | one post |
 | `/:slug` | one page |
 | `/healthz` | health check, including database reachability |
@@ -264,7 +265,7 @@ process. Decided 2026-09-16; built in item 4.
 | `/admin/posts`, `/admin/posts/new`, `/admin/posts/:id` | all roles (authors see and edit only their own) |
 | `/admin/pages`, `/admin/pages/new`, `/admin/pages/:id` | editor, admin |
 | `/admin/media` | all roles |
-| `/admin/settings` - title, logo, menu | admin |
+| `/admin/settings` - title, logo, menu, home page | admin |
 | `/admin/users`, `/admin/users/:id` - add, change role, reset password, deactivate | admin |
 
 Each admin action has a server handler; its exact shape follows the framework's
@@ -288,7 +289,8 @@ One site per installation - no site id on any table (D8).
 - **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`,
   `width`, `height`, `alt_text`, `uploaded_by` -> users, `created_at`
 - **site_settings** - a single row: `site_title`, `logo_media_id` -> media,
-  `navigation` (JSON list of `{label, pageId | url}`), `updated_at`
+  `navigation` (JSON list of `{label, pageId | url}`), `home_page_id` -> entries
+  (nullable, `ON DELETE SET NULL`; item 9), `updated_at`
 - **schema_migrations** - owned by the in-repo migration runner: `filename`,
   `applied_at`. No library creates any other table.
 

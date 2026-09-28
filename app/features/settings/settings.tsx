@@ -110,7 +110,13 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   // nested inside the layout that provides it (app/routes.ts) - but avoids a
   // non-null assertion for a value the type system cannot itself guarantee.
   const settings = useRouteLoaderData<typeof adminLayoutLoader>("features/admin-shell/layout")
-    ?.settings ?? { siteTitle: "Habre CMS", logoMediaId: null, logoUrl: null, navigation: [] };
+    ?.settings ?? {
+    siteTitle: "Habre CMS",
+    logoMediaId: null,
+    logoUrl: null,
+    navigation: [],
+    homePageId: null,
+  };
   const [logo, setLogo] = useState<PickedLogo | null>(
     settings.logoMediaId && settings.logoUrl
       ? { id: settings.logoMediaId, url: settings.logoUrl, filename: "" }

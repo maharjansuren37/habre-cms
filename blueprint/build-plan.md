@@ -84,3 +84,7 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 7a. **Site title and logo** - a settings screen where an admin sets the site title and logo, replacing the placeholder in the admin shell and public site chrome
   - [x] 7b. **Navigation menu** - an ordered list of nav items (page or URL) editable in settings and rendered in the public header
 - [x] 8. **Users and roles** - admin adds editors and authors; permissions enforced on the server
+
+## After MVP
+
+- [ ] 9. **Choose the home page** - in settings, an admin picks what `/` shows: the latest posts (today's behaviour, the default) or one published page; the post list moves to `/posts` so it stays reachable

@@ -7,6 +7,7 @@ export type SiteSettings = {
   logoMediaId: string | null;
   logoUrl: string | null;
   navigation: NavItem[];
+  homePageId: string | null;
 };
 
 /**
@@ -26,10 +27,12 @@ export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings
       logoMediaId: string | null;
       storageKey: string | null;
       navigation: NavItem[];
+      homePageId: string | null;
     }[]
   >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
-      m.storage_key as "storageKey", s.navigation as "navigation"
+      m.storage_key as "storageKey", s.navigation as "navigation",
+      s.home_page_id as "homePageId"
     from site_settings s left join media m on m.id = s.logo_media_id
     where s.id = 1
   `;
@@ -38,6 +41,7 @@ export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings
     logoMediaId: row.logoMediaId,
     logoUrl: row.storageKey ? buildMediaUrl(r2PublicUrl, row.storageKey) : null,
     navigation: row.navigation,
+    homePageId: row.homePageId,
   };
 }
 
@@ -68,4 +72,13 @@ export async function updateNavigation(items: NavItem[]): Promise<void> {
   await sql`
     update site_settings set navigation = ${sql.json(items)}, updated_at = now() where id = 1
   `;
+}
+
+/**
+ * Another F-40 sibling: only `home_page_id`. `null` means the latest posts
+ * (item 9's D-1). The caller checks the id is a page first - the foreign key
+ * only proves it is an entry.
+ */
+export async function updateHomePage(pageId: string | null): Promise<void> {
+  await sql`update site_settings set home_page_id = ${pageId}, updated_at = now() where id = 1`;
 }

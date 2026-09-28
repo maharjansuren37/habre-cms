@@ -105,6 +105,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
     logoMediaId: null,
     logoUrl: null,
     navigation: [],
+    homePageId: null,
   };
   const navLinks = loaderData?.navLinks ?? [];
   return (

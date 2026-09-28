@@ -126,14 +126,16 @@ not tidying; it is what keeps the open list true.
       screen's three independent forms - change role, reset password,
       deactivate/reactivate - including the self-guard note shown in place of
       the role/deactivate controls on your own account, plus the "Users" nav
-      entry).
+      entry; from item 9, the settings screen's Home page select and its
+      "Not published" hint).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
       is live.** Blocks nothing now; `preflight` needs it (design.md lists it as
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
-      widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23)
+      widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
+      widened, item 9)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these
