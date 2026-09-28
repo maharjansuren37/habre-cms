@@ -3,10 +3,10 @@
 > **Generated file.** Written by the `context` skill from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
-> the record. Decision numbers (D1-D88) are entries in `dev-notes/decisions.md` -
+> the record. Decision numbers (D1-D107) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-09-28 from `main` (`675396c`, plus the uncommitted item 9 plan edits).
+Generated 2026-09-29 from `main` (`bded549`).
 
 ## What this is
 
@@ -30,8 +30,9 @@ draft / publish / unpublish; image upload and a media library; a public site in
 one built-in theme; site title, logo and navigation menu; author / editor /
 admin roles with user management; light and dark mode.
 
-**After MVP (planned):** item 9 - an admin chooses what `/` shows: the latest
-posts (default) or one published page; the post list moves to `/posts`.
+**After MVP (built):** item 9 - an admin picks one published page as `/`, with a
+welcome placeholder until one is chosen; `/` never lists posts, which live at
+`/posts` (D107). Nothing further is queued.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
 Soon after: categories and tags, scheduled publishing and revisions, SEO fields
@@ -77,7 +78,7 @@ without a requirement that calls for them.
   `cms.surenmaharjan.fyi` the admin under `/admin`. Host routing runs before any
   route (`app/lib/host-routing.ts`); `PUBLIC_URL` and `ADMIN_URL` are equal in
   development.
-- **Routes:** public `/` (chosen home page, else latest posts - item 9),
+- **Routes:** public `/` (chosen home page, else a welcome placeholder - D107),
   `/posts`, `/posts/:slug`, `/:slug`, `/healthz` - server-rendered,
   work without JavaScript. Admin `/admin/posts`, `/pages`, `/media`,
   `/settings`, `/users`. First admin comes from `npm run create-admin`, never a
@@ -126,11 +127,12 @@ without a requirement that calls for them.
 
 ## Current state
 
-- **Plan:** 8 of 8 MVP items done, archived in `blueprint/history/features/`.
-  Next: item 9, *Choose the home page* (being spec'd). A page builder remains
-  the recorded longer-term direction (`ideate --rescope`).
-- **Live and records:** production runs release `6bf3ddb` (items 1-8 plus
-  the `admin-data-host-redirect` fix), deployed 2026-09-28 - see
+- **Plan:** 9 of 9 items done (8 MVP + item 9), archived in
+  `blueprint/history/features/`. Nothing unchecked; the next item needs
+  `ideate --rescope` or `spec` - a page builder is the recorded direction.
+- **Live and records:** production runs release `8d6afba` (items 1-8 plus
+  fixes), deployed 2026-09-28; item 9 awaits `deploy`, with its migration
+  and follow-ups in `blueprint/production-pending.md`. See
   `dev-notes/status.md`. Findings:
   `blueprint/context/findings.md` and `blueprint/findings/backlog.md`. Work
   only the owner can do: `needs-you.md`.
