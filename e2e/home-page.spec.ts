@@ -27,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async () => {
   // site_settings is a singleton every public spec reads: `/` must be back to
-  // the latest posts whatever happened above (resetSiteSettings clears
+  // no home page whatever happened above (resetSiteSettings clears
   // home_page_id too).
   await resetSiteSettings();
   await deleteEntriesBy(admin.email);
@@ -43,7 +43,16 @@ function storedHomePageId(): Promise<string | null> {
   });
 }
 
-test("an admin can choose a page as the home page, and switch back to the latest posts", async ({
+function storedSiteTitle(): Promise<string> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ siteTitle: string }[]>`
+      select site_title as "siteTitle" from site_settings where id = 1
+    `;
+    return row.siteTitle;
+  });
+}
+
+test("an admin can choose a page as the home page, and switch back to no home page", async ({
   page,
 }) => {
   await logIn(page, admin);
@@ -55,7 +64,7 @@ test("an admin can choose a page as the home page, and switch back to the latest
   await expect(page.getByText("Settings updated.")).toBeVisible();
   // A draft can be chosen (D-5), with the hint saying what visitors see meanwhile.
   await expect(
-    page.getByText("Not published - visitors see the latest posts until it is."),
+    page.getByText("Not published - visitors see a placeholder until it is."),
   ).toBeVisible();
   // A fresh load, not reload(): the ?updated=1 banner would otherwise already
   // be showing and let the next save's assertion pass before it lands.
@@ -63,7 +72,7 @@ test("an admin can choose a page as the home page, and switch back to the latest
   await expect(page.getByLabel("Home page")).toHaveValue(pageId);
   expect(await storedHomePageId()).toBe(pageId);
 
-  await page.getByLabel("Home page").selectOption({ label: "Latest posts" });
+  await page.getByLabel("Home page").selectOption({ label: "No home page" });
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
   expect(await storedHomePageId()).toBeNull();
@@ -92,6 +101,7 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
   // D-6: the foreign key cannot tell a page from a post, and an unknown id
   // would reach the database as an unhandled 23503 (F-89's pattern).
   const postId = await createDraftFor(admin.email, `Not a page ${randomInt(1_000_000)}`, []);
+  const titleBefore = await storedSiteTitle();
   await logIn(page, admin);
   const origin = new URL(page.url()).origin;
   for (const homePageId of [postId, "00000000-0000-0000-0000-000000000000", "not-a-uuid"]) {
@@ -103,20 +113,26 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
     expect(await response.text()).toContain("That home page could not be saved. Choose it again.");
   }
   expect(await storedHomePageId()).toBeNull();
+  // Nothing means nothing: the title in the same refused form was not saved either (F-109).
+  expect(await storedSiteTitle()).toBe(titleBefore);
 });
 
-test("the latest posts are at / by default, and at /posts always", async ({ page }) => {
+test("/ shows the placeholder by default, never the posts, which are at /posts (D-12)", async ({
+  page,
+}) => {
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
   await createDraftFor(admin.email, postTitle, [], { status: "published" });
 
   await page.goto("/");
-  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+  await expect(page.getByText("This site is being set up.")).toBeVisible();
+  await expect(page.getByRole("link", { name: postTitle })).toHaveCount(0);
   await expect(page).toHaveTitle("Habre CMS");
-  await page.goto("/posts");
+  await page.getByRole("link", { name: "Read the posts" }).click();
+  await expect(page).toHaveURL(/\/posts$/);
   await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
 });
 
-test("a chosen page takes /, its own address lands on /, and unpublishing it brings the list back", async ({
+test("a chosen page takes /, its own address lands on /, and unpublishing it brings the placeholder back", async ({
   page,
 }) => {
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
@@ -156,8 +172,30 @@ test("a chosen page takes /, its own address lands on /, and unpublishing it bri
   await page.waitForURL(/unpublished=/);
 
   await page.goto("/");
-  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+  await expect(page.getByText("This site is being set up.")).toBeVisible();
+  await expect(page.getByRole("link", { name: postTitle })).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toHaveCount(0);
+
+  // Leave `/` as every other spec expects it; afterEach is only the backstop.
+  await resetSiteSettings();
+});
+
+test("with a home page set, a post's All posts link still leads to the post list (F-105)", async ({
+  page,
+}) => {
+  const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
+  const postSlug = postTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+  const homeId = await createDraftFor(admin.email, `Front Door ${randomInt(1_000_000)}`, [], {
+    status: "published",
+    type: "page",
+  });
+  await withDatabase((sql) => sql`update site_settings set home_page_id = ${homeId} where id = 1`);
+
+  await page.goto(`/posts/${postSlug}`);
+  await page.getByRole("link", { name: "All posts" }).click();
+  await expect(page).toHaveURL(/\/posts$/);
+  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
 
   // Leave `/` as every other spec expects it; afterEach is only the backstop.
   await resetSiteSettings();

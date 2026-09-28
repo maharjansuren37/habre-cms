@@ -160,4 +160,11 @@ not tidying; it is what keeps the open list true.
       none of them. Production values are `host`'s. `open` (build, 2026-09-15;
       reworded for the `APP_URL` split, spec, 2026-09-21)
 
+- [ ] **Choose a home page in production's Settings right after item 9 is
+      deployed** - decision; which page is the site's front door is yours.
+      Item 9 makes `/` page-first (D-12): until a published page is chosen,
+      `surenmaharjan.fyi/` shows a "This site is being set up" placeholder
+      instead of today's post list. Blocks nothing now; needed straight after
+      `deploy` of item 9. `open` (spec, 2026-09-29)
+
 ## Done

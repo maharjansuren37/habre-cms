@@ -6,8 +6,7 @@ import styles from "./post-list.module.css";
 // quality bar's "a few thousand entries" ever becomes "read every day".
 export const POST_LIMIT = 10;
 
-/** The latest-posts list, shared by `/` (when no home page is chosen) and
- *  `/posts` (always) so the two can never drift apart - item 9. */
+/** The latest-posts list at `/posts` - `/` never shows it (item 9's D-12). */
 export function PostList({ posts }: { posts: PublicPostSummary[] }) {
   return (
     <main className={styles.home}>

@@ -1,4 +1,4 @@
-/* The latest-posts list - `/` by default and `/posts` always (item 9). */
+/* The latest-posts list at `/posts` (item 9). */
 
 .home {
   max-width: var(--measure);

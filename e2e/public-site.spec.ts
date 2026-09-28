@@ -20,7 +20,7 @@ test.afterEach(async () => {
   await deleteTestUser(author.email);
 });
 
-test("the home page lists only published posts, newest first", async ({ page }) => {
+test("/posts lists only published posts, newest first", async ({ page }) => {
   await createDraftFor(author.email, "Older Published", [], {
     status: "published",
     publishedAt: new Date("2026-01-01T00:00:00Z"),
@@ -31,16 +31,29 @@ test("the home page lists only published posts, newest first", async ({ page }) 
   });
   await createDraftFor(author.email, "A Draft", [], { status: "draft" });
 
-  await page.goto("/");
+  await page.goto("/posts");
   await expect(page.locator("main a")).toHaveText(["Newer Published", "Older Published"]);
   await expect(page.getByText("A Draft")).toHaveCount(0);
 });
 
-test("with nothing published, the home page says so instead of showing a blank page", async ({
+test("with nothing published, /posts says so instead of showing a blank page", async ({ page }) => {
+  await page.goto("/posts");
+  await expect(page.getByText("Nothing has been published yet.")).toBeVisible();
+});
+
+test("with no home page chosen, / shows the placeholder under the site title, not the post list", async ({
   page,
 }) => {
+  await createDraftFor(author.email, "Placeholder Spec Post", [], { status: "published" });
+
   await page.goto("/");
-  await expect(page.getByText("Nothing has been published yet.")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Habre CMS" })).toBeVisible();
+  await expect(page.getByText("This site is being set up.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Placeholder Spec Post" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Read the posts" })).toHaveAttribute(
+    "href",
+    "/posts",
+  );
 });
 
 test("a published post renders its blocks and inline formatting as real elements", async ({

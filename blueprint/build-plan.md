@@ -87,4 +87,4 @@ blueprint/project-plan.md too, then regenerate the overview.
 
 ## After MVP
 
-- [ ] 9. **Choose the home page** - in settings, an admin picks what `/` shows: the latest posts (today's behaviour, the default) or one published page; the post list moves to `/posts` so it stays reachable
+- [x] 9. **Choose the home page** - in settings, `/` is always a landing page: an admin picks one published page for it, with a welcome placeholder until one is chosen; posts are an add-on at `/posts`

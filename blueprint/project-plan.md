@@ -248,7 +248,7 @@ process. Decided 2026-09-16; built in item 4.
 
 | Route | Shows |
 |---|---|
-| `/` | the chosen home page, or the latest published posts if none is chosen (item 9) |
+| `/` | the chosen home page, or a welcome placeholder if none is chosen and published - never the post list (item 9) |
 | `/posts` | latest published posts (always) |
 | `/posts/:slug` | one post |
 | `/:slug` | one page |

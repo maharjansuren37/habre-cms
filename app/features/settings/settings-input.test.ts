@@ -33,7 +33,7 @@ test("logo media id rejects a non-UUID string", () => {
   assert.equal(result.success, false);
 });
 
-test("home page id parses an empty string (Latest posts) to null", () => {
+test("home page id parses an empty string (No home page) to null", () => {
   const result = homePageIdSchema.safeParse("");
   assert.deepEqual(result, { success: true, data: null });
 });

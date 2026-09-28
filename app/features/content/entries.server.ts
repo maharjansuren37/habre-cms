@@ -259,6 +259,17 @@ export async function listPublishedPosts(limit: number): Promise<PublicPostSumma
   `;
 }
 
+/** Whether `/`'s placeholder should link to `/posts` - only asked when no
+ *  home page is shown, so a page at `/` costs no extra query (item 9's D-12). */
+export async function hasPublishedPosts(): Promise<boolean> {
+  const [row] = await sql<{ exists: boolean }[]>`
+    select exists(
+      select 1 from entries where type = 'post' and status = 'published'
+    ) as "exists"
+  `;
+  return row.exists;
+}
+
 /** One page, for the navigation editor's dropdown - every page regardless of
  *  status, so an admin can link to a draft before it is published. */
 export type NavPageOption = {
@@ -329,7 +340,7 @@ export async function findPublishedEntry(
 
 /**
  * The page an admin chose for `/` (item 9), or `null` when none is set, it is
- * not published, or it is not a page - `/` then shows the latest posts (D-2).
+ * not published, or it is not a page - `/` then shows a placeholder (D-2).
  * One query: the settings row joined to the entry, rather than a settings read
  * followed by an entry read on every public home request.
  */

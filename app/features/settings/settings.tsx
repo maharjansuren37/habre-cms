@@ -19,7 +19,7 @@ import {
 } from "./navigation-form-input.ts";
 import { NAV_MAX_ITEMS } from "./navigation-input.ts";
 import styles from "./settings.module.css";
-import { updateHomePage, updateNavigation, updateSiteIdentity } from "./settings.server.ts";
+import { saveSiteSettings } from "./settings.server.ts";
 import { homePageIdSchema, logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
 
 // Admin only (project-plan.md's routes table) - an editor or author gets the
@@ -129,9 +129,28 @@ export async function action({ request }: Route.ActionArgs) {
     );
   }
 
-  await updateSiteIdentity({ siteTitle: title.data, logoMediaId: logoId.data });
-  await updateHomePage(homePage.data);
-  await updateNavigation(navResult.items);
+  const saved = await saveSiteSettings({
+    siteTitle: title.data,
+    logoMediaId: logoId.data,
+    homePageId: homePage.data,
+    navigation: navResult.items,
+  });
+  // The logo or page was deleted after the checks above - the save rolled back
+  // whole, so this is the same answer those checks give (F-106, F-110).
+  if (saved !== "saved") {
+    return data(
+      {
+        problem:
+          saved === "logo-gone"
+            ? "That logo could not be saved. Choose it again."
+            : "That home page could not be saved. Choose it again.",
+        draftRows: rows,
+        siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
+      } satisfies ActionResult,
+      { status: 400 },
+    );
+  }
   return redirect("/admin/settings?updated=1");
 }
 
@@ -259,7 +278,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               homePage && homePage.status !== "published" ? "homePageId-hint" : undefined
             }
           >
-            <option value="">Latest posts</option>
+            <option value="">No home page</option>
             {pages.map((page) => (
               <option key={page.id} value={page.id}>
                 {page.title}
@@ -268,7 +287,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           </select>
           {homePage && homePage.status !== "published" && (
             <p id="homePageId-hint" className={styles.navHint}>
-              Not published - visitors see the latest posts until it is.
+              Not published - visitors see a placeholder until it is.
             </p>
           )}
         </div>

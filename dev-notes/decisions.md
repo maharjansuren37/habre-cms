@@ -1293,3 +1293,91 @@ already showed Caddy overwrites both, but only by default, and a
 would pass a client's values through. Beats: relying on the defaults. Costs:
 two lines per site block; not validated locally, since `caddy` is not
 installed on the dev machine, so `deploy` runs `caddy validate` (F-22).
+
+## D97 - The home page is one nullable `site_settings.home_page_id`; null means none chosen (2026-09-29)
+
+**Chose:** a nullable foreign key to `entries(id)`, `ON DELETE SET NULL`
+(migration 0006). Null is the only encoding of "no home page" (item 9's D-1,
+as revised by D-12). Beats: a separate `home_mode` column plus an id, which
+can disagree with each other, and storing a slug, which breaks when a page is
+renamed. Costs: the foreign key cannot tell a page from a post, so the
+settings action checks the type (D102). Deleting the page falls back safely
+with no extra code.
+
+## D98 - `/` never 404s: an unpublished or deleted home page shows the placeholder (2026-09-29)
+
+**Chose:** `findHomePage()` returns the entry only when it is a published
+page; otherwise `/` renders the welcome placeholder (item 9's D-2, revised by
+D-12). Beats: a 404, which is right for a URL but wrong for the site's front
+door. Costs: an admin can unpublish the front page without seeing a warning.
+
+## D99 - `/posts` always lists posts, whatever the setting (2026-09-29)
+
+**Chose:** a permanent `/posts` route (item 9's D-3). `posts` was already a
+reserved page slug (D68). Beats: creating `/posts` only while a page is
+chosen, which would break links to it when an admin switches back. Costs:
+`/posts` is now part of the public URL contract.
+
+## D100 - The home page's own slug redirects to `/` with a 302 (2026-09-29)
+
+**Chose:** `page.tsx` throws `redirect("/")` when the page found is the
+current home page (item 9's D-4), so each page has one address. Temporary
+because the setting can change, and browsers cache a 301 indefinitely (the
+same reasoning as D22's host redirects). Costs: a nav item pointing at the
+home page renders `/<slug>` and takes one extra hop.
+
+## D101 - A draft page can be chosen as the home page, with a hint (2026-09-29)
+
+**Chose:** the select lists every page; one that is not published shows "Not
+published - visitors see a placeholder until it is." (item 9's D-5), tied to
+the select with `aria-describedby` (D-10). It matches the navigation editor
+(item 7b): set things up before publishing. D98 keeps visitors safe
+meanwhile. Costs: the setting can name a page visitors cannot see.
+
+## D102 - The home page must be a page, checked in the settings action (2026-09-29)
+
+**Chose:** the Save validates the id against `listPagesForNav()`, not only
+its shape (item 9's D-6). A post has a date and byline and belongs in the
+list. Beats: trusting the foreign key, which accepts any entry, or a
+database trigger. Costs: the rule lives only in the action; a write from
+anywhere else could store a post's id.
+
+## D103 - `isHomePage` rides on `findPublishedEntry`'s own query (2026-09-29)
+
+**Chose:** a subquery on `site_settings` inside the entry lookup, which also
+returns the entry's `id` (item 9's D-7), so `/:slug` stays one query. Beats:
+a second settings read in `page.tsx`. Costs: public loader data carries `id`
+and `isHomePage`, which the view never reads (F-108).
+
+## D104 - A page's image lookup is shared in `page-media.server.ts` (2026-09-29)
+
+**Chose:** `resolvePageMedia`, used by `/` and `/:slug` (item 9's D-8).
+`post.tsx` was outside item 9's files and keeps its own copy (F-104).
+
+## D105 - `/posts` is titled "Posts - Habre CMS" (2026-09-29)
+
+**Chose:** the "<name> - Habre CMS" pattern the other public routes use
+(item 9's D-9). The placeholder at `/` keeps "Habre CMS".
+
+## D106 - The settings Save is one transaction (2026-09-29)
+
+**Chose:** `saveSiteSettings` runs the identity, home page and navigation
+writes inside `sql.begin`. A foreign-key refusal on the logo or home page
+rolls the whole save back and returns that check's existing 400 (item 9's
+D-11; F-106, F-110). The three single-column functions stay separate (F-40)
+and take the transaction. Beats: ordering the writes, which cannot protect
+against both races at once. Costs: the app's first transaction outside the
+migrator. It is still a single-row change, so the plan's "every v1 action is
+a single-row write" holds.
+
+## D107 - Page-first: `/` is always a landing page and never lists posts (2026-09-29)
+
+**Chose:** `/` shows the chosen published page, else a placeholder: the site
+title as its `h1`, "This site is being set up.", and a "Read the posts" link
+to `/posts` only when a post is published (item 9's D-12, the owner's call).
+Beats: keeping the post list as the default (WordPress's model), which makes
+posts what visitors see until someone changes a setting; and auto-creating a
+"Home" page, which needs a write to production's real data. Costs:
+production's `/` switches from the post list to the placeholder at deploy,
+until the owner chooses a page (`needs-you.md`). The link check is one extra
+`exists` query, run only when no page is shown.

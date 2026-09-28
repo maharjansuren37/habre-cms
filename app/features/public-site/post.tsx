@@ -48,14 +48,14 @@ export default function Post({ loaderData }: Route.ComponentProps) {
       </p>
       <h1 className={styles.title}>{post.title}</h1>
       <div className={styles.body}>{renderBlocks(post.blocks, mediaById)}</div>
-      <Link className={styles.back} to="/">
+      <Link className={styles.back} to="/posts">
         ← All posts
       </Link>
     </main>
   );
 }
 
-// UTC, explicitly - item 4b's D-4, matching home.tsx's own formatter (not
+// UTC, explicitly - item 4b's D-4, matching post-list.tsx's own formatter (not
 // shared: two call sites is the project's own line for "copy, don't extract yet").
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("en-GB", {

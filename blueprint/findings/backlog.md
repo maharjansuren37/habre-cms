@@ -130,3 +130,18 @@ File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
 
 ### F-102 [P3] open - The CSP browser test is described as covering more screens than it visits
 File: app/lib/zod-jitless.client.ts:8-9; e2e/content-security-policy.spec.ts:148
+
+### F-104 [P3] open - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
+File: app/features/public-site/post.tsx:21-34
+
+### F-107 [P3] open - A Save with no `homePageId` field silently resets `/` to the latest posts
+File: app/features/settings/settings.tsx:57
+
+### F-108 [P3] open - Public loader data now carries entry ids and the home page's id, including a draft's
+File: app/features/content/entries.server.ts:317-326; app/features/public-site/layout.tsx:30
+
+### F-111 [P3] open - The placeholder's site-title test uses the default title, which is also the code's fallback, so it cannot catch a broken title lookup
+File: e2e/public-site.spec.ts:44-57; app/features/public-site/home.tsx:39-41
+
+### F-112 [P3] fixed - Migration 0006's comment still says null means the latest posts, which D-12 changed
+File: db/migrations/0006_site_settings_home_page.sql:1-3
