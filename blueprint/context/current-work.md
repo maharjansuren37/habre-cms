@@ -178,6 +178,19 @@ controls.
   belongs in the list. The foreign key cannot enforce the type, so the save
   validates against the page list.
 
+- **D-7 `isHomePage` rides on `findPublishedEntry`'s own query** (a subquery
+  on `site_settings`), not a second settings read in `page.tsx`. That keeps
+  `/:slug` at one entry query, as the Notes ask. It returns `id` as well, as
+  Step 6 said.
+- **D-8 The image lookup moved into `public-site/page-media.server.ts`**
+  (`resolvePageMedia`), shared by `/` and `/:slug`. `post.tsx` was outside
+  this spec's files and keeps its own copy (F-104).
+- **D-9 `/posts` is titled "Posts - Habre CMS"**, following the
+  "<name> - Habre CMS" pattern the other public routes use.
+- **D-10 The "Not published" hint is tied to the select with
+  `aria-describedby`**, so a screen reader announces it with the control. The
+  nav rows' hint is not tied this way; this one is new, so it gets it.
+
 ## Production needs
 
 - **Migration:** `<next>_site_settings_home_page.sql`. Additive and nullable:
