@@ -259,6 +259,17 @@ export async function listPublishedPosts(limit: number): Promise<PublicPostSumma
   `;
 }
 
+/** Whether `/`'s placeholder should link to `/posts` - only asked when no
+ *  home page is shown, so a page at `/` costs no extra query (item 9's D-12). */
+export async function hasPublishedPosts(): Promise<boolean> {
+  const [row] = await sql<{ exists: boolean }[]>`
+    select exists(
+      select 1 from entries where type = 'post' and status = 'published'
+    ) as "exists"
+  `;
+  return row.exists;
+}
+
 /** One page, for the navigation editor's dropdown - every page regardless of
  *  status, so an admin can link to a draft before it is published. */
 export type NavPageOption = {
@@ -298,6 +309,10 @@ export type PublicEntry = {
  *  reason `toEntry` does this for the admin side. */
 type PublicEntryRow = PublicEntry & { blocksFormat: string };
 
+/** A published entry found by its address, plus whether it is the page an
+ *  admin chose for `/` - its own address then redirects there (item 9's D-4). */
+export type PublishedEntry = PublicEntry & { id: string; isHomePage: boolean };
+
 /**
  * A published entry by its address, or `null` if there is none - a draft and a
  * missing slug get the same answer, so an entry's existence is never leaked by
@@ -306,10 +321,14 @@ type PublicEntryRow = PublicEntry & { blocksFormat: string };
 export async function findPublishedEntry(
   type: EntryType,
   slug: string,
-): Promise<PublicEntry | null> {
-  const [row] = await sql<PublicEntryRow[]>`
-    select e.title, e.blocks, e.blocks_format as "blocksFormat",
-      e.published_at as "publishedAt", u.name as "authorName"
+): Promise<PublishedEntry | null> {
+  // isHomePage rides on this query rather than a second settings read on every
+  // public page request - only a page can be one (the settings action's check).
+  const [row] = await sql<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
+    select e.id, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.published_at as "publishedAt", u.name as "authorName",
+      coalesce(e.id = (select home_page_id from site_settings where id = 1), false)
+        as "isHomePage"
     from entries e join users u on u.id = e.author_id
     where e.type = ${type} and e.status = 'published' and e.slug = ${slug}
   `;
@@ -317,4 +336,25 @@ export async function findPublishedEntry(
   const { blocksFormat, ...post } = row;
   assertKnownFormat(slug, blocksFormat);
   return post;
+}
+
+/**
+ * The page an admin chose for `/` (item 9), or `null` when none is set, it is
+ * not published, or it is not a page - `/` then shows a placeholder (D-2).
+ * One query: the settings row joined to the entry, rather than a settings read
+ * followed by an entry read on every public home request.
+ */
+export async function findHomePage(): Promise<PublicEntry | null> {
+  const [row] = await sql<(PublicEntryRow & { slug: string })[]>`
+    select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.published_at as "publishedAt", u.name as "authorName"
+    from site_settings s
+      join entries e on e.id = s.home_page_id
+      join users u on u.id = e.author_id
+    where s.id = 1 and e.type = 'page' and e.status = 'published'
+  `;
+  if (!row) return null;
+  const { blocksFormat, slug, ...page } = row;
+  assertKnownFormat(slug, blocksFormat);
+  return page;
 }

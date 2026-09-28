@@ -38,3 +38,6 @@ File: .github/workflows/ci.yml, package.json:22 (`verify` = typecheck, lint, uni
 
 ### F-69 [P2] open - `createRequestHandler` is never given a mode, so every error is sanitized in development too - root's own dev-mode stack trace has never been reachable
 File: server/app.ts:6 (`createRequestHandler(() => import("virtual:react-router/server-build"))`)
+
+### F-103 [P2] open - Browser specs share the one `site_settings` row, and two of them running at once can fail each other
+File: e2e/home-page.spec.ts; playwright.config.ts:23 (`workers: 2`)

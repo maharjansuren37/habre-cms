@@ -6,7 +6,7 @@
 > the record. Decision numbers (D1-D88) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-09-28 from `main` (`aae2f0f`).
+Generated 2026-09-28 from `main` (`675396c`, plus the uncommitted item 9 plan edits).
 
 ## What this is
 
@@ -29,6 +29,9 @@ and pages in a block editor (text, heading, image, list; bold, italic, links);
 draft / publish / unpublish; image upload and a media library; a public site in
 one built-in theme; site title, logo and navigation menu; author / editor /
 admin roles with user management; light and dark mode.
+
+**After MVP (planned):** item 9 - an admin chooses what `/` shows: the latest
+posts (default) or one published page; the post list moves to `/posts`.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
 Soon after: categories and tags, scheduled publishing and revisions, SEO fields
@@ -74,7 +77,8 @@ without a requirement that calls for them.
   `cms.surenmaharjan.fyi` the admin under `/admin`. Host routing runs before any
   route (`app/lib/host-routing.ts`); `PUBLIC_URL` and `ADMIN_URL` are equal in
   development.
-- **Routes:** public `/`, `/posts/:slug`, `/:slug`, `/healthz` - server-rendered,
+- **Routes:** public `/` (chosen home page, else latest posts - item 9),
+  `/posts`, `/posts/:slug`, `/:slug`, `/healthz` - server-rendered,
   work without JavaScript. Admin `/admin/posts`, `/pages`, `/media`,
   `/settings`, `/users`. First admin comes from `npm run create-admin`, never a
   web page.
@@ -123,8 +127,8 @@ without a requirement that calls for them.
 ## Current state
 
 - **Plan:** 8 of 8 MVP items done, archived in `blueprint/history/features/`.
-  Nothing is in flight or queued; the next item needs a decision, either
-  `ideate --rescope` (a page builder is the recorded direction) or a `spec`.
+  Next: item 9, *Choose the home page* (being spec'd). A page builder remains
+  the recorded longer-term direction (`ideate --rescope`).
 - **Live and records:** production runs release `6bf3ddb` (items 1-8 plus
   the `admin-data-host-redirect` fix), deployed 2026-09-28 - see
   `dev-notes/status.md`. Findings:

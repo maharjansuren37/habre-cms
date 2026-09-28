@@ -3,6 +3,9 @@ import { index, layout, type RouteConfig, route } from "@react-router/dev/routes
 export default [
   layout("features/public-site/layout.tsx", [
     index("features/public-site/home.tsx"),
+    // The post list's own address, whatever `/` shows (item 9). "posts" is a
+    // reserved page slug (D68), so no page is ever shadowed by it.
+    route("posts", "features/public-site/posts.tsx"),
     route("posts/:slug", "features/public-site/post.tsx"),
     // A single dynamic segment, registered after the literal "posts/:slug"
     // and "admin/*" routes above - path depth keeps it from ever matching

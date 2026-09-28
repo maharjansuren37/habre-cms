@@ -130,7 +130,7 @@ test("the public site renders with nothing refused by the policy", async ({ page
     { status: "published", type: "page" },
   );
 
-  await page.goto("/");
+  await page.goto("/posts");
   await expect(page.getByRole("link", { name: "CSP Post With Image" })).toBeVisible();
 
   await page.goto("/posts/csp-post-with-image");

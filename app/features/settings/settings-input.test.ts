@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
+import { homePageIdSchema, logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
 
 test("site title rejects an empty string", () => {
   const result = siteTitleSchema.safeParse("");
@@ -30,5 +30,20 @@ test("logo media id accepts null", () => {
 
 test("logo media id rejects a non-UUID string", () => {
   const result = logoMediaIdSchema.safeParse("not-a-uuid");
+  assert.equal(result.success, false);
+});
+
+test("home page id parses an empty string (No home page) to null", () => {
+  const result = homePageIdSchema.safeParse("");
+  assert.deepEqual(result, { success: true, data: null });
+});
+
+test("home page id passes a real UUID through unchanged", () => {
+  const result = homePageIdSchema.safeParse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+  assert.deepEqual(result, { success: true, data: "3fa85f64-5717-4562-b3fc-2c963f66afa6" });
+});
+
+test("home page id rejects a malformed id", () => {
+  const result = homePageIdSchema.safeParse("not-a-uuid");
   assert.equal(result.success, false);
 });
