@@ -105,7 +105,7 @@ controls.
   chosen page unpublished, `/` falls back to the list, not a 404; after that
   page is deleted, the setting reads `null` and `/` shows the list.
 
-- [ ] **Step 6 - The home page's own address redirects to `/`** - in
+- [x] **Step 6 - The home page's own address redirects to `/`** - in
   `page.tsx`'s loader, when the published page found is the current home page,
   `throw redirect("/")` (302). The redirect is temporary on purpose: the setting
   can change, and browsers cache permanent redirects indefinitely (the same

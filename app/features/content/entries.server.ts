@@ -298,6 +298,10 @@ export type PublicEntry = {
  *  reason `toEntry` does this for the admin side. */
 type PublicEntryRow = PublicEntry & { blocksFormat: string };
 
+/** A published entry found by its address, plus whether it is the page an
+ *  admin chose for `/` - its own address then redirects there (item 9's D-4). */
+export type PublishedEntry = PublicEntry & { id: string; isHomePage: boolean };
+
 /**
  * A published entry by its address, or `null` if there is none - a draft and a
  * missing slug get the same answer, so an entry's existence is never leaked by
@@ -306,10 +310,14 @@ type PublicEntryRow = PublicEntry & { blocksFormat: string };
 export async function findPublishedEntry(
   type: EntryType,
   slug: string,
-): Promise<PublicEntry | null> {
-  const [row] = await sql<PublicEntryRow[]>`
-    select e.title, e.blocks, e.blocks_format as "blocksFormat",
-      e.published_at as "publishedAt", u.name as "authorName"
+): Promise<PublishedEntry | null> {
+  // isHomePage rides on this query rather than a second settings read on every
+  // public page request - only a page can be one (the settings action's check).
+  const [row] = await sql<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
+    select e.id, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.published_at as "publishedAt", u.name as "authorName",
+      coalesce(e.id = (select home_page_id from site_settings where id = 1), false)
+        as "isHomePage"
     from entries e join users u on u.id = e.author_id
     where e.type = ${type} and e.status = 'published' and e.slug = ${slug}
   `;
