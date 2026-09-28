@@ -1,3 +1,5 @@
+/* The latest-posts list - `/` by default and `/posts` always (item 9). */
+
 .home {
   max-width: var(--measure);
   margin: 0 auto;

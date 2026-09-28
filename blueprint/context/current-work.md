@@ -81,7 +81,7 @@ controls.
   post id or random UUID gets the 400 message and nothing is saved; an editor
   requesting `/admin/settings` still gets 404.
 
-- [ ] **Step 4 - `/posts` lists posts** - `route("posts",
+- [x] **Step 4 - `/posts` lists posts** - `route("posts",
   "features/public-site/posts.tsx")` in `app/routes.ts`, before `:slug`. Move
   today's list markup and `formatDate` out of `home.tsx` into a shared
   component in `public-site/` so `/` and `/posts` render the same list from one
