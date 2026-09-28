@@ -6,7 +6,7 @@
 > the record. Decision numbers (D1-D88) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-09-23 from `chore/workflow-upgrade` (`f030c9c`).
+Generated 2026-09-28 from `main` (`aae2f0f`).
 
 ## What this is
 
@@ -125,7 +125,8 @@ without a requirement that calls for them.
 - **Plan:** 8 of 8 MVP items done, archived in `blueprint/history/features/`.
   Nothing is in flight or queued; the next item needs a decision, either
   `ideate --rescope` (a page builder is the recorded direction) or a `spec`.
-- **Live and records:** production runs release `4d9efdb` (items 1-8),
-  deployed 2026-09-23 - see `dev-notes/status.md`. Findings:
+- **Live and records:** production runs release `6bf3ddb` (items 1-8 plus
+  the `admin-data-host-redirect` fix), deployed 2026-09-28 - see
+  `dev-notes/status.md`. Findings:
   `blueprint/context/findings.md` and `blueprint/findings/backlog.md`. Work
   only the owner can do: `needs-you.md`.
