@@ -21,9 +21,6 @@
 ### F-72 [P2] fixed - Item 4c's env-var rename breaks the proven symlink-only rollback for this specific release
 File: /etc/systemd/system/habre-cms.service on `ocwebserver`; deploy/habre-cms.service in the repo
 
-### F-70 [P2] open - Host-routing refusals are silent - no security event is logged for a wrong-host admin attempt or an unrecognized host
-File: app/root.tsx:23-40 (`routeByHost`)
-
 ### F-48 [P2] fixed - The three inline toolbar buttons have no perceivable focus indicator, and the spec asked for one
 File: app/features/content/post-form.module.css:135-136
 
@@ -33,7 +30,7 @@ File: app/features/blocks/editor.client.tsx:68
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
 
-### F-22 [P2] unverified - The app now believes any client's `X-Forwarded-Host` and `X-Forwarded-Proto`
+### F-22 [P2] fixed - The app now believes any client's `X-Forwarded-Host` and `X-Forwarded-Proto`
 File: server/app.ts:17 (`{ trustProxy: true }`)
 
 ### F-17 [P2] open - The browser tests that cover login never run automatically
@@ -41,6 +38,3 @@ File: .github/workflows/ci.yml, package.json:22 (`verify` = typecheck, lint, uni
 
 ### F-69 [P2] open - `createRequestHandler` is never given a mode, so every error is sanitized in development too - root's own dev-mode stack trace has never been reachable
 File: server/app.ts:6 (`createRequestHandler(() => import("virtual:react-router/server-build"))`)
-
-### F-100 [P2] open - No Content-Security-Policy, past its own stated trigger, at the milestone this project chose to set it by
-File: server.js:14-19

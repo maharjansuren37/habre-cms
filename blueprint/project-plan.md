@@ -455,10 +455,13 @@ From `stack`:
 - **Security headers:** set by `server.js` on every response -
   `X-Content-Type-Options: nosniff`, `Referrer-Policy:
   strict-origin-when-cross-origin`, `X-Frame-Options: DENY`.
-  **Content-Security-Policy is deliberately not set yet:** a CSP needs the real
-  app, and Editor.js (item 2) and R2 image URLs (item 5) decide what it must
-  allow. Set it once item 5 lands; `preflight` should treat it as a decision
-  with that trigger, not an oversight.
+  **Content-Security-Policy** is set per HTML response by
+  `app/entry.server.tsx`, not `server.js`, because it carries a per-request
+  nonce for React Router's inline scripts. The public site and the admin get
+  separate policies: the admin also allows inline styles and `data:` images
+  for Editor.js (D22). Images are allowed from `self` and the `R2_PUBLIC_URL`
+  origin. It is not sent in development. `e2e/content-security-policy.spec.ts`
+  fails on any violation.
 - **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,
   `PUBLIC_URL`, `ADMIN_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `PORT` and `NODE_ENV` -

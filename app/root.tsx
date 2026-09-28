@@ -38,7 +38,20 @@ export const middleware: Route.MiddlewareFunction[] = [
       adminOrigin: adminUrl.origin,
     });
     if (decision.kind === "redirect") throw redirect(decision.to);
-    if (decision.kind === "not-found") throw data("Not Found", { status: 404 });
+    if (decision.kind === "not-found") {
+      // Logged, like the cross-site refusal below (F-70). A host matching
+      // neither should be unreachable behind Caddy, so seeing one means the
+      // network assumption behind D22 has broken.
+      logSecurityEvent({
+        event: "request_refused",
+        reason: "wrong_host",
+        method: request.method,
+        path: url.pathname,
+        host: url.host,
+        ip: clientIp(request.headers),
+      });
+      throw data("Not Found", { status: 404 });
+    }
   },
   function refuseCrossSiteRequests({ request }) {
     const adminOrigin = new URL(env.ADMIN_URL).origin;

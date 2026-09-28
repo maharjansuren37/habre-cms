@@ -127,3 +127,6 @@ File: CHANGELOG.md:7-12
 
 ### F-101 [P3] open - Two security-event log lines still record the raw `.data` path
 File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
+
+### F-102 [P3] open - The CSP browser test is described as covering more screens than it visits
+File: app/lib/zod-jitless.client.ts:8-9; e2e/content-security-policy.spec.ts:148

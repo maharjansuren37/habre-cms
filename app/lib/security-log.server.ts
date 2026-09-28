@@ -14,6 +14,14 @@ export type SecurityEvent =
   | { event: "login_rate_limited"; scope: "email" | "ip" | "server"; ip: string }
   | { event: "logout"; userId: string }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
+  | {
+      event: "request_refused";
+      reason: "wrong_host";
+      method: string;
+      path: string;
+      host: string;
+      ip: string;
+    }
   | { event: "request_refused"; reason: "role"; path: string; role: string; ip: string }
   | { event: "role_changed"; userId: string; fromRole: Role; toRole: Role; actorId: string }
   | { event: "user_deactivated"; userId: string; actorId: string }

@@ -22,7 +22,14 @@ cms.surenmaharjan.fyi {
 	}
 	# reverse_proxy sets X-Forwarded-For to the connecting address, which the
 	# login rate limit reads (app/features/auth/client-ip.ts, F-07).
-	reverse_proxy 127.0.0.1:3000
+	# The app believes X-Forwarded-Host/Proto for its own origin (D23), so both
+	# are set here from the real request rather than left to Caddy's defaults,
+	# which pass a client's values through for any `trusted_proxies` the main
+	# Caddyfile - not this repo's (D17) - might one day list (F-22).
+	reverse_proxy 127.0.0.1:3000 {
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto {scheme}
+	}
 }
 
 surenmaharjan.fyi {
@@ -37,7 +44,11 @@ surenmaharjan.fyi {
 			roll_keep 3
 		}
 	}
-	reverse_proxy 127.0.0.1:3000
+	# Pinned for the same reason as cms's block above (F-22).
+	reverse_proxy 127.0.0.1:3000 {
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto {scheme}
+	}
 }
 
 # The apex is canonical; www is a redirect only, never a second copy of the

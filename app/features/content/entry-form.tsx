@@ -4,6 +4,7 @@ import type { Block, ImageMediaSummary } from "#app/features/blocks/blocks.ts";
 import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
+import "#app/lib/zod-jitless.client.ts";
 import { isReadableEditorContent } from "./editor-content.ts";
 import styles from "./entry-form.module.css";
 

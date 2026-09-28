@@ -1211,3 +1211,85 @@ for an expired session (fix `admin-data-host-redirect`). Beats: stripping
 teaching `isAdminPath` about `/admin.data`, which patches one symptom and
 leaves every other path reader wrong. Costs: nothing at runtime; the two
 log lines that still read `request.url` are F-101.
+
+## D90 - Content-Security-Policy `script-src` uses a per-request nonce (2026-09-28)
+
+**Chose:** `app/entry.server.tsx` generates a 16-byte nonce per HTML response
+and passes it to `<ServerRouter nonce>` and `renderToPipeableStream`;
+`script-src` is `'self' 'nonce-<n>'`.
+
+Beats: script hashes, which change on every request because React Router's
+inline scripts carry per-page hydration data; and `'unsafe-inline'`, which is
+no script protection at all. Costs: the policy can only be set per response,
+so it lives in `entry.server.tsx`, not with the other headers in `server.js`
+(fix `security-hardening`, F-100).
+
+## D91 - Two CSP policies: public is strict, admin allows inline styles and `data:` images (2026-09-28)
+
+**Chose:** admin `style-src` adds `'unsafe-inline'` and admin `img-src` adds
+`data:`, both for Editor.js; the public policy has neither. The full table is
+in `blueprint/history/fixes/security-hardening.md`, *Data and contracts*.
+
+Beats: passing the nonce to Editor.js's `style.nonce`, which means the client
+reading the nonce back out of the DOM, for a risk (inline style injection) far
+smaller than scripts. `data:` was found by the CSP browser test: Editor.js's
+stylesheet draws an icon mask from a `data:image/svg+xml` URL. D22 anticipated
+this split as a reason for separate hostnames. Costs: the admin is open to
+style injection, and the page builder has to fit inside these directives.
+
+## D92 - The CSP is chosen by path (`/admin`), not by host (2026-09-28)
+
+**Chose:** `areaForPath` maps `/admin` and `/admin/*` to the admin policy and
+everything else to public.
+
+Beats: choosing by hostname, which would give single-host development and the
+main browser-test server (both hosts equal, D22) no split at all. Costs:
+nothing today, since host routing already keeps admin paths off the public
+host.
+
+## D93 - CSP is enforced directly, with no Report-Only phase and no report endpoint (2026-09-28)
+
+**Chose:** the header is `Content-Security-Policy`, enforced from the first
+release, and `e2e/content-security-policy.spec.ts` walks the public site and
+the admin screens failing on any violation.
+
+Beats: Report-Only first, which with no report collector only logs to
+consoles nobody reads; and a `report-to` endpoint, which needs somewhere to
+send reports. Costs: a violation on a screen the test does not visit (F-102)
+breaks that screen in production with no signal; `monitor` can add reporting
+later if it wants one.
+
+## D94 - CSP is sent only by production builds (2026-09-28)
+
+**Chose:** `entry.server.tsx` sets the header only when not
+`import.meta.env.DEV`.
+
+Beats: a development policy, which Vite's dev server cannot run under without
+extra plumbing, since it injects inline scripts and styles with no nonce.
+Costs: a CSP break is invisible in `npm run dev`; the browser tests, which run
+the production build, are where it shows.
+
+## D95 - Zod runs `jitless` in the browser (2026-09-28)
+
+**Chose:** `app/lib/zod-jitless.client.ts` sets `z.config({ jitless: true })`,
+imported by the two screens whose bundles load Zod (`entry-form.tsx`,
+`settings.tsx`). `.client` keeps the server on Zod's compiled path.
+
+Zod 4 probes `new Function` once; the policy refuses it, Zod swallows the
+refusal, and the browser still reports a violation on every admin screen that
+loads Zod. Beats: `'unsafe-eval'` in admin `script-src`, which re-allows eval
+for every script and undoes much of D90; and filtering the violation out of
+the browser test, which leaves a blind spot. Costs: any new screen that pulls
+Zod into its bundle must import this module too (F-102).
+
+## D96 - Forwarded headers are pinned in the Caddy site file (2026-09-28)
+
+**Chose:** both `reverse_proxy` blocks in `deploy/caddy/habre-cms.caddy` set
+`header_up X-Forwarded-Host {host}` and `header_up X-Forwarded-Proto {scheme}`.
+
+The app takes its origin from these headers (`trustProxy`, D23). Production
+already showed Caddy overwrites both, but only by default, and a
+`trusted_proxies` setting in the main Caddyfile - not this repo's (D17) -
+would pass a client's values through. Beats: relying on the defaults. Costs:
+two lines per site block; not validated locally, since `caddy` is not
+installed on the dev machine, so `deploy` runs `caddy validate` (F-22).

@@ -11,7 +11,8 @@ const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = "127.0.0.1";
 const CLIENT_DIR = path.resolve("build/client");
 
-// Content-Security-Policy is deliberately not set yet - see plan section 8.
+// Content-Security-Policy is not here: it needs each page's own nonce, so
+// app/entry.server.tsx sets it on HTML responses (F-100).
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
