@@ -11,9 +11,33 @@ The `docs` skill maintains it.
 
 ## Where this stands
 
-**Goal:** a CMS non-technical editors can run a website with. **All 8 build
-items are shipped and now live in production**, as of the deploy below.
-`main` is at `8d6afba`, in sync with origin, and live in production.
+**Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
+items plus item 9 (choose the home page) are shipped and live in
+production**, as of the deploy below. Production runs `bded549`; local
+`main` is one docs commit ahead (`797d8d4`, not pushed). **Owner action now:**
+publish a page and choose it as the home page in Settings - until then `/`
+shows the "This site is being set up" placeholder (`needs-you.md`).
+
+- **Deploy, 2026-09-28 (item 9 `choose-the-home-page` to production):**
+  release `bded549` ("feat: choose the home page (item 9) (#18)", CI green
+  on this exact SHA). Built locally from a clean clone at this commit:
+  `npm ci` -> `npm run verify` (exit 0, 228 unit tests) -> `npm ci
+  --omit=dev` -> `rsync --rsync-path="sudo rsync" --chown=habre_cms:habre_cms`
+  to `/srv/habre-cms/releases/bded549` (same layout, 59M). **Migration
+  `0006` applied first, as its own step** (see *Migrations*). No env, unit
+  or Caddy changes. `current` repointed and `habre-cms` restarted
+  (22:46:49 UTC, `NRestarts=0`, "Server listening ... (production)").
+  Verified through the real proxy: `/healthz` on both hostnames ->
+  `{"status":"ok","database":"up"}`; `https://surenmaharjan.fyi/` -> 200
+  showing "This site is being set up" (no home page chosen - production has
+  one draft page and no published one); `/posts` -> 200 listing
+  `/posts/sunset`, which -> 200; `/admin/login` -> 200; an unknown slug ->
+  404; 0 `error` lines in the journal since the restart. UptimeRobot's
+  `/healthz` keyword check is unaffected. **Rollback:** `sudo ln -sfn
+  /srv/habre-cms/releases/8d6afba /srv/habre-cms/current && sudo systemctl
+  restart habre-cms` - safe, `0006` only adds a nullable column the old code
+  never reads. 8 releases now on disk (40G free) - prune the oldest
+  (`48e5052`, `52c2670`, `0ad8300`) at some point.
 
 - **Deploy, 2026-09-28 (fix `security-hardening` to production):** release
   `8d6afba` ("fix: security hardening - CSP, host-refusal logging, pinned
@@ -317,6 +341,26 @@ no new migration shipped with item 4 (0001-0003 were already applied).
 
 ## Migrations
 
+- **2026-09-28, production:** `0006_site_settings_home_page.sql` (item 9)
+  applied at 22:45:53 UTC by `db/migrate.ts` from the not-yet-live release
+  `/srv/habre-cms/releases/bded549`, run as `habre_cms` against
+  `/etc/habre-cms/production.env`. Backed up first: a fresh run of
+  `habre-cms-backup.service` uploaded `habre_cms-20260928T224508Z.dump`
+  (22299 bytes) to R2 just before. Purely additive: `alter table site_settings
+  add column home_page_id uuid references entries (id) on delete set null` -
+  nullable, no backfill (null means "no home page chosen"). Reversible:
+  `alter table site_settings drop column home_page_id` plus deleting its
+  `schema_migrations` row - rehearsed on development inside a rolled-back
+  transaction, not run on production. Verified after: `schema_migrations`
+  lists `0006`; `home_page_id` is `uuid`, nullable, FK `on delete set null`;
+  the one `site_settings` row has it null. **The live release (`8d6afba`)
+  names its `site_settings` columns and never reads `home_page_id`**, so it
+  keeps running unchanged: `/healthz` on both hostnames through Caddy ->
+  `{"status":"ok","database":"up"}`, `https://surenmaharjan.fyi/` -> 200.
+  Schema first, code after: **this deploys nothing** - `current` still points
+  at `8d6afba`; `bded549` is on disk, not switched to. Because the column is
+  additive and nullable, a symlink rollback to `8d6afba` after the item 9
+  deploy still works.
 - **2026-09-23, production:** `0004_media.sql` and `0005_site_settings.sql`
   applied (`db/migrate.ts`, run by the owner directly on `ocwebserver` as
   `habre_cms`, against `/etc/habre-cms/production.env`) - production was still
