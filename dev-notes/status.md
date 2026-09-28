@@ -13,8 +13,28 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 build
 items are shipped and now live in production**, as of the deploy below.
-`main` is at `4d9efdb` and in sync with origin.
+`main` is at `6bf3ddb`, in sync with origin, and live in production.
 
+- **Deploy, 2026-09-28 (fix `admin-data-host-redirect` to production):**
+  release `6bf3ddb` ("fix: keep login on the admin host (admin.data
+  redirect) (#17)", CI green on this exact SHA). Built locally from a clean
+  clone of `main` at this commit: `npm ci` -> `npm run verify` (exit 0, 220
+  unit tests; `test:e2e` 89/89 ran before merge) -> `npm ci --omit=dev` ->
+  `rsync --rsync-path="sudo rsync" --chown=habre_cms:habre_cms` to
+  `/srv/habre-cms/releases/6bf3ddb` (same layout as `4d9efdb`, 59M). No
+  migrations, no env, unit or Caddy changes. `current` repointed, service
+  restarted cleanly. Verified through the real proxy: `/healthz` on both
+  hostnames -> `{"status":"ok","database":"up"}`; `https://surenmaharjan.fyi/`
+  -> 200; `/admin/login` -> 200; **`https://cms.surenmaharjan.fyi/admin.data`
+  -> data redirect to `/admin/login?redirectTo=%2Fadmin` (was
+  `https://surenmaharjan.fyi/admin.data`)**; `/admin/pages.data` ->
+  `redirectTo=%2Fadmin%2Fpages` (was `...pages.data`). No journal errors.
+  **A real login in production was confirmed by the owner**, landing on
+  `/admin/posts` on the admin host.
+  **Rollback:** `sudo ln -sfn /srv/habre-cms/releases/4d9efdb
+  /srv/habre-cms/current && sudo systemctl restart habre-cms` - no schema
+  change, so safe. 6 releases on disk (40G free). Note: `/srv/habre-cms` is
+  mode 750, so `readlink`/`ls` there need `sudo`.
 - **Deploy, 2026-09-23 (items 5-8 to production):** release `4d9efdb` (commit
   `4d9efdbd2e8fb4a2fd2a146b450d39795022e2b2`, "feat: users and roles (item 8)
   (#16)", CI green on this exact SHA). Built from a **clean clone of `main`**
