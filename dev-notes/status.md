@@ -13,8 +13,40 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 build
 items are shipped and now live in production**, as of the deploy below.
-`main` is at `6bf3ddb`, in sync with origin, and live in production.
+`main` is at `8d6afba`, in sync with origin, and live in production.
 
+- **Deploy, 2026-09-28 (fix `security-hardening` to production):** release
+  `8d6afba` ("fix: security hardening - CSP, host-refusal logging, pinned
+  forwarded headers", CI green on this exact SHA). Built locally from a clean
+  clone of `main` at this commit: `npm ci` -> `npm run verify` (exit 0, 225
+  unit tests; `test:e2e` 92 passed before merge) -> `npm ci --omit=dev` ->
+  rsynced to `/srv/habre-cms/releases/8d6afba` (same layout, 59M). No
+  migrations, no env or unit changes. `current` repointed and the service
+  restarted by the owner (12:14:52 UTC). **Caddy site file updated** (F-22's
+  `header_up` pins): previous file backed up to
+  `/etc/caddy/sites/habre-cms.caddy.bak-20260928121722`, new one installed,
+  `caddy validate` (run as the `caddy` user) ok, `systemctl reload caddy`.
+  Verified through the real proxy: `/healthz` on both hostnames ->
+  `{"status":"ok","database":"up"}`; `https://surenmaharjan.fyi/` -> 200 with
+  the public CSP (nonce in `script-src`, R2 origin in `img-src`, no
+  `unsafe-inline`); `https://cms.surenmaharjan.fyi/admin/login` -> 200 with the
+  admin CSP (`'unsafe-inline'` styles, `data:` images); `www` -> 301 to the
+  apex. **F-70:** `POST https://surenmaharjan.fyi/admin/posts` -> 404 and one
+  `request_refused`/`wrong_host` line in the journal. **F-22 probes, after the
+  Caddy reload:** forged `X-Forwarded-Host: evil.example` with matching
+  `Origin` -> 400, 11-byte "Bad Request", CSRF abort in the journal; forged
+  `X-Forwarded-Proto: http` with the genuine `Origin` -> reached the login
+  action normally. No other journal errors. **In-browser CSP check, 2026-09-28:**
+  `/posts/sunset` (with an R2 image) in a clean headless Chromium - no
+  violations, image loaded; the post editor checked by the owner in
+  LibreWolf - no CSP errors. A violation the owner first saw was uBlock
+  Origin's injected inline script, blocked as intended; gone with it off.
+  `blueprint/production-pending.md` is now empty.
+  **Rollback:** `sudo ln -sfn /srv/habre-cms/releases/6bf3ddb
+  /srv/habre-cms/current && sudo systemctl restart habre-cms` - no schema
+  change, so safe. The Caddy change is independent; revert it by copying the
+  `.bak-20260928121722` file back, `caddy validate`, reload. 7 releases on
+  disk (40G free).
 - **Deploy, 2026-09-28 (fix `admin-data-host-redirect` to production):**
   release `6bf3ddb` ("fix: keep login on the admin host (admin.data
   redirect) (#17)", CI green on this exact SHA). Built locally from a clean
