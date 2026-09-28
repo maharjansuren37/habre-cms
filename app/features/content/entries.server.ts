@@ -318,3 +318,24 @@ export async function findPublishedEntry(
   assertKnownFormat(slug, blocksFormat);
   return post;
 }
+
+/**
+ * The page an admin chose for `/` (item 9), or `null` when none is set, it is
+ * not published, or it is not a page - `/` then shows the latest posts (D-2).
+ * One query: the settings row joined to the entry, rather than a settings read
+ * followed by an entry read on every public home request.
+ */
+export async function findHomePage(): Promise<PublicEntry | null> {
+  const [row] = await sql<(PublicEntryRow & { slug: string })[]>`
+    select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.published_at as "publishedAt", u.name as "authorName"
+    from site_settings s
+      join entries e on e.id = s.home_page_id
+      join users u on u.id = e.author_id
+    where s.id = 1 and e.type = 'page' and e.status = 'published'
+  `;
+  if (!row) return null;
+  const { blocksFormat, slug, ...page } = row;
+  assertKnownFormat(slug, blocksFormat);
+  return page;
+}

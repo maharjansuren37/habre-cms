@@ -91,7 +91,7 @@ controls.
   when there are none), `/posts/<slug>` still opens a post, and `/` is
   unchanged.
 
-- [ ] **Step 5 - `/` renders the chosen page** - a
+- [x] **Step 5 - `/` renders the chosen page** - a
   `findHomePage()` in `entries.server.ts`: **one query** joining `site_settings`
   to `entries` on `home_page_id`, returning the entry only when it is a
   published page. `home.tsx`'s loader returns either `{ kind: "page", ... }`
