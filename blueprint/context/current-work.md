@@ -114,7 +114,7 @@ controls.
   answers `302` with `Location: /`; any other page slug still answers 200; with
   the home page unpublished, its slug answers 404 as any draft does.
 
-- [ ] **Step 7 - Browser test and the performance bar** - add
+- [x] **Step 7 - Browser test and the performance bar** - add
   `e2e/home-page.spec.ts`, covering the default list at `/`; choosing a page in
   Settings -> `/` shows it and `/posts` shows the list; `/<slug>` lands on `/`;
   unpublishing the page -> `/` shows the list again. Leave the setting back at

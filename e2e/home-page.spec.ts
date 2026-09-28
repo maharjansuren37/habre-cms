@@ -104,3 +104,61 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
   }
   expect(await storedHomePageId()).toBeNull();
 });
+
+test("the latest posts are at / by default, and at /posts always", async ({ page }) => {
+  const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
+  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+  await expect(page).toHaveTitle("Habre CMS");
+  await page.goto("/posts");
+  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+});
+
+test("a chosen page takes /, its own address lands on /, and unpublishing it brings the list back", async ({
+  page,
+}) => {
+  const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
+  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+  const homeTitle = `Front Door ${randomInt(1_000_000)}`;
+  const homeSlug = homeTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  await createDraftFor(
+    admin.email,
+    homeTitle,
+    [{ id: "welcome", type: "text", data: { text: [{ text: "Welcome to the front door." }] } }],
+    { status: "published", type: "page" },
+  );
+
+  await logIn(page, admin);
+  await page.goto("/admin/settings");
+  await page.getByLabel("Home page").selectOption({ label: homeTitle });
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Settings updated.")).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
+  await expect(page.getByText("Welcome to the front door.")).toBeVisible();
+  await expect(page).toHaveTitle(`${homeTitle} - Habre CMS`);
+
+  await page.goto("/posts");
+  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+
+  const response = await page.goto(`/${homeSlug}`);
+  expect(new URL(page.url()).pathname).toBe("/");
+  expect(response?.request().redirectedFrom()?.url()).toContain(`/${homeSlug}`);
+  await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
+
+  await page.goto("/admin/pages");
+  await page.getByRole("link", { name: homeTitle, exact: true }).click();
+  await page.waitForURL(/\/admin\/pages\/[0-9a-f-]+$/);
+  await page.getByRole("button", { name: "Unpublish" }).click();
+  await page.waitForURL(/unpublished=/);
+
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toHaveCount(0);
+
+  // Leave `/` as every other spec expects it; afterEach is only the backstop.
+  await resetSiteSettings();
+});
