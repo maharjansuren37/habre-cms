@@ -19,8 +19,8 @@ import {
 } from "./navigation-form-input.ts";
 import { NAV_MAX_ITEMS } from "./navigation-input.ts";
 import styles from "./settings.module.css";
-import { updateNavigation, updateSiteIdentity } from "./settings.server.ts";
-import { logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
+import { updateHomePage, updateNavigation, updateSiteIdentity } from "./settings.server.ts";
+import { homePageIdSchema, logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
 
 // Admin only (project-plan.md's routes table) - an editor or author gets the
 // same 404 an ownership refusal already gives (require-role.server.ts), and
@@ -43,19 +43,30 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** What every non-redirect action response carries, whether it reshaped the
  *  draft or refused a save - one shape, so the component never has to check
  *  which kind of response it got before reading it. */
-type ActionResult = { problem: string | null; draftRows: NavDraftRow[]; siteTitle: string };
+type ActionResult = {
+  problem: string | null;
+  draftRows: NavDraftRow[];
+  siteTitle: string;
+  homePageId: string;
+};
 
 export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "save");
   const submittedTitle = String(form.get("siteTitle") ?? "");
+  const submittedHomePageId = String(form.get("homePageId") ?? "");
   const rows = parseDraftRows(form);
 
   // Add/remove/move only rearrange what is already on the page - no
   // database write, so nothing below this needs validating yet.
   const reshaped = applyNavIntent(intent, rows);
   if (reshaped) {
-    return { problem: null, draftRows: reshaped, siteTitle: submittedTitle } satisfies ActionResult;
+    return {
+      problem: null,
+      draftRows: reshaped,
+      siteTitle: submittedTitle,
+      homePageId: submittedHomePageId,
+    } satisfies ActionResult;
   }
 
   const title = siteTitleSchema.safeParse(submittedTitle);
@@ -65,6 +76,7 @@ export async function action({ request }: Route.ActionArgs) {
         problem: title.error.issues[0]?.message ?? "Enter a site title.",
         draftRows: rows,
         siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -81,6 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
         problem: "That logo could not be saved. Choose it again.",
         draftRows: rows,
         siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -94,12 +107,30 @@ export async function action({ request }: Route.ActionArgs) {
         problem: navResult.message,
         draftRows: rows,
         siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
+      } satisfies ActionResult,
+      { status: 400 },
+    );
+  }
+
+  // Checked against the page list, not just the id's shape: the foreign key
+  // only proves an entry exists, so a post's id would save (D-6), and a
+  // deleted page's id would reach the database as an unhandled 23503 (F-89).
+  const homePage = homePageIdSchema.safeParse(submittedHomePageId);
+  if (!homePage.success || (homePage.data && !pages.some((page) => page.id === homePage.data))) {
+    return data(
+      {
+        problem: "That home page could not be saved. Choose it again.",
+        draftRows: rows,
+        siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
       } satisfies ActionResult,
       { status: 400 },
     );
   }
 
   await updateSiteIdentity({ siteTitle: title.data, logoMediaId: logoId.data });
+  await updateHomePage(homePage.data);
   await updateNavigation(navResult.items);
   return redirect("/admin/settings?updated=1");
 }
@@ -135,7 +166,9 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   // actually saved.
   const draftRows = actionData ? actionData.draftRows : navItemsToDraftRows(settings.navigation);
   const siteTitleDefault = actionData ? actionData.siteTitle : settings.siteTitle;
+  const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
   const pageById = new Map(pages.map((page) => [page.id, page]));
+  const homePage = pageById.get(homePageIdDefault);
 
   // The picker's dialog closes before it hands back a pick (logo-picker.client.ts),
   // which restores focus to whatever opened it - but that element is the exact
@@ -213,6 +246,32 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             </Button>
           )}
         </fieldset>
+        <div className={styles.selectField}>
+          <label className={styles.navFieldLabel} htmlFor="homePageId">
+            Home page
+          </label>
+          <select
+            id="homePageId"
+            name="homePageId"
+            defaultValue={homePageIdDefault}
+            className={styles.select}
+            aria-describedby={
+              homePage && homePage.status !== "published" ? "homePageId-hint" : undefined
+            }
+          >
+            <option value="">Latest posts</option>
+            {pages.map((page) => (
+              <option key={page.id} value={page.id}>
+                {page.title}
+              </option>
+            ))}
+          </select>
+          {homePage && homePage.status !== "published" && (
+            <p id="homePageId-hint" className={styles.navHint}>
+              Not published - visitors see the latest posts until it is.
+            </p>
+          )}
+        </div>
         <div className={styles.navSection}>
           <h2 className={styles.navHeading}>Navigation</h2>
           <input type="hidden" name="nav-count" value={draftRows.length} />

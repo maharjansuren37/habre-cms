@@ -15,6 +15,6 @@ const DEFAULT_SITE_TITLE = "Habre CMS";
  */
 export function resetSiteSettings(): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null, navigation = '[]'::jsonb where id = 1`;
+    await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null, navigation = '[]'::jsonb, home_page_id = null where id = 1`;
   });
 }

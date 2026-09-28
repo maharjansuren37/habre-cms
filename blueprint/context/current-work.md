@@ -65,7 +65,7 @@ controls.
   new tests that `""` parses to `null`, a valid id passes through, and a
   malformed id is refused.
 
-- [ ] **Step 3 - The Home page control on Settings** - a "Home page" select
+- [x] **Step 3 - The Home page control on Settings** - a "Home page" select
   above Navigation: first option "Latest posts" (value `""`), then every page
   from `listPagesForNav()` (already loaded). A chosen page that is not
   published shows the hint "Not published - visitors see the latest posts until
