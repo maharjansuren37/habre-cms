@@ -6,10 +6,11 @@ import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
 import { resolvePageMedia } from "./page-media.server.ts";
 import listStyles from "./post-list.module.css";
+import { publicTitle } from "./public-title.ts";
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (loaderData?.kind === "page") return [{ title: `${loaderData.page.title} - Habre CMS` }];
-  return [{ title: "Habre CMS" }];
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  if (loaderData?.kind === "page") return [{ title: publicTitle(matches, loaderData.page.title) }];
+  return [{ title: publicTitle(matches) }];
 }
 
 // `/` is always a landing page (D-12): the chosen page when there is one and

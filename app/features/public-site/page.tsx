@@ -3,9 +3,10 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/page";
 import { PageBody } from "./page-body.tsx";
 import { resolvePageMedia } from "./page-media.server.ts";
+import { publicTitle } from "./public-title.ts";
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  return [{ title: `${loaderData?.page.title ?? "Page"} - Habre CMS` }];
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  return [{ title: publicTitle(matches, loaderData?.page.title ?? "Page") }];
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
