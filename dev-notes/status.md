@@ -13,15 +13,34 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus item 9 (choose the home page) are shipped and live in
-production**, as of the deploy below. Production runs `bded549`. `main`
-(`9021b85`, pushed) is ahead by two merged fixes that are **not deployed**:
-`quiet-routine-refusals` (F-114, `28a391f`, PR #19) and
-`escape-control-characters` (F-115, `80c47fa`, PR #20), CI green on both.
-**In flight:** a spec for F-116 (public `<title>`s name the site, not the
-CMS) is written in `current-work.md`, not yet built. **Owner action now:**
-publish a page and choose it as the home page in Settings - production `/`
-still shows the "This site is being set up" placeholder (checked
-2026-09-29, `needs-you.md`).
+production**, as of the deploy below. Production runs `5bd0d29`, which is
+`main`: nothing merged is undeployed, and nothing is in flight. **Owner
+action now:** publish a page and choose it as the home page in Settings -
+production `/` still shows the "This site is being set up" placeholder
+(checked 2026-09-29, `needs-you.md`).
+
+- **Deploy, 2026-09-29 (fixes F-114, F-115, F-116 to production):** release
+  `5bd0d29` ("fix: public page titles name the site (F-116) (#21)", CI green
+  on this exact SHA), carrying `quiet-routine-refusals` (F-114),
+  `escape-control-characters` (F-115) and `public-page-titles` (F-116). Built
+  locally from a clean clone at this commit: `npm ci` -> `npm run verify`
+  (exit 0, 240 unit tests; `test:e2e` 100 passed on the same code before
+  merge) -> `npm ci --omit=dev` -> `rsync --rsync-path="sudo rsync"
+  --chown=habre_cms:habre_cms` to `/srv/habre-cms/releases/5bd0d29` (same
+  layout, 59M). No migrations, no env, unit or Caddy changes. `current`
+  repointed and `habre-cms` restarted (07:23:47 UTC, `NRestarts=0`, "Server
+  listening ... (production)"). Verified through the real proxy: `/healthz`
+  on both hostnames -> `{"status":"ok","database":"up"}`; `/` -> 200
+  `<title>Habre</title>` (the production site title; before the deploy it
+  was "Habre CMS"); `/posts` -> 200 "Posts - Habre"; `/posts/sunset` -> 200
+  "Sunset - Habre"; an unknown slug -> 404 "Page not found - Habre" (it had
+  no `<title>` before); `cms.../admin/login` -> 200. **F-114's check:** 0
+  "No route matches" lines and 0 error-priority lines in the journal since
+  the restart, with that 404 probe among the requests. **Rollback:** `sudo
+  ln -sfn /srv/habre-cms/releases/bded549 /srv/habre-cms/current && sudo
+  systemctl restart habre-cms` - safe, no schema change. 9 releases now on
+  disk (40G free) - prune the oldest (`48e5052`, `52c2670`, `0ad8300`) at
+  some point.
 
 - **Deploy, 2026-09-28 (item 9 `choose-the-home-page` to production):**
   release `bded549` ("feat: choose the home page (item 9) (#18)", CI green
@@ -335,9 +354,10 @@ no new migration shipped with item 4 (0001-0003 were already applied).
   page's own slug redirects to `/`.
 - **Fixes since the MVP** - `admin-data-host-redirect` (PR #17, deployed
   `6bf3ddb`), `security-hardening` (F-100 CSP, F-70, F-22; deployed
-  `8d6afba`), `quiet-routine-refusals` (F-114, PR #19) and
-  `escape-control-characters` (F-115, PR #20). The last two are merged with
-  CI green and not deployed. Archives in `blueprint/history/fixes/`.
+  `8d6afba`), and `quiet-routine-refusals` (F-114, PR #19),
+  `escape-control-characters` (F-115, PR #20) and `public-page-titles`
+  (F-116, PR #21), all three deployed together as `5bd0d29`. Archives in
+  `blueprint/history/fixes/`.
 - **Server** (`ocwebserver`, Ubuntu 24.04): Node 26.8.2, PostgreSQL 16.15 on
   localhost, systemd `habre-cms.service` as `habre_cms`, Caddy terminating HTTPS.
   Secrets in `/etc/habre-cms/production.env` (mode 600); backup credentials
@@ -444,17 +464,16 @@ stands*. All 8 items are now live in production.
 
 ## Next
 
-1. **`build` the F-116 spec** in `current-work.md`, then `ship` it.
-2. **`deploy` to production** - F-114, F-115 and (once shipped) F-116 are
-   merged and not live. F-114's post-deploy journal check is in
-   `blueprint/production-pending.md`.
-3. **No queued build item** - `ideate --rescope` or a fresh `spec` decides
+1. **`monitor`** - re-read the signals now that F-114 keeps scanner 404s out
+   of the journal, and again once a home page is chosen and real content is
+   published.
+2. **No queued build item** - `ideate --rescope` or a fresh `spec` decides
    what's next; a page builder is the recorded direction.
-4. **Three of the four accepted risks from the 2026-09-23 deploy are still
+3. **Three of the four accepted risks from the 2026-09-23 deploy are still
    open** (R2 credential separation, R2 custom domain, screen-reader/keyboard
    pass); CSP was closed by `security-hardening`. The owner's plan is "after
    the MVP", which is now.
-5. `ci` would close F-17 by giving CI a PostgreSQL service.
+4. `ci` would close F-17 by giving CI a PostgreSQL service.
 
 ## Open / not done
 
@@ -475,9 +494,9 @@ stands*. All 8 items are now live in production.
   covers "noticed" for the admin hostname only - F-113).
 - **Monitoring gaps** (`monitor`, 2026-09-29):
   - **No UptimeRobot check on the public hostname** (F-113).
-  - **No error alerting.** Errors reach only the journal, which scanner
-    noise drowns out until F-114's fix (merged, not deployed) is live. No
-    error tracker, by plan decision.
+  - **No error alerting.** Errors reach only the journal - no longer
+    drowned by scanner 404s since F-114 went live in `5bd0d29`, but nobody
+    is told when one appears. No error tracker, by plan decision.
   - **No alert on a failed backup** (above).
   - **No latency or disk alerts.** Both are far below any limit today.
   - **Alerts go to one email address, with no escalation.**
