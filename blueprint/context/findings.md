@@ -41,3 +41,6 @@ File: server/app.ts:6 (`createRequestHandler(() => import("virtual:react-router/
 
 ### F-103 [P2] open - Browser specs share the one `site_settings` row, and two of them running at once can fail each other
 File: e2e/home-page.spec.ts; playwright.config.ts:23 (`workers: 2`)
+
+### F-113 [P2] open - UptimeRobot watches only the admin hostname; the public site and its certificate have no check
+File: UptimeRobot account (owner's); dev-notes/status.md *Monitoring*

@@ -337,7 +337,29 @@ no new migration shipped with item 4 (0001-0003 were already applied).
   A release carrying a migration cannot be rolled back this way (F-19).
 - **Monitoring** - UptimeRobot on `/healthz` every 5 minutes with a
   `"database":"up"` keyword check and SSL expiry alerts; email delivery proven by
-  a real alert.
+  a real alert. **It checks only `cms.surenmaharjan.fyi`**. The public hostname
+  and its certificate have no check (F-113).
+- **Signals read, 2026-09-29 (`monitor`, about 1 h after the item 9 deploy):**
+  - Both `/healthz` return `{"status":"ok","database":"up"}` (110-125 ms).
+    `habre-cms` has been active since 22:46:49 UTC, `NRestarts=0`, 36 MB.
+  - Box: disk 11% (40G free), 538 MB memory available, load 0.00. Certs
+    expire 2026-12-02 (apex) and 2026-12-14 (`cms.`). Caddy renews both.
+  - Last nightly backup succeeded.
+  - Caddy access logs (from 09-16 admin, 09-21 public): **0 5xx**.
+  - Latency: public GET p95 21 ms, admin GET p95 12 ms, admin POST p95
+    119 ms. The slowest request was a media upload at 1.2 s. All inside
+    `quality-bar.md`.
+  - Usage: public traffic is mostly `/` and scanners. `/posts/sunset` was
+    read 3 times. Admin traffic is the owner only.
+  - Auth events since 09-16: 8 `login_succeeded`, 26 `login_failed`, 2
+    `login_rate_limited`, 59 `request_refused`.
+  - The journal is almost all scanner 404 stack traces (2,119+), so real
+    errors are hard to find (F-114).
+  - **Nothing broken, nothing slower than the bar, no plan items from usage**
+    yet: there is one published post and no home page, so there is not yet
+    any traffic to learn from.
+  - Re-read these signals after the owner chooses a home page and publishes
+    real content.
 
 ## Migrations
 
@@ -436,7 +458,14 @@ stands*. All 8 items are now live in production.
 - **No CSP** (F-100) - past its own "until item 5" trigger, item 5 shipped
   weeks before this was noticed; **accepted risk**, same 2026-09-23 decision.
   **No staging** environment; single server, down until noticed (UptimeRobot
-  covers "noticed").
+  covers "noticed" for the admin hostname only - F-113).
+- **Monitoring gaps** (`monitor`, 2026-09-29):
+  - **No UptimeRobot check on the public hostname** (F-113).
+  - **No error alerting.** Errors reach only the journal, which scanner
+    noise drowns out (F-114). No error tracker, by plan decision.
+  - **No alert on a failed backup** (above).
+  - **No latency or disk alerts.** Both are far below any limit today.
+  - **Alerts go to one email address, with no escalation.**
 - Waiting on the owner (`needs-you.md`): separating the production R2
   credentials from development's and a custom domain for the images bucket
   (both **accepted risk** for now, not blocking, to fix after the MVP), and
