@@ -4,6 +4,7 @@ import { getSiteSettings, type SiteSettings } from "#app/features/settings/setti
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
+import { FALLBACK_SITE_TITLE, publicTitle } from "./public-title.ts";
 
 type NavLink = { label: string; href: string };
 
@@ -23,6 +24,19 @@ async function resolveNavigation(items: SiteSettings["navigation"]): Promise<Nav
     const slug = slugById.get(item.pageId);
     return slug ? [{ label: item.label, href: `/${slug}` }] : [];
   });
+}
+
+/**
+ * The title an error page gets. React Router cuts `matches` off at the
+ * boundary that renders - this layout's - so a child's own `meta` never runs
+ * for a 404 and, without this, the page had no `<title>` at all (F-116).
+ * Every child route replaces it: the leaf's meta wins. Worded as the
+ * ErrorBoundary below words its body.
+ */
+export function meta({ error, matches }: Route.MetaArgs) {
+  if (!error) return [{ title: publicTitle(matches) }];
+  const isNotFound = isRouteErrorResponse(error) && error.status === 404;
+  return [{ title: publicTitle(matches, isNotFound ? "Page not found" : "Something went wrong") }];
 }
 
 export async function loader() {
@@ -101,7 +115,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   // only missing if this loader itself is what failed, which reaching for
   // env.PUBLIC_URL and a primary-key read practically never does.
   const settings = loaderData?.settings ?? {
-    siteTitle: "Habre CMS",
+    siteTitle: FALLBACK_SITE_TITLE,
     logoMediaId: null,
     logoUrl: null,
     navigation: [],
