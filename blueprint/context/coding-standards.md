@@ -96,6 +96,11 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
 - **Unexpected errors** propagate to the route `ErrorBoundary` (`app/root.tsx`
   shows details only in development). `server.js` catches anything that escapes
   the framework, logs it with `console.error`, and answers 500.
+- **Server errors are logged by `handleError`** in `app/entry.server.tsx`.
+  It skips aborted requests and the 404s and 405s React Router generates
+  itself (`isRoutineRefusal`, F-114): these are bot probes, and Caddy's access
+  log records them. Every other error is logged, the same way React Router's
+  default handler logs it.
 - **Health and dependency checks** catch, log with context, and report the
   failure in the response (`/healthz` returns 503) rather than throwing.
 - **Scripts** (`db/migrate.ts`) catch at the top level, log what failed, set
