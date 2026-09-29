@@ -47,7 +47,7 @@ not change.
   from the commit after this one); the new test was
   **seen to fail** with `\u007f` temporarily dropped from the class, then passes
   with it restored; `npm test` passes.
-- [ ] **Step 2 - Escape the test strings' NULs** - in `media-input.test.ts`,
+- [x] **Step 2 - Escape the test strings' NULs** - in `media-input.test.ts`,
   lines 43 and 45 become `"a\u0000b"` and `"a\u0000b.jpg"`. *Done when:* the
   same `grep -caP` prints `0` for that file; `git diff --no-index --numstat
   /dev/null <file>` counts it as text (same correction as Step 1);
