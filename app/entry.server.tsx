@@ -4,12 +4,22 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
-import type { EntryContext } from "react-router";
-import { ServerRouter } from "react-router";
+import type { EntryContext, HandleErrorFunction } from "react-router";
+import { isRouteErrorResponse, ServerRouter } from "react-router";
 import { areaForPath, contentSecurityPolicy } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
+import { isRoutineRefusal } from "#app/lib/server-errors.ts";
 
 export const streamTimeout = 5_000;
+
+// Replaces React Router's default logger, which also logged every bot probe
+// for a URL that does not exist (F-114). Everything else is logged exactly as
+// the default logs it.
+export const handleError: HandleErrorFunction = (error, { request }) => {
+  if (request.signal.aborted || isRoutineRefusal(error)) return;
+  const cause = isRouteErrorResponse(error) && "error" in error ? error.error : undefined;
+  console.error(cause instanceof Error ? cause : error);
+};
 
 export default function handleRequest(
   request: Request,

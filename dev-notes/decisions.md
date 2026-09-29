@@ -1381,3 +1381,18 @@ posts what visitors see until someone changes a setting; and auto-creating a
 production's `/` switches from the post list to the placeholder at deploy,
 until the owner chooses a page (`needs-you.md`). The link check is one extra
 `exists` query, run only when no page is shown.
+
+## D108 - Only React Router's own 404s and 405s go unlogged (2026-09-29)
+
+**Chose:** `handleError` in `app/entry.server.tsx` skips aborted requests
+and route error responses with status 404/405 that carry the router's
+internal `error` (`isRoutineRefusal`, fix `quiet-routine-refusals`, F-114).
+Everything else is logged the way React Router's default logs it.
+Beats:
+- matching message text, which breaks across React Router versions;
+- dropping every route error response, which hides 400s and 500s;
+- logging refusals at `warn`, which still floods the journal.
+
+Costs: a real form that posts to a route with no `action` no longer logs a
+trace. Browser tests catch that case, and Caddy's access log still records
+every 404 and 405.
