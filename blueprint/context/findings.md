@@ -41,9 +41,3 @@ File: UptimeRobot account (owner's); dev-notes/status.md *Monitoring*
 
 ### F-115 [P2] fixed - The link allowlist's source file holds raw NUL and DEL bytes, so git and grep treat it as binary
 File: app/features/blocks/inline-runs.ts:41; app/features/media/media-input.test.ts:43,45
-
-### F-116 [P2] fixed - Every public page's browser title names the CMS, not the site
-File: app/features/public-site/post.tsx:12, page.tsx:8, posts.tsx:7, home.tsx:12-13
-
-### F-118 [P3] open - The home placeholder keeps its own "Habre CMS" fallback beside the helper's constant
-File: app/features/public-site/home.tsx:42

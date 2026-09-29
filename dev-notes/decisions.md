@@ -1359,6 +1359,9 @@ and `isHomePage`, which the view never reads (F-108).
 **Chose:** the "<name> - Habre CMS" pattern the other public routes use
 (item 9's D-9). The placeholder at `/` keeps "Habre CMS".
 
+**Superseded by D110** (2026-09-29): public titles now end in the site title
+from Settings, not "Habre CMS" - `/posts` is "Posts - <site title>".
+
 ## D106 - The settings Save is one transaction (2026-09-29)
 
 **Chose:** `saveSiteSettings` runs the identity, home page and navigation
@@ -1413,3 +1416,51 @@ Beats:
 
 Costs: nothing checks it yet. It happened twice (items 2b and 5a), and a
 source-scanning guard test is an open question, not built.
+
+## D110 - Public page titles end in the site title, not the CMS name (2026-09-29)
+
+**Chose:** every public `<title>` is `<page title> - <site title>`, or the
+site title alone for `/`'s placeholder (fix `public-page-titles`, F-116).
+The site title is read from the public layout's loader data through
+`matches`, by one helper, `publicTitle` in
+`app/features/public-site/public-title.ts`. "Habre CMS" is only the fallback
+when that data is missing, and stays the admin's title, where the product is
+the CMS. A chosen home page keeps `<page> - <site>`.
+Beats:
+- the site title alone on `/` even when a page is chosen - the page already
+  has its own title in its `<h1>`, and the tab should say which page it is;
+- a second settings query in each route's loader - the layout already loads
+  the settings on every public request.
+
+Costs: the helper asserts the layout's data type by route id. Renaming or
+moving `features/public-site/layout.tsx` changes that id, and every public
+title silently falls back to "Habre CMS" (the browser test in
+`e2e/manage-settings.spec.ts` would catch it).
+
+## D111 - Titles stay on the route `meta` export, not React 19's `<title>` element (2026-09-29)
+
+**Chose:** the route module `meta` export for titles (fix
+`public-page-titles`). React Router 8's installed docs
+(`route-module.md`, *meta*) recommend React 19's built-in `<title>` element
+over `meta`.
+Beats:
+- moving to the `<title>` element here, which would mean changing every
+  route, admin included, inside a small fix.
+
+Costs: the project stays on the approach its framework now calls
+second-best. Moving over is a refactor of its own, if it is ever wanted.
+
+## D112 - Public error pages are titled by the layout's `meta` (2026-09-29)
+
+**Chose:** the public layout exports `meta`, giving a 404 "Page not found -
+<site title>" and any other error "Something went wrong - <site title>" - the
+same words its `ErrorBoundary` shows (fix `public-page-titles`). React Router
+cuts `matches` off at the boundary that renders, so a child route's `meta`
+never runs for its own 404. Before this, a public 404 had no `<title>` at
+all, which fails WCAG 2.2's 2.4.2 Page Titled.
+Beats:
+- a `meta` in `root.tsx`, which would also title admin errors with the
+  public site's name.
+
+Costs: the "Something went wrong" branch has no test - a server error is
+hard to cause in the browser tests, and `node --test` cannot load `.tsx`.

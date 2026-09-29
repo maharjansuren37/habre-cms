@@ -121,3 +121,6 @@ File: e2e/public-site.spec.ts:44-57; app/features/public-site/home.tsx:39-41
 
 ### F-117 [P3] open - The settings save reads a request body of any size
 File: app/features/settings/settings.tsx:53-54
+
+### F-118 [P3] open - The home placeholder keeps its own "Habre CMS" fallback beside the helper's constant
+File: app/features/public-site/home.tsx:42
