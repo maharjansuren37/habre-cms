@@ -21,17 +21,11 @@
 ### F-72 [P2] fixed - Item 4c's env-var rename breaks the proven symlink-only rollback for this specific release
 File: /etc/systemd/system/habre-cms.service on `ocwebserver`; deploy/habre-cms.service in the repo
 
-### F-48 [P2] fixed - The three inline toolbar buttons have no perceivable focus indicator, and the spec asked for one
-File: app/features/content/post-form.module.css:135-136
-
 ### F-29 [P2] open - The writing area has no accessible name
 File: app/features/blocks/editor.client.tsx:68
 
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
-
-### F-22 [P2] fixed - The app now believes any client's `X-Forwarded-Host` and `X-Forwarded-Proto`
-File: server/app.ts:17 (`{ trustProxy: true }`)
 
 ### F-17 [P2] open - The browser tests that cover login never run automatically
 File: .github/workflows/ci.yml, package.json:22 (`verify` = typecheck, lint, unit tests, build)
@@ -44,3 +38,9 @@ File: e2e/home-page.spec.ts; playwright.config.ts:23 (`workers: 2`)
 
 ### F-113 [P2] open - UptimeRobot watches only the admin hostname; the public site and its certificate have no check
 File: UptimeRobot account (owner's); dev-notes/status.md *Monitoring*
+
+### F-115 [P2] fixed - The link allowlist's source file holds raw NUL and DEL bytes, so git and grep treat it as binary
+File: app/features/blocks/inline-runs.ts:41; app/features/media/media-input.test.ts:43,45
+
+### F-116 [P2] open - Every public page's browser title names the CMS, not the site
+File: app/features/public-site/post.tsx:12, page.tsx:8, posts.tsx:7, home.tsx:12-13

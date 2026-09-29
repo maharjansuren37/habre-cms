@@ -117,6 +117,15 @@ test("links to unsafe addresses are refused, however they are disguised", () => 
   assert.deepEqual(runs("<a href=javascript:alert(1)>x</a>"), { ok: false, reason: "unsafe_link" });
 });
 
+test("control characters and spaces are stripped before the address is judged", () => {
+  // Only a character between slashes, or before `#`, shows whether it was
+  // stripped: one left inside a scheme is refused by the scheme check anyway.
+  for (const character of ["\u0001", "\u001f", " ", "\u007f"]) {
+    assert.equal(isSafeHref(`/${character}/evil.example`), false, JSON.stringify(character));
+  }
+  assert.equal(isSafeHref("\u0001#top"), true);
+});
+
 test("web, email, site-relative and fragment links are accepted", () => {
   for (const href of [
     "https://example.com",
