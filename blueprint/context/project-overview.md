@@ -3,10 +3,10 @@
 > **Generated file.** Written by the `context` skill from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
-> the record. Decision numbers (D1-D107) are entries in `dev-notes/decisions.md` -
+> the record. Decision numbers (D1-D109) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-09-29 from `main` (`bded549`).
+Generated 2026-09-29 from `main` (`80c47fa`).
 
 ## What this is
 
@@ -130,9 +130,11 @@ without a requirement that calls for them.
 - **Plan:** 9 of 9 items done (8 MVP + item 9), archived in
   `blueprint/history/features/`. Nothing unchecked; the next item needs
   `ideate --rescope` or `spec` - a page builder is the recorded direction.
-- **Live and records:** production runs release `8d6afba` (items 1-8 plus
-  fixes), deployed 2026-09-28; item 9 awaits `deploy`, with its migration
-  and follow-ups in `blueprint/production-pending.md`. See
-  `dev-notes/status.md`. Findings:
-  `blueprint/context/findings.md` and `blueprint/findings/backlog.md`. Work
-  only the owner can do: `needs-you.md`.
+- **Live:** production runs release `bded549` (items 1-9), deployed
+  2026-09-28. Merged since, not deployed: fixes `quiet-routine-refusals`
+  (F-114) and `escape-control-characters` (F-115) - the first has a
+  post-deploy check in `blueprint/production-pending.md`, the second no
+  runtime change. See `dev-notes/status.md`.
+- **Records:** findings in `blueprint/context/findings.md` and
+  `blueprint/findings/backlog.md`; work only the owner can do in
+  `needs-you.md`.
