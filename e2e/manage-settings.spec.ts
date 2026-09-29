@@ -3,7 +3,14 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
-import { createAdmin, deleteTestUser, setRole, type TestUser } from "./helpers/users.ts";
+import {
+  createAdmin,
+  createDraftFor,
+  deleteEntriesBy,
+  deleteTestUser,
+  setRole,
+  type TestUser,
+} from "./helpers/users.ts";
 
 let admin: TestUser;
 // Set by a test that uploads a fixture; cleared in afterEach regardless of
@@ -24,6 +31,7 @@ test.afterEach(async () => {
   // Restored unconditionally - site_settings has no per-test isolation, and
   // public-site.spec.ts / smoke.spec.ts assert the literal default title.
   await resetSiteSettings();
+  await deleteEntriesBy(admin.email);
   await deleteTestUser(admin.email);
 });
 
@@ -51,6 +59,36 @@ test("an admin can set the site title and logo, and both reach the admin sidebar
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Verify Settings Site" })).toBeVisible();
   await expect(page.locator("header img")).toBeVisible();
+});
+
+test("every public page's browser title names the site, not the CMS (F-116)", async ({ page }) => {
+  const siteTitle = `Title Spec Site ${randomInt(1_000_000)}`;
+  const postTitle = `Title Spec Post ${randomInt(1_000_000)}`;
+  const pageTitle = `Title Spec Page ${randomInt(1_000_000)}`;
+  const slugOf = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+  await createDraftFor(admin.email, pageTitle, [], { status: "published", type: "page" });
+
+  await logIn(page, admin);
+  await page.goto("/admin/settings");
+  await page.getByLabel("Site title").fill(siteTitle);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Settings updated.")).toBeVisible();
+
+  await page.goto(`/posts/${slugOf(postTitle)}`);
+  await expect(page).toHaveTitle(`${postTitle} - ${siteTitle}`);
+  await page.goto(`/${slugOf(pageTitle)}`);
+  await expect(page).toHaveTitle(`${pageTitle} - ${siteTitle}`);
+  await page.goto("/posts");
+  await expect(page).toHaveTitle(`Posts - ${siteTitle}`);
+  await page.goto("/");
+  await expect(page).toHaveTitle(siteTitle);
+  const response = await page.goto(`/no-such-page-${randomInt(1_000_000)}`);
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle(`Page not found - ${siteTitle}`);
+
+  // Two other spec files assert the default title - restored now, not only in afterEach.
+  await resetSiteSettings();
 });
 
 test("picking a logo for the first time leaves keyboard focus on the new Change logo button, not lost to <body>", async ({
