@@ -23,9 +23,6 @@ File: e2e/manage-posts.spec.ts:29-53 ("the list is scoped by role, and the tabs'
 ### F-71 [P3] open - A cookie comment now describes a reality the hostname split already removed
 File: app/features/auth/session-cookie.server.ts:9-12
 
-### F-49 [P3] fixed - F-47 closed U+0000 but not its class: a lone surrogate still answers 500
-File: app/features/blocks/inline-runs.ts:43-46 (`runSchema.text`), reached from app/features/content/entries.server.ts:103 (`sql.json`); same hole on `blockId` (app/features/blocks/blocks.ts:16)
-
 ### F-50 [P3] open - The stored shape is less canonical than the contract says it is
 File: app/features/blocks/inline-runs.ts:56-71 (`runsSchema`); blueprint/context/current-work.md *Data and contracts* and step 1
 
@@ -35,20 +32,11 @@ File: app/features/blocks/blocks.ts:38 (`items: z.array(runsSchema).min(1)`), wi
 ### F-52 [P3] unverified - F-43's "native Ctrl+B does nothing" rests on one manual observation, and the mechanism argues against it
 File: app/features/blocks/editor.client.tsx:52-58; e2e/inline-formatting.spec.ts:115-140
 
-### F-53 [P3] fixed - `design.md` asserts a boundary contrast that was never measured
-File: blueprint/context/design.md, *Inline formatting*
-
-### F-41 [P3] fixed - `flattenListItems` recurses without a depth bound, so a crafted body answers 500
-File: app/features/blocks/blocks.ts:88-101, called at :141
-
 ### F-38 [P3] open - Duplicate block ids are accepted, and ids are unconstrained
 File: app/features/blocks/blocks.ts:16, 45
 
 ### F-39 [P3] open - The body cap and the block limits disagree, and the refusal destroys the draft
 File: app/features/content/post-form-input.ts:7, app/features/content/post-edit.tsx:37
-
-### F-40 [P3] fixed - `updateDraft` does not enforce that the entry is a draft
-File: app/features/content/entries.server.ts:89-98
 
 ### F-31 [P3] unverified - The editor placeholder may never appear
 File: app/features/blocks/editor.client.tsx:42 (`placeholder: "Write your post…"`)
@@ -62,9 +50,6 @@ File: app/features/content/entries.server.ts:46-48
 ### F-23 [P3] open - The proxied test port is written twice
 File: e2e/forwarded-proto.spec.ts:8-9, playwright.config.ts:6
 
-### F-24 [P3] open - `@react-router/node` may now be an unused dependency
-File: package.json:24
-
 ### F-19 [P3] open - The one migration has no reverse, and nothing says that is intended
 File: db/migrations/0001_users.sql:1
 
@@ -77,9 +62,6 @@ File: app/features/auth/client-ip.ts:10
 ### F-13 [P3] unverified - One host with a routed IPv6 /48 still gets tens of thousands of rate-limit keys, so it can hold both password slots
 File: app/features/auth/client-ip.ts:28 (`/64` key), app/features/auth/login-rate-limit.server.ts:25 (`createInFlightLimit(2)`); F-11's accepted residual
 
-### F-54 [P3] fixed - Four bare element selectors in `post-list.module.css` leak out of the CSS Module
-File: app/features/content/post-list.module.css:90,96,105,111,115
-
 ### F-55 [P3] open - The list's "Last changed" date is formatted in the server's timezone, not the reader's
 File: app/features/content/post-list.tsx:175-181 (`formatUpdatedAt`)
 
@@ -91,9 +73,6 @@ File: app/features/content/post-delete.tsx:11
 
 ### F-59 [P3] open - Every login costs an extra redirect hop through `/admin`
 File: app/features/auth/safe-redirect.ts:1, app/features/auth/login.tsx:29
-
-### F-60 [P3] fixed - The list's SQL fragments use unqualified column names inside a JOIN
-File: app/features/content/entries.server.ts:46-48 (`ownedBy`), 146-147 (`statusFilter`, `searchFilter`)
 
 ### F-61 [P3] open - Deleting a post loses the reader's place in the list
 File: app/features/content/post-delete.tsx:43
@@ -115,9 +94,6 @@ File: app/features/settings/settings.tsx:222-231 (the page `<select>`'s `default
 
 ### F-96 [P3] open - `navigation` is trusted as `NavItem[]` on read with no format guard, unlike `blocks` - a malformed value would 500 the one page that could fix it
 File: app/features/settings/settings.server.ts:19-32 (`getSiteSettings`); app/features/settings/navigation-form-input.ts:11-17 (`navItemsToDraftRows`); app/features/public-site/layout.tsx:16-23 (`resolveNavigation`)
-
-### F-97 [P3] fixed - The users list's Active/Deactivated badge is a new status-badge variant `design.md` doesn't record
-File: app/features/users/user-list.tsx:60-70; app/features/users/user-list.module.css:76-101; blueprint/context/design.md:116-118
 
 ### F-98 [P3] open - `README.md` describes the project as it was after item 3, and does not mention items 4-8 at all
 File: README.md:9-13
@@ -143,5 +119,5 @@ File: app/features/content/entries.server.ts:317-326; app/features/public-site/l
 ### F-111 [P3] open - The placeholder's site-title test uses the default title, which is also the code's fallback, so it cannot catch a broken title lookup
 File: e2e/public-site.spec.ts:44-57; app/features/public-site/home.tsx:39-41
 
-### F-112 [P3] fixed - Migration 0006's comment still says null means the latest posts, which D-12 changed
-File: db/migrations/0006_site_settings_home_page.sql:1-3
+### F-117 [P3] open - The settings save reads a request body of any size
+File: app/features/settings/settings.tsx:53-54

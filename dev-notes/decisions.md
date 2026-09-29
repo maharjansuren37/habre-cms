@@ -1396,3 +1396,20 @@ Beats:
 Costs: a real form that posts to a route with no `action` no longer logs a
 trace. Browser tests catch that case, and Caddy's access log still records
 every 404 and 405.
+
+## D109 - Control characters in source are written as escapes, never raw bytes (2026-09-29)
+
+**Chose:** a control character a file needs - in a regex or a string - is
+written as an escape (`\u0000`, `\u007f`), never as the literal byte (fix
+`escape-control-characters`, F-115). One raw NUL makes git treat the whole
+file as binary: `isSafeHref`'s allowlist went unreviewable in every diff
+from item 2b until this fix.
+Beats:
+- keeping the literal and adding a `.gitattributes` `diff` override, which
+  fixes git's view but not `grep` or the search tools that skip binary
+  files, and has to be remembered per file;
+- relying on Biome's `noControlCharactersInRegex`, which flags escapes too
+  and so was already suppressed here, where the match is deliberate.
+
+Costs: nothing checks it yet. It happened twice (items 2b and 5a), and a
+source-scanning guard test is an open question, not built.
