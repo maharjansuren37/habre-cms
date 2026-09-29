@@ -7,9 +7,10 @@ import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/post";
 import styles from "./post.module.css";
+import { publicTitle } from "./public-title.ts";
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  return [{ title: `${loaderData?.post.title ?? "Post"} - Habre CMS` }];
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  return [{ title: publicTitle(matches, loaderData?.post.title ?? "Post") }];
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
