@@ -4,6 +4,28 @@ What changed in each production release of Habre CMS, for the person running
 it. Internal refactors, dependency bumps and test changes are not listed here -
 see the git log for those.
 
+## 2026-09-28 - release `bded549`
+
+- **Action needed: choose a home page.** Your site's front page (`/`) no
+  longer lists posts. It shows a page you choose in Settings -> Home page, and
+  until you choose one it shows "This site is being set up". Publish a page
+  first, then pick it.
+- **Changed: posts moved to `/posts`.** The post list has its own permanent
+  address, linked from the placeholder. Individual posts keep their
+  addresses.
+- The page you choose as the home page is only at `/`. Its own address
+  redirects there.
+
+## 2026-09-28 - release `8d6afba`
+
+- Security hardening behind the scenes. Nothing changes in how the site or
+  the admin works.
+
+## 2026-09-28 - release `6bf3ddb`
+
+- **Fixed: logging in** at `https://cms.surenmaharjan.fyi` now takes you to
+  your posts, instead of a broken address on the public site.
+
 ## 2026-09-23 - release `4d9efdb`
 
 - **New: images.** Upload an image into a reusable media library, with alt

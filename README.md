@@ -6,12 +6,13 @@ block editor, and the CMS serves the public site itself - no developer needed to
 put something online. It is for small organisations with a handful of admins,
 editors and authors.
 
-**Status: MVP shipped, live.** All 8 build items are done and deployed to
-production: admin login and user/role management (admin, editor, author);
-writing posts and standalone pages in a block editor with inline formatting
-(bold, italic, links); uploading images into a reusable media library and
-placing them in posts and pages; draft/publish/unpublish; site title, logo
-and a navigation menu; a public site rendered from published content. Manage
+**Status: MVP shipped, live.** All 8 MVP items and item 9 are done and
+deployed to production: admin login and user/role management (admin, editor,
+author); writing posts and standalone pages in a block editor with inline
+formatting (bold, italic, links); uploading images into a reusable media
+library and placing them in posts and pages; draft/publish/unpublish; site
+title, logo and a navigation menu; a public site rendered from published
+content, with a chosen page as its home page and posts at `/posts`. Manage
 content at `https://cms.surenmaharjan.fyi`; the public site is
 `https://surenmaharjan.fyi`. What's next is undecided - see
 `blueprint/context/project-overview.md`'s *Current state*.

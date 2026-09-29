@@ -13,10 +13,15 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus item 9 (choose the home page) are shipped and live in
-production**, as of the deploy below. Production runs `bded549`; local
-`main` is one docs commit ahead (`797d8d4`, not pushed). **Owner action now:**
-publish a page and choose it as the home page in Settings - until then `/`
-shows the "This site is being set up" placeholder (`needs-you.md`).
+production**, as of the deploy below. Production runs `bded549`. `main`
+(`9021b85`, pushed) is ahead by two merged fixes that are **not deployed**:
+`quiet-routine-refusals` (F-114, `28a391f`, PR #19) and
+`escape-control-characters` (F-115, `80c47fa`, PR #20), CI green on both.
+**In flight:** a spec for F-116 (public `<title>`s name the site, not the
+CMS) is written in `current-work.md`, not yet built. **Owner action now:**
+publish a page and choose it as the home page in Settings - production `/`
+still shows the "This site is being set up" placeholder (checked
+2026-09-29, `needs-you.md`).
 
 - **Deploy, 2026-09-28 (item 9 `choose-the-home-page` to production):**
   release `bded549` ("feat: choose the home page (item 9) (#18)", CI green
@@ -324,6 +329,15 @@ no new migration shipped with item 4 (0001-0003 were already applied).
   review pass found F-97, a `design.md` documentation gap for the new
   Active/Deactivated badge - tracked live in `blueprint/context/findings.md`,
   not this item's own archived findings.)
+- **Item 9, choose the home page** - shipped through **PR #18**, deployed as
+  `bded549` (evidence in its deploy entry above). `/` is the chosen published
+  page or a placeholder, never a post list; posts live at `/posts`; a home
+  page's own slug redirects to `/`.
+- **Fixes since the MVP** - `admin-data-host-redirect` (PR #17, deployed
+  `6bf3ddb`), `security-hardening` (F-100 CSP, F-70, F-22; deployed
+  `8d6afba`), `quiet-routine-refusals` (F-114, PR #19) and
+  `escape-control-characters` (F-115, PR #20). The last two are merged with
+  CI green and not deployed. Archives in `blueprint/history/fixes/`.
 - **Server** (`ocwebserver`, Ubuntu 24.04): Node 26.8.2, PostgreSQL 16.15 on
   localhost, systemd `habre-cms.service` as `habre_cms`, Caddy terminating HTTPS.
   Secrets in `/etc/habre-cms/production.env` (mode 600); backup credentials
@@ -430,15 +444,17 @@ stands*. All 8 items are now live in production.
 
 ## Next
 
-1. **The MVP is fully shipped and live.** No queued build item -
-   `ideate --rescope` or a fresh `spec` decides what's next.
-2. **The four accepted risks from this deploy** (R2 credential separation,
-   R2 custom domain, screen-reader/keyboard pass, CSP) are real open work,
-   not resolved - the owner's plan is to do them "after the MVP". Worth
-   revisiting soon rather than indefinitely.
-3. `ci` would close F-17 by giving CI a PostgreSQL service.
-4. `context` - regenerate `project-overview.md`: its *Current state* still
-   says production is behind `main`, which stopped being true at this deploy.
+1. **`build` the F-116 spec** in `current-work.md`, then `ship` it.
+2. **`deploy` to production** - F-114, F-115 and (once shipped) F-116 are
+   merged and not live. F-114's post-deploy journal check is in
+   `blueprint/production-pending.md`.
+3. **No queued build item** - `ideate --rescope` or a fresh `spec` decides
+   what's next; a page builder is the recorded direction.
+4. **Three of the four accepted risks from the 2026-09-23 deploy are still
+   open** (R2 credential separation, R2 custom domain, screen-reader/keyboard
+   pass); CSP was closed by `security-hardening`. The owner's plan is "after
+   the MVP", which is now.
+5. `ci` would close F-17 by giving CI a PostgreSQL service.
 
 ## Open / not done
 
@@ -452,17 +468,16 @@ stands*. All 8 items are now live in production.
   lines (editor, admin shell, public site), all still open, **all explicitly
   accepted as risk by the owner for the 2026-09-23 deploy** - the plan is to
   do this after the MVP. WCAG 2.2 AA is the project's own recorded bar.
-- **49 findings in the current ledger**, none above P2: 6 P2 open, 1 P2
-  unverified, 26 P3 open, 6 P3 unverified, the rest fixed. Highest is **F-100
-  (CSP, below)**.
-- **No CSP** (F-100) - past its own "until item 5" trigger, item 5 shipped
-  weeks before this was noticed; **accepted risk**, same 2026-09-23 decision.
-  **No staging** environment; single server, down until noticed (UptimeRobot
+- **9 findings in the live ledger** (2026-09-29), none above P2: 7 P2 open,
+  2 P2 fixed awaiting a re-check (F-72, F-115). **39 more in
+  `blueprint/findings/backlog.md`.**
+- **No staging** environment; single server, down until noticed (UptimeRobot
   covers "noticed" for the admin hostname only - F-113).
 - **Monitoring gaps** (`monitor`, 2026-09-29):
   - **No UptimeRobot check on the public hostname** (F-113).
   - **No error alerting.** Errors reach only the journal, which scanner
-    noise drowns out (F-114). No error tracker, by plan decision.
+    noise drowns out until F-114's fix (merged, not deployed) is live. No
+    error tracker, by plan decision.
   - **No alert on a failed backup** (above).
   - **No latency or disk alerts.** Both are far below any limit today.
   - **Alerts go to one email address, with no escalation.**
@@ -531,10 +546,9 @@ it was proven on 2026-09-15 (commit `0ab3b35`):
 Judgment rather than fact - "if you pick this up later, do X". Kept separate from
 what is verified above, on purpose.
 
-- **Of the four accepted risks from the 2026-09-23 deploy, do the R2
-  credential separation and CSP first** - both are small (a new Cloudflare
-  token/bucket; one header block already drafted in F-100) and close real
-  gaps. The screen-reader pass is bigger and has been deferred since item 1;
+- **Of the three accepted risks still open from the 2026-09-23 deploy, do
+  the R2 credential separation first** - it is small (a new Cloudflare
+  token/bucket) and closes a real gap. The screen-reader pass is bigger and has been deferred since item 1;
   it deserves a dedicated session rather than being squeezed in.
 - **Give CI a database** (closes F-17). The browser suite is now the only
   thing that actually proves items 1-8 still work together, and it is being
