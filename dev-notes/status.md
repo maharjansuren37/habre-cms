@@ -12,12 +12,35 @@ The `docs` skill maintains it.
 ## Where this stands
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
-items plus item 9 (choose the home page) are shipped and live in
-production**, as of the deploy below. Production runs `5bd0d29`, which is
-`main`: nothing merged is undeployed, and nothing is in flight. **Owner
-action now:** publish a page and choose it as the home page in Settings -
-production `/` still shows the "This site is being set up" placeholder
-(checked 2026-09-29, `needs-you.md`).
+items plus items 9-11 (home page, sections, columns) are shipped and live in
+production**, as of the deploy below. Production runs `135bd1d`, which is
+`origin/main` as of that deploy: nothing merged is undeployed, and nothing is in
+flight. **Owner action now:** publish a page and choose it as the home page in
+Settings - production `/` showed the "This site is being set up" placeholder
+on 2026-09-29 (`needs-you.md`).
+
+- **Deploy, 2026-09-30 22:21 UTC (items 10 and 11 to production):** release
+  `135bd1d` ("docs: regenerate overview after item 11", CI green on this exact
+  SHA; code is `8392922`, item 11, on top of `947d202`, item 10). Built from a
+  **clean clone at that commit**, never the working tree or the server: `npm
+  ci` -> `npm run verify` (exit 0, 266 unit tests) -> `npm ci --omit=dev` ->
+  `rsync --rsync-path="sudo rsync" --chown=habre_cms:habre_cms` to
+  `/srv/habre-cms/releases/135bd1d` (same layout, 59M; 10 releases on disk,
+  39G free). The browser suite was run on the item branch before the merge
+  (111/111); CI does not run it (F-17). **Migration `0007` applied first, as its
+  own step** (see *Migrations*). No env, unit or Caddy changes. `current`
+  repointed and `habre-cms` restarted (22:21:14 UTC, `NRestarts=0`, "Server
+  listening ... (production)"). Verified through the real proxy: `/healthz` on
+  both hostnames -> `{"status":"ok","database":"up"}`; `https://surenmaharjan.fyi/`
+  -> 200, `/posts` -> 200 (reads entries), `/admin/login` -> 200, an unknown
+  slug -> 404; 0 `error` lines in the journal since the restart. Not exercised
+  on production: saving a page with sections or columns (would create v3
+  content). Preflight before it: no-go on F-125 (screen-reader pass), **accepted
+  by the owner 2026-10-01**. **Rollback:**
+  `sudo ln -sfn /srv/habre-cms/releases/5bd0d29 /srv/habre-cms/current && sudo
+  systemctl restart habre-cms` - **safe only while no page has been saved as v3**;
+  after that, `5bd0d29` throws on v3 pages (restore from backup
+  `habre_cms-20260930T222050Z.dump`, or convert the pages to v2 by hand).
 
 - **Deploy, 2026-09-29 (fixes F-114, F-115, F-116 to production):** release
   `5bd0d29` ("fix: public page titles name the site (F-116) (#21)", CI green
@@ -396,6 +419,18 @@ no new migration shipped with item 4 (0001-0003 were already applied).
     real content.
 
 ## Migrations
+
+- **2026-09-30, production:** `0007_blocks_v3.sql` (item 10) applied at
+  22:20 UTC by `db/migrate.ts` from the not-yet-live release
+  `/srv/habre-cms/releases/135bd1d`, run as `habre_cms` against
+  `/etc/habre-cms/production.env`. Backed up first: a fresh run of
+  `habre-cms-backup.service` uploaded `habre_cms-20260930T222050Z.dump` (23426
+  bytes) just before. Drops and re-adds `entries_blocks_format_check` to allow
+  `v2` and `v3`; no row is rewritten (3 entries, all `v2`). Reversible only
+  before any page is saved as `v3`: re-add the check as `in ('v2')` and delete
+  the `schema_migrations` row - not rehearsed on production. Verified after:
+  `schema_migrations` lists `0007`; the constraint reads `v2`/`v3`; the live
+  release `5bd0d29` kept serving (`/healthz` ok, `/` 200) until the switch.
 
 - **2026-09-28, production:** `0006_site_settings_home_page.sql` (item 9)
   applied at 22:45:53 UTC by `db/migrate.ts` from the not-yet-live release
