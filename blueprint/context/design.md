@@ -206,6 +206,32 @@ mostly the page itself, not spinners.
   sections, nothing drawn. Screenshots: `blueprint/reference/10-sections/`
   (light, dark, and the remove confirmation in each). Screen-reader behaviour is
   unverified (`needs-you.md`).
+- **Columns (item 11, page editor and public page, not in the mockups):** each
+  section card's bar gains a native radio group - legend "Columns" (its
+  accessible name adds the position, "Columns (section 2 of 4)", like the Move
+  buttons) and three options, "1 column", "2 columns", "3 columns", in
+  `--text-sm` with `accent-color: var(--color-accent)`. It sits between the
+  "Section 2 of 4" heading and the quiet buttons; the bar already wraps, so on a
+  narrow card the buttons drop to a second line. **Below the bar the section's
+  editors sit in equal columns (`--space-4` apart) from `48rem` up and stacked
+  below it** - the app's one breakpoint. Each column has its own editor, named
+  "Section 2, column 1 content" (a one-column section keeps "Section 2
+  content"). **Changing the count happens at once, with no prompt:** growing adds
+  empty columns on the right; shrinking merges the removed columns' blocks onto
+  the end of the last kept one, in column order, so nothing is lost - which is
+  why, unlike Remove, it does not ask. Focus stays on the chosen radio, and a
+  polite announcement follows ("Section 2 now has 2 columns. Column 3 merged
+  into column 2."). If a column cannot be read (for example a
+  checklist, which cannot be stored) the count does **not** change and an error banner (the
+  standard `Message`) above the columns says why. **On the public page** a
+  multi-column section is a grid of equal columns from `48rem` up (`--space-5`
+  gap) and a single stack below it, in column order, so the reading order is the
+  same either way. An empty column keeps its cell when side by side, so the next
+  column does not slide over, and is hidden when stacked. The page body keeps
+  its reading width (`--measure`, 42rem), so three columns are narrow - wide
+  enough for a short paragraph or an image, not for long text. No new colours.
+  Screenshots: `blueprint/reference/11-columns/` (editor and public, light and
+  dark). Screen-reader behaviour is unverified (`needs-you.md`).
 - **Image block and picker (item 5b, not in the mockups):** a bordered card
   (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
   other card border in the app) holding either a centered "Choose image" button

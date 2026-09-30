@@ -250,9 +250,9 @@ const STALE_EDITOR =
 /**
  * A page's save: what the section editor submits, `{ sections: [{ id, columns:
  * [{ blocks }] }] }`, as stored sections. Each column goes through `fromEditorJs`
- * so a failure names its section and block. The layout is never taken from the
- * client: item 10 has one column per section, and a section with any other
- * count is a shape this version cannot read.
+ * so a failure names its section, column and block. The layout is never taken
+ * from the client: it is the number of columns sent, and a section with none, or
+ * with more than `MAX_COLUMNS`, is a shape this version cannot read.
  */
 export function fromEditorJsSections(input: unknown): FromEditorJsSections {
   const outer = z
@@ -269,15 +269,18 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
 
   const sections: unknown[] = [];
   for (const [index, section] of outer.data.sections.entries()) {
-    const [column, ...more] = section.columns;
-    if (column === undefined || more.length > 0) return { ok: false, message: UNREADABLE_SHAPE };
-    const blocks = fromEditorJs(column, `Section ${index + 1}`);
-    if (!blocks.ok) return blocks;
-    sections.push({
-      id: section.id,
-      type: "section",
-      data: { layout: "1", children: [blocks.blocks] },
-    });
+    const count = section.columns.length;
+    if (count < 1 || count > MAX_COLUMNS) return { ok: false, message: UNREADABLE_SHAPE };
+    const children: Block[][] = [];
+    for (const [columnIndex, column] of section.columns.entries()) {
+      const blocks = fromEditorJs(
+        column,
+        count === 1 ? `Section ${index + 1}` : `Section ${index + 1}, column ${columnIndex + 1}`,
+      );
+      if (!blocks.ok) return blocks;
+      children.push(blocks.blocks);
+    }
+    sections.push({ id: section.id, type: "section", data: { layout: String(count), children } });
   }
 
   const validated = sectionsSchema.safeParse(sections);
@@ -343,6 +346,7 @@ export function toEditorJs(
 }
 
 export const MAX_SECTIONS = 30;
+export const MAX_COLUMNS = 3;
 export const MAX_PAGE_BLOCKS = 200;
 /** What a page stores once it is `v3`; posts stay `BLOCKS_FORMAT`. */
 export const PAGE_BLOCKS_FORMAT = "v3";
@@ -350,18 +354,23 @@ export const PAGE_BLOCKS_FORMAT = "v3";
 /**
  * A page's section (`blocks_format` v3, D114). `children` is a list of columns,
  * each a list of the leaf blocks above - nesting stops there, so a section can
- * never contain a section. Item 10 stores exactly one column (`layout: "1"`);
- * item 11 widens `layout` and the column count together.
+ * never contain a section. `layout` is the column count as a string, and the two
+ * must agree - the server derives the layout from the columns it is sent.
  */
 const sectionBlock = z.object({
   // Letters, digits, `_` and `-`: the editor builds a selector from it, and
   // `crypto.randomUUID()` already fits.
   id: blockId.regex(/^[A-Za-z0-9_-]+$/, "section ids may only use letters, digits, _ and -"),
   type: z.literal("section"),
-  data: z.object({
-    layout: z.literal("1"),
-    children: z.array(z.array(blockSchema).max(MAX_PAGE_BLOCKS)).length(1),
-  }),
+  data: z
+    .object({
+      layout: z.enum(["1", "2", "3"]),
+      children: z.array(z.array(blockSchema).max(MAX_PAGE_BLOCKS)).min(1).max(MAX_COLUMNS),
+    })
+    .refine((data) => data.children.length === Number(data.layout), {
+      message: "a section must hold as many columns as its layout says",
+      path: ["children"],
+    }),
 });
 
 export const sectionsSchema = z

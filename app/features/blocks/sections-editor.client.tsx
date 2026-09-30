@@ -1,20 +1,31 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "#app/lib/ui/button.tsx";
+import { Message } from "#app/lib/ui/message.tsx";
 import {
   type Block,
+  fromEditorJs,
   type ImageMediaSummary,
   LEGACY_SECTION_ID,
+  MAX_COLUMNS,
   MAX_SECTIONS,
   type Section,
 } from "./blocks.ts";
 import { BlockEditor } from "./editor.client.tsx";
+import { pickedMedia } from "./image-tool.client.ts";
+import { resizeColumns } from "./sections.ts";
 import styles from "./sections-editor.module.css";
 
 type ColumnReader = { current: (() => Promise<unknown>) | null };
 
-/** What the list holds for a section: its id, and the blocks its editor starts
- *  with. Editor.js owns the content from then on - it is read back on save. */
-type Entry = { id: string; blocks: Block[] };
+/** What the list holds for a section: its id, and the blocks each column's
+ *  editor starts with. Editor.js owns the content from then on - it is read back
+ *  on save. */
+type Entry = {
+  id: string;
+  columns: Block[][];
+  /** Bumped when the column count changes, which re-mounts the section's editors. */
+  rev: number;
+};
 
 /** Where focus goes after the list changes, since the control that held it may
  *  have moved, been disabled or gone. */
@@ -28,8 +39,8 @@ type FocusTarget =
  * never re-renders inside one, and a move only moves the section's card.
  *
  * `contentRef` hands the parent what the save sends: `{ sections: [{ id,
- * columns: [{ blocks }] }] }`, read from every editor on demand. Item 10 has one
- * column per section.
+ * columns: [{ blocks }] }] }`, read from every column's editor on demand. A
+ * section has 1-3 columns, one Editor.js each.
  */
 export function SectionsEditor({
   initialSections,
@@ -47,21 +58,25 @@ export function SectionsEditor({
   const [entries, setEntries] = useState<Entry[]>(() =>
     initialSections.map((section) => ({
       id: section.id === LEGACY_SECTION_ID ? crypto.randomUUID() : section.id,
-      blocks: section.data.children[0] ?? [],
+      columns: section.data.children,
+      rev: 0,
     })),
   );
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  /** Why a section's column count could not change; it is left as it was. */
+  const [layoutError, setLayoutError] = useState<{ id: string; message: string } | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const readers = useRef(new Map<string, ColumnReader>());
   const root = useRef<HTMLDivElement>(null);
   const hintId = useId();
 
-  const readerFor = (id: string): ColumnReader => {
-    let reader = readers.current.get(id);
+  const readerFor = (id: string, column: number): ColumnReader => {
+    const key = `${id}:${column}`;
+    let reader = readers.current.get(key);
     if (!reader) {
       reader = { current: null };
-      readers.current.set(id, reader);
+      readers.current.set(key, reader);
     }
     return reader;
   };
@@ -72,13 +87,15 @@ export function SectionsEditor({
     contentRef.current = async () => ({
       sections: await Promise.all(
         entries.map(async (entry) => {
-          const column = await readerFor(entry.id).current?.();
+          const columns = await Promise.all(
+            entry.columns.map((_, index) => readerFor(entry.id, index).current?.()),
+          );
           // One editor that gives nothing fails the whole save, rather than
-          // saving the page with that section empty (F-42's rule, per section).
+          // saving the page with that column empty (F-42's rule, per column).
           // The parent checks the rest of the shape before it submits.
-          if (column === undefined || column === null)
+          if (columns.some((column) => column === undefined || column === null))
             throw new Error("A section could not be read.");
-          return { id: entry.id, columns: [column] };
+          return { id: entry.id, columns };
         }),
       ),
     });
@@ -103,6 +120,12 @@ export function SectionsEditor({
     (card ?? root.current)?.querySelector<HTMLElement>(selector)?.focus();
   }, [focusTarget]);
 
+  // Typing in any column may be the fix for the message above, so it clears it.
+  function edited() {
+    setLayoutError(null);
+    onChange();
+  }
+
   function changed(message: string) {
     setAnnouncement(message);
     onChange();
@@ -110,7 +133,7 @@ export function SectionsEditor({
 
   function add() {
     const id = crypto.randomUUID();
-    setEntries([...entries, { id, blocks: [] }]);
+    setEntries([...entries, { id, columns: [[]], rev: 0 }]);
     setFocusTarget({ id, control: "editor" });
     changed(`Section added. Now ${entries.length + 1} sections.`);
   }
@@ -136,13 +159,71 @@ export function SectionsEditor({
   function remove(index: number) {
     const gone = entries[index];
     if (!gone || entries.length < 2) return;
-    readers.current.delete(gone.id);
+    for (let column = 0; column < gone.columns.length; column++)
+      readers.current.delete(`${gone.id}:${column}`);
     const next = entries.filter((entry) => entry.id !== gone.id);
     setEntries(next);
     setConfirmingId(null);
     const landing = next[Math.min(index, next.length - 1)];
     if (landing) setFocusTarget({ id: landing.id, control: "heading" });
     changed(`Section removed. ${next.length} ${next.length === 1 ? "section" : "sections"} left.`);
+  }
+
+  /** Changes one section's column count. Every column is read back first and the
+   *  blocks are re-seeded through `resizeColumns`, so shrinking merges rather than
+   *  discards; if any column cannot be read, nothing changes. */
+  async function setColumns(index: number, count: number) {
+    const entry = entries[index];
+    if (!entry || entry.columns.length === count) return;
+    const before = entry.columns.length;
+    let read: unknown[];
+    try {
+      read = await Promise.all(
+        entry.columns.map((_, column) => readerFor(entry.id, column).current?.()),
+      );
+    } catch {
+      // An editor that fails to hand its content over is refused like an
+      // unreadable one: nothing changes, and the writer is told.
+      setLayoutError({
+        id: entry.id,
+        message: `Section ${index + 1} could not be read. Try again in a moment.`,
+      });
+      return;
+    }
+    const blocks: Block[][] = [];
+    for (const [column, output] of read.entries()) {
+      const name = `Section ${index + 1}${before > 1 ? `, column ${column + 1}` : ""}`;
+      const result =
+        output === undefined || output === null
+          ? ({ ok: false, message: `${name} could not be read.` } as const)
+          : fromEditorJs(output, name);
+      if (!result.ok) {
+        setLayoutError({
+          id: entry.id,
+          message: `${result.message} Fix that, then change the columns again.`,
+        });
+        return;
+      }
+      blocks.push(result.blocks);
+    }
+    for (let column = count; column < before; column++)
+      readers.current.delete(`${entry.id}:${column}`);
+    setLayoutError(null);
+    setEntries((current) =>
+      current.map((each) =>
+        each.id === entry.id
+          ? { ...each, columns: resizeColumns(blocks, count), rev: each.rev + 1 }
+          : each,
+      ),
+    );
+    const plural = (n: number) => `${n} ${n === 1 ? "column" : "columns"}`;
+    changed(
+      count > before
+        ? `Section ${index + 1} now has ${plural(count)}.`
+        : `Section ${index + 1} now has ${plural(count)}. ${
+            before - count === 1 ? `Column ${before}` : `Columns ${count + 1} to ${before}`
+          } merged into column ${count}.`,
+    );
   }
 
   const atLimit = entries.length >= MAX_SECTIONS;
@@ -174,6 +255,22 @@ export function SectionsEditor({
               >
                 {position}
               </h2>
+              <fieldset className={styles.layout}>
+                <legend className={styles.layoutLegend}>
+                  Columns<span className="visually-hidden"> ({position.toLowerCase()})</span>
+                </legend>
+                {Array.from({ length: MAX_COLUMNS }, (_, option) => option + 1).map((count) => (
+                  <label key={count} className={styles.layoutOption}>
+                    <input
+                      type="radio"
+                      name={`${hintId}-columns-${entry.id}`}
+                      checked={entry.columns.length === count}
+                      onChange={() => void setColumns(index, count)}
+                    />
+                    {count} {count === 1 ? "column" : "columns"}
+                  </label>
+                ))}
+              </fieldset>
               {confirming ? (
                 <div className={styles.actions}>
                   <span className={styles.confirmText}>Remove this section?</span>
@@ -228,14 +325,33 @@ export function SectionsEditor({
                 </div>
               )}
             </div>
-            <BlockEditor
-              initialBlocks={entry.blocks}
-              mediaById={mediaById}
-              contentRef={readerFor(entry.id)}
-              onChange={onChange}
-              label={`Section ${index + 1} content`}
-              placeholder="Write your page…"
-            />
+            {layoutError?.id === entry.id ? (
+              <Message tone="error" title="The columns were not changed.">
+                {layoutError.message}
+              </Message>
+            ) : null}
+            <div key={entry.rev} className={styles.columns} data-columns={entry.columns.length}>
+              {entry.columns.map((blocks, columnIndex) => (
+                <div
+                  // biome-ignore lint/suspicious/noArrayIndexKey: columns carry no id; the count only changes by remounting the section
+                  key={columnIndex}
+                  className={styles.column}
+                >
+                  <BlockEditor
+                    initialBlocks={blocks}
+                    mediaById={{ ...mediaById, ...pickedMedia }}
+                    contentRef={readerFor(entry.id, columnIndex)}
+                    onChange={edited}
+                    label={
+                      entry.columns.length === 1
+                        ? `Section ${index + 1} content`
+                        : `Section ${index + 1}, column ${columnIndex + 1} content`
+                    }
+                    placeholder="Write your page…"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         );
       })}

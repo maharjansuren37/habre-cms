@@ -4,6 +4,7 @@ import {
   type Block,
   collectImageMediaIds,
   fromEditorJs,
+  fromEditorJsSections,
   sectionsFromBlocks,
   sectionsSchema,
   toEditorJs,
@@ -442,17 +443,52 @@ test("a one-column plain section is valid", () => {
   assert.equal(sectionsSchema.safeParse([section("s1", [textLeaf("a")])]).success, true);
 });
 
-test("a section with layout 2 is refused until columns exist", () => {
-  assert.equal(sectionsSchema.safeParse([section("s1", [], "2")]).success, false);
-});
-
-test("a section with two columns is refused", () => {
-  const twoColumns = {
+test("a section holds as many columns as its layout says, 1 to 3", () => {
+  const columns = (count: number, layout: string) => ({
     id: "s1",
     type: "section",
-    data: { layout: "1", children: [[textLeaf("a")], [textLeaf("b")]] },
-  };
-  assert.equal(sectionsSchema.safeParse([twoColumns]).success, false);
+    data: {
+      layout,
+      children: Array.from({ length: count }, (_, index) => [textLeaf(`a${index}`)]),
+    },
+  });
+  for (const count of [1, 2, 3])
+    assert.equal(sectionsSchema.safeParse([columns(count, String(count))]).success, true);
+  assert.equal(sectionsSchema.safeParse([columns(1, "2")]).success, false);
+  assert.equal(sectionsSchema.safeParse([columns(2, "1")]).success, false);
+  assert.equal(sectionsSchema.safeParse([columns(4, "4")]).success, false);
+  assert.equal(sectionsSchema.safeParse([columns(0, "1")]).success, false);
+});
+
+const editorColumn = (id: string) => ({
+  blocks: [{ id, type: "paragraph", data: { text: "hi" } }],
+});
+
+test("the save parser derives the layout from the columns sent", () => {
+  const result = fromEditorJsSections({
+    sections: [
+      { id: "s1", columns: [editorColumn("a1")] },
+      { id: "s2", columns: [editorColumn("b1"), editorColumn("b2"), editorColumn("b3")] },
+    ],
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.sections.map((each) => [each.data.layout, each.data.children.length]),
+    [
+      ["1", 1],
+      ["3", 3],
+    ],
+  );
+});
+
+test("the save parser refuses no columns or four, and names the failing column", () => {
+  const save = (columns: unknown[]) => fromEditorJsSections({ sections: [{ id: "s1", columns }] });
+  assert.equal(save([]).ok, false);
+  assert.equal(save([1, 2, 3, 4].map((n) => editorColumn(`a${n}`))).ok, false);
+  const bad = save([editorColumn("a1"), { blocks: [{ id: "b1", type: "nonsense", data: {} }] }]);
+  assert.equal(bad.ok, false);
+  if (!bad.ok) assert.match(bad.message, /Section 1, column 2/);
 });
 
 test("a page needs 1 to 30 sections", () => {
@@ -494,6 +530,19 @@ test("collectImageMediaIds finds images inside sections", () => {
   const sections = sectionsSchema.parse([
     section("s1", [textLeaf("a")]),
     section("s2", [image, image]),
+  ]);
+  assert.deepEqual(collectImageMediaIds(sections), [mediaId]);
+});
+
+test("collectImageMediaIds finds an image in the third column", () => {
+  const mediaId = "7b1f3c2e-9d4a-4f6b-8a1e-2c5d6e7f8091";
+  const image: Block = { id: "i", type: "image", data: { mediaId } };
+  const sections = sectionsSchema.parse([
+    {
+      id: "s1",
+      type: "section",
+      data: { layout: "3", children: [[textLeaf("a")], [], [image]] },
+    },
   ]);
   assert.deepEqual(collectImageMediaIds(sections), [mediaId]);
 });

@@ -171,7 +171,9 @@ not tidying; it is what keeps the open list true.
       VoiceOver or Orca) - manual verification; no automated check hears the
       section cards, Move up / Move down, the inline remove confirmation or the
       "Section moved to position 2 of 4" announcements. Blocks nothing now;
-      `preflight` needs it before item 10 is deployed. `open` (spec, item 10,
-      2026-10-01)
+      `preflight` needs it before item 10 is deployed. From item 11, the same
+      pass covers the "Columns" radio group, the announcements when the count
+      changes, and editors inside narrow columns. `open` (spec, item 10,
+      2026-10-01; widened, item 11, 2026-10-01)
 
 ## Done

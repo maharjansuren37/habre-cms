@@ -44,3 +44,4 @@ File: app/features/blocks/inline-runs.ts:41; app/features/media/media-input.test
 
 ### F-119 [P2] fixed - Section ids are not checked for uniqueness or for characters the editor's selector can take
 File: app/features/blocks/blocks.ts (`sectionBlock`, `sectionsSchema`); app/features/blocks/sections-editor.client.tsx:96
+

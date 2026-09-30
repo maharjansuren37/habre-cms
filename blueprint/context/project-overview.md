@@ -6,7 +6,7 @@
 > the record. Decision numbers (D1-D113) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-01 from `main` (`b16d403`) plus the uncommitted D113 rescope.
+Generated 2026-10-01 from `main` (`947d202`).
 
 ## What this is
 
@@ -34,13 +34,13 @@ admin roles with user management; light and dark mode.
 welcome placeholder until one is chosen; `/` never lists posts, which live at
 `/posts` (D107).
 
-**Active direction (D113, rescope 2026-10-01): a first-cut page builder**, items
-10-12: pages become ordered sections (existing pages load as one section,
-nothing migrates destructively), sections split into 2-3 columns that stack on
-small screens, and a few ready-made sections (hero, call-to-action, image +
-text). Section reordering uses buttons, not drag-and-drop, so no new runtime
-dependency. This changes the stored block shape (D28): run `architect` before
-`spec` for item 10.
+**Active direction (D113, rescope 2026-10-01): a first-cut page builder**,
+items 10-12. **Item 10 is built:** a page is an ordered list of 1-30 sections
+(`blocks_format` v3, one Editor.js per section, move up/down buttons, D114-D118);
+v2 pages load as one section and convert on save; posts stay flat. **Item 11:**
+sections split into 2-3 columns that stack on small screens. **Item 12:** ready-made
+hero, call-to-action and image + text sections. No drag-and-drop, no new runtime
+dependency.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
 Soon after: reusable saved sections, section styling and page templates,
@@ -135,11 +135,13 @@ without a requirement that calls for them.
 
 ## Current state
 
-- **Plan:** 9 of 12 items done (8 MVP + item 9), archived in
-  `blueprint/history/features/`. Items 10-12 (page builder) are unchecked;
-  nothing is in flight. Next: `architect`, then `spec` for item 10.
-- **Live:** production runs release `5bd0d29`, `main`'s code through item 9.
-  Nothing merged is undeployed. See `dev-notes/status.md`.
+- **Plan:** 10 of 12 items done (8 MVP + items 9, 10), archived in
+  `blueprint/history/features/`. Items 11-12 are unchecked; nothing is in
+  flight. Next: `spec` for item 11 (columns).
+- **Live:** production runs release `5bd0d29`, through item 9. **Item 10 is
+  merged to `main` but not deployed** - it needs migration `0007`, and cannot be
+  rolled back by symlink once a page is saved as v3. See
+  `blueprint/production-pending.md` and `dev-notes/status.md`.
 - **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in

@@ -89,5 +89,5 @@ blueprint/project-plan.md too, then regenerate the overview.
 
 - [x] 9. **Choose the home page** - in settings, `/` is always a landing page: an admin picks one published page for it, with a welcome placeholder until one is chosen; posts are an add-on at `/posts`
 - [x] 10. **Sections on pages** - a page is an ordered list of sections, each holding blocks (pages only; posts stay flat); `blocks_format` v3, v2 pages load as one section and convert on save, nothing migrates destructively
-- [ ] 11. **Columns** - a section can split into 2-3 columns that stack on small screens; editor and public render
+- [x] 11. **Columns** - a section can split into 2-3 columns that stack on small screens; editor and public render
 - [ ] 12. **Ready-made sections** - hero, call-to-action, image + text, insertable from the editor, rendered in the built-in theme

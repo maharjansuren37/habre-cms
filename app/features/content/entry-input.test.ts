@@ -119,10 +119,15 @@ test("a page refuses the flat shape a post sends, and a post refuses sections", 
   assert.equal(asPost.ok, false);
 });
 
-test("a section must have exactly one column, and a page 1 to 30 sections", () => {
-  const twoColumns = { id: "s1", columns: [{ blocks: [] }, { blocks: [] }] };
-  const noColumns = { id: "s1", columns: [] };
-  assert.equal(parseEntryForm(pageForm([twoColumns]), "page").ok, false);
+test("a section must have 1 to 3 columns, and a page 1 to 30 sections", () => {
+  const columns = (count: number) => ({
+    id: "s1",
+    columns: Array.from({ length: count }, () => ({ blocks: [] })),
+  });
+  const noColumns = columns(0);
+  assert.equal(parseEntryForm(pageForm([columns(2)]), "page").ok, true);
+  assert.equal(parseEntryForm(pageForm([columns(3)]), "page").ok, true);
+  assert.equal(parseEntryForm(pageForm([columns(4)]), "page").ok, false);
   assert.equal(parseEntryForm(pageForm([noColumns]), "page").ok, false);
   assert.equal(parseEntryForm(pageForm([]), "page").ok, false);
   const many = (count: number) =>

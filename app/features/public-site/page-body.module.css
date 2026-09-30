@@ -28,6 +28,47 @@
   margin-top: var(--space-7);
 }
 
+/* Columns (item 11): equal columns side by side from 48rem up, stacked in
+   column order below it. A custom property cannot sit in a media query, so the
+   breakpoint is a literal, as everywhere else. An empty column keeps its cell
+   when side by side and disappears when stacked. */
+.body [data-column] {
+  min-width: 0;
+}
+
+.body [data-column] > * + * {
+  margin-top: var(--space-5);
+}
+
+/* A column's first block starts flush with the top of its cell: a heading's own
+   top margin would otherwise push its text below the next column's (F-124). */
+.body [data-column] > :first-child {
+  margin-top: 0;
+}
+
+.body [data-columns] {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.body [data-column]:empty {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .body [data-columns="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .body [data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .body [data-column]:empty {
+    display: block;
+  }
+}
+
 .body h2,
 .body h3 {
   font-weight: var(--weight-semibold);

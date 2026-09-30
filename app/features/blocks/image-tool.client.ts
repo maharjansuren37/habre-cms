@@ -12,6 +12,15 @@ import styles from "./image-tool.module.css";
 
 const PICKER_ENDPOINT = "/admin/media/picker";
 
+/** Images chosen in this page session, by media id. The loader's media map was
+ *  built before they were picked, so anything that re-mounts an editor (a
+ *  section changing its column count) adds these to it, or the image would
+ *  come back as "missing". */
+export const pickedMedia: Record<
+  string,
+  { url: string; altText: string; width: number; height: number }
+> = {};
+
 /** What the block holds between renders - the resolved fields are what the
  *  loader supplied (`blocks.ts`'s `toEditorJs`) or what a fresh pick just set,
  *  never written back on save. `save()` keeps only `mediaId`. */
@@ -125,6 +134,12 @@ export class ImageTool {
 
   private openPicker() {
     openImagePickerDialog((media) => {
+      pickedMedia[media.id] = {
+        url: media.url,
+        altText: media.altText,
+        width: media.width,
+        height: media.height,
+      };
       this.data = {
         mediaId: media.id,
         url: media.url,

@@ -65,15 +65,32 @@ export function renderBlocks(blocks: Block[], mediaById: Record<string, ImageMed
 /**
  * A page's sections, in order, each a `<section>` around its blocks. An empty
  * section renders nothing - no empty element for a screen reader to land on.
- * Item 10 stores one column per section; item 11 renders more.
+ * A section with several columns wraps one `<div data-column>` per column, in
+ * column order, which is also the reading order when they stack. An empty
+ * column is kept so the next one does not slide into its cell; the page's CSS
+ * hides it when stacked. The layout itself is the page stylesheet's job.
  */
 export function renderSections(
   sections: Section[],
   mediaById: Record<string, ImageMediaSummary> = {},
 ) {
-  return nonEmptySections(sections).map((section) => (
-    <section key={section.id}>{renderBlocks(section.data.children.flat(), mediaById)}</section>
-  ));
+  return nonEmptySections(sections).map((section) => {
+    const columns = section.data.children;
+    if (columns.length === 1)
+      return <section key={section.id}>{renderBlocks(columns.flat(), mediaById)}</section>;
+    return (
+      <section key={section.id}>
+        <div data-columns={columns.length}>
+          {columns.map((column, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: columns carry no id of their own
+            <div key={index} data-column="">
+              {renderBlocks(column, mediaById)}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  });
 }
 
 /** One run's marks nest as `<a><strong><em>text</em></strong></a>` - only the

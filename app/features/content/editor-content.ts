@@ -17,7 +17,7 @@ export function isReadableEditorContent(content: unknown): content is { blocks: 
 }
 
 /**
- * The page editor's counterpart: one readable column per section. Anything less
+ * The page editor's counterpart: one or more readable columns per section. Anything less
  * is not saved, for the reason `isReadableEditorContent` gives.
  */
 export function isReadableSectionsContent(

@@ -34,6 +34,33 @@
   gap: var(--space-2);
 }
 
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.layoutLegend {
+  float: left;
+  margin-right: var(--space-3);
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.layoutOption {
+  accent-color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
 .confirmText {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -50,6 +77,27 @@
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+/* Columns (item 11): side by side from 48rem up, stacked below it. `minmax(0, 1fr)`
+   and `min-width: 0` stop a wide Editor.js toolbar or image from widening the card. */
+.columns {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.column {
+  min-width: 0;
+}
+
+@media (min-width: 48rem) {
+  .columns[data-columns="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .columns[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Editor.js leaves 300px of padding under its last block so a long post can be

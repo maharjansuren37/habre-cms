@@ -151,7 +151,7 @@ test("a page stored before sections opens as one section and is saved as v3 with
   const id = await createDraftFor(editor.email, "Before Sections", blocks, { type: "page" });
   await logIn(page, editor);
   await page.goto(`/admin/pages/${id}`);
-  await expect(page.getByRole("group", { name: "Section 1 of 1" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Section 1 of 1", exact: true })).toBeVisible();
   await expect(page.locator("[data-section-id]")).toHaveCount(1);
   await expect(page.getByText("Hello")).toBeVisible();
 

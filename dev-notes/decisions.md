@@ -1539,3 +1539,39 @@ produces no `<section>` element on the public page.
 Beats: no confirmation (removal loses a section's content in one click); a modal
 dialog (heavier, more to make accessible); empty `<section>` elements in the HTML.
 Costs: a few more states in `sections-editor.client.tsx`.
+
+## D119 - Shrinking a section's columns merges them, with no prompt (2026-10-01)
+
+**Chose:** choosing fewer columns appends the removed columns' blocks to the end of the last kept column, in column order; growing adds empty columns on the right. Nothing is discarded.
+Beats: refusing to shrink until the columns are empty (an extra chore for the editor); discarding (loses content); a confirm dialog (nothing is lost, so nothing to confirm).
+Costs: growing again does not un-merge.
+
+## D120 - A section's layout is derived from the column count the server receives (2026-10-01)
+
+**Chose:** `fromEditorJsSections` sets `layout` to the number of columns sent (1-3) and the schema refuses a section whose `children.length` differs from `Number(layout)`. Continues D116's rule that the client's layout is never trusted.
+Beats: sending `layout` and validating it against the columns (two fields that can disagree).
+Costs: none; item 10's `layout: "1"` pages stay valid, so no migration.
+
+## D121 - Equal-width columns, one breakpoint at 48rem (2026-10-01)
+
+**Chose:** a multi-column section is a grid of equal columns from `48rem` up and a single stack, in column order, below it - in the editor and on the public page.
+Beats: a per-section width choice (section styling is deferred); a new breakpoint (the app has one).
+Costs: the page body keeps its 42rem reading width, so three columns are narrow.
+
+## D122 - An empty column keeps its cell, and is hidden only when stacked (2026-10-01)
+
+**Chose:** the public page renders an empty column as an empty `<div data-column>`; side by side it holds its cell, stacked it is `display: none`. A column's first block has no top margin, so a heading does not sit lower than a neighbour's text (F-124).
+Beats: dropping empty columns (the next column would slide over and change the layout the editor chose).
+Costs: an empty element in the HTML of multi-column sections.
+
+## D123 - Column caps stay D114's: 30 sections x 3 columns, up to 90 editors (2026-10-01)
+
+**Chose:** no total-column cap. Measured on the dev machine with a seeded page: all 90 editors mounted in about 190 ms and the save round trip took about 200 ms (bars: 10 s and 1 s).
+Beats: a total-column cap chosen without evidence.
+Costs: a slower machine or phone has not been measured; a total cap is the fallback.
+
+## D124 - Images picked this session are remembered for editor re-mounts (2026-10-01)
+
+**Chose:** `pickedMedia` in `image-tool.client.ts` records each image chosen in the picker; the sections editor adds it to the loader's media map whenever it re-mounts a section's editors (a column-count change).
+Beats: re-fetching media on a count change; letting a just-picked image come back as "missing".
+Costs: a module-level map that lives until the page is left.
