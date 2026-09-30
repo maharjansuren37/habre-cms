@@ -1,14 +1,26 @@
-import { BLOCKS_FORMAT } from "#app/features/blocks/blocks.ts";
+import { BLOCKS_FORMAT, PAGE_BLOCKS_FORMAT } from "#app/features/blocks/blocks.ts";
+import type { EntryType } from "./slug.ts";
+
+/** The formats this build can read, and so may overwrite, for an entry type. */
+export function readableFormats(type: EntryType): string[] {
+  return type === "page" ? [BLOCKS_FORMAT, PAGE_BLOCKS_FORMAT] : [BLOCKS_FORMAT];
+}
 
 /**
  * Refuses an entry stored in a block format this build does not read (F-37).
  * Loading one anyway would hand the editor a shape it misreads, and saving it
  * back would overwrite the writer's content with that misreading - so this fails
  * loudly, naming the entry, instead.
+ *
+ * A page reads `v2` (not yet re-saved) or `v3` (sections); a post only `v2` -
+ * posts never hold sections, so a `v3` post is a corrupt row, not a new format.
  */
-export function assertKnownFormat(entryId: string, format: string): void {
-  if (format === BLOCKS_FORMAT) return;
+export function assertKnownFormat(entryId: string, type: EntryType, format: string): void {
+  const known = readableFormats(type);
+  if (known.includes(format)) return;
   throw new Error(
-    `Entry ${entryId} is stored in block format "${format}", but this build reads only "${BLOCKS_FORMAT}".`,
+    `Entry ${entryId} is stored in block format "${format}", but this build reads only ${known
+      .map((each) => `"${each}"`)
+      .join(" or ")} for a ${type}.`,
   );
 }

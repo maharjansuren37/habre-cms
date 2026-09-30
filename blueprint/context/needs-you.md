@@ -167,4 +167,11 @@ not tidying; it is what keeps the open list true.
       instead of today's post list. Blocks nothing now; needed straight after
       `deploy` of item 9. `open` (spec, 2026-09-29)
 
+- [ ] **Keyboard and screen-reader pass over the section controls** (NVDA,
+      VoiceOver or Orca) - manual verification; no automated check hears the
+      section cards, Move up / Move down, the inline remove confirmation or the
+      "Section moved to position 2 of 4" announcements. Blocks nothing now;
+      `preflight` needs it before item 10 is deployed. `open` (spec, item 10,
+      2026-10-01)
+
 ## Done

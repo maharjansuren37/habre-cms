@@ -184,6 +184,28 @@ mostly the page itself, not spinners.
   an editable field** - this line originally said "field", written before item 5a
   decided alt text is one value per file, captured once at upload (D55); there is
   nowhere in the post editor to edit it, by design, not by omission.
+- **Sections (item 10, page editor only, not in the mockups):** a page's body is
+  a stack of bordered cards (`--color-border`, `--radius-md`, `--space-4` inside,
+  `--space-5` between - decorative, like every other card border here), each
+  holding its own editor. The card's bar shows a muted "Section 2 of 4" heading
+  (`--color-text-muted`, `--text-sm`) on the left and **quiet** "Move up", "Move
+  down" and "Remove" buttons on the right; each button's accessible name adds the
+  position after the visible words ("Move up (section 2 of 4)"), so the visible
+  label stays inside the name. Below the last card, a default "Add section"
+  button. States: the first card's Move up and the last card's Move down are
+  disabled; **the only section has no Remove at all**; at 30 sections "Add
+  section" is disabled with "A page can have up to 30 sections." beside it.
+  **Remove asks first, inline:** the actions are replaced by "Remove this
+  section?", a default "Remove" and a quiet "Keep", with focus on Keep - never a
+  dialog. Focus otherwise follows the change (the same direction's button after a
+  move, the heading of the section that takes its place after a remove (the one before, when the last was removed), the new section's editor after
+  an add) and each change is announced in a polite live region ("Section moved to
+  position 2 of 4."). Editor.js's 300px of padding under the last block is
+  removed inside a section. **On the public site a section adds no chrome of its
+  own**: a `<section>` with the page's usual spacing, `--space-7` between
+  sections, nothing drawn. Screenshots: `blueprint/reference/10-sections/`
+  (light, dark, and the remove confirmation in each). Screen-reader behaviour is
+  unverified (`needs-you.md`).
 - **Image block and picker (item 5b, not in the mockups):** a bordered card
   (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
   other card border in the app) holding either a centered "Choose image" button

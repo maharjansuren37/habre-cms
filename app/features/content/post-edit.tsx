@@ -70,7 +70,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  const parsed = parseEntryForm(form);
+  const parsed = parseEntryForm(form, "post");
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },

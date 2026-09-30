@@ -1464,3 +1464,78 @@ Beats:
 
 Costs: the "Something went wrong" branch has no test - a server error is
 hard to cause in the browser tests, and `node --test` cannot load `.tsx`.
+
+## D113 - Rescope: the page builder becomes the active direction (2026-10-01)
+
+**Chose:** build a first cut of the page builder - sections on pages (item 10),
+columns (11), ready-made sections (12) - appended after item 9. Items 1-9 stay
+as built; nothing is removed, so no rollback. Section reordering uses move
+up/down buttons like the nav editor, not drag-and-drop, so item 10 needs no new
+runtime dependency.
+Supersedes: the original scope line "MVP only, page builder deferred" (plan
+section 11). The MVP decisions themselves stand.
+Beats:
+- a free-form canvas, which fights "really easy" and the accessibility bar;
+- the other deferred items (tags, scheduling, SEO), which the owner did not pick.
+
+Costs: sections change the stored block shape (D28), so `architect` should run
+before `spec` for item 10, and existing pages must load as one section.
+
+## D114 - Sections are v3 container blocks, arranged in React, one Editor.js per column (2026-10-01)
+
+**Chose:** pages only store `section` blocks (`blocks_format` v3): `plain`
+sections hold 1-3 columns of the existing leaf blocks; hero, cta and image-text
+are typed blocks with fixed slots. Nesting stops at section -> column -> leaf;
+at most 30 sections and 3 columns. v2 pages load as one implicit section and
+convert on save; the only migration relaxes the format check to v2 or v3. The
+section list (move up/down/remove buttons) lives in React; each column mounts
+its own Editor.js.
+Beats:
+- a nested Editor.js inside Editor.js, which is fragile and hard to make
+  accessible;
+- a migration rewriting every page to v3, which is destructive and makes the
+  release unrecoverable by symlink for no gain;
+- sections on posts too, which nobody asked for.
+
+Costs: the release carrying the check change cannot be rolled back by symlink,
+and a v3 page breaks under older code. Many Editor.js instances on a large page
+(bounded by the caps; item 10's verify checks usability). `page-media.server.ts`
+(D60) must walk sections and columns.
+
+## D115 - Posts stay v2; only pages are v3, and a v2 page's implicit section is `"legacy"` (2026-10-01)
+
+**Chose:** `blocks_format` is per entry type: pages read `v2` or `v3` and save `v3`,
+posts only `v2`, and a `v3` post is refused loudly on read. A `v2` page loads as
+one section with the fixed id `"legacy"`, replaced by a generated id on its first
+save.
+Beats: one format for everything (posts have no use for sections); deriving the
+section id from the entry id (longer, no benefit).
+Costs: the format check is on the entry type everywhere it is read or written.
+
+## D116 - A page holds 1-30 sections and 200 blocks in total; item 10 accepts only `layout: "1"` (2026-10-01)
+
+**Chose:** the same 200 leaf blocks as a post, counted across all sections, keeps
+the 1 MB save limit and the 1 s save target safe. `layout` is widened by item 11
+rather than pre-built: item 10 accepts one column only.
+Beats: 200 per section (30 x 200 = 6,000 blocks); accepting 2-3 columns the
+editor cannot produce yet.
+Costs: item 11 changes `sectionsSchema` and the wire parser together.
+
+## D117 - Section ids: `crypto.randomUUID()` in the browser, unique, `[A-Za-z0-9_-]` only (2026-10-01)
+
+**Chose:** the browser generates ids; the server checks 1-64 characters,
+uniqueness within the page and the character class (F-119), because the editor
+builds a focus selector from the id and keeps one reader per id.
+Beats: shape-only validation as for block ids (two equal ids lose a section's
+content on save; a quote in an id throws); `CSS.escape` alone (still allows
+duplicates).
+Costs: a hand-built request with other ids is refused.
+
+## D118 - Removing a section asks inline; an empty section renders nothing publicly (2026-10-01)
+
+**Chose:** Remove swaps the actions for "Remove this section? Remove / Keep" in
+the card, focus on Keep; the only section has no Remove. A section with no blocks
+produces no `<section>` element on the public page.
+Beats: no confirmation (removal loses a section's content in one click); a modal
+dialog (heavier, more to make accessible); empty `<section>` elements in the HTML.
+Costs: a few more states in `sections-editor.client.tsx`.

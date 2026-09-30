@@ -1,5 +1,8 @@
-import type { Block } from "#app/features/blocks/blocks.ts";
-import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
+import {
+  collectImageMediaIds,
+  type ImageMediaSummary,
+  type Section,
+} from "#app/features/blocks/blocks.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -11,9 +14,9 @@ import { env } from "#app/lib/env.server.ts";
  * resolve a page's images differently.
  */
 export async function resolvePageMedia(
-  blocks: Block[],
+  sections: Section[],
 ): Promise<Record<string, ImageMediaSummary>> {
-  const rows = await findMediaByIds(collectImageMediaIds(blocks));
+  const rows = await findMediaByIds(collectImageMediaIds(sections));
   return Object.fromEntries(
     rows.map((row) => [
       row.id,

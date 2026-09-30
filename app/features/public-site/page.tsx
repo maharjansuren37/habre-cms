@@ -17,7 +17,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   // One address per page (D-4): the home page lives at `/`. Temporary, since
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
-  const mediaById = await resolvePageMedia(page.blocks);
+  const mediaById = await resolvePageMedia(page.sections);
   return { page, mediaById };
 }
 

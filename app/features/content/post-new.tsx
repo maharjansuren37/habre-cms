@@ -16,7 +16,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!isEntryBodySizeAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
-  const form = parseEntryForm(await request.formData());
+  const form = parseEntryForm(await request.formData(), "post");
   if (!form.ok)
     return data({ problem: { kind: "invalid" as const, message: form.message } }, { status: 400 });
 

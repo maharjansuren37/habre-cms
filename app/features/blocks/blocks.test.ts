@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Block, collectImageMediaIds, fromEditorJs, toEditorJs } from "./blocks.ts";
+import {
+  type Block,
+  collectImageMediaIds,
+  fromEditorJs,
+  sectionsFromBlocks,
+  sectionsSchema,
+  toEditorJs,
+} from "./blocks.ts";
 
 const editorBlock = (type: string, data: unknown, id = "abc123") => ({
   blocks: [{ id, type, data }],
@@ -409,4 +416,84 @@ test("a block id carrying a character the database cannot store is refused", () 
     blocks: [{ id: lone, type: "paragraph", data: { text: "Hello" } }],
   });
   assert.equal(result.ok, false);
+});
+
+const textLeaf = (id: string): Block => ({
+  id,
+  type: "text",
+  data: { text: [{ text: "hi" }] },
+});
+const section = (id: string, column: unknown[], layout: string = "1") => ({
+  id,
+  type: "section",
+  data: { layout, children: [column] },
+});
+
+test("duplicate section ids are refused", () => {
+  const two = [section("s1", [textLeaf("a")]), section("s1", [textLeaf("b")])];
+  assert.equal(sectionsSchema.safeParse(two).success, false);
+});
+
+test("a section id with a quote is refused", () => {
+  assert.equal(sectionsSchema.safeParse([section('s"1', [textLeaf("a")])]).success, false);
+});
+
+test("a one-column plain section is valid", () => {
+  assert.equal(sectionsSchema.safeParse([section("s1", [textLeaf("a")])]).success, true);
+});
+
+test("a section with layout 2 is refused until columns exist", () => {
+  assert.equal(sectionsSchema.safeParse([section("s1", [], "2")]).success, false);
+});
+
+test("a section with two columns is refused", () => {
+  const twoColumns = {
+    id: "s1",
+    type: "section",
+    data: { layout: "1", children: [[textLeaf("a")], [textLeaf("b")]] },
+  };
+  assert.equal(sectionsSchema.safeParse([twoColumns]).success, false);
+});
+
+test("a page needs 1 to 30 sections", () => {
+  const many = (count: number) =>
+    Array.from({ length: count }, (_, index) => section(`s${index}`, []));
+  assert.equal(sectionsSchema.safeParse(many(0)).success, false);
+  assert.equal(sectionsSchema.safeParse(many(1)).success, true);
+  assert.equal(sectionsSchema.safeParse(many(30)).success, true);
+  assert.equal(sectionsSchema.safeParse(many(31)).success, false);
+});
+
+test("a page holds at most 200 blocks in total, across sections", () => {
+  const leaves = (count: number, prefix: string) =>
+    Array.from({ length: count }, (_, index) => textLeaf(`${prefix}${index}`));
+  const page = (total: number) => [
+    section("s1", leaves(100, "a")),
+    section("s2", leaves(total - 100, "b")),
+  ];
+  assert.equal(sectionsSchema.safeParse(page(200)).success, true);
+  assert.equal(sectionsSchema.safeParse(page(201)).success, false);
+});
+
+test("a section cannot contain a section", () => {
+  assert.equal(
+    sectionsSchema.safeParse([section("s1", [section("s2", [textLeaf("a")])])]).success,
+    false,
+  );
+});
+
+test("sectionsFromBlocks gives one section, even for no blocks", () => {
+  assert.deepEqual(sectionsFromBlocks([]), [section("legacy", [])]);
+  assert.deepEqual(sectionsFromBlocks([textLeaf("a")]), [section("legacy", [textLeaf("a")])]);
+  assert.equal(sectionsSchema.safeParse(sectionsFromBlocks([])).success, true);
+});
+
+test("collectImageMediaIds finds images inside sections", () => {
+  const mediaId = "7b1f3c2e-9d4a-4f6b-8a1e-2c5d6e7f8091";
+  const image: Block = { id: "i", type: "image", data: { mediaId } };
+  const sections = sectionsSchema.parse([
+    section("s1", [textLeaf("a")]),
+    section("s2", [image, image]),
+  ]);
+  assert.deepEqual(collectImageMediaIds(sections), [mediaId]);
 });

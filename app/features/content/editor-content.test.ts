@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isReadableEditorContent } from "./editor-content.ts";
+import { isReadableEditorContent, isReadableSectionsContent } from "./editor-content.ts";
 
 test("an empty list of blocks is readable - an empty post is a real thing", () => {
   assert.equal(isReadableEditorContent({ blocks: [] }), true);
@@ -21,4 +21,13 @@ test("an object without a list of blocks is not readable", () => {
   assert.equal(isReadableEditorContent({}), false);
   assert.equal(isReadableEditorContent({ blocks: "not a list" }), false);
   assert.equal(isReadableEditorContent([]), false);
+});
+
+test("sections content needs at least one section, each column readable", () => {
+  const column = { blocks: [] };
+  assert.equal(isReadableSectionsContent({ sections: [{ id: "a", columns: [column] }] }), true);
+  assert.equal(isReadableSectionsContent({ sections: [] }), false);
+  assert.equal(isReadableSectionsContent({ sections: [{ id: "a", columns: [undefined] }] }), false);
+  assert.equal(isReadableSectionsContent({ blocks: [] }), false);
+  assert.equal(isReadableSectionsContent(undefined), false);
 });

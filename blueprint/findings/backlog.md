@@ -124,3 +124,9 @@ File: app/features/settings/settings.tsx:53-54
 
 ### F-118 [P3] open - The home placeholder keeps its own "Habre CMS" fallback beside the helper's constant
 File: app/features/public-site/home.tsx:42
+
+### F-120 [P3] fixed - A page editor opened before the deploy cannot save, and its message says nothing to do
+File: app/features/blocks/blocks.ts (`fromEditorJsSections`, `UNREADABLE_SHAPE`)
+
+### F-121 [P3] fixed - The design record says focus lands on the next section after a remove; the code lands on the previous one when the last is removed
+File: blueprint/context/design.md (*Sections*); app/features/blocks/sections-editor.client.tsx (`remove`)

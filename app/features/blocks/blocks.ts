@@ -145,19 +145,22 @@ const REFUSAL_MESSAGES: Record<Refusal, (block: string) => string> = {
 /** One piece of the editor's HTML as runs, or the sentence the writer reads. */
 function toRuns(
   html: string,
-  position: number,
+  blockName: string,
 ): { ok: true; runs: Run[] } | { ok: false; message: string } {
   const parsed = parseInlineHtml(html);
   if (parsed.ok) return parsed;
-  return { ok: false, message: REFUSAL_MESSAGES[parsed.reason](`Block ${position}`) };
+  return { ok: false, message: REFUSAL_MESSAGES[parsed.reason](blockName) };
 }
 
 /**
  * Turns what the editor submits into stored blocks. Every failure names the
  * block that caused it, because the editor shows this message to a person who
- * has to find it among their own writing.
+ * has to find it among their own writing. `scope` (for a page, "Section 2")
+ * says which editor the block is in.
  */
-export function fromEditorJs(input: unknown): FromEditorJs {
+export function fromEditorJs(input: unknown, scope?: string): FromEditorJs {
+  const nameOf = (position: number) =>
+    scope ? `${scope}, block ${position}` : `Block ${position}`;
   const outer = z.object({
     blocks: z.array(z.object({ id: blockId, type: z.string(), data: z.unknown() })),
   });
@@ -171,7 +174,7 @@ export function fromEditorJs(input: unknown): FromEditorJs {
     if (!type) {
       return {
         ok: false,
-        message: `Block ${index + 1} is a "${block.type}", which cannot be saved yet.`,
+        message: `${nameOf(index + 1)} is a "${block.type}", which cannot be saved yet.`,
       };
     }
     if (type === "list") {
@@ -189,13 +192,13 @@ export function fromEditorJs(input: unknown): FromEditorJs {
           ok: false,
           message:
             list.style === "checklist"
-              ? `Block ${index + 1} is a checklist, which cannot be saved yet. Open that block's settings and choose Unordered or Ordered, then save.`
-              : `Block ${index + 1} is a "${list.style}" list, which cannot be saved yet.`,
+              ? `${nameOf(index + 1)} is a checklist, which cannot be saved yet. Open that block's settings and choose Unordered or Ordered, then save.`
+              : `${nameOf(index + 1)} is a "${list.style}" list, which cannot be saved yet.`,
         };
       }
       const items: Run[][] = [];
       for (const html of flattenListItems(list.items ?? [])) {
-        const item = toRuns(html, index + 1);
+        const item = toRuns(html, nameOf(index + 1));
         if (!item.ok) return item;
         // An empty item is dropped, as an empty string was in v1.
         if (item.runs.length > 0) items.push(item.runs);
@@ -215,7 +218,7 @@ export function fromEditorJs(input: unknown): FromEditorJs {
       continue;
     }
     const data = block.data as { text?: unknown; level?: unknown };
-    const text = toRuns(String(data.text ?? ""), index + 1);
+    const text = toRuns(String(data.text ?? ""), nameOf(index + 1));
     if (!text.ok) return text;
     blocks.push({
       id: block.id,
@@ -230,10 +233,61 @@ export function fromEditorJs(input: unknown): FromEditorJs {
     const position = typeof issue?.path[0] === "number" ? issue.path[0] + 1 : 1;
     return {
       ok: false,
-      message: `Block ${position} could not be saved: ${issue?.message ?? "invalid content"}.`,
+      message: `${nameOf(position)} could not be saved: ${issue?.message ?? "invalid content"}.`,
     };
   }
   return { ok: true, blocks: validated.data };
+}
+
+export type FromEditorJsSections =
+  | { ok: true; sections: Section[] }
+  | { ok: false; message: string };
+
+const UNREADABLE_SHAPE = "The editor sent content in a shape this version cannot read.";
+const STALE_EDITOR =
+  "This page editor is from an older version of the site. Copy your changes, reload, and paste them in.";
+
+/**
+ * A page's save: what the section editor submits, `{ sections: [{ id, columns:
+ * [{ blocks }] }] }`, as stored sections. Each column goes through `fromEditorJs`
+ * so a failure names its section and block. The layout is never taken from the
+ * client: item 10 has one column per section, and a section with any other
+ * count is a shape this version cannot read.
+ */
+export function fromEditorJsSections(input: unknown): FromEditorJsSections {
+  const outer = z
+    .object({
+      sections: z.array(z.object({ id: blockId, columns: z.array(z.unknown()) })),
+    })
+    .safeParse(input);
+  // A tab opened before sections existed still sends the flat shape.
+  if (!outer.success && z.object({ blocks: z.array(z.unknown()) }).safeParse(input).success)
+    return { ok: false, message: STALE_EDITOR };
+  // Bounds the work before any column is parsed, as the list flattening does.
+  if (!outer.success || outer.data.sections.length > MAX_SECTIONS)
+    return { ok: false, message: UNREADABLE_SHAPE };
+
+  const sections: unknown[] = [];
+  for (const [index, section] of outer.data.sections.entries()) {
+    const [column, ...more] = section.columns;
+    if (column === undefined || more.length > 0) return { ok: false, message: UNREADABLE_SHAPE };
+    const blocks = fromEditorJs(column, `Section ${index + 1}`);
+    if (!blocks.ok) return blocks;
+    sections.push({
+      id: section.id,
+      type: "section",
+      data: { layout: "1", children: [blocks.blocks] },
+    });
+  }
+
+  const validated = sectionsSchema.safeParse(sections);
+  if (!validated.success) {
+    return {
+      ok: false,
+      message: `This page could not be saved: ${validated.error.issues[0]?.message ?? "invalid content"}.`,
+    };
+  }
+  return { ok: true, sections: validated.data };
 }
 
 /**
@@ -288,12 +342,73 @@ export function toEditorJs(
   };
 }
 
-/** The unique media ids a set of blocks references, for the loader to resolve
- *  in one query rather than one per image. */
-export function collectImageMediaIds(blocks: Block[]): string[] {
+export const MAX_SECTIONS = 30;
+export const MAX_PAGE_BLOCKS = 200;
+/** What a page stores once it is `v3`; posts stay `BLOCKS_FORMAT`. */
+export const PAGE_BLOCKS_FORMAT = "v3";
+
+/**
+ * A page's section (`blocks_format` v3, D114). `children` is a list of columns,
+ * each a list of the leaf blocks above - nesting stops there, so a section can
+ * never contain a section. Item 10 stores exactly one column (`layout: "1"`);
+ * item 11 widens `layout` and the column count together.
+ */
+const sectionBlock = z.object({
+  // Letters, digits, `_` and `-`: the editor builds a selector from it, and
+  // `crypto.randomUUID()` already fits.
+  id: blockId.regex(/^[A-Za-z0-9_-]+$/, "section ids may only use letters, digits, _ and -"),
+  type: z.literal("section"),
+  data: z.object({
+    layout: z.literal("1"),
+    children: z.array(z.array(blockSchema).max(MAX_PAGE_BLOCKS)).length(1),
+  }),
+});
+
+export const sectionsSchema = z
+  .array(sectionBlock)
+  .min(1)
+  .max(MAX_SECTIONS)
+  // Two equal ids would share one editor reader and lose a section's content.
+  .refine(
+    (sections) => new Set(sections.map((section) => section.id)).size === sections.length,
+    "section ids must be unique",
+  )
+  // The same 200 as a post, in total: it keeps a save under the request size
+  // limit and the save-time target however the blocks are spread.
+  .refine(
+    (sections) =>
+      sections.reduce((total, section) => total + section.data.children.flat().length, 0) <=
+      MAX_PAGE_BLOCKS,
+    `a page can hold at most ${MAX_PAGE_BLOCKS} blocks in total`,
+  );
+
+export type Section = z.infer<typeof sectionBlock>;
+
+/** The id of the section a not-yet-resaved `v2` page is shown as. */
+export const LEGACY_SECTION_ID = "legacy";
+
+/** A `v2` page's flat blocks as the one section they load as. */
+export function sectionsFromBlocks(blocks: Block[]): Section[] {
+  return [
+    {
+      id: LEGACY_SECTION_ID,
+      type: "section",
+      data: { layout: "1", children: [blocks] },
+    },
+  ];
+}
+
+/** The unique media ids a set of blocks, or of sections, references, for the
+ *  loader to resolve in one query rather than one per image. */
+export function collectImageMediaIds(items: (Block | Section)[]): string[] {
   const ids = new Set<string>();
-  for (const block of blocks) {
+  const visit = (block: Block) => {
     if (block.type === "image") ids.add(block.data.mediaId);
+  };
+  for (const item of items) {
+    if (item.type === "section") {
+      for (const column of item.data.children) column.forEach(visit);
+    } else visit(item);
   }
   return [...ids];
 }

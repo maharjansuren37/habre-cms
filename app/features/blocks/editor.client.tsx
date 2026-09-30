@@ -22,6 +22,8 @@ export function BlockEditor({
   mediaById = {},
   contentRef,
   onChange,
+  label = "Post content",
+  placeholder = "Write your post…",
 }: {
   initialBlocks: Block[];
   /** Resolves each image block's media id - read once, at mount, the same as
@@ -29,8 +31,12 @@ export function BlockEditor({
   mediaById?: Record<string, ImageMediaSummary>;
   // Deliberately not Editor.js's own OutputData: the caller only forwards what
   // comes back to the server, and this keeps its types off the server side.
-  contentRef: { current: (() => Promise<{ blocks: unknown[] }>) | null };
+  contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
+  /** The writing area's accessible name. */
+  label?: string;
+  /** Shown in an empty editor. Wording from design.md: plain language. */
+  placeholder?: string;
 }) {
   const holder = useRef<HTMLElement>(null);
   // The editor is created once, so it would otherwise hold the first render's
@@ -46,8 +52,7 @@ export function BlockEditor({
     if (!holder.current) return;
     const editor = new EditorJS({
       holder: holder.current,
-      // Wording from design.md: plain language, no CMS jargon.
-      placeholder: "Write your post…",
+      placeholder,
       // Exactly what blocks_format v2 can store (inline-runs.ts), named so the
       // toolbar offers nothing a save would have to refuse or drop. `true` below
       // inherits this list; in 2.31.6 a tool given its own list also gets
@@ -99,5 +104,5 @@ export function BlockEditor({
   // Named for screen readers: Editor.js's contenteditable exposes a textbox role
   // with no name of its own, so tabbing from the title would reach an
   // unlabelled edit area (WCAG 2.2, 4.1.2 Name, Role, Value - F-29).
-  return <section ref={holder} aria-label="Post content" />;
+  return <section ref={holder} aria-label={label} />;
 }

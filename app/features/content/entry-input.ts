@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { blocksSchema } from "#app/features/blocks/blocks.ts";
+import { blocksSchema, sectionsSchema } from "#app/features/blocks/blocks.ts";
 
 /**
  * The trust boundary for everything the editor submits. Messages are what the
@@ -9,19 +9,23 @@ import { blocksSchema } from "#app/features/blocks/blocks.ts";
  * connection when it is imported, and this schema is pure logic that
  * `node --test` must be able to load without one (coding-standards.md).
  */
-export const entryInputSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, { message: "Give it a title before saving." })
-    .max(200, { message: "Titles can be up to 200 characters." })
-    // PostgreSQL refuses U+0000 in a text column, so a crafted title reached the
-    // insert and answered 500 (F-47's residual). Refused at the boundary, the
-    // way a block's text already is.
-    .refine((title) => !title.includes("\u0000"), {
-      message: "The title has a character that cannot be stored. Remove it and save again.",
-    }),
-  blocks: blocksSchema,
-});
+const titleSchema = z
+  .string()
+  .trim()
+  .min(1, { message: "Give it a title before saving." })
+  .max(200, { message: "Titles can be up to 200 characters." })
+  // PostgreSQL refuses U+0000 in a text column, so a crafted title reached the
+  // insert and answered 500 (F-47's residual). Refused at the boundary, the
+  // way a block's text already is.
+  .refine((title) => !title.includes("\u0000"), {
+    message: "The title has a character that cannot be stored. Remove it and save again.",
+  });
+
+/** A post: a title and a flat list of blocks. */
+export const entryInputSchema = z.object({ title: titleSchema, blocks: blocksSchema });
+
+/** A page: a title and its sections (`blocks_format` v3, D114). */
+export const pageInputSchema = z.object({ title: titleSchema, sections: sectionsSchema });
 
 export type EntryInput = z.infer<typeof entryInputSchema>;
+export type PageInput = z.infer<typeof pageInputSchema>;

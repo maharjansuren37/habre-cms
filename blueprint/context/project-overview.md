@@ -3,10 +3,10 @@
 > **Generated file.** Written by the `context` skill from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
-> the record. Decision numbers (D1-D112) are entries in `dev-notes/decisions.md` -
+> the record. Decision numbers (D1-D113) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-09-29 from `main` (`d6ca3cf`).
+Generated 2026-10-01 from `main` (`b16d403`) plus the uncommitted D113 rescope.
 
 ## What this is
 
@@ -32,13 +32,21 @@ admin roles with user management; light and dark mode.
 
 **After MVP (built):** item 9 - an admin picks one published page as `/`, with a
 welcome placeholder until one is chosen; `/` never lists posts, which live at
-`/posts` (D107). Nothing further is queued.
+`/posts` (D107).
+
+**Active direction (D113, rescope 2026-10-01): a first-cut page builder**, items
+10-12: pages become ordered sections (existing pages load as one section,
+nothing migrates destructively), sections split into 2-3 columns that stack on
+small screens, and a few ready-made sections (hero, call-to-action, image +
+text). Section reordering uses buttons, not drag-and-drop, so no new runtime
+dependency. This changes the stored block shape (D28): run `architect` before
+`spec` for item 10.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
-Soon after: categories and tags, scheduled publishing and revisions, SEO fields
-and sitemap, password reset by email, custom domains. Likely next big step: a
-**page builder** (content is stored as blocks so it can extend them). Later or
-never: headless API, multiple themes, many sites, WordPress import, plugins.
+Soon after: reusable saved sections, section styling and page templates,
+categories and tags, scheduled publishing and revisions, SEO fields
+and sitemap, password reset by email, custom domains. Later or
+never: free-form canvas and custom CSS/HTML, headless API, multiple themes, many sites, WordPress import, plugins.
 
 ## Stack
 
@@ -127,13 +135,12 @@ without a requirement that calls for them.
 
 ## Current state
 
-- **Plan:** 9 of 9 items done (8 MVP + item 9), archived in
-  `blueprint/history/features/`. Nothing unchecked; the next item needs
-  `ideate --rescope` or `spec` - a page builder is the recorded direction.
-- **Live:** production runs release `5bd0d29`, which is `main`'s code
-  (items 1-9 plus fixes F-114, F-115, F-116), deployed 2026-09-29. Nothing
-  merged is undeployed; `blueprint/production-pending.md` is empty. See
-  `dev-notes/status.md`.
+- **Plan:** 9 of 12 items done (8 MVP + item 9), archived in
+  `blueprint/history/features/`. Items 10-12 (page builder) are unchecked;
+  nothing is in flight. Next: `architect`, then `spec` for item 10.
+- **Live:** production runs release `5bd0d29`, `main`'s code through item 9.
+  Nothing merged is undeployed. See `dev-notes/status.md`.
+- **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in
   `needs-you.md`.

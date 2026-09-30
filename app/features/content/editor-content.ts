@@ -15,3 +15,25 @@ export function isReadableEditorContent(content: unknown): content is { blocks: 
     Array.isArray((content as { blocks?: unknown }).blocks)
   );
 }
+
+/**
+ * The page editor's counterpart: one readable column per section. Anything less
+ * is not saved, for the reason `isReadableEditorContent` gives.
+ */
+export function isReadableSectionsContent(
+  content: unknown,
+): content is { sections: { id: string; columns: { blocks: unknown[] }[] }[] } {
+  if (typeof content !== "object" || content === null) return false;
+  const { sections } = content as { sections?: unknown };
+  return (
+    Array.isArray(sections) &&
+    sections.length > 0 &&
+    sections.every(
+      (section) =>
+        typeof section === "object" &&
+        section !== null &&
+        Array.isArray((section as { columns?: unknown }).columns) &&
+        (section as { columns: unknown[] }).columns.every(isReadableEditorContent),
+    )
+  );
+}

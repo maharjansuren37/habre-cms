@@ -1,6 +1,7 @@
 import { Fragment } from "react";
-import type { Block, ImageMediaSummary } from "./blocks.ts";
+import type { Block, ImageMediaSummary, Section } from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
+import { nonEmptySections } from "./sections.ts";
 
 /**
  * Turns stored blocks into real elements for the public site - always JSX,
@@ -59,6 +60,20 @@ export function renderBlocks(blocks: Block[], mediaById: Record<string, ImageMed
       }
     }
   });
+}
+
+/**
+ * A page's sections, in order, each a `<section>` around its blocks. An empty
+ * section renders nothing - no empty element for a screen reader to land on.
+ * Item 10 stores one column per section; item 11 renders more.
+ */
+export function renderSections(
+  sections: Section[],
+  mediaById: Record<string, ImageMediaSummary> = {},
+) {
+  return nonEmptySections(sections).map((section) => (
+    <section key={section.id}>{renderBlocks(section.data.children.flat(), mediaById)}</section>
+  ));
 }
 
 /** One run's marks nest as `<a><strong><em>text</em></strong></a>` - only the

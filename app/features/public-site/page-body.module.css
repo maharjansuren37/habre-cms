@@ -18,8 +18,14 @@
   line-height: var(--leading-tight);
 }
 
-.body > * + * {
+.body > * + *,
+.body section > * + * {
   margin-top: var(--space-5);
+}
+
+/* A section adds no chrome of its own (item 10) - only room between parts. */
+.body > section + section {
+  margin-top: var(--space-7);
 }
 
 .body h2,

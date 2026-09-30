@@ -19,7 +19,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export async function loader() {
   const page = await findHomePage();
   if (page) {
-    const mediaById = await resolvePageMedia(page.blocks);
+    const mediaById = await resolvePageMedia(page.sections);
     return { kind: "page" as const, page, mediaById };
   }
   return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts() };

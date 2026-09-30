@@ -38,6 +38,9 @@ to put content online.
   - **Editor** - manages everyone's content.
   - **Admin** - everything an editor can do, plus users and settings.
 - Light and dark mode in both the admin area and the public site.
+- **Page builder, first cut (rescope, 2026-10-01):** pages are built from
+  sections; a section can hold 2-3 columns; ready-made sections (hero,
+  call-to-action, image + text) can be inserted.
 
 ## 4. Data - what are we storing?
 
@@ -283,7 +286,7 @@ One site per installation - no site id on any table (D8).
   `password_hash`, `role` (admin | editor | author), `token_version`,
   `deactivated_at`, `created_at`, `updated_at`
 - **entries** - posts and pages in one table: `id`, `type` (post | page),
-  `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format`, `status`
+  `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format` (`v2` | `v3`), `status`
   (draft | published), `published_at`, `author_id` -> users, `version`,
   `created_at`, `updated_at`
 - **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`,
@@ -296,8 +299,18 @@ One site per installation - no site id on any table (D8).
 
 **Blocks** are an ordered list of `{id, type, data}`:
 
-- A page builder adds container block types with `children`; existing content
-  stays valid. `blocks_format` versions the format for future changes.
+- **Sections (page builder, D113/D114), pages only - posts stay flat.** A page's
+  `blocks` is a list of `section` blocks (`blocks_format` v3). A `plain` section
+  has `data.layout` (`"1"`, `"2"` or `"3"` columns) and `children`: a list of
+  columns, each a list of the leaf blocks below. Ready-made sections (`hero`,
+  `cta`, `image-text`, item 12) are their own typed blocks with fixed slots
+  (runs, an allowlisted link, a media id), not free columns. Nesting stops at
+  section -> column -> leaf; sections never contain sections.
+- **v2 content stays valid, nothing is migrated destructively.** A v2 page
+  loads as one implicit 1-column section and becomes v3 on its next save; the
+  renderer reads both. The one migration relaxes the `blocks_format` check to
+  `in ('v2','v3')` - so that release cannot be rolled back by symlink, and a
+  page saved as v3 would not render under older code.
 - **Text is stored as structured data, never raw HTML**, and escaped on render.
   Inline formatting is bold, italic and links, stored as structured runs
   (`blocks_format` v2, D28-D30).
@@ -307,6 +320,8 @@ One site per installation - no site id on any table (D8).
 ### Data rules
 
 - Saving a published entry updates the live page (revisions are deferred).
+- A page has at most 30 sections and a section at most 3 columns; a save
+  beyond that is refused (one Editor.js instance mounts per column).
 - Every save sends the entry's `version`; if someone saved in between, the save
   is rejected with "changed by someone else, reload".
 - **Upload:** write the R2 object first, then the media row. A failure between
@@ -509,17 +524,17 @@ decided; no billing in the first version.
 - **Password reset by email** - needs an email service; an admin resets
   passwords for now.
 - **Custom domains** - needed once it is a hosted service.
+- **Reusable saved sections, section styling (background, spacing) and page
+  templates** - page-builder follow-ups, after the first cut is proven.
 
-**Later - likely direction:**
-
-- **Page builder** - the probable next big step after the first version. A
-  product of its own, so not in the MVP; `architect` should store content as
-  blocks in a shape a page builder can extend (layout added on top), so it
-  arrives as an addition rather than a rewrite.
+**Done in the rescope (D113):** the page builder's first cut - sections,
+columns and ready-made sections (build items 10-12).
 
 **Later, or never:**
 
 - **Headless content API.**
+- **Free-form drag-anywhere canvas, custom CSS/HTML** - fights ease of use and
+  multiplies the accessibility surface.
 - **Multiple themes and theme customisation.**
 - **Many sites per installation, public signup, billing.**
 - **Importing from WordPress.**

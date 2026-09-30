@@ -41,7 +41,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   if (!entry) throw data("Not Found", { status: 404 });
   // One query for every image block this entry has, so reopening it shows
   // them immediately - no picker round trip, no per-image fetch.
-  const rows = await findMediaByIds(collectImageMediaIds(entry.blocks));
+  const rows = await findMediaByIds(collectImageMediaIds(entry.sections));
   const mediaById: Record<string, ImageMediaSummary> = Object.fromEntries(
     rows.map((row) => [
       row.id,
@@ -73,7 +73,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  const parsed = parseEntryForm(form);
+  const parsed = parseEntryForm(form, "page");
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },
@@ -88,7 +88,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const result = await saveEntry(
     "page",
     id,
-    { title: parsed.title, blocks: parsed.blocks },
+    { title: parsed.title, sections: parsed.sections },
     version,
     context.get(userContext),
     intent.data === "save" ? undefined : intent.data,
@@ -113,7 +113,7 @@ export default function EditPage({ loaderData, actionData }: Route.ComponentProp
       entryType="page"
       title={entry.title}
       slug={entry.slug}
-      blocks={entry.blocks}
+      sections={entry.sections}
       mediaById={mediaById}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the

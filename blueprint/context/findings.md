@@ -41,3 +41,6 @@ File: UptimeRobot account (owner's); dev-notes/status.md *Monitoring*
 
 ### F-115 [P2] fixed - The link allowlist's source file holds raw NUL and DEL bytes, so git and grep treat it as binary
 File: app/features/blocks/inline-runs.ts:41; app/features/media/media-input.test.ts:43,45
+
+### F-119 [P2] fixed - Section ids are not checked for uniqueness or for characters the editor's selector can take
+File: app/features/blocks/blocks.ts (`sectionBlock`, `sectionsSchema`); app/features/blocks/sections-editor.client.tsx:96

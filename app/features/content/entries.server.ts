@@ -1,8 +1,14 @@
-import { BLOCKS_FORMAT, type Block } from "#app/features/blocks/blocks.ts";
+import {
+  BLOCKS_FORMAT,
+  type Block,
+  PAGE_BLOCKS_FORMAT,
+  type Section,
+  sectionsFromBlocks,
+} from "#app/features/blocks/blocks.ts";
 import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
-import { assertKnownFormat } from "./blocks-format.ts";
-import type { EntryInput } from "./entry-input.ts";
+import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
+import type { EntryInput, PageInput } from "./entry-input.ts";
 import type { EntryListQuery } from "./entry-list-query.ts";
 import { type EntryType, nextFreeSlug, RESERVED_PAGE_SLUGS, slugFromTitle } from "./slug.ts";
 
@@ -12,17 +18,30 @@ export type { EntryType };
 // scale (a few thousand entries -> at most a few hundred pages).
 export const PAGE_SIZE = 20;
 
-export type Entry = {
+type EntryBase = {
   id: string;
-  type: EntryType;
   title: string;
   slug: string;
-  blocks: Block[];
   status: "draft" | "published";
   authorId: string;
   version: number;
   updatedAt: Date;
 };
+
+/** A post is a flat list of blocks; a page is a list of sections (D114). */
+export type PostEntry = EntryBase & { type: "post"; blocks: Block[] };
+export type PageEntry = EntryBase & { type: "page"; sections: Section[] };
+export type Entry = PostEntry | PageEntry;
+
+/**
+ * What a stored `blocks` column means for this entry type and format. A `v2`
+ * page loads as the one section it is shown as; nothing is rewritten until its
+ * next save. The column is trusted as stored, the same as it always was -
+ * `assertKnownFormat` has already refused a format this build cannot read.
+ */
+function pageSections(format: string, stored: Block[] | Section[]): Section[] {
+  return format === "v2" ? sectionsFromBlocks(stored as Block[]) : (stored as Section[]);
+}
 
 /** Who is asking. Ownership is decided from this, never from the form. */
 export type Actor = { id: string; role: Role };
@@ -36,12 +55,18 @@ const entryColumns = sql`
   updated_at as "updatedAt"
 `;
 
-/** What the columns above return; the format is checked, then left out. */
-type EntryRow = Entry & { blocksFormat: string };
+/** What the columns above return; the format is checked, then reshaped. */
+type EntryRow = EntryBase & {
+  type: EntryType;
+  blocks: Block[] | Section[];
+  blocksFormat: string;
+};
 
-function toEntry({ blocksFormat, ...entry }: EntryRow): Entry {
-  assertKnownFormat(entry.id, blocksFormat);
-  return entry;
+function toEntry({ blocks, blocksFormat, ...entry }: EntryRow): Entry {
+  assertKnownFormat(entry.id, entry.type, blocksFormat);
+  return entry.type === "page"
+    ? { ...entry, type: "page", sections: pageSections(blocksFormat, blocks) }
+    : { ...entry, type: "post", blocks: blocks as Block[] };
 }
 
 /**
@@ -57,6 +82,21 @@ function ownedBy(actor: Actor) {
 }
 
 export async function findEntryForUser(
+  type: "post",
+  id: string,
+  actor: Actor,
+): Promise<PostEntry | null>;
+export async function findEntryForUser(
+  type: "page",
+  id: string,
+  actor: Actor,
+): Promise<PageEntry | null>;
+export async function findEntryForUser(
+  type: EntryType,
+  id: string,
+  actor: Actor,
+): Promise<Entry | null>;
+export async function findEntryForUser(
   type: EntryType,
   id: string,
   actor: Actor,
@@ -68,9 +108,26 @@ export async function findEntryForUser(
   return row ? toEntry(row) : null;
 }
 
+/**
+ * What an entry is stored as: a post keeps its flat blocks as `v2`, a page its
+ * sections as `v3`. `sql.json`, not `JSON.stringify`: the column is jsonb, and a
+ * string would be stored as a JSON string rather than the array itself.
+ */
+function storedContent(type: EntryType, input: EntryInput | PageInput) {
+  return type === "page" && "sections" in input
+    ? { blocks: sql.json(input.sections), blocks_format: PAGE_BLOCKS_FORMAT }
+    : { blocks: sql.json((input as EntryInput).blocks), blocks_format: BLOCKS_FORMAT };
+}
+
+export async function createDraft(
+  type: "post",
+  input: EntryInput,
+  authorId: string,
+): Promise<Entry>;
+export async function createDraft(type: "page", input: PageInput, authorId: string): Promise<Entry>;
 export async function createDraft(
   type: EntryType,
-  input: EntryInput,
+  input: EntryInput | PageInput,
   authorId: string,
 ): Promise<Entry> {
   const base = slugFromTitle(input.title, type);
@@ -90,10 +147,7 @@ export async function createDraft(
       type,
       title: input.title,
       slug,
-      // sql.json, not JSON.stringify: the column is jsonb, and a string would
-      // be stored as a JSON string rather than the array itself.
-      blocks: sql.json(input.blocks),
-      blocks_format: BLOCKS_FORMAT,
+      ...storedContent(type, input),
       status: "draft",
       author_id: authorId,
     })}
@@ -134,18 +188,35 @@ function transitionUpdate(transition: StatusTransition | undefined) {
  * unpublish, not only ever touch a draft (F-40).
  */
 export async function saveEntry(
-  type: EntryType,
+  type: "post",
   id: string,
   input: EntryInput,
   version: number,
   actor: Actor,
   transition?: StatusTransition,
+): Promise<UpdateResult>;
+export async function saveEntry(
+  type: "page",
+  id: string,
+  input: PageInput,
+  version: number,
+  actor: Actor,
+  transition?: StatusTransition,
+): Promise<UpdateResult>;
+export async function saveEntry(
+  type: EntryType,
+  id: string,
+  input: EntryInput | PageInput,
+  version: number,
+  actor: Actor,
+  transition?: StatusTransition,
 ): Promise<UpdateResult> {
+  const stored = storedContent(type, input);
   const [row] = await sql<EntryRow[]>`
     update entries e set
       title = ${input.title},
-      blocks = ${sql.json(input.blocks)},
-      blocks_format = ${BLOCKS_FORMAT},
+      blocks = ${stored.blocks},
+      blocks_format = ${stored.blocks_format},
       version = version + 1,
       updated_at = now()
       ${transitionUpdate(transition)}
@@ -153,7 +224,7 @@ export async function saveEntry(
       -- Only over a row this build can read: a tab opened before a format change
       -- would otherwise replace newer content with the old format (F-46). Such a
       -- row changes nothing here, and findEntryForUser below refuses it loudly.
-      and e.blocks_format = ${BLOCKS_FORMAT}
+      and e.blocks_format = any(${readableFormats(type)})
     returning ${entryColumns}
   `;
   if (row) return { ok: true, entry: toEntry(row) };
@@ -298,30 +369,37 @@ export async function findPublishedPageSlugs(
 }
 
 /** One published entry's full content, for its own page. */
-export type PublicEntry = {
+type PublicBase = {
   title: string;
-  blocks: Block[];
   publishedAt: Date;
   authorName: string;
 };
+export type PublicPost = PublicBase & { blocks: Block[] };
+export type PublicPage = PublicBase & { sections: Section[] };
 
-/** What the columns below return; the format is checked, then left out - same
+/** What the columns below return; the format is checked, then reshaped - same
  *  reason `toEntry` does this for the admin side. */
-type PublicEntryRow = PublicEntry & { blocksFormat: string };
+type PublicEntryRow = PublicBase & {
+  blocks: Block[] | Section[];
+  blocksFormat: string;
+};
 
 /** A published entry found by its address, plus whether it is the page an
  *  admin chose for `/` - its own address then redirects there (item 9's D-4). */
-export type PublishedEntry = PublicEntry & { id: string; isHomePage: boolean };
+export type PublishedPost = PublicPost & { id: string; isHomePage: boolean };
+export type PublishedPage = PublicPage & { id: string; isHomePage: boolean };
 
 /**
  * A published entry by its address, or `null` if there is none - a draft and a
  * missing slug get the same answer, so an entry's existence is never leaked by
  * its status (the same rule `findEntryForUser` applies for ownership).
  */
+export async function findPublishedEntry(type: "post", slug: string): Promise<PublishedPost | null>;
+export async function findPublishedEntry(type: "page", slug: string): Promise<PublishedPage | null>;
 export async function findPublishedEntry(
   type: EntryType,
   slug: string,
-): Promise<PublishedEntry | null> {
+): Promise<PublishedPost | PublishedPage | null> {
   // isHomePage rides on this query rather than a second settings read on every
   // public page request - only a page can be one (the settings action's check).
   const [row] = await sql<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
@@ -333,9 +411,11 @@ export async function findPublishedEntry(
     where e.type = ${type} and e.status = 'published' and e.slug = ${slug}
   `;
   if (!row) return null;
-  const { blocksFormat, ...post } = row;
-  assertKnownFormat(slug, blocksFormat);
-  return post;
+  const { blocks, blocksFormat, ...rest } = row;
+  assertKnownFormat(slug, type, blocksFormat);
+  return type === "page"
+    ? { ...rest, sections: pageSections(blocksFormat, blocks) }
+    : { ...rest, blocks: blocks as Block[] };
 }
 
 /**
@@ -344,7 +424,7 @@ export async function findPublishedEntry(
  * One query: the settings row joined to the entry, rather than a settings read
  * followed by an entry read on every public home request.
  */
-export async function findHomePage(): Promise<PublicEntry | null> {
+export async function findHomePage(): Promise<PublicPage | null> {
   const [row] = await sql<(PublicEntryRow & { slug: string })[]>`
     select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
       e.published_at as "publishedAt", u.name as "authorName"
@@ -354,7 +434,7 @@ export async function findHomePage(): Promise<PublicEntry | null> {
     where s.id = 1 and e.type = 'page' and e.status = 'published'
   `;
   if (!row) return null;
-  const { blocksFormat, slug, ...page } = row;
-  assertKnownFormat(slug, blocksFormat);
-  return page;
+  const { blocks, blocksFormat, slug, ...page } = row;
+  assertKnownFormat(slug, "page", blocksFormat);
+  return { ...page, sections: pageSections(blocksFormat, blocks) };
 }

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
-import type { Block, ImageMediaSummary } from "#app/features/blocks/blocks.ts";
+import type { Block, ImageMediaSummary, Section } from "#app/features/blocks/blocks.ts";
 import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
+import { SectionsEditor } from "#app/features/blocks/sections-editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
-import { isReadableEditorContent } from "./editor-content.ts";
+import { isReadableEditorContent, isReadableSectionsContent } from "./editor-content.ts";
 import styles from "./entry-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
@@ -32,7 +33,10 @@ type EntryFormProps = {
   title: string;
   /** Empty for an entry that has not been saved yet. */
   slug: string;
-  blocks: Block[];
+  /** A post's flat blocks. */
+  blocks?: Block[];
+  /** A page's sections. */
+  sections?: Section[];
   /** Resolves each image block's media id, so reopening an entry shows its
    *  images immediately - a new entry has none to resolve. */
   mediaById?: Record<string, ImageMediaSummary>;
@@ -45,7 +49,8 @@ export function EntryForm({
   entryType,
   title,
   slug,
-  blocks,
+  blocks = [],
+  sections = [],
   mediaById = {},
   status,
   version,
@@ -59,7 +64,7 @@ export function EntryForm({
   const isSaved = slug !== "";
   // Editor.js owns its DOM, so its content is read on demand rather than held in
   // React state; this is the function it hands back.
-  const readEditor = useRef<(() => Promise<{ blocks: unknown[] }>) | null>(null);
+  const readEditor = useRef<(() => Promise<unknown>) | null>(null);
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
@@ -110,7 +115,11 @@ export function EntryForm({
     } catch {
       content = undefined;
     }
-    if (!isReadableEditorContent(content)) {
+    if (
+      !(entryType === "page"
+        ? isReadableSectionsContent(content)
+        : isReadableEditorContent(content))
+    ) {
       setUnreadableContent(true);
       return;
     }
@@ -203,12 +212,21 @@ export function EntryForm({
         </p>
 
         {isEditorReady ? (
-          <BlockEditor
-            initialBlocks={blocks}
-            mediaById={mediaById}
-            contentRef={readEditor}
-            onChange={() => setUnsavedChanges(true)}
-          />
+          entryType === "page" ? (
+            <SectionsEditor
+              initialSections={sections}
+              mediaById={mediaById}
+              contentRef={readEditor}
+              onChange={() => setUnsavedChanges(true)}
+            />
+          ) : (
+            <BlockEditor
+              initialBlocks={blocks}
+              mediaById={mediaById}
+              contentRef={readEditor}
+              onChange={() => setUnsavedChanges(true)}
+            />
+          )
         ) : (
           <p className={styles.needsJs}>
             The editor needs JavaScript. Turn it on and reload to write your {entryType}.

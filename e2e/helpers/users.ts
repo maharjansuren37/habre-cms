@@ -99,6 +99,8 @@ export async function createDraftFor(
     /** Defaults to "post" - most callers are posts tests; item 6a's pages
      *  tests pass "page" to seed a page instead. */
     type?: "post" | "page";
+    /** Defaults to "v2" (the column default); a page of sections is "v3". */
+    blocksFormat?: "v2" | "v3";
   } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";
@@ -110,9 +112,9 @@ export async function createDraftFor(
   let id = "";
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into entries (type, title, slug, blocks, status, published_at, author_id)
+      insert into entries (type, title, slug, blocks, blocks_format, status, published_at, author_id)
       select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
-             ${sql.json(blocks as never)}, ${status}, ${publishedAt}, id
+             ${sql.json(blocks as never)}, ${options.blocksFormat ?? "v2"}, ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id
     `;
