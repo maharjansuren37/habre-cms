@@ -71,6 +71,9 @@ have one owner, so a split would add a contract, two deploys and coordination
 for nothing. A headless API later is extra routes in the same app. Cost: public
 site and admin scale together - fine on one VPS.
 
+**Amended by D154** (2026-10-01): the AI site generation run is background
+work inside the same process. Still one deployable.
+
 ## D5 - Posts and pages in one table, content as structured blocks (2026-09-15)
 
 **Chose:** one `entries` table with a `type`, and content as an ordered JSON list
@@ -117,6 +120,8 @@ PostgreSQL database and role, never tables inside another app's database.
 **Superseded by D148** (2026-10-01): public signup means many sites in one
 installation from platform v1. The database-per-site versus shared-tables
 choice reopens for `architect`, with this entry's reasoning as its input.
+**Settled by D151** (2026-10-01): shared tables with a site id, and row-level
+security as a second guard.
 
 ## D9 - The server holds no state but the database (2026-09-15)
 
@@ -312,6 +317,11 @@ escaped structured blocks, no raw HTML, no comments, no forms) and grows with
 item 5 and the page builder. A second reason: separate origins allow a strict
 public CSP alongside the looser one Editor.js needs. Revisit only with those two
 in view.
+
+**Superseded by D153** (2026-10-01), when item 16 is built: the admin moves to
+`app.<platform domain>` and sites to a separate sites domain. The reasoning
+above - separate origins for the admin and public pages - carries over and is
+strengthened by putting sites on a different registrable domain.
 
 ## D23 - The Node listener is built directly, to trust Caddy's forwarded headers (2026-09-16)
 
@@ -1807,3 +1817,223 @@ a Level 1 user little reason to pay).
 Costs: item 21 grows - serving a site on its own domain needs certificates
 issued per domain, which `architect` decides alongside D22's replacement, and
 may place in item 16 instead. The beta earns nothing.
+
+**Amended by D164** (2026-10-01): AI use is a monthly allowance of credits per
+site, not a count of site generations; the starting points above become
+allowances, set by the owner. `architect` kept own domains in item 21 (D153).
+
+## D151 - Shared tables with a site id; row-level security as a second guard (2026-10-01)
+
+**Chose:** every site-owned table carries `site_id`. The app scopes every
+site-owned query by the site resolved from the request. PostgreSQL row-level
+security on those tables shows a transaction only the rows of the site it has
+set - and none when no site is set. Foreign keys between site-owned tables
+include `site_id`.
+Beats:
+- a database per site (D8): a connection pool and a migration run per site on
+  a 954 MB server;
+- a schema per site: the same costs;
+- app-only scoping: one forgotten `where site_id` leaks a stranger's content -
+  the worst failure this product can have, and the easiest to write.
+Costs: every site-owned query runs in a transaction that sets the site; the
+two roles of D152; item 15a touches every data module (about 43 queries in
+five files). Platform tables (`sites`, `site_domains`, `users`,
+`site_members`, `email_tokens`, `invites`, `stripe_events`) stay outside
+row-level security, because they are read before a site is known; app code
+scopes them.
+
+## D152 - Two database roles: an owner for migrations, an app role under row-level security (2026-10-01)
+
+**Chose:** an owner role owns the tables and runs migrations. The app connects
+as a second role that reads and writes rows, cannot change the schema, and is
+subject to row-level security.
+Beats: one role - a table's owner bypasses row-level security, which would make
+D151's second guard decorative.
+Costs: `deploy/setup-server.sh`, `db/dev/init.sh`, CI and `.env.example` create
+and name both roles, and `npm run db:migrate` takes the owner's connection
+string. Bonus: an injection through the app cannot drop a table. Backups are
+unaffected - `pg_dump` runs as the `postgres` superuser.
+
+## D153 - The platform on `app.<platform domain>`, sites on a separate domain, a wildcard certificate (2026-10-01)
+
+**Chose:** sign-in, signup, onboarding and the admin on `app.<platform
+domain>`; each site at `<name>.<sites domain>` on a separate registrable domain;
+images at `media.<sites domain>`; own domains looked up in `site_domains`. One
+wildcard certificate covers every site subdomain, issued by DNS challenge
+through Caddy's Cloudflare DNS module. Own domains (item 21) use Caddy's
+on-demand certificates, approved by the app. Replaces D22 when item 16 is
+built.
+Beats:
+- sites as subdomains of the platform domain: one phishing page can get the
+  whole registrable domain blocklisted, sign-in included, and sibling
+  subdomains are "same-site" to the SameSite cookie;
+- a certificate per subdomain: Let's Encrypt's weekly limit per registered
+  domain, and every site name published in certificate transparency logs.
+Costs:
+- a second domain to buy;
+- Caddy rebuilt with a DNS module, and an API token on the server;
+- one global option in the main Caddyfile, which the repository does not own,
+  at item 21.
+
+## D154 - AI site generation runs in the process, recorded in the database (2026-10-01)
+
+**Chose:**
+- The action records an `ai_runs` row, starts the generation without waiting
+  for it, and redirects to a page that polls the row.
+- At most two runs at once.
+- A 5-minute timeout.
+- A run left `running` by a restart is marked failed at startup.
+- A run writes only its own row; applying its proposal is one transaction.
+Beats:
+- generating inside the request, streamed to the page: a dropped mobile
+  connection loses a run that was already paid for;
+- a job queue or a worker process: D4, the memory budget, and nothing else
+  needs one.
+Costs: an interrupted run is lost, not resumed; the user retries, and a
+failed run costs no credits.
+
+## D155 - AI from Anthropic, then OpenAI, then OpenRouter (2026-10-01)
+
+**Chose:**
+- **The order:** Claude through Anthropic's official SDK first, then OpenAI
+  through its official SDK, then OpenRouter through the `openai` SDK at its own
+  address - two packages, neither with dependencies of its own beyond
+  Anthropic's two.
+- **When a run moves on:** only when a provider is unavailable - rate limited,
+  overloaded, a server error, a dropped connection, a timeout.
+- **When it does not:**
+  - never on a refusal: a description one provider declines is not shopped
+    to another; Anthropic's own server-side fallback handles Claude's
+    refusals;
+  - never on a 400 or 401, which mean our bug or a broken key.
+- **One output shape:** every provider fills the same constrained schema, and
+  our Zod schema checks it.
+- **OpenRouter settings:** endpoints must support the schema, and none may
+  store or train on the data.
+- **Models are configuration,** chosen by item 18's measurement - Claude Opus
+  5.5 at US$4 / US$20 per million tokens against Sonnet 5.5 at US$2 / US$10, as
+  listed 2026-09-25.
+Beats:
+- a single provider: its outage stops every signup's first two minutes;
+- Google Gemini as a fallback: its SDK brings four packages, including an auth
+  library and protobufjs;
+- OpenRouter alone as the fallback: one account fewer, but the owner chose a
+  direct OpenAI tier too.
+Costs:
+- three accounts, keys and spend limits;
+- a prompt tested on every configured model;
+- a privacy policy that names all three providers and OpenRouter's upstreams.
+
+## D156 - Email over SMTP with nodemailer; Resend for the hosted platform (2026-10-01)
+
+**Chose:** one email module sending over SMTP through `nodemailer` (no
+dependencies of its own). The hosted platform uses Resend: free for 3,000
+emails a month and 100 a day, whichever runs out first; US$20 for 50,000 with
+no daily cap (comparison sites, 2026; check before relying on them). It moves
+to Resend Pro or Postmark once the daily cap is hit or verification emails
+land in spam.
+Beats:
+- a provider's HTTP API: ties every self-hosted copy to that provider;
+- Postmark: US$15 for 10,000 with a strong transactional record, but only 100
+  free emails a month, for testing - the runner-up, and a configuration change
+  away;
+- Amazon SES: US$0.10 per 1,000, but its free tier lasts 12 months, it needs
+  approval to leave its sandbox, and bounce handling would be ours to build;
+- SMTP2GO: free for 1,000 a month and 200 a day - a higher daily cap, a lower
+  monthly one;
+- Cloudflare's email sending: in public beta.
+Costs: SPF, DKIM and DMARC records for the sending domain; a dependency for a
+protocol nobody should write by hand.
+
+## D157 - Contact-form spam stopped without a third party (2026-10-01)
+
+**Chose:** a hidden honeypot field, a minimum time to fill the form, and a
+per-IP limit per site. It works without JavaScript.
+Beats: Cloudflare Turnstile or reCAPTCHA - JavaScript on public pages, a third
+party seeing every visitor, and a cookie banner question.
+Costs: a determined spammer gets through. A captcha comes only if one does.
+
+## D158 - Operator work is server commands in v1 (2026-10-01)
+
+**Chose:** `create-invite`, `suspend-site` / `unsuspend-site` and
+`delete-site`, run on the server like `create-admin`. No operator screens.
+Beats: an operator admin area - screens, a role and an attack surface, for
+tasks the owner runs a few times a month in a beta.
+Costs: the owner needs SSH access to act on abuse; screens come when the
+commands are run often enough to hurt.
+
+## D159 - Users are global; roles live on a site membership (2026-10-01)
+
+**Chose:** `users` holds the person; `site_members` holds the role and the
+deactivation per site. In v1 each user belongs to one site, and an email
+already in use is refused when a member is added.
+Beats: users per site - Level 2's several sites per account would need users
+re-keyed.
+Costs: a site admin's "reset password" for a member must become email-only
+once a user can belong to several sites, or one site's admin could take over
+an account used elsewhere.
+
+## D160 - Stripe through its official SDK and hosted pages; webhooks set the plan (2026-10-01)
+
+**Chose:**
+- the `stripe` SDK (no dependencies of its own);
+- Stripe Checkout and the Customer Portal, so card details never reach the
+  server;
+- webhooks as the only thing that changes a site's plan, each event processed
+  once, keyed by its id.
+Beats: plain `fetch`, which would mean hand-writing the webhook signature check
+(security-critical: timing-safe comparison, timestamp tolerance) and nested
+form encoding, to save one dependency-free package.
+Costs: 17 MB of package on disk, mostly types, on the server only.
+
+## D161 - The email link verifies and signs in; nothing works before it (2026-10-01)
+
+**Chose:** signup creates the account and the site unverified; the emailed link
+verifies the address, signs the user in and starts onboarding.
+Beats: signing in first and verifying later - AI spend would be open to
+throwaway addresses, and every feature would need an "unverified" state.
+Costs: an email round trip inside the first two minutes, and signup depends on
+the email provider being up.
+
+## D162 - Today's installation becomes site 1 (2026-10-01)
+
+**Chose:** the tenancy migration creates site 1 from the current
+`site_settings`, makes today's users its members with their roles, and gives it
+`surenmaharjan.fyi` as its own domain. Its content is still discarded at item
+14 (D148).
+Beats: a fresh production start - it would lose the owner's accounts and domain
+for nothing.
+Costs: the migration has to carry real rows, so it is rehearsed on a restored
+production backup (D163).
+
+## D163 - Production holds on 8d82ce4 until platform v1 is done (2026-10-01)
+
+**Chose:** items 13-21 are built and merged one by one but not deployed. v1
+ships in one deploy, its migrations rehearsed first on a restored copy of the
+latest production backup. Rollback is restoring the pre-deploy dump and
+pointing `current` back at `8d82ce4`. An urgent fix in the meantime ships from
+a branch off `8d82ce4`, not from `main`.
+Beats: deploying item by item - item 14 would wipe the live content, and
+between items 15 and 16 signup would create sites with no public address.
+Costs: one large release, and nothing new reaches production for a long time.
+
+## D164 - AI use is a monthly credit allowance per site (2026-10-01)
+
+**Chose:**
+- **The unit:** each plan gives a site an allowance of credits per calendar
+  month; 1 credit = US$0.001 of provider cost.
+- **Metering:** each run's credits come from its reported tokens (input,
+  cached input, output) and the configured price of the model that ran.
+- **Starting a run:** a run starts only while some allowance is left, so the
+  last run can pass it by at most one run (each run's output is capped).
+- **Failures** cost no credits.
+- **Screens** show a percentage, never tokens or credits.
+- **Level 2's editor AI** will draw from the same allowance.
+Beats:
+- a count of site generations (D150's starting point): it cannot cover later
+  AI features, and it prices a cheap run and an expensive one the same;
+- an allowance in raw tokens: output tokens cost 5 times input on Claude,
+  cached input a tenth, and models and fallbacks differ, so the same number of
+  tokens would cap very different amounts of money.
+Costs: a price table per model in configuration, kept current by the owner;
+an allowance is an estimate until item 18 measures real runs.

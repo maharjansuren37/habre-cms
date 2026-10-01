@@ -96,8 +96,8 @@ content, media, settings, navigation, members and contact-form submissions;
 nothing of one site is visible to another. Users have a verified email and can
 reset their password by email. Per site: SEO fields on pages and posts, and a
 record of AI use against its cap. Posts and pages remain the only content types
-until Level 3. How sites are separated in the database is `architect`'s call
-(D8 is superseded).
+until Level 3. Sites share tables, separated by a site id and row-level
+security (D151, section 6).
 
 ## 5. Tech - what stack are we using?
 
@@ -149,28 +149,27 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
 
 ## 6. Architecture - how is it structured?
 
-Written by `architect` (2026-09-15). `layout` adds the directory tree beneath
-the part count once the framework is known.
+Written by `architect` (2026-09-15); **re-run for platform v1 on 2026-10-01
+(D151-D164)**. `layout` adds the directory tree beneath the part count once the
+framework is known.
 
 ### Shape questions
 
 | Question | Answer |
 |---|---|
-| More than one deployable service? | **No** - one application serves admin, public site and its endpoints. |
-| Work outside a request? | **No** - nothing in v1 is scheduled or slow; images stored as uploaded. Scheduled publishing or image resizing (both deferred) would make this yes. |
-| Consistency across more than one write? | **No** - every v1 action is a single-row write. One cross-system pair (R2 file + media row) cannot share a transaction; handled by write order (see Data rules). |
-| Dependency whose failure is unacceptable? | **No** - PostgreSQL down means site down, accepted on one VPS. R2 down means images missing, text still served. |
-| Real load or a hard latency target? | **No** - see `blueprint/context/quality-bar.md`. Concurrent writers: a handful of editors at most; same-entry collisions caught by a version check. |
-| Rate-limited or unreliable external API? | **No** - R2 is the only external service. |
-
-**System design does not apply:** single process, one database, no background
-work, no cache.
+| More than one deployable service? | **No** - one application serves the platform host, the admin, every site's public pages and the webhooks (D4 holds). |
+| Work outside a request? | **Yes, one thing: AI site generation** (D154) - 30 seconds to a few minutes, longer than a form post should wait. It runs in the same process, recorded in a database row. Email is sent inside the request. Nothing is scheduled. |
+| Consistency across more than one write? | **Yes** - signup (user, site, membership, settings), applying an AI run (entries, navigation, settings) and a Stripe webhook (event record, plan) are each one transaction. **Concurrent writers:** many sites, a handful of editors each; same-entry collisions are still caught by the version check. |
+| Dependency whose failure is unacceptable? | **No** - PostgreSQL down means every site down, accepted on one VPS. The AI, email, Stripe and R2 each degrade one feature (*Failure modes*). |
+| Real load or a hard latency target? | **No hard target** - an invite-only beta; numbers in `blueprint/context/quality-bar.md`. |
+| Rate-limited or unreliable external API? | **Yes** - the AI providers (rate limits, minute-long calls, refusals) and the email provider (send limits). Stripe is reliable and retries its own webhooks. |
 
 ### Parts
 
-**One application, deployed once.** Admin, public site and endpoints share the
-same data, ship together, and have one owner. A headless API later is extra
-routes in the same app, not a second part.
+**One application, deployed once** (D4, unchanged). Admin, public sites,
+signup, onboarding and webhooks share one database, ship together and have one
+owner. The AI run is work inside that process, not a second part. A headless
+API later is extra routes in the same app.
 
 ### Layout
 
@@ -257,97 +256,200 @@ unit-tested), `db/dev/init.sh` (creates the non-superuser role in the dev
 container), `db/migrations/.gitkeep`, `biome.json`. React Router's agent skill
 lives in `.agents/skills/react-router/` and `.claude/skills/react-router/`.
 
+**Platform v1 adds features, not shape** (D16 holds; `layout` is not re-run).
+New feature directories under `app/features/`: `sites` (host -> site
+resolution, tenancy helpers), `signup` (signup, email verification, password
+reset), `onboarding` (start from a description, the AI run), `ai`, `email`,
+`forms` (contact form, submissions), `seo` (sitemap, robots, meta tags),
+`billing`. Provider clients are `*.server.ts`. Operator commands join
+`create-admin` in `scripts/`.
+
 ### Platform and organisation
 
-- **Platform:** web - browser-based admin plus a server-rendered public website.
-  No mobile app, no offline/PWA.
+- **Platform:** web - browser-based admin plus server-rendered public websites,
+  one per site. No mobile app, no offline/PWA.
 - **Organised by feature:** `auth`, `users`, `content` (posts and pages),
-  `blocks`, `media`, `settings`, `public-site`.
-- **`blocks` is the one shared module:** block type definitions, validation and
-  HTML rendering, defined once and used by the editor, the server and the public
-  site. A page builder later extends this module.
+  `blocks`, `media`, `settings`, `public-site`, plus the v1 features above.
+- **`blocks` is the one shared module:** block types, validation and HTML
+  rendering, used by the editor, the server, the public site and the AI run's
+  output check. Item 14 changes what is inside it, not its role.
+
+### Sites and tenancy
+
+- **Shared tables with a `site_id` on every site-owned table** (D151;
+  supersedes D8's database per site). A database per site lost on a 954 MB
+  server: a connection pool per site and migrations run once per site. A schema
+  per site lost for the same reason.
+- **Isolation is enforced twice:**
+  - **The app:** every site-owned query takes its site from the request, which
+    is resolved once from the host (public) or the membership (admin).
+  - **PostgreSQL row-level security** on every site-owned table: a query sees
+    only rows of the site set for its transaction, and **sees nothing when no
+    site is set**. A forgotten `where site_id` therefore returns nothing instead
+    of another site's rows.
+- **Two database roles** (D152): an owner role runs migrations and owns the
+  tables; the app connects as a second role that can read and write rows but
+  not change the schema, and is subject to row-level security. A table owner
+  bypasses row-level security, which is why one role is not enough.
+- **Platform tables are not under row-level security:** `sites`,
+  `site_domains`, `users`, `site_members`, `email_tokens`, `invites`,
+  `stripe_events`, `schema_migrations`. They are read before a site is known
+  (host lookup, login, signup, webhooks); app code scopes them.
+- **No cross-site references:** foreign keys between site-owned tables include
+  `site_id`, so a page cannot point at another site's media. References inside
+  JSON (image blocks, navigation) are resolved by site-scoped queries, so
+  another site's id renders as missing.
+- **Users are global; roles live on a membership** (D159). In v1 a user belongs
+  to exactly one site: an email already in use is refused when a site admin
+  adds a member. Several sites per account is Level 2.
+- **Media objects** are stored in R2 under `sites/<site id>/`.
+- **Today's installation becomes site 1** (D162): one migration creates it from
+  the current `site_settings`, makes today's users its members with their
+  current roles, and gives it `surenmaharjan.fyi` as its domain. Its content is
+  discarded at item 14 as D148 decided, not here.
 
 ### Hostnames
 
-One application answers two hostnames (D22); Caddy proxies both to the same
-process. Decided 2026-09-16; built in item 4.
+D153; replaces D22 when item 16 is built.
 
-| Hostname | Serves |
+| Host | Serves |
 |---|---|
-| `surenmaharjan.fyi` | the public site: `/`, `/posts`, `/posts/:slug`, `/:slug` |
-| `cms.surenmaharjan.fyi` | the admin: `/admin/*`; `/` redirects to `/admin` |
-| `www.surenmaharjan.fyi` | redirects to `surenmaharjan.fyi` (in Caddy) |
+| `app.<platform domain>` | signup, sign-in, email links, onboarding, the admin under `/admin`, the Stripe webhook |
+| `<platform domain>`, `www.<platform domain>` | redirect to `app.<platform domain>` (no landing page is planned) |
+| `<name>.<sites domain>` | that site's public pages, sitemap, robots file and contact form |
+| a site's own domain | the same as its subdomain - `surenmaharjan.fyi` for site 1, paid sites' domains from item 21 |
+| `media.<sites domain>` | images, from R2's custom domain (replaces `r2.dev`; `needs-you.md`) |
+| `cms.surenmaharjan.fyi` | redirects to `app.<platform domain>` |
 
-- **Two origins in config:** `PUBLIC_URL` and `ADMIN_URL` replace `APP_URL`.
-  When they are equal (development, browser tests on one port) the app behaves
-  as one host and redirects nothing.
-- **The app routes by the request's host before any route runs:**
-  - An admin path on the public host redirects to the same path on the admin
-    host; a public path on the admin host redirects to the public host.
-  - Only GET and HEAD redirect; any other method on the wrong host gets 404.
-  - Redirects are temporary: browsers cache permanent ones indefinitely, and
-    hostnames change once custom domains arrive.
-  - `/healthz` answers on both hosts.
-  - A host matching neither gets 404. Only Caddy reaches the app, and it
-    forwards only these names.
-- **Admin stays under `/admin` on its own host.** The prefix keeps admin and
-  public routes from colliding and lets one-host development work; no route
-  moves and the reserved slugs are unchanged. `/cms` was considered and lost: it
-  reads `cms.surenmaharjan.fyi/cms/...` and buys nothing.
-- **Links across hosts are absolute:** admin "view" links use `PUBLIC_URL`;
-  public pages never link to the admin.
+- **User sites get their own registrable domain**, separate from the platform's
+  (e.g. `habre.page` beside `habre.ai`). The reason is reputation and isolation,
+  not cosmetics. One phishing page on a free site can get its whole registrable
+  domain blocklisted by browsers, which would take the sign-in page down with
+  it. And sibling subdomains count as "same-site", so the SameSite cookie
+  would protect the admin from user sites only on a separate domain.
+- **The host decides the site before any route runs:**
+  - the platform host gets platform and admin routes;
+  - a subdomain of the sites domain is looked up in `sites.subdomain`;
+  - any other host is looked up in `site_domains`;
+  - an unknown host or a suspended site gets 404.
+- **Subdomains** are chosen at signup: lowercase letters, digits and hyphens,
+  with a reserved list (`www`, `app`, `admin`, `api`, `media`, `mail`, ...).
+  Changing one is not in v1 - it breaks every shared link.
+- **Certificates:**
+  - The platform hosts and one **wildcard certificate for `*.<sites domain>`**
+    are configured in the repository's Caddy site file. The wildcard comes from
+    a DNS challenge through Caddy's Cloudflare DNS module, with an API token in
+    Caddy's own environment on the server, never in the repository.
+  - A certificate per subdomain lost: Let's Encrypt limits certificates per
+    registered domain per week, and every site name would be published in the
+    certificate transparency logs.
+  - **Own domains (item 21)** need on-demand certificates: Caddy asks the app
+    whether a domain belongs to a paid site before issuing. That needs one
+    global option in the server's main Caddyfile, which the repository does not
+    own - a one-time `host` change at item 21.
+- **The session cookie is host-only on `app.<platform domain>`.** Public sites
+  set no cookies.
+- **Development:** `app.localhost:3000` and `<name>.localhost:3000`. Chromium
+  resolves `*.localhost` to the loopback address; item 16's spec checks this
+  under Playwright before relying on it.
+- **Links across hosts are absolute.**
 
 ### Routes
 
-**Public** - server-rendered HTML, no login, works without JavaScript:
+**Platform host** - `app.<platform domain>`:
 
-| Route | Shows |
+| Route | What |
 |---|---|
-| `/` | the chosen home page, or a welcome placeholder if none is chosen and published - never the post list (item 9) |
-| `/posts` | latest published posts (always) |
-| `/posts/:slug` | one post |
-| `/:slug` | one page |
-| `/healthz` | health check, including database reachability |
+| `/signup` | create an account and a site, choosing its address; an invite code while signup is invite-only |
+| `/verify` | the emailed link: verifies the address and signs in (D161) |
+| `/forgot-password`, `/reset-password` | password reset by email |
+| `/admin/login` | sign in (unchanged path) |
+| `/start`, `/start/:runId` | "What do you want to create?", "Tell us about it", then progress, then review and apply (item 18) |
+| `/admin` | Home (Level 1) |
+| `/admin/posts`, `/admin/pages`, `/admin/media`, `/admin/settings` | as today, scoped to the member's site; settings gains SEO defaults and the advanced switch |
+| `/admin/users` | members of this site; shown only when advanced is switched on (item 20) |
+| `/admin/messages` | contact-form submissions (item 19) |
+| `/admin/plan` | the paid plan and own domain (item 21) |
+| `/webhooks/stripe` | POST from Stripe, checked by signature - no session, no origin check (item 21) |
+| `/healthz` | every host |
 
-- Unknown or draft content returns 404.
-- Reserved slugs pages cannot take: `admin`, `posts`, `api`, `healthz`.
+Screen names and navigation ("Blog" for posts, where Messages sits) are
+`prototype`'s.
 
-**Admin** - login required, interactive in the browser:
+**Site hosts** - a subdomain or an own domain:
 
-| Route | Who |
+| Route | What |
 |---|---|
-| `/admin/login` | anyone |
-| `/admin/posts`, `/admin/posts/new`, `/admin/posts/:id` | all roles (authors see and edit only their own) |
-| `/admin/pages`, `/admin/pages/new`, `/admin/pages/:id` | editor, admin |
-| `/admin/media` | all roles |
-| `/admin/settings` - title, logo, menu, home page | admin |
-| `/admin/users`, `/admin/users/:id` - add, change role, reset password, deactivate | admin |
+| `/`, `/posts`, `/posts/:slug`, `/:slug` | as today, for the host's site |
+| `/sitemap.xml`, `/robots.txt` | per site (item 17) |
+| `/_contact` | POST only: a contact-form submission (item 19) - **the only state-changing route on a site host**, accepted only when the origin is that site's own host |
+| `/healthz` | every host |
 
-Each admin action has a server handler; its exact shape follows the framework's
-conventions.
+- Server-rendered, no login, works without JavaScript - unchanged.
+- Item 17's and 19's specs check that no page slug can take these paths.
 
-**The first admin is created by a command run on the server, not a web setup
-page** - an open setup page on a freshly deployed server belongs to whoever
-reaches it first.
+**Operator work is server commands, not screens, in v1** (D158), like
+`create-admin` today: `create-invite`, `suspend-site` / `unsuspend-site`
+(abuse), `delete-site` (a deletion request). An operator screen waits until the
+commands are run often enough to hurt.
+
+### Switches - what a self-hosted copy can turn off
+
+D148: billing, AI, email and signup are each switchable off.
+
+| Switch | Off means |
+|---|---|
+| Signup: `off`, `invite` or `open` | `off`: accounts come only from `create-admin`. `invite`: a code from `create-invite` is required - the beta. `open`: anyone can sign up |
+| AI (a primary provider's key is set; up to two fallbacks, in order, are optional) | "Start from a description" is not offered; sites start blank. Without fallbacks, a primary outage fails the run |
+| Email (SMTP is configured) | signup must be off, there is no reset by email (a site admin resets a member's password, as today), and contact submissions are stored without a notification |
+| Billing (Stripe is configured) | no plan page; the configured limits apply to every site |
+| Limits (configuration) | default to the Free plan (D150, D164); a self-hosted copy can raise or remove them |
+
+A switch that is on with its configuration missing stops the app at startup,
+like every other variable today.
 
 ### Data model
 
-One site per installation - no site id on any table (D8).
+Shared tables, `site_id` on site-owned tables (D151). Site-owned tables, in
+*italics*, are under row-level security.
 
+- **sites** - `id`, `subdomain` (unique, lowercase), `plan` (free | paid),
+  `suspended_at`, `created_at`, `updated_at`; from item 21 `billing_customer_id`,
+  `billing_subscription_id`, `billing_status`, `paid_until`
+- **site_domains** - `domain` (unique, lowercase), `site_id`, `verified_at`,
+  `created_at`
 - **users** - `id`, `email` (unique, case-insensitive), `name`,
-  `password_hash`, `role` (admin | editor | author), `token_version`,
-  `deactivated_at`, `created_at`, `updated_at`
-- **entries** - posts and pages in one table: `id`, `type` (post | page),
-  `title`, `slug` (unique per type), `blocks` (JSON), `blocks_format` (`v2` | `v3`), `status`
-  (draft | published), `published_at`, `author_id` -> users, `version`,
-  `created_at`, `updated_at`
-- **media** - `id`, `storage_key`, `filename`, `mime_type`, `byte_size`,
-  `width`, `height`, `alt_text`, `uploaded_by` -> users, `created_at`
-- **site_settings** - a single row: `site_title`, `logo_media_id` -> media,
-  `navigation` (JSON list of `{label, pageId | url}`), `home_page_id` -> entries
-  (nullable, `ON DELETE SET NULL`; item 9), `updated_at`
+  `password_hash`, `email_verified_at`, `token_version`, `created_at`,
+  `updated_at` - role and deactivation move to the membership
+- **site_members** - `site_id`, `user_id`, `role` (admin | editor | author),
+  `deactivated_at`, `created_at`; primary key (`site_id`, `user_id`)
+- **email_tokens** - `id`, `user_id`, `purpose` (verify | reset), `token_hash`
+  (SHA-256; the token itself exists only in the email), `expires_at` (verify
+  24 hours, reset 1 hour), `used_at`
+- **invites** - `id`, `code_hash`, `note`, `created_at`, `used_at`,
+  `used_by_site_id`
+- ***entries*** - as today plus `site_id`; `slug` unique per site and type;
+  `blocks_format` gains item 14's format; `seo_title`, `seo_description`,
+  `social_image_media_id` (item 17)
+- ***media*** - as today plus `site_id`; `storage_key` under `sites/<site id>/`
+- ***site_settings*** - one row per site, keyed by `site_id`: as today plus
+  `site_description` (item 17) and `advanced_enabled` (item 20)
+- ***contact_submissions*** (item 19) - `id`, `site_id`, `entry_id` (the page
+  the form was on), `name`, `email`, `message`, `created_at`, `notified_at`
+  (empty when the email failed), `read_at`
+- ***ai_runs*** (item 18) - `id`, `site_id`, `user_id`, `kind` (website | blog
+  | business | portfolio), `description`, `status` (running | succeeded |
+  failed | applied), `result` (the validated proposal), `error`, `provider`,
+  `model`, `input_tokens`, `cached_input_tokens`, `output_tokens`, `credits`,
+  `created_at`, `finished_at`
+- **stripe_events** (item 21) - `id` (Stripe's event id), `type`,
+  `received_at`
 - **schema_migrations** - owned by the in-repo migration runner: `filename`,
   `applied_at`. No library creates any other table.
+
+**Usage is computed, never counted:** storage is the sum of a site's media
+sizes, and AI use is the sum of `credits` over its runs this month. There are
+no counters to drift.
 
 **Blocks** are an ordered list of `{id, type, data}`:
 
@@ -369,73 +471,285 @@ One site per installation - no site id on any table (D8).
   (`blocks_format` v2, D28-D30).
 - **Image blocks store a media id, not a URL.** The URL is resolved at render
   time, so a bucket or domain change never touches content.
+- **Item 14 (TipTap, D148):** a column, and a post, holds one TipTap
+  (ProseMirror) JSON document instead of an Editor.js block list. On save it is
+  validated by **our own Zod schema**, which admits only our nodes and marks:
+  paragraph, heading, lists, image by media id, bold, italic and an
+  allowlisted link. It is rendered by **our own escaping renderer**. TipTap's
+  HTML output is never stored or trusted, so D28-D30 hold. Sections, columns
+  and ready-made sections stay as they are around it. v2 and v3 content is
+  discarded, not converted - a destructive migration with its own yes.
 
 ### Data rules
 
 - Saving a published entry updates the live page (revisions are deferred).
 - A page has at most 30 sections and a section at most 3 columns; a save
-  beyond that is refused (one Editor.js instance mounts per column).
+  beyond that is refused (one editor mounts per column).
 - Every save sends the entry's `version`; if someone saved in between, the save
   is rejected with "changed by someone else, reload".
 - **Upload:** write the R2 object first, then the media row. A failure between
   leaves an unreferenced object - harmless.
 - **Delete media:** remove the row first, then the object.
-- **Users are deactivated, never deleted** - authorship stays intact and nothing
-  needs reassigning.
+- **Memberships are deactivated, never deleted** - authorship stays intact and
+  nothing needs reassigning.
 - **The server's disk holds no state but the database.** No local uploads, no
   config edited by hand on the server (D9).
+- **Limits refuse the action, never the published site** (D150). An upload past
+  the storage cap is refused. Two uploads at once can pass the cap by at most
+  one file each - accepted.
+- **AI use is a monthly allowance of credits per site** (D164).
+  - **1 credit = US$0.001 of provider cost,** worked out from each run's
+    reported tokens and the configured price of the model that ran. The same
+    allowance caps the same money whichever model or fallback ran.
+  - **A run starts only while some allowance is left.** The last run of the
+    month can pass it by at most one run, because each run's output is
+    capped.
+  - **A failed run costs no credits.**
+  - **Screens show a percentage,** never tokens or credits.
+- **AI suggests, the user applies** (principle). A run stores a proposal;
+  applying it writes pages **as drafts**, and the navigation and SEO settings,
+  in one transaction. Nothing is published until the user publishes. In v1 a
+  run is offered only while a site has nothing published, so applying one
+  cannot change a live site.
+- **AI output is untrusted input:** it passes the same schemas as an editor's
+  save, and its links pass the same allowlist.
+- **The AI chooses no images in v1** - no stock or generated pictures. That
+  would bring licensing and cost questions with it. Its sections render
+  without an image, and the review screen points at empty image slots.
+- **A contact submission is saved before its notification email is sent.**
+- **Deleting a site** removes its rows first, then its R2 prefix. Objects left
+  behind by a failure are harmless.
 
 ### Where logic lives
 
-All on the server: authorization, block validation, rendering. The browser
-handles admin interactivity only - the editor and uploads - and never decides
-permissions.
+All on the server: authorization, validation, rendering, and every call to the
+AI, email and Stripe. The browser runs the editor and uploads, and is
+redirected to Stripe's own pages for payment. It never holds a provider key or
+decides a permission.
 
 ### Auth boundary
 
-- Email and password -> JWT signed with a server secret, 7-day expiry, in an
-  **httpOnly, Secure, SameSite=Lax cookie** - not browser storage, which page
-  scripts can read.
-- **Every admin request loads the user from the database** and rejects it if
-  deactivated or if `token_version` does not match the token. **Role is read
-  from the database, never from the token.** Removing a user, changing a role or
-  resetting a password bumps `token_version` and takes effect immediately. Cost:
-  one indexed lookup per admin request (D6).
-- Login is rate-limited per IP and per email.
-- Logged: failed logins, role changes, deactivations, password resets.
-- State-changing requests are protected against cross-site request forgery by
-  the SameSite cookie plus an origin check against `ADMIN_URL`. The public site
-  has no forms in v1, so every state-changing request to the public host is
-  refused.
-- The session cookie is host-only on the admin hostname (no `Domain`
-  attribute), so browsers never send it to the public site.
-- Public routes need no auth; drafts are never served publicly.
+- **Sign-in on the platform host** -> JWT, 7 days, in an **httpOnly, Secure,
+  SameSite=Lax cookie**, host-only on `app.<platform domain>` - not browser
+  storage, which page scripts can read.
+- **Every admin request loads the user and their membership** from the
+  database, and rejects a deactivated membership or a mismatched
+  `token_version`. **The role is read from the membership, never the token**
+  (D6, now per site). Changing a role, deactivating a membership or resetting a
+  password bumps `token_version` and takes effect on the next request.
+- **Signup** creates the user, the site, the admin membership and the settings
+  in one transaction. **The emailed link verifies the address and signs the user
+  in; nothing works before that** (D161). This stops AI spend through throwaway
+  addresses and keeps the first two minutes short: email, click, start.
+- **Password reset:**
+  - the answer is the same whether or not the email has an account;
+  - the token is single-use and lasts an hour;
+  - a completed reset bumps `token_version`.
+  A site admin can still reset a member's password while each user belongs to
+  one site. That becomes email-only with several sites per account (Level 2).
+- **Rate limits** use the existing in-memory limiter, per process. A restart
+  resets them - accepted with one process. They cover:
+  - login - existing;
+  - signup and resending verification - per IP;
+  - reset requests - per IP and per email;
+  - contact submissions - per IP, per site;
+  - AI runs - per site, per day.
+- **CSRF:**
+  - The platform host checks the origin against the platform URL.
+  - Site hosts refuse every state-changing request except `/_contact` from
+    the site's own origin.
+  - The Stripe webhook is checked by its signature instead.
+- **Logged** - today's events (failed logins, role changes, deactivations,
+  password resets), plus:
+  - signups, verifications, and reset requests and completions;
+  - site suspensions and deletions;
+  - each AI run's outcome and provider;
+  - webhook failures.
+- **Public routes need no auth;** drafts are never served publicly.
 
-| | Author | Editor | Admin |
+| (per site) | Author | Editor | Admin |
 |---|---|---|---|
 | Posts | own: create, edit, publish, delete | all | all |
 | Pages | - | all | all |
 | Media | upload; delete own | all | all |
-| Settings, users | - | - | yes |
+| Settings, members, plan, messages | - | - | yes |
+| Start from a description | - | - | yes |
 
 ### Integrations
 
-- **Cloudflare R2** - stores images; served to visitors from the bucket's public
-  URL.
-  - **Uploads go through the app server** (D7): 10 MB cap; JPEG, PNG, WebP, GIF
-    only. **No SVG** - it can carry script.
-- **Nothing else.** No email, analytics, cache or CDN beyond R2.
+- **Cloudflare R2** - images, as today, under a per-site prefix, served from
+  `media.<sites domain>`.
+  - **Uploads go through the app server** (D7): 10 MB cap; JPEG, PNG, WebP,
+    GIF only. **No SVG** - it can carry script.
+- **AI: three providers in order - Anthropic's Claude API, then OpenAI, then
+  OpenRouter** (D155). They sit behind one `ai` module with one adapter per
+  provider.
+  - **Two packages, not three.** Anthropic and OpenAI are called through their
+    official SDKs (`@anthropic-ai/sdk`, `openai`). OpenRouter speaks OpenAI's
+    API, so the `openai` SDK calls it by changing the base URL - no new
+    package.
+  - **OpenRouter's request settings:**
+    - `provider.require_parameters: true` - only endpoints that honour our
+      output schema;
+    - `provider.data_collection: "deny"` - no upstream that stores or trains
+      on the data;
+    - its own failover between upstreams left on.
+    Its model is configuration: Claude through Amazon's or Google's cloud
+    keeps the primary's model family when Anthropic itself is down. Asking
+    for zero data retention as well can leave some models with no endpoint
+    that accepts a schema, so item 18 checks the combination it uses.
+  - **The models are configuration,** with a price per model for credits
+    (D164). Item 18 measures the cost and quality of Claude Opus 5.5
+    (US$4 / US$20 per million input / output tokens) against Claude Sonnet 5.5
+    (US$2 / US$10), and each fallback model the same way. The owner picks.
+  - **When the next provider is used:** only when the current one is
+    unavailable - rate limited, overloaded, a server error, a dropped
+    connection or a timeout - once its SDK's own retries are spent. Every
+    move is logged.
+  - **When it is not used:**
+    - **A refusal never moves to another provider.** A description any
+      provider declines - a fake bank login page, say - is not sent elsewhere
+      to get a yes. Anthropic's own server-side fallback to another Claude
+      model handles Claude's refusals; if that also declines, the run fails.
+    - **A request error (400) or an authentication error (401)** is our bug or
+      a broken key. It fails loudly instead of being hidden by the fallback.
+  - **Every provider fills the same constrained schema:** pages made of
+    ready-made section kinds with plain-text slots, navigation and SEO text.
+    Our Zod schema validates it and the server turns it into blocks, so a
+    fallback result has the same shape as a Claude one. The AI never writes
+    HTML or free-form editor JSON.
+  - **Tokens, credits, provider and model are recorded on each run.** The fixed
+    instructions are prompt-cached.
+  - **Cost of the fallbacks:**
+    - three accounts, keys and spend limits;
+    - a prompt that item 18 tests on every configured model;
+    - a privacy policy that names Anthropic, OpenAI, and OpenRouter with its
+      upstreams, because a user's description reaches whichever one runs.
+  - **Optional.** A self-hosted copy can use any one provider alone, with its
+    own key. Each fallback is optional.
+- **Email: SMTP**, through `nodemailer` (D156) - SMTP works with any provider
+  and any self-hosted mail server.
+  - **The hosted platform uses Resend:** its free tier is 3,000 emails a month
+    and **100 a day**, whichever runs out first; Pro is US$20 for 50,000, with
+    no daily cap.
+  - **When to move:** to Resend Pro or Postmark (US$15 for 10,000) once the
+    daily cap is hit, for example by a large batch of beta invites, or once
+    verification emails land in spam. Either move is a configuration change.
+  - **Optional** (see *Switches*).
+- **Payments: Stripe** (D149), through **the official `stripe` SDK** (D160).
+  It has no dependencies of its own, and it is better than hand-written calls
+  where it matters:
+  - it checks webhook signatures - timing-safe, with a timestamp tolerance -
+    which is security-critical code not to write ourselves;
+  - it pins the API version and adds idempotency keys to its retries;
+  - its types cover every object.
+  - **Stripe's hosted pages:** Checkout and the Customer Portal, so card
+    details never reach the server.
+  - **Webhooks are the only thing that changes a site's plan.** Each event is
+    processed once, keyed by its event id.
+  - **Optional.**
+- **Contact-form spam: no third party** (D157) - a hidden honeypot field, a
+  minimum time to fill the form, and a per-IP limit. It works without
+  JavaScript. A captcha comes only if spam gets through.
+- **Nothing else** - no analytics, cache, queue, CDN or image service.
 
-### Scaling ceiling
+### System design
 
-One VPS. The first thing likely to break is **large unresized images making
-public pages heavy**, then rendering CPU under a traffic spike. If the
-performance bar is missed, the first fix is caching rendered public pages,
-invalidated on entry save, publish/unpublish, and settings change.
+**Background work - the AI run** (D154):
 
-**Many sites later:** a database per site with the same tables; the app picks
-the database from the request's domain. Reconsider shared tables with a site id
-at hundreds of sites (D8).
+- **The flow:**
+  - The action records an `ai_runs` row as `running`.
+  - It starts the generation in the same process, without waiting for it.
+  - It redirects to `/start/:runId`, which polls until the run finishes.
+- **At most two runs at once per process.** A third is refused with "busy,
+  try again in a minute". That keeps the providers' rate limits and the spend
+  bounded.
+- **A run has a 5-minute timeout, covering every provider's attempt.**
+- **A run that a restart interrupted is marked `failed` at the next startup.**
+- **All or nothing:** a run writes only its own row. Applying it is the one
+  transaction. Retrying is a new run. A failed run costs no credits.
+- **Lost:**
+  - generating inside the request, streamed to the page - a dropped mobile
+    connection would lose a paid run;
+  - a job queue or worker process - D4, the memory budget, and nothing else
+    needs one.
+
+**Failure modes:**
+
+| Dependency | Down, slow or refusing |
+|---|---|
+| PostgreSQL | every site and the admin down; `/healthz` 503 |
+| R2 | uploads fail with a message; images missing, text still served |
+| AI provider | Claude unavailable: the SDK retries, then the run moves to OpenAI, then to OpenRouter. All unavailable: the run fails ("Couldn't build your site - try again, or start blank"), no credits spent. A refusal never moves provider; it is a failed run with its own message |
+| Email | signup: "We couldn't send the email" with a resend button. Reset: the same neutral reply, failure logged. Contact form: submission kept, `notified_at` empty, shown in Messages |
+| Stripe API | the plan page says payment is unavailable; sites unaffected |
+| Stripe webhooks | Stripe retries for days; each event processed once |
+
+**Caching:** none, as before. The first fix when public pages miss the
+performance bar is a per-site cache of rendered pages. It is invalidated when
+an entry is saved, published or unpublished, or the settings change.
+
+**Consistency:**
+
+- **Transactions:** signup, applying a run, a webhook and site deletion's
+  rows.
+- **No cross-system transaction:** R2 is ordered by write order, as before.
+
+**Rate limits, both directions:**
+
+- **Inbound:** as in *Auth boundary*.
+- **Outbound:**
+  - AI calls are bounded by two concurrent runs and each site's credit
+    allowance;
+  - email volume is a few messages per signup;
+  - Stripe calls happen only on a user's click.
+
+**Scaling ceiling** - not measured.
+
+- **One process renders every site,** so one site's traffic spike slows all of
+  them. That noisy-neighbour risk is the first thing to break. The first fix
+  is the page cache above; the next is a bigger VPS.
+- **Large unresized images** still make public pages heavy, as before.
+- **AI runs are network waits, not memory or CPU.**
+- **Shared tables** are not the limit before thousands of sites.
+
+**What must be measurable** (input to `monitor`):
+
+- **Uptime checks** on the platform host, on one site subdomain (it proves the
+  wildcard certificate), and on `surenmaharjan.fyi` - this closes F-113's gap.
+- **AI runs:** count, outcome, duration, provider, and tokens and credits per
+  run (stored on `ai_runs`); credits spent per day across all sites.
+- **Failures:** email sends and webhooks (logs).
+- **Growth:** signups per day, and sites at their storage or AI limit.
+- **Errors:** 5xx responses per host.
+
+### Build order - notes for `spec`
+
+Items are built and merged one by one, but none is deployed until v1 is
+complete (D163). Each item still has to leave `npm run verify` and the full
+browser suite green.
+
+- **13** - none.
+- **14** - the TipTap format and its Zod schema. Discarding v2/v3 content is a
+  destructive production migration with its own yes.
+- **15** - the tenancy foundation, and too big for one review. Proposed split:
+  - **15a. Sites and memberships** - `site_id`, row-level security, the two
+    roles, site 1 from today's data, the admin scoped by membership. No
+    signup.
+  - **15b. Signup** - the email module, signup with verification, invites, and
+    choosing an address.
+  - **15c. Password reset by email.**
+  - **15d. Storage cap per site.**
+- **16** - host resolution, `site_domains` (`surenmaharjan.fyi`), the wildcard
+  certificate, `suspend-site`.
+- **17** - SEO.
+- **18** - AI runs: providers and fallbacks, credits, the proposal, review and
+  apply.
+- **19** - the contact form and Messages.
+- **20** - the advanced switch.
+- **21** - billing, plus own domains through on-demand certificates. They stay
+  in 21, not 16: nobody can pay before 21, and site 1's domain needs only a
+  fixed entry.
 
 ## 7. UI/UX - how should it look and feel?
 
@@ -452,7 +766,9 @@ at hundreds of sites (D8).
   no settings they don't need.
 - Light and dark mode from the first screen, not added later - admin area and
   public site both.
-- No specific visual reference yet; `prototype` settles the look.
+- The look is recorded in `blueprint/context/design.md` (`prototype`,
+  2026-09-15). Platform v1's new screens - signup, onboarding, the Level 1
+  admin and Home, the TipTap editor - are not designed yet.
 
 ## 8. Deployment - where and how does it ship?
 
@@ -461,7 +777,43 @@ same server** (2026-09-16, `deploy/setup-server.sh`). Images go to **Cloudflare 
 
 From `architect`:
 
-- **Domains (D22, 2026-09-16):** public site `surenmaharjan.fyi`
+- **Platform v1 (D153, 2026-10-01):**
+  - **Two domains:** the platform domain (`app.` serves the app; the apex and
+    `www` redirect to it) and a separate sites domain (a wildcard for every
+    site, plus `media.` for R2). Both are on Cloudflare DNS. They replace the
+    two fixed hostnames below at item 16.
+  - **Caddy** needs the Cloudflare DNS module for the wildcard certificate, and
+    an API token in its own environment. That is `host`'s change, with a yes.
+  - **Item 21** adds on-demand certificates for own domains: one global option
+    in the main Caddyfile.
+- **Two database roles (D152):**
+  - an owner role runs migrations, so `npm run db:migrate` needs the owner's
+    connection string;
+  - the app role reads and writes rows only;
+  - `deploy/setup-server.sh`, `db/dev/init.sh` and CI create both.
+  - Backups are unaffected: `pg_dump` runs as the `postgres` superuser.
+- **New optional configuration:**
+  - the signup mode;
+  - the AI providers' keys and models: Anthropic first, then OpenAI and
+    OpenRouter as optional fallbacks, with a price per model for credits;
+  - SMTP settings and the from address;
+  - Stripe's secret key, webhook secret and price;
+  - the plan limits: storage and the monthly AI credit allowance.
+  - `PUBLIC_URL` and `ADMIN_URL` become the platform URL and the sites domain
+    at item 16.
+- **One deployable, one process, `/healthz` on every host** - unchanged.
+- **Production holds until v1 is done (D163).** Production stays on release
+  `8d82ce4` (items 1-12) while items 13-21 are built, then v1 ships in one
+  deploy:
+  - **Its migrations run once,** in order, in that deploy - including item 14's
+    content discard and the move to site 1.
+  - **Rehearse first.** Before that deploy, the whole migration set runs
+    locally against a restored copy of the latest production backup.
+  - **Rollback is the backup, not the symlink:** restore the pre-deploy dump
+    and point `current` back at `8d82ce4`.
+  - **An urgent fix in the meantime** (a security patch) ships from a branch
+    off `8d82ce4`, never from `main`, which by then holds unreleased v1 work.
+- **Domains (D22, 2026-09-16; replaced by D153 at item 16):** public site `surenmaharjan.fyi`
   (`PUBLIC_URL=https://surenmaharjan.fyi`), admin `cms.surenmaharjan.fyi`
   (`ADMIN_URL=https://cms.surenmaharjan.fyi`), `www` redirecting to the apex.
   `deploy/caddy/habre-cms.caddy` serves all three names, proxying the two app
@@ -589,8 +941,9 @@ own key.
   explicit yes at the time.
 - **Stack kept (D148):** the rescope does not change the stack beyond the
   editor swap; no Redis, separate search engine or cloud platform.
-- **Paid services:** an AI provider and an email provider (verification,
-  password reset, form notifications) - both accounts and spend are the owner's.
+- **Paid services:** three AI providers (D155) and an email provider
+  (verification, password reset, form notifications; D156) - accounts and
+  spend are the owner's.
 - **AI cost and abuse:** public signup plus AI means AI use is capped per site
   from the first release.
 - **Self-hostable (D148):** everything must run with only Node.js, PostgreSQL
@@ -646,16 +999,16 @@ signup, many sites, forms and password reset by email move into platform v1.
 
 - ~~One installation per customer, or many sites in one system?~~ **Settled by
   D8:** one site per installation, no site id; many sites later means a database
-  per site. **Reopened by D148:** platform v1 has many sites; how they are
-  separated is `architect`'s.
-- **The platform's name and domain.** `surenmaharjan.fyi` is a personal domain;
-  sites need `<name>.<platform domain>`. Owner's decision, needed by item 16.
+  per site. **Reopened by D148, settled by D151:** shared tables with a site id
+  and row-level security.
+- **The platform's name and domain.** `surenmaharjan.fyi` is a personal domain.
   **The owner is buying a new domain for the platform (2026-10-01)**; the name
-  is not chosen. Whether user sites also get a separate domain of their own is
-  `architect`'s.
-- **Which AI and email providers.** Accounts and spend are the owner's; the
-  choice is recorded as a dependency decision by `architect`. ~~Payment
-  provider~~ **settled by D149:** Stripe, as a plain processor.
+  is not chosen. Owner's decision, needed by item 16. ~~Whether user sites also
+  get a separate domain~~ **settled by D153:** yes, a separate sites domain, so
+  sites live at `<name>.<sites domain>`.
+- ~~Which AI and email providers~~ **settled by D155 and D156:** Anthropic,
+  then OpenAI and OpenRouter as fallbacks; email over SMTP through Resend.
+  ~~Payment provider~~ **settled by D149:** Stripe, as a plain processor.
 - **Prices and plan limits** - what Free allows and what the paid plan raises.
   Owner's decision, needed by item 21.
 - **The open-source licence** - AGPL (a hosted fork must stay open) or MIT

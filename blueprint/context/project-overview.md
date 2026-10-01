@@ -6,145 +6,123 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-01, `main` (`c17d91f`).
+Generated 2026-10-01, `rescope/platform` after `e71ad2c`.
 
 ## What this is
 
-**Habre CMS** - a website management system like WordPress, but **really easy**
-for the non-technical people who edit content. Editors write, manage and publish
-one website's content in a block editor, and the CMS serves the public site
-itself, so no developer is needed to put content online (D1).
+**Habre is becoming an AI-powered platform to create, manage and publish a
+website** (D148): describe what you want, get a site, edit it, publish it.
+**Simple by default, powerful when needed.** The CMS serves each public site
+itself.
 
-- **Authors and editors** at a small organisation, **admins** who set it up and
-  manage users, **visitors** with no accounts. A handful of users per site; one
-  site per installation (D2, D8).
-- **Ease of use is the product:** few screens, obvious next actions, no settings
-  an editor does not need. Light and dark mode in admin and public site.
-- Meant to become a hosted service later; no billing or signup now.
+- **Level 1 - Personal** (individuals, small businesses, no technical
+  knowledge): **platform v1 serves only this level.** Level 2 (teams) and Level
+  3 (developers: API, content models) come later.
+- Items 1-12 built a single-site CMS; it is live and is the base of Level 1.
+- Sold as a hosted service; **free and open source to self-host**.
+- **Principles** (`blueprint/context/principles.md`): simple by default; **AI
+  suggests, the user applies**.
 
 ## Scope
 
-**First version (all built):** login with a 1-week session and no signup; posts
-and pages in a block editor (text, heading, image, list; bold, italic, links);
-draft / publish / unpublish; image upload and a media library; a public site in
-one built-in theme; site title, logo and navigation menu; author / editor /
-admin roles with user management; light and dark mode.
+**Built (items 1-12, live):** login; posts and pages in an Editor.js block
+editor; draft / publish; images and a media library; one theme; title, logo,
+navigation, home page (D107); author / editor / admin roles; light and dark
+mode; sections, columns and ready-made sections (D114-D143).
 
-**After MVP (built):** item 9 - an admin picks one published page as `/`, with a
-welcome placeholder until one is chosen; `/` never lists posts, which live at
-`/posts` (D107).
+**Platform v1 (items 13-21, queued):** stack upgrade; TipTap 3 replaces
+Editor.js (content discarded); signup with email verification, one isolated
+site per signup; sites on their own subdomain; SEO basics; AI drafts a site
+from a description; contact form; Level 1-only admin; Stripe billing for one
+paid plan. Storage and AI limits apply from the first signup; invite-only beta,
+billing off (D150, D164).
 
-**Active direction (D113, rescope 2026-10-01): a first-cut page builder**,
-items 10-12. **Item 10 is built:** a page is an ordered list of 1-30 sections
-(`blocks_format` v3, move up/down buttons, D114-D118); v2 pages load as one
-section and convert on save; posts stay flat. **Item 11 is built:** a section
-has 1-3 columns, one Editor.js each, stacked below `48rem`; fewer columns merge,
-never discard (D119-D124). **Item 12 is built:**
-ready-made `hero`, `cta` and `image-text` sections (heading, text, button;
-plain-string slots, own types, an add button each; image + text adds a
-media-library picture, left of the text from `48rem`; D125-D143). No
-drag-and-drop, no new dependency.
-
-**Deferred - do not build unasked.** Full list and reasons: plan section 11.
-Soon after: reusable saved sections, section styling, page templates,
-categories and tags, scheduling and revisions, SEO and sitemap, password reset
-by email, custom domains. Later or never: free-form canvas, custom CSS/HTML,
-headless API, multiple themes, many sites, WordPress import, plugins.
+**Deferred - do not build unasked.** Plan section 11: Level 2 and 3 features,
+free-form canvas, custom CSS/HTML, multiple themes.
 
 ## Stack
 
-Pinned versions and reasons: plan section 5 and `AGENTS.md` *Stack and
-versions*. **Minimal dependencies is a constraint** - a new runtime dependency is
-a recorded decision.
+Pinned versions: plan section 5 and `AGENTS.md`. **Minimal dependencies is a
+constraint** - each new runtime dependency is a recorded decision.
 
-- TypeScript 7.0.2, strict, `erasableSyntaxOnly` (no `enum`/`namespace`) - Node
-  runs `.ts` by stripping types. Node.js 26 (D15).
-- **React Router 8.3.1 framework mode**, React 19.3.0, Vite 8.3.0, on `node:http`
-  via `@remix-run/node-fetch-server` with `trustProxy` - **no Express** (D10,
-  D17, D23). React Router 8 is newer than an agent's training: the installed
-  docs in `node_modules/react-router/docs/` decide.
-- PostgreSQL 16, `postgres` driver, **raw SQL, no ORM**, numbered `.sql`
-  migrations run by `db/migrate.ts` (D11).
-- Plain CSS with custom-property tokens and CSS Modules, **no Tailwind** (D12);
-  the look is in `blueprint/context/design.md`.
-- Auth: `jose` JWT + `node:crypto` scrypt, **no auth library** (D6). Zod at every
-  trust boundary.
-- Editor.js with header and list tools; the image tool is hand-written (D13,
-  D58). Media in Cloudflare R2 via `aws4fetch`, types checked by `image-size`.
-- Biome; `node:test` unit tests; Playwright (Chromium) browser tests.
+- TypeScript 7.0.2 strict, `erasableSyntaxOnly`; Node.js 26 (D15).
+- **React Router 8.3.1 framework mode**, React 19.3.0, Vite 8.3.0, on
+  `node:http` - **no Express** (D10, D17, D23). The installed docs in
+  `node_modules/react-router/docs/` decide.
+- PostgreSQL 16, `postgres` driver, **raw SQL, no ORM** (D11).
+- Plain CSS, tokens, CSS Modules, **no Tailwind** (D12); look in `design.md`.
+- `jose` JWT + scrypt, **no auth library** (D6); Zod at every trust boundary.
+- Editor.js today (D13); R2 via `aws4fetch`; Biome; `node:test`; Playwright.
+- **v1 adds, pinned when installed:** TipTap 3 (item 14), `@anthropic-ai/sdk`
+  and `openai` (D155), `nodemailer` (D156), `stripe` (D160).
 
 ## Architecture
 
-Full detail: plan section 6. **One application, deployed once** (D4) - no
-background jobs, cache, queue or multi-write transactions; do not add them
-without a requirement that calls for them.
+Full detail: plan section 6 (re-decided for v1: D151-D164). Items 1-12 are
+built as one site; items 13-21 build the rest.
 
-- **Layout (D16):** `app/routes.ts` lists every URL; route modules live in
-  `app/features/<feature>/` (`auth`, `admin-shell`, `users`, `content`,
-  `blocks`, `media`, `settings`, `public-site`); shared code in `app/lib/`.
-  `server.js` + `server/app.ts` are the Node entry; `db/` migrations; `e2e/`
-  browser tests; `deploy/` server setup, systemd unit, Caddy site file.
-  Conventions (imports, `.server.ts` / `.client.tsx`, tests): `coding-standards.md`.
-- **Two hostnames, one app (D22):** `surenmaharjan.fyi` serves the public site,
-  `cms.surenmaharjan.fyi` the admin under `/admin`. Host routing runs before any
-  route (`app/lib/host-routing.ts`); `PUBLIC_URL` and `ADMIN_URL` are equal in
-  development.
-- **Routes:** public `/` (chosen home page, else a welcome placeholder - D107),
-  `/posts`, `/posts/:slug`, `/:slug`, `/healthz` - server-rendered,
-  work without JavaScript. Admin `/admin/posts`, `/pages`, `/media`,
-  `/settings`, `/users`. First admin comes from `npm run create-admin`, never a
-  web page.
-- **Data model** (no site id - D8): `users`, `entries` (posts and pages in one
-  table, D5), `media`, `site_settings` (single row), `schema_migrations`.
-- **Blocks** are an ordered list of `{id, type, data}`. Text is structured runs,
-  **never raw HTML**, escaped on render (D28-D30); links pass an allowlist.
-  Image blocks store a media id, resolved at render (D60).
-- **Data rules:** every save sends `version` and a stale save is rejected; R2
-  object before media row on upload, row before object on delete; **users are
-  deactivated, never deleted**; the server's disk holds no state (D9).
+- **One application, deployed once** (D4). One in-process background job: the
+  AI run, recorded in `ai_runs`, two at a time (D154). No queue, cache or cron.
+- **Layout (D16):** routes in `app/routes.ts`, modules in
+  `app/features/<feature>/`, shared code in `app/lib/`, `*.server.ts` for
+  server-only. v1 adds `sites`, `signup`, `onboarding`, `ai`, `email`, `forms`,
+  `seo`, `billing`. Conventions: `coding-standards.md`.
+- **Tenancy (D151, D152):** shared tables with `site_id`; **PostgreSQL
+  row-level security** as a second guard that returns nothing when no site is
+  set; an owner role for migrations, an app role under row-level security.
+  Users are global, roles live on `site_members`, one site per user in v1
+  (D159). Today's install becomes site 1 (D162).
+- **Hosts (D153, replacing D22 at item 16):** the app at `app.<platform
+  domain>`; sites at `<name>.<sites domain>`, a separate registrable domain;
+  own domains via `site_domains`; one wildcard certificate. Today:
+  `surenmaharjan.fyi` public, `cms.surenmaharjan.fyi` admin (D22).
+- **Data model:** `sites`, `site_domains`, `users`, `site_members`,
+  `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
+  `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
+- **Blocks:** text is structured, **never raw HTML**, escaped on render
+  (D28-D30); images store a media id (D60). From item 14, TipTap JSON is
+  checked by our own Zod schema and rendered by our own renderer.
+- **Data rules:** version check on save; R2 object before media row; members
+  deactivated, never deleted; no state on disk (D9); a limit refuses the
+  action, never the published site (D150); AI use is a monthly credit
+  allowance (D164); **AI output is untrusted, writes drafts only, and is
+  offered only while a site has nothing published.**
 
-### Where logic lives and the auth boundary
+### Auth boundary
 
-- **Authorization, validation and rendering all happen on the server.** The
-  browser only runs the editor and uploads.
-- JWT (7 days) in an httpOnly, Secure, SameSite=Lax cookie, host-only on the
-  admin hostname.
-- **Every admin request loads the user from the database** and reads the role
-  from there, never the token. A `token_version` bump takes effect on the next
-  request (D6).
-- Role checks beyond login use `requireRole` and refuse with 404 (D69, D70).
-- CSRF: SameSite plus an origin check against `ADMIN_URL`.
-- Admins cannot change their own role or deactivate themselves (D85, D86).
-- Permissions: **authors** own posts and media, **editors** all content,
-  **admins** also settings and users. Pages are editor/admin only.
-- Uploads: 10 MB, JPEG/PNG/WebP/GIF, **no SVG**.
+- Authorization, validation and rendering on the server.
+- JWT (7 days), httpOnly, Secure, SameSite=Lax, host-only on the admin host.
+- **Every admin request loads the user and membership**; the role comes from
+  the database, never the token (D6); `requireRole` refuses with 404 (D69).
+- CSRF: origin check. Site hosts accept one POST, `/_contact`.
+- The emailed link verifies and signs in; nothing works before it (D161).
+- Authors own posts and media; editors all content; admins also settings,
+  members and plan. Uploads: 10 MB, JPEG/PNG/WebP/GIF, no SVG.
+
+### Integrations
+
+- **AI:** Anthropic, then OpenAI, then OpenRouter, only when one is
+  unavailable - **never on a refusal** (D155).
+- **Email:** SMTP via Resend (D156). **Payments:** Stripe's hosted pages;
+  webhooks set the plan (D160).
+- Spam: honeypot and rate limit (D157). Operator work: server commands (D158).
 
 ## Constraints
 
-- **Server:** `ocwebserver`, an Oracle Cloud VPS (Ubuntu 24.04, 2 vCPU,
-  **954 MB RAM**), running only this app. Nothing memory-heavy, **never build on
-  the server** (D14), no Docker there.
-- **Environments (D21):** `development`, `ci`, `production` - no staging. Each
-  one's config and secrets: `AGENTS.md` *Environments*.
-- **Deploys:** `rsync` releases over SSH, with a `current` symlink for rollback.
-  Caddy terminates HTTPS; the repository owns only its site file, never the main
-  Caddyfile. A release carrying a migration cannot be rolled back by symlink.
-- **Portable:** rebuildable from the repository, a backup and fresh secrets.
-  Nightly `pg_dump` goes to a private R2 bucket.
-- **Standards:** OWASP Top 10:2025, WCAG 2.2 AA, performance and availability
-  in `blueprint/context/quality-bar.md`.
-- **`AGENTS.md` rules:** never build on `main`; nothing committed without
-  approval; never push or deploy without a separate yes.
+- **Server:** `ocwebserver` (2 vCPU, **954 MB RAM**), this app only; **never
+  build on the server** (D14); no Docker there.
+- **Environments (D21):** `development`, `ci`, `production` - no staging;
+  `AGENTS.md` *Environments*.
+- **Production holds on `8d82ce4` until v1 is done** (D163): one deploy,
+  migrations rehearsed on a restored backup, rollback by restoring it.
+- **Self-hostable (D148):** Node.js, PostgreSQL and S3-compatible storage only;
+  signup, AI, email and billing each switch off.
+- **Standards:** OWASP Top 10:2025, WCAG 2.2 AA, numbers in
+  `blueprint/context/quality-bar.md`.
 
 ## Current state
 
-- **Plan:** all items (1-12) done, archived in `blueprint/history/features/`;
-  nothing in flight or queued.
-- **Live:** production runs release `8d82ce4`, through item 12 (migration `0007`
-  applied). No symlink rollback once a page has a hero, call to action or
-  image + text; see `dev-notes/status.md`.
-- **CI:** `verify` + `e2e` (115 of 141 browser tests; 26 R2 ones local-only, D144).
-- **Principles:** none recorded (`blueprint/context/principles.md`).
-- **Records:** findings in `blueprint/context/findings.md` and
-  `blueprint/findings/backlog.md`; work only the owner can do in
-  `needs-you.md`.
+- **Plan:** 12 of 21 items done (`blueprint/history/features/`); 13-21 queued;
+  nothing in flight. Item 15 splits into 15a-15d.
+- **Next:** `prototype` for the v1 screens, then `spec` item 13.
+- **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

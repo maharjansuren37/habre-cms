@@ -208,26 +208,40 @@ not tidying; it is what keeps the open list true.
       Habré, former president of Chad - and IP Australia's trade mark
       register. Buy through Cloudflare Registrar if it sells the ending: a
       certificate covering every subdomain needs a DNS API token, and R2 is
-      already there. `architect` decides whether user sites also need a
-      second domain (candidates `habre.page`, `habresites.com`; avoid `.site`),
-      so hold off on a second one until then. Blocks nothing now; needed by item 16, and by `architect`
-      to name the hosts. `open` (rescope review, 2026-10-01)
+      already there. **`architect` decided user sites need a second domain
+      (D153, 2026-10-01): buy a sites domain too** (candidates `habre.page`,
+      `habresites.com`; avoid `.site`), also on Cloudflare - sites live at
+      `<name>.<sites domain>` and images at `media.<sites domain>`. Blocks
+      nothing now; needed by item 16. `open` (rescope review, 2026-10-01;
+      second domain, architect, 2026-10-01)
 
-- [ ] **An email provider account** - accounts and spend. Sends signup
-      verification, password reset and contact-form notifications;
-      `architect` records which provider. **Blocks item 15** - signup cannot
-      verify anyone without it - and item 19. Test credentials are enough to
-      build. `open` (rescope review, 2026-10-01)
+- [ ] **A Cloudflare API token with DNS edit rights on the sites domain's zone
+      only** - credentials; your Cloudflare account. Caddy uses it to get the
+      wildcard certificate for every site (D153). It goes into Caddy's own
+      environment on the server, never the repository. Blocks nothing now;
+      needed by item 16 and by the v1 deploy. `open` (architect, 2026-10-01)
 
-- [ ] **An AI provider account and API key, with a spend limit** - accounts
-      and spend. Powers "start from a description"; `architect` records which
-      provider. Set a monthly spend cap in the provider's console as well as
-      the app's per-site cap. Blocks nothing now; needed by item 18. `open`
-      (rescope review, 2026-10-01)
+- [ ] **An email provider account: Resend, used over SMTP** (D156) - accounts
+      and spend. Sends signup verification, password reset and contact-form
+      notifications. Its free tier (3,000 a month, 100 a day) covers the beta;
+      upgrade to Pro (US$20) if a batch of invites hits the daily cap. Also add
+      its SPF, DKIM and DMARC records for the sending domain. **Blocks item
+      15b** - signup cannot verify anyone without it - and item 19. Test
+      credentials are enough to build. `open` (rescope review, 2026-10-01;
+      provider chosen, architect, 2026-10-01)
+
+- [ ] **Three AI provider accounts, each with an API key and a monthly spend
+      limit: Anthropic (primary), then OpenAI and OpenRouter (fallbacks)**
+      (D155) - accounts and spend. They power "start from a description". Set
+      a spend cap in each provider's console as well as the app's per-site
+      credit allowance. Blocks nothing now; Anthropic is needed by item 18,
+      and the fallbacks can come last. `open` (rescope review, 2026-10-01;
+      providers chosen, architect, 2026-10-01)
 
 - [ ] **Free plan limits and the paid plan's price** - decision. How much AI
       use and storage Free allows, what the paid plan raises them to, and its
-      price. Before setting them: confirm the Oracle account type (Always Free
+      price. AI use is a monthly allowance of credits, 1 credit = US$0.001 of
+      provider cost (D164). Before setting them: confirm the Oracle account type (Always Free
       instances can be reclaimed when idle; pay-as-you-go removes that); pick
       the AI model from item 18's measured cost and quality; re-check Stripe's
       Australian fees (D149); ask your accountant about GST-inclusive prices.
