@@ -1833,6 +1833,8 @@ Costs: item 21 grows - serving a site on its own domain needs certificates
 issued per domain, which `architect` decides alongside D22's replacement, and
 may place in item 16 instead. The beta earns nothing.
 
+**Amended by D175** (2026-10-02): the one paid plan is Launch, at a
+provisional $19 a month; prices follow measured use.
 **Amended by D164** (2026-10-01): AI use is a monthly allowance of credits per
 site, not a count of site generations; the starting points above become
 allowances, set by the owner. `architect` kept own domains in item 21 (D153).
@@ -2322,3 +2324,33 @@ the dev machine and copied, so the server's CPU type must match (`uname -m`
 before installing), and an ARM server means installing for ARM; an upload
 waits a few seconds; resizing is CPU and memory on the one server; storage
 counts every size (D150); about five objects per image instead of one.
+
+## D175 - Levels are how someone uses Habre; tiers are what a site pays for (2026-10-02)
+
+**Chose:** a site's level (Simple, Pro, Developer - D166) is never tied to
+money: every site can switch to any level on any tier. Tiers are packages of
+limits and services, the way WordPress.com sells its plans - AI and storage
+allowances, an own domain, removing the footer link, more members, several
+sites, enterprise needs. A tier may limit how much a site uses, never which
+level it can use, and **Free always has limits, at every level**. No tier is
+named after a level. Intended tiers (owner's table): Free $0, Launch $19 a
+month, Growth $59, Scale $179, Enterprise custom. v1 sells Free and Launch -
+Launch is item 21's one paid plan; Growth and Scale arrive with the members and
+sites they sell; Enterprise on demand. **Prices are provisional:** set at item
+21, and revised as measured resource use shows what each tier costs to serve.
+Owner, 2026-10-02.
+Supersedes: plan section 9's intended tiers - Personal, Business and "Pro /
+Developer", which sold API, webhooks and content models - and workflows as
+something a tier sells.
+Beats: selling levels as tiers, Pro or Developer as a paid plan - the owner
+rejected it: a level is how someone wants to use the CMS, not what they pay.
+Costs: Developer features cost the hosted service to run on every tier, so
+tiers cap their use instead; tier names avoid the level names, including
+section 2's audience labels (Personal, Professional); Growth's and Scale's
+prices wait for features v1 does not have; a yearly price is item 21's.
+**Currency** (owner, 2026-10-02): the customer's own, with each price set by
+hand per currency - AUD with GST included for Australia, USD for everyone else
+to start, EUR or GBP once selling there is worth the VAT registration - rather
+than Stripe converting automatically, which gives odd amounts, charges the
+customer a conversion fee and may not be offered to Australian accounts. Tax
+follows the customer's country whatever the currency (D149).

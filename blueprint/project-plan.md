@@ -62,7 +62,8 @@ describes what they want, gets a site, edits it and publishes it:
   up creates a site; the person who signs up is its admin. Each site's content,
   media, settings and members are its own. Media storage is capped per site
   from the first signup (D150).
-- Each site's public site on a platform subdomain, `<name>.<platform domain>`.
+- Each site's public site on its own subdomain of the sites domain,
+  `<name>.<sites domain>` (D153).
 - SEO basics: title and description per page and post, social image,
   `sitemap.xml`, `robots.txt`; one main address per site, the others
   redirecting to it; nothing indexed until a site publishes; the site's
@@ -78,7 +79,7 @@ describes what they want, gets a site, edits it and publishes it:
   edits and publishes. AI use is capped per site.
 - Branding in Settings: logo, brand colour and style preset. The public site
   uses them, with shades worked out to meet WCAG 2.2 AA (D167).
-- A contact form section: visitors enquire, submissions are stored per site and
+- A contact form block: visitors enquire, submissions are stored per site and
   emailed to the site owner, with spam protection.
 - Simple by default, Pro when switched on (D166): a new site is Simple and
   shows only Level 1 screens; Pro adds Users, advanced settings, the H5-H6
@@ -895,11 +896,9 @@ browser suite green.
 - Light and dark mode from the first screen, not added later - Habre's own
   screens follow the device; customer sites are light, and Pro can turn dark
   mode on (D168).
-- The look is recorded in `blueprint/context/design.md` (`prototype`,
-  2026-09-15). Platform v1's new screens - signup, onboarding, the Level 1
-  admin and Home, the editor - are being designed (`prototype`, 2026-10-01):
-  mockups in `prototypes/`, awaiting the owner's review. `editor.html` still
-  shows a grid canvas and is redone as Mailchimp-style.
+- The look is recorded in `blueprint/context/design.md` - redesigned for
+  platform v1 by `prototype` on 2026-10-02, replacing 2026-09-15 - with
+  mockups in `prototypes/`.
 
 ## 8. Deployment - where and how does it ship?
 
@@ -1037,15 +1036,31 @@ From `stack`:
 
 ## 9. Money - how does this pay for itself? *(optional)*
 
-A hosted service (D148). Intended tiers, not built: **Free** (one site, basic
-pages, basic AI, platform subdomain), **Personal** (custom domain, more AI and
-storage, analytics), **Business** (team members, workflows, several sites,
-marketing), **Pro / Developer** (API, webhooks, custom content models),
-**Enterprise** (SSO, advanced permissions, audit, governance). Platform v1 ships
-the Free plan with enforced limits and **one paid plan** that raises them and
-adds the site's own domain, through Stripe (item 21); the other tiers come with
-the features they sell. Prices and exact limits not decided. Launch is an
-invite-only beta on Free only, billing off; billing is switched on later (D150).
+A hosted service (D148). **Tiers are what a site pays for; levels are how
+someone wants to use Habre (D175).** Every site can use any level - Simple,
+Pro or Developer - on any tier. A tier is a package of limits and services,
+the way WordPress.com sells its plans, and no tier is named after a level. A
+tier may limit how much a site uses - AI, storage, members, and API use once
+Level 3 exists - never which level it can switch to. **Free always has
+limits, at every level.**
+
+| Tier | Price (provisional) | For | When |
+|---|---|---|---|
+| Free | $0 | personal projects and testing: one site, a subdomain, the "Made with Habre" footer, small allowances | v1 |
+| Launch | $19 a month | individuals and small websites: higher allowances, own domain, no footer | v1 - item 21's one paid plan |
+| Growth | $59 a month | small businesses and content teams: more members | with team members (Level 2) |
+| Scale | $179 a month | agencies and growing organisations: several sites | with several sites per account |
+| Enterprise | custom | large teams and advanced requirements: SSO, audit, governance | on demand |
+
+**Prices are provisional** (owner, 2026-10-02): set at item 21, and revised
+as measured resource use - AI, storage, the server - shows what each tier costs
+to serve. **The currency follows where the customer is** (owner,
+2026-10-02): each price is set by hand per currency - Australian dollars,
+GST included, for Australia and US dollars for everyone else to start; euros
+or pounds once selling there is worth the VAT registration. Tax follows the
+customer's country whatever the currency (D149). A yearly price is item 21's. The first release
+is an invite-only beta on Free only, billing off; billing is switched on later
+(D150).
 
 **Self-hosted:** anyone can run their own copy, **free and open source**
 (owner, 2026-10-01; licence not chosen). The hosted service is what is sold.
@@ -1152,8 +1167,9 @@ signup, many sites, forms and password reset by email move into platform v1.
 - ~~Which AI and email providers~~ **settled by D155 and D156:** Anthropic,
   then OpenAI and OpenRouter as fallbacks; email over SMTP through Resend.
   ~~Payment provider~~ **settled by D149:** Stripe, as a plain processor.
-- **Prices and plan limits** - what Free allows and what the paid plan raises.
-  Owner's decision, needed by item 21.
+- **Prices and plan limits** - tiers and provisional prices recorded (D175,
+  section 9); what Free allows, what Launch raises it to, and the final prices
+  follow measured use. Owner's decision, needed by item 21.
 - **The open-source licence** - AGPL (a hosted fork must stay open) or MIT
   (anyone may close it). Owner's decision, needed before code is published.
 - ~~Which blocks the editor's palette offers~~ **settled at the mockup review
