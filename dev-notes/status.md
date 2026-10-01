@@ -13,15 +13,35 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus items 9-11 (home page, sections, columns) are shipped and live in
-production**, as of the deploy below. Production runs `135bd1d`. **Item 12
-(ready-made sections: hero, call to action, image + text; 12a-12c) is merged
-and on `origin/main` (`1d58e42`, CI green) but not deployed** - preflight
-2026-10-01 is go, with the screen-reader pass accepted by the owner (F-130);
-deploy 12a-12c together, no symlink rollback once a page uses one of them
-(`blueprint/production-pending.md`). Nothing is in flight; the build plan is
-complete. **Owner action now:** publish a page and choose it as the home page in
+production**, as of the deploy below. Production runs `8d82ce4`, which is `origin/main`. **Item 12
+(ready-made sections: hero, call to action, image + text; 12a-12c) was deployed
+2026-10-01** (release `8d82ce4`, below); the screen-reader pass was accepted by
+the owner (F-130). Nothing merged is undeployed and nothing is in flight; the
+build plan is complete. **Owner action now:** publish a page and choose it as the home page in
 Settings - production `/` showed the "This site is being set up" placeholder
 on 2026-09-29 (`needs-you.md`).
+
+- **Deploy, 2026-10-01 04:24 UTC (items 12a-12c to production):** release
+  `8d82ce4` ("docs: preflight 12a-12c ...", CI green on this exact SHA; code is
+  `1d58e42`, item 12c, on top of 12a-12b). Built from a **clean clone at that
+  commit**: `npm ci` -> `npm run verify` (exit 0, 296 unit tests) -> `npm ci
+  --omit=dev` -> `rsync --rsync-path="sudo rsync" --chown=habre_cms:habre_cms` to
+  `/srv/habre-cms/releases/8d82ce4` (same layout, 59M). The browser suite (141)
+  ran locally before the merge; CI does not run it (F-17). **No migration, no
+  env, unit or Caddy changes.** `current` repointed and `habre-cms` restarted
+  (04:24:16 UTC, `NRestarts=0`, "Server listening ... (production)"). Verified
+  through the real proxy: `/healthz` on both hostnames ->
+  `{"status":"ok","database":"up"}`; `/` -> 200, `/posts` -> 200, an unknown slug
+  -> 404, `cms.../admin/login` -> 200; the CSP header still names the R2 image
+  host; 0 error lines in the journal since the restart. Not exercised on
+  production: saving a page with a hero, call to action or image + text section
+  (it would create real content). Preflight before it: go, F-130 accepted by the
+  owner. **Rollback:** `sudo ln -sfn /srv/habre-cms/releases/135bd1d
+  /srv/habre-cms/current && sudo systemctl restart habre-cms` - **safe only while
+  no page has been saved with a hero, call to action or image + text section**;
+  after that, `135bd1d` throws on those pages (restore from the nightly backup,
+  or remove those sections by hand). No schema change, so the database is
+  compatible either way.
 
 - **Deploy, 2026-09-30 22:21 UTC (items 10 and 11 to production):** release
   `135bd1d` ("docs: regenerate overview after item 11", CI green on this exact

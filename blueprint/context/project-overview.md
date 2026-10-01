@@ -139,11 +139,10 @@ without a requirement that calls for them.
 ## Current state
 
 - **Plan:** all items (1-12) done, archived in `blueprint/history/features/`;
-  nothing in flight or queued. Next: `preflight`, then `deploy`.
-- **Live:** production runs release `135bd1d`, through item 11 (migration `0007`
-  applied). **12a-12c merged, not deployed** - deploy together; no symlink
-  rollback once a page has a hero, call to action or image + text. See
-  `production-pending.md`.
+  nothing in flight or queued.
+- **Live:** production runs release `8d82ce4`, through item 12 (migration `0007`
+  applied). No symlink rollback once a page has a hero, call to action or
+  image + text; see `dev-notes/status.md`.
 - **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in
