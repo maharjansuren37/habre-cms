@@ -50,3 +50,9 @@ File: blueprint/context/needs-you.md (section-controls line); app/features/block
 
 ### F-126 [P2] fixed - Release notes and entry-point docs do not describe items 10-11 or the live state
 File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no release deployed yet")
+
+### F-130 [P1] accepted - The hero, call-to-action and image-and-text forms and the image picker dialog have never had a keyboard and screen-reader pass
+File: blueprint/context/needs-you.md (section-controls line); app/features/blocks/sections-editor.client.tsx; app/features/blocks/image-tool.client.ts
+
+### F-131 [P2] fixed - Entry-point docs say nothing merged is undeployed and that item 12 is next
+File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md

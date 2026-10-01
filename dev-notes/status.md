@@ -13,9 +13,13 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus items 9-11 (home page, sections, columns) are shipped and live in
-production**, as of the deploy below. Production runs `135bd1d`, which is
-`origin/main` as of that deploy: nothing merged is undeployed, and nothing is in
-flight. **Owner action now:** publish a page and choose it as the home page in
+production**, as of the deploy below. Production runs `135bd1d`. **Item 12
+(ready-made sections: hero, call to action, image + text; 12a-12c) is merged
+and on `origin/main` (`1d58e42`, CI green) but not deployed** - preflight
+2026-10-01 is go, with the screen-reader pass accepted by the owner (F-130);
+deploy 12a-12c together, no symlink rollback once a page uses one of them
+(`blueprint/production-pending.md`). Nothing is in flight; the build plan is
+complete. **Owner action now:** publish a page and choose it as the home page in
 Settings - production `/` showed the "This site is being set up" placeholder
 on 2026-09-29 (`needs-you.md`).
 

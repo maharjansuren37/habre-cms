@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-01, `main` (`45d698f`).
+Generated 2026-10-01, `main` (`1d58e42`).
 
 ## What this is
 
@@ -39,11 +39,11 @@ items 10-12. **Item 10 is built:** a page is an ordered list of 1-30 sections
 (`blocks_format` v3, move up/down buttons, D114-D118); v2 pages load as one
 section and convert on save; posts stay flat. **Item 11 is built:** a section
 has 1-3 columns, one Editor.js each, stacked below `48rem`; fewer columns merge,
-never discard (D119-D124). **Item 12 is split:** **12a-12b built:**
-ready-made `hero` and `cta` sections (heading, text, button; optional on a hero,
-required on a call to action, plain-string slots, own types, an add
-button each; D125-D136); **12c** image + text is next. No drag-and-drop or new runtime
-dependency.
+never discard (D119-D124). **Item 12 is built:**
+ready-made `hero`, `cta` and `image-text` sections (heading, text, button;
+plain-string slots, own types, an add button each; image + text adds a
+media-library picture, left of the text from `48rem`; D125-D143). No
+drag-and-drop, no new dependency.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
 Soon after: reusable saved sections, section styling, page templates,
@@ -138,11 +138,12 @@ without a requirement that calls for them.
 
 ## Current state
 
-- **Plan:** items 1-11, 12a, 12b done, archived in `blueprint/history/features/`;
-  12c open; nothing in flight. Next: `spec` for 12c.
+- **Plan:** all items (1-12) done, archived in `blueprint/history/features/`;
+  nothing in flight or queued. Next: `preflight`, then `deploy`.
 - **Live:** production runs release `135bd1d`, through item 11 (migration `0007`
-  applied). **12a-12b merged, not deployed** - deploy 12a-12c together; no
-  symlink rollback once a page has a hero or call to action. See `production-pending.md`.
+  applied). **12a-12c merged, not deployed** - deploy together; no symlink
+  rollback once a page has a hero, call to action or image + text. See
+  `production-pending.md`.
 - **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in

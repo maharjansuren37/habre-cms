@@ -13,10 +13,11 @@ formatting (bold, italic, links); uploading images into a reusable media
 library and placing them in posts and pages; draft/publish/unpublish; site
 title, logo and a navigation menu; a public site rendered from published
 content, with a chosen page as its home page and posts at `/posts`; pages
-built from sections of one to three columns. Manage
+built from sections of one to three columns, with ready-made hero, call-to-action
+and image + text sections. Manage
 content at `https://cms.surenmaharjan.fyi`; the public site is
-`https://surenmaharjan.fyi`. What's next (ready-made sections, item 12) is in
-`blueprint/context/project-overview.md`'s *Current state*.
+`https://surenmaharjan.fyi`. Where things stand, and what is merged but not yet
+deployed, is in `blueprint/context/project-overview.md`'s *Current state*.
 
 ## Running it
 
