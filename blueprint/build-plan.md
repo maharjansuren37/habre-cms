@@ -97,10 +97,10 @@ blueprint/project-plan.md too, then regenerate the overview.
 
 ## Platform v1
 
-Rescope D148: a stranger signs up, describes what they want, gets a site, edits it and publishes it (Level 1). Architecture: plan section 6 (D151-D164). Production holds on `8d82ce4` until 13-21 are all done, then v1 ships in one deploy (D163). Item 15 splits into 15a-15d when spec'd (plan section 6, *Build order*). Run `prototype` for the new screens before `spec` for item 13.
+Rescope D148: a stranger signs up, describes what they want, gets a site, edits it and publishes it (Level 1). Architecture: plan section 6 (D151-D164). Production holds on `8d82ce4` until 13-21 are all done, then v1 ships in one deploy (D163). Item 15 splits into 15a-15d when spec'd (plan section 6, *Build order*). Item 14 splits when spec'd - proposed: 14a the format, TipTap and public render; 14b the palette and drag and drop; 14c ready-made sections on the new format - `architect` confirms it with the storage format (D165). Run `prototype` for the new screens before `spec` for item 13.
 
 - [ ] 13. **Upgrade the stack** - React Router 8.4, Vite, Biome and patch releases, with `verify` and the browser suite green
-- [ ] 14. **TipTap editor** - replaces Editor.js in posts and page columns; new blocks format; drag to reorder blocks, with Move up / Move down as the non-drag alternative (WCAG 2.5.7); undo and redo; existing content discarded, not converted
+- [ ] 14. **The new editor** - Mailchimp-style drag and drop for pages and posts (D165): drag blocks from a palette into any section or column, with Move up / Move down as the non-drag alternative (WCAG 2.5.7); ready-made sections (hero, call to action, image and text) carried over; TipTap edits the text; undo and redo; content stored as containers so Level 2 adds layout settings without a migration; existing content discarded, not converted
 - [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
 - [ ] 16. **Sites on platform subdomains** - each site's public site served at `<name>.<platform domain>`
 - [ ] 17. **SEO basics** - title and description per page and post, social image, `sitemap.xml` and `robots.txt` per site

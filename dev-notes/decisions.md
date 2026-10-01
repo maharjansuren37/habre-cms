@@ -1501,6 +1501,9 @@ before `spec` for item 10, and existing pages must load as one section.
 **Superseded by D148** (2026-10-01) as the active direction. Items 10-12 stay
 built; the builder follow-ups move to Level 2.
 
+Its rejection of a free-form canvas was reconsidered and **confirmed by D165**
+(2026-10-01).
+
 ## D114 - Sections are v3 container blocks, arranged in React, one Editor.js per column (2026-10-01)
 
 **Chose:** pages only store `section` blocks (`blocks_format` v3): `plain`
@@ -1531,6 +1534,8 @@ save.
 Beats: one format for everything (posts have no use for sections); deriving the
 section id from the entry id (longer, no benefit).
 Costs: the format check is on the entry type everywhere it is read or written.
+
+**Will be superseded by D165** when item 14 is built: posts get sections too.
 
 ## D116 - A page holds 1-30 sections and 200 blocks in total; item 10 accepts only `layout: "1"` (2026-10-01)
 
@@ -2037,3 +2042,32 @@ Beats:
   tokens would cap very different amounts of money.
 Costs: a price table per model in configuration, kept current by the owner;
 an allowance is an estimate until item 18 measures real runs.
+
+## D165 - Mailchimp-style editing in v1, Elementor-style layout in Level 2 (2026-10-01)
+
+**Chose:** item 14's editor is structured drag and drop for pages and posts:
+drag blocks from a palette into any section or column, where they drop between
+other blocks; Move up / Move down stay as the non-drag alternative (WCAG
+2.5.7). Ready-made sections carry over, mobile stacks automatically, TipTap
+edits the text. Content is stored as containers - a section holds columns, a
+column holds blocks - so Level 2 can reveal Elementor-style layout (nested
+containers, row or column direction, widths per device; absolute placement
+considered then) without a migration. Reached during `prototype`, after
+comparing Mailchimp's and Elementor's builders.
+Supersedes: D115's "posts stay flat", when item 14 is built; plan section 11's
+"section palette" deferral (it is in v1). D113's rejection of a free-form
+canvas stands.
+Beats:
+- a pixel-exact canvas (Wix): no reflow between phone and desktop, a second
+  layout to arrange by hand, and text enlarged to 200% spills out of fixed
+  boxes (WCAG 1.4.4, 1.4.12);
+- a grid-snap canvas (Squarespace Fluid Engine), mocked in
+  `prototypes/editor.html`: a new stored format and reading-order work for a
+  freedom Level 1 users do not need;
+- Elementor-style layout in v1: too many settings for Level 1, against "simple
+  by default";
+- Mailchimp-style with no Level 2 path: a later layout model would need a
+  migration of customers' content.
+Costs: item 14 grows - the palette, drag between sections and columns, posts
+with sections, the container format - and splits when spec'd. `editor.html`
+is re-mocked. `architect` decides the container format before item 14.

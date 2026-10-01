@@ -44,9 +44,13 @@ engine, three levels of experience:
 describes what they want, gets a site, edits it and publishes it:
 
 - Current stack versions before the editor changes.
-- TipTap replaces Editor.js for posts and page columns: drag to reorder blocks,
-  with Move up / Move down as the non-drag alternative (WCAG 2.5.7), undo and
-  redo. Existing content is discarded, not converted.
+- A Mailchimp-style editor for pages and posts (D165): drag blocks from a
+  palette into any section or column, where they drop between other blocks,
+  with Move up / Move down as the non-drag alternative (WCAG 2.5.7); undo and
+  redo. Ready-made sections (hero, call to action, image and text) carry over.
+  TipTap replaces Editor.js for the text. Mobile stacks automatically. Content
+  is stored as containers, so Level 2 adds layout settings without a migration.
+  Existing content is discarded, not converted.
 - Public signup with email verification and password reset by email. Signing
   up creates a site; the person who signs up is its admin. Each site's content,
   media, settings and members are its own. Media storage is capped per site
@@ -98,6 +102,10 @@ reset their password by email. Per site: SEO fields on pages and posts, and a
 record of AI use against its cap. Posts and pages remain the only content types
 until Level 3. Sites share tables, separated by a site id and row-level
 security (D151, section 6).
+
+**From item 14 (D165):** pages and posts are stored as containers - a section
+holds columns, a column holds blocks - so Level 2 can add layout settings
+without a migration.
 
 ## 5. Tech - what stack are we using?
 
@@ -764,11 +772,15 @@ browser suite green.
 - **Ease of use is the product.** The editing experience must be clearly simpler
   than WordPress for a non-technical editor: few screens, obvious next actions,
   no settings they don't need.
+- **Editing is Mailchimp-style (D165):** drag blocks into place; nothing to
+  position by hand. Level 2 reveals Elementor-style layout controls.
 - Light and dark mode from the first screen, not added later - admin area and
   public site both.
 - The look is recorded in `blueprint/context/design.md` (`prototype`,
   2026-09-15). Platform v1's new screens - signup, onboarding, the Level 1
-  admin and Home, the TipTap editor - are not designed yet.
+  admin and Home, the editor - are being designed (`prototype`, 2026-10-01):
+  mockups in `prototypes/`, awaiting the owner's review. `editor.html` still
+  shows a grid canvas and is redone as Mailchimp-style.
 
 ## 8. Deployment - where and how does it ship?
 
@@ -944,6 +956,8 @@ own key.
 - **Paid services:** three AI providers (D155) and an email provider
   (verification, password reset, form notifications; D156) - accounts and
   spend are the owner's.
+- **Accessible editing:** every drag in the editor has a keyboard alternative
+  (WCAG 2.5.7, D165).
 - **AI cost and abuse:** public signup plus AI means AI use is capped per site
   from the first release.
 - **Self-hostable (D148):** everything must run with only Node.js, PostgreSQL
@@ -965,8 +979,10 @@ below matters only once it does.
 - **Dashboard with content health** - counts, missing alt text, broken links.
 - **Media upgrades** - search, "where used", replace a file keeping every
   reference, responsive image sizes.
-- **Builder follow-ups** - section palette, reusable saved sections, section
-  styling, page templates.
+- **Builder follow-ups** - reusable saved sections, section styling, page
+  templates. (The section palette moved into v1, D165.)
+- **Elementor-style layout** - nested containers, row or column direction,
+  widths per device; absolute placement considered then (D165).
 - **Several sites per account, team invites by email.** (Own domains moved
   into v1's paid plan, D150.)
 - **More AI** - suggestions in the editor (rewrite, alt text, meta
@@ -989,7 +1005,7 @@ signup, many sites, forms and password reset by email move into platform v1.
 **Later, or never:**
 
 - **Free-form drag-anywhere canvas, custom CSS/HTML** - fights ease of use and
-  multiplies the accessibility surface.
+  multiplies the accessibility surface. Reconsidered and rejected again, D165.
 - **Multiple themes and theme customisation.**
 - **Store / e-commerce, multiple languages, comments, importing from WordPress.**
 - **Other channels** - mobile apps, email, digital displays, AI agents.
@@ -1013,3 +1029,6 @@ signup, many sites, forms and password reset by email move into platform v1.
   Owner's decision, needed by item 21.
 - **The open-source licence** - AGPL (a hosted fork must stay open) or MIT
   (anyone may close it). Owner's decision, needed before code is published.
+- **Which blocks the editor's palette offers** beyond text, heading, list and
+  image (D165). The editor mockup also shows button, line, space and contact
+  form. Owner's decision at the mockup review, needed by item 14.
