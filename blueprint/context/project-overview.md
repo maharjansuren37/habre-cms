@@ -3,7 +3,7 @@
 > **Generated file.** Written by the `context` skill from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
-> the record. Decision numbers (D1-D132) are entries in `dev-notes/decisions.md` -
+> the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
 Generated 2026-10-01 from `main` (`7bc4356`).
