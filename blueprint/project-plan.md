@@ -64,7 +64,11 @@ describes what they want, gets a site, edits it and publishes it:
   from the first signup (D150).
 - Each site's public site on a platform subdomain, `<name>.<platform domain>`.
 - SEO basics: title and description per page and post, social image,
-  `sitemap.xml`, `robots.txt`.
+  `sitemap.xml`, `robots.txt`; one main address per site, the others
+  redirecting to it; nothing indexed until a site publishes; the site's
+  language on every page (D173).
+- Optimised images: each upload is resized on the server into a few sizes,
+  without camera details, and each page downloads the size it shows (D174).
 - Start from a description: "What do you want to create?" (Website, Blog,
   Business, Portfolio), then "Tell us about it", then an optional "Make it
   yours": a logo (SVG accepted, turned into a PNG in the browser), a brand
@@ -161,7 +165,8 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   the image tool is hand-written in the repo, not a package (D58). Their shipped `.ts` types use `enum`,
   which `erasableSyntaxOnly` forbids, so `app/types/editorjs.d.ts` describes the
   surface we use and `tsconfig.vite.json` maps the packages to it.
-- **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**.
+- **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**;
+  from item 17b `sharp` for resizing, pinned when installed (D174).
 - **Installed with their item, not at scaffold:** `jose` (item 1), Editor.js and
   its header and list tools (item 2), `aws4fetch` and `image-size` (item 5) - so
   no package sits in `package.json` with nothing calling it. Versions above stay
@@ -341,9 +346,14 @@ D153; replaces D22 when item 16 is built.
 | `app.<platform domain>` | signup, sign-in, email links, onboarding, the admin under `/admin`, the Stripe webhook |
 | `<platform domain>`, `www.<platform domain>` | redirect to `app.<platform domain>` (no landing page is planned) |
 | `<name>.<sites domain>` | that site's public pages, sitemap, robots file and contact form |
-| a site's own domain | the same as its subdomain - `surenmaharjan.fyi` for site 1, paid sites' domains from item 21 |
+| a site's own domain | that site, as its main address once verified - its subdomain then redirects to it (D173); `surenmaharjan.fyi` for site 1, paid sites' domains from item 21 |
 | `media.<sites domain>` | images, from R2's custom domain (replaces `r2.dev`; `needs-you.md`) |
 | `cms.surenmaharjan.fyi` | redirects to `app.<platform domain>` |
+
+- **One main address per site** (D173): its verified own domain when it has
+  one, otherwise its subdomain. Every other host of the site answers a 301 to
+  the same path on the main address, and every public page carries
+  `<link rel="canonical">` to it, so search engines see one copy.
 
 - **User sites get their own registrable domain**, separate from the platform's
   (e.g. `habre.page` beside `habre.ai`). The reason is reputation and isolation,
@@ -390,11 +400,12 @@ D153; replaces D22 when item 16 is built.
 | `/admin/login` | sign in (unchanged path) |
 | `/start`, `/start/:runId` | "What do you want to create?", "Tell us about it", then progress, then review and apply (item 18) |
 | `/admin` | Home (Level 1) |
-| `/admin/posts`, `/admin/pages`, `/admin/media`, `/admin/settings` | as today, scoped to the member's site; settings gains SEO defaults and the advanced switch |
-| `/admin/users` | members of this site; shown only when advanced is switched on (item 20) |
+| `/admin/posts`, `/admin/pages`, `/admin/media`, `/admin/settings` | as today, scoped to the member's site; settings gains SEO defaults and the site's language (item 17), brand colour and style (item 18a) and Simple / Pro (item 20) |
+| `/admin/users` | members of this site; shown only in Pro (item 20, D166) |
 | `/admin/messages` | contact-form submissions (item 19) |
 | `/admin/plan` | the paid plan and own domain (item 21) |
 | `/webhooks/stripe` | POST from Stripe, checked by signature - no session, no origin check (item 21) |
+| `/robots.txt` | disallows everything - nothing on the platform host is for search (item 17, D173) |
 | `/healthz` | every host |
 
 Screen names and navigation ("Blog" for posts, where Messages sits) are
@@ -411,10 +422,14 @@ Screen names and navigation ("Blog" for posts, where Messages sits) are
 
 - Server-rendered, no login, works without JavaScript - unchanged.
 - Item 17's and 19's specs check that no page slug can take these paths.
+- **Nothing is indexed until a site publishes** (D173): the "being set up"
+  placeholder sends `noindex`, and `sitemap.xml` lists only published
+  entries.
 
 **Operator work is server commands, not screens, in v1** (D158), like
 `create-admin` today: `create-invite`, `suspend-site` / `unsuspend-site`
-(abuse), `delete-site` (a deletion request). An operator screen waits until the
+(abuse), `delete-site` (a deletion request), and `optimise-media` (item 17b,
+run once to resize media uploaded before it). An operator screen waits until the
 commands are run often enough to hurt.
 
 ### Switches - what a self-hosted copy can turn off
@@ -453,11 +468,18 @@ Shared tables, `site_id` on site-owned tables (D151). Site-owned tables, in
 - **invites** - `id`, `code_hash`, `note`, `created_at`, `used_at`,
   `used_by_site_id`
 - ***entries*** - as today plus `site_id`; `slug` unique per site and type;
-  `blocks_format` gains item 14's format; `seo_title`, `seo_description`,
+  from item 14 `blocks` holds one document per entry, `blocks_format` `v4`
+  (D169); `seo_title`, `seo_description`,
   `social_image_media_id` (item 17)
-- ***media*** - as today plus `site_id`; `storage_key` under `sites/<site id>/`
+- ***media*** - as today plus `site_id`; `storage_key` under `sites/<site id>/`;
+  from item 17b `variants` - each size's width, height, type, bytes and
+  storage key (D174)
 - ***site_settings*** - one row per site, keyed by `site_id`: as today plus
-  `site_description` (item 17) and `advanced_enabled` (item 20)
+  `site_description` and `language` (a language tag, default `en`, for
+  `<html lang>`) (item 17, D173); `brand_color` (`#rrggbb`, empty for the neutral
+  ink look) and `style_preset` (classic | modern | friendly, default modern)
+  (item 18a); `level` (simple | pro, default simple) and `dark_mode` (default
+  off, applies only in Pro) (item 20, D172)
 - ***contact_submissions*** (item 19) - `id`, `site_id`, `entry_id` (the page
   the form was on), `name`, `email`, `message`, `created_at`, `notified_at`
   (empty when the email failed), `read_at`
@@ -472,10 +494,10 @@ Shared tables, `site_id` on site-owned tables (D151). Site-owned tables, in
   `applied_at`. No library creates any other table.
 
 **Usage is computed, never counted:** storage is the sum of a site's media
-sizes, and AI use is the sum of `credits` over its runs this month. There are
+sizes, every variant included, and AI use is the sum of `credits` over its runs this month. There are
 no counters to drift.
 
-**Blocks** are an ordered list of `{id, type, data}`:
+**Blocks, today (items 1-12),** are an ordered list of `{id, type, data}`:
 
 - **Sections (page builder, D113/D114), pages only - posts stay flat.** A page's
   `blocks` is a list of `section` blocks (`blocks_format` v3). A `plain` section
@@ -495,24 +517,73 @@ no counters to drift.
   (`blocks_format` v2, D28-D30).
 - **Image blocks store a media id, not a URL.** The URL is resolved at render
   time, so a bucket or domain change never touches content.
-- **Item 14 (TipTap, D148):** a column, and a post, holds one TipTap
-  (ProseMirror) JSON document instead of an Editor.js block list. On save it is
-  validated by **our own Zod schema**, which admits only our nodes and marks:
-  paragraph, heading, lists, image by media id, bold, italic and an
-  allowlisted link. It is rendered by **our own escaping renderer**. TipTap's
-  HTML output is never stored or trusted, so D28-D30 hold. Sections, columns
-  and ready-made sections stay as they are around it. v2 and v3 content is
-  discarded, not converted - a destructive migration with its own yes.
+
+**From item 14 (D169, D170),** an entry - page or post - is **one TipTap
+(ProseMirror) JSON document**, with sections and columns as nodes in it:
+
+    doc     -> section+          at most 30
+    section -> column{1,3}       attrs: align (top | middle), background (none | band)
+    column  -> block+            no attrs in v1
+    blocks:  paragraph, heading (level 1-6), bullet / numbered list, quote,
+             image (media id), button (label, allowlisted link), line, space,
+             contact form (item 19)
+    marks:   bold, italic, link (allowlisted)
+
+- **One editor and one undo history per page.** Moving a block between
+  columns is one transaction, so one undo. Sections and columns are
+  `isolating` nodes, so typing and deleting never cross or merge them; section
+  chips, block toolbars and drop gaps are drawn outside the editable area.
+- **Our own Zod schema** validates the whole tree on save and **our own
+  escaping renderer** draws it, each node as its semantic element - a button
+  block is a link (`coding-standards.md`). TipTap's HTML is never stored or
+  trusted, so D28-D30 hold. Images keep a media id.
+- **Main heading (D166):** at most one level-1 heading, on pages only; it
+  renders as the page's `h1`, and a page without one shows its title as the
+  `h1`. A post's Title field is always its visible `h1`; the browser-tab
+  and search title can differ (D110, item 17). Levels 5-6 are Pro's.
+- **Level 2 widens the schema** - attributes with defaults, a column that may
+  hold a section - so every v1 document stays valid without a migration
+  (D165).
+- **Ready-made sections are templates** (D170): Hero, Image and text, Call to
+  action and Blank section insert an ordinary section of ordinary blocks.
+  Simple's Section settings show Columns only; `align` and `background` are
+  set by templates. A button with no label or link is not rendered publicly;
+  an image block with no media shows a placeholder in the editor only.
+- v2 and v3 content is discarded, not converted - a destructive migration with
+  its own yes.
 
 ### Data rules
 
 - Saving a published entry updates the live page (revisions are deferred).
 - A page has at most 30 sections and a section at most 3 columns; a save
-  beyond that is refused (one editor mounts per column).
+  beyond that is refused (one editor mounts per column). From item 14 the same
+  caps, with D116's 200 blocks, bound one document.
+- **Simple and Pro are per site** (D166, D172). In Simple, a control whose
+  current value is Pro-only - an H5 heading's text style, say - shows it
+  read-only, "Switch to Pro to change"; the text stays editable and the block
+  can still be moved or deleted. `dark_mode` applies only while the site is
+  Pro, so switching to Simple makes the site light again without losing the
+  choice (D168).
+- **A site's brand colour and style** (D167, D171): only the inputs are
+  stored; the shades are derived on each render, so improving the derivation
+  needs no migration. They reach the public pages as a nonce'd inline
+  `<style>` holding only custom properties - the public `style-src` becomes
+  `'self' 'nonce-…'` - and the colour is parsed as exactly `#rrggbb`, never
+  passed through.
 - Every save sends the entry's `version`; if someone saved in between, the save
   is rejected with "changed by someone else, reload".
 - **Upload:** write the R2 object first, then the media row. A failure between
   leaves an unreferenced object - harmless.
+- **Images are resized on the server** (item 17b, D174). `sharp` turns each
+  upload into WebP at 480, 960, 1600 and 2400 px wide, never wider than the
+  original, plus a 1200 px JPEG for the social image; it rotates by the camera's
+  orientation, converts to sRGB and drops camera details, including location.
+  The upload itself is not kept. Animated GIFs are stored as they are. One
+  resize runs at a time. Every object is written before the media row, with a
+  one-year immutable cache header - each upload gets a new key.
+- **Pages download the size they show:** `srcset` and `sizes` from the
+  section's column count, from item 17b. The first image on a page loads at
+  once with `fetchpriority="high"`, the rest lazily (item 14a).
 - **Delete media:** remove the row first, then the object.
 - **Memberships are deactivated, never deleted** - authorship stays intact and
   nothing needs reassigning.
@@ -638,9 +709,11 @@ decides a permission.
     - **A request error (400) or an authentication error (401)** is our bug or
       a broken key. It fails loudly instead of being hidden by the fallback.
   - **Every provider fills the same constrained schema:** pages made of
-    ready-made section kinds with plain-text slots, navigation and SEO text.
-    Our Zod schema validates it and the server turns it into blocks, so a
-    fallback result has the same shape as a Claude one. The AI never writes
+    ready-made section kinds with plain-text slots, navigation, SEO text and,
+    when there is no logo, a suggested brand colour (D167). Our Zod schema
+    validates it and the server expands each section with item 14c's
+    templates (D170), so a fallback result has the same shape as a Claude
+    one. The AI never writes
     HTML or free-form editor JSON.
   - **Tokens, credits, provider and model are recorded on each run.** The fixed
     instructions are prompt-cached.
@@ -733,7 +806,8 @@ an entry is saved, published or unpublished, or the settings change.
 - **One process renders every site,** so one site's traffic spike slows all of
   them. That noisy-neighbour risk is the first thing to break. The first fix
   is the page cache above; the next is a bigger VPS.
-- **Large unresized images** still make public pages heavy, as before.
+- **Image resizing is CPU work on the one server** (item 17b, D174), one at
+  a time; if uploads queue, the answer is a bigger server.
 - **AI runs are network waits, not memory or CPU.**
 - **Shared tables** are not the limit before thousands of sites.
 
@@ -754,8 +828,18 @@ complete (D163). Each item still has to leave `npm run verify` and the full
 browser suite green.
 
 - **13** - none.
-- **14** - the TipTap format and its Zod schema. Discarding v2/v3 content is a
-  destructive production migration with its own yes.
+- **13b** - the new look before the new editor, so the editor is not
+  re-themed twice. Public sites become light only (D168).
+- **14** - three items (D169, D170):
+  - **14a. The format and the editor** - the document and its Zod schema,
+    TipTap, every v1 block, Move up / Move down, the Text style menu with Main
+    heading, undo and redo, posts on sections, the public renderer, and
+    discarding v2/v3 content (a destructive production migration with its
+    own yes). The keyboard path lands here, before any dragging. The first
+    image on a page loads at once (D174). It may split again when spec'd.
+  - **14b. The palette and drag and drop** - the drop gap, the ghost, the
+    announcements, and Duplicate.
+  - **14c. Ready-made sections as templates.**
 - **15** - the tenancy foundation, and too big for one review. Proposed split:
   - **15a. Sites and memberships** - `site_id`, row-level security, the two
     roles, site 1 from today's data, the admin scoped by membership. No
@@ -766,11 +850,23 @@ browser suite green.
   - **15d. Storage cap per site.**
 - **16** - host resolution, `site_domains` (`surenmaharjan.fyi`), the wildcard
   certificate, `suspend-site`.
-- **17** - SEO.
-- **18** - AI runs: providers and fallbacks, credits, the proposal, review and
-  apply.
+- **17** - SEO: the tags, sitemap and robots files; one main address per
+  site with redirects and a canonical link; `noindex` until a site publishes;
+  the site's language (D173).
+- **17b** - optimised images (D174): `sharp` and the variants, `srcset`, the
+  cache header, and `optimise-media` for media already uploaded. Before
+  installing `sharp`, `uname -m` on the server confirms it matches the dev
+  machine's CPU type, since `node_modules` is installed there and copied.
+- **18** - two items (D167):
+  - **18a. Your brand** - no AI. Settings gains the brand colour (suggested
+    from the logo's pixels) and the style; an SVG logo is turned into a PNG;
+    the shade derivation; the three font pairs; the nonce'd `<style>` (D171),
+    which also changes section 8's Content-Security-Policy line.
+  - **18b. Start from a description** - AI runs: providers and fallbacks,
+    credits, the proposal, review and apply, with "Make it yours" as
+    onboarding's third step and the AI-suggested colour.
 - **19** - the contact form and Messages.
-- **20** - the advanced switch.
+- **20** - Simple and Pro: `level`, `dark_mode` and the lock rule (D172).
 - **21** - billing, plus own domains through on-demand certificates. They stay
   in 21, not 16: nobody can pay before 21, and site 1's domain needs only a
   fixed entry.
@@ -963,7 +1059,8 @@ own key.
 - **Minimal dependencies:** prefer the platform and standard library; every
   runtime dependency is a recorded decision.
 - **Server resources:** 954 MB RAM, 2 vCPU - rules out memory-heavy runtimes and
-  building on the server.
+  building on the server. **It can be upgraded as usage grows** (owner,
+  2026-10-02): a design that needs more is costed, not ruled out.
 - **Hosting:** Oracle Cloud VPS, with Caddy already installed for HTTPS. Must
   stay portable to another VPS (e.g. headless Ubuntu).
 - **Image storage:** Cloudflare R2.
@@ -1066,6 +1163,6 @@ signup, many sites, forms and password reset by email move into platform v1.
   (`design.md`):** Source Serif 4 with Source Sans 3, Inter, Nunito (D167).
   **Their names** - Classic, Modern, Friendly - are provisional. Owner's,
   needed by item 18.
-- **Where the editing level and the dark-mode switch are stored** - on the
-  site, as item 20 planned, or per member - and the lock rule when a site
-  switches down (D166, D168). `architect`'s, with item 14's format.
+- ~~Where the editing level and the dark-mode switch are stored~~ **settled
+  by D172:** per site, in `site_settings`, with the lock rule. ~~Item 14's
+  storage format~~ **settled by D169.**

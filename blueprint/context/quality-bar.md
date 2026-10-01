@@ -12,8 +12,11 @@
   downloads.
 - **Admin saves** (entry, settings, user): under 1 s at p95, measured
   server-side.
-- **Uploads:** capped at 10 MB per image. Image size on public pages: not
-  measured, no target in v1 (no resizing) - the known first bottleneck.
+- **Uploads:** capped at 10 MB per image. **Images on public pages** (from
+  item 17b, D174): a page never downloads an image more than one size above
+  its displayed width (sizes 480, 960, 1600, 2400 px); a browser test checks
+  it at a phone and a desktop width. Time to resize an upload: measured by
+  item 17b, no target until then.
 - **AI site generation:** from submit to the review screen in **under 2 minutes
   at p95, as the user experiences it**, with progress shown throughout.
 - **AI cost per run:** measured in credits on every run (D164). Not measured

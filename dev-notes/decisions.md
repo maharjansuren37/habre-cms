@@ -1525,6 +1525,9 @@ and a v3 page breaks under older code. Many Editor.js instances on a large page
 (bounded by the caps; item 10's verify checks usability). `page-media.server.ts`
 (D60) must walk sections and columns.
 
+Superseded at item 14 by **D169** (2026-10-02): one TipTap document per
+entry, with sections and columns as nodes in it.
+
 ## D115 - Posts stay v2; only pages are v3, and a v2 page's implicit section is `"legacy"` (2026-10-01)
 
 **Chose:** `blocks_format` is per entry type: pages read `v2` or `v3` and save `v3`,
@@ -1606,6 +1609,10 @@ Costs: a module-level map that lives until the page is left.
 **Chose:** `hero` (and 12b/12c's kinds) are siblings of the plain `section` in `sectionsSchema`, a discriminated union on `type`; callers that read `children` narrow with `isPlainSection` (`sections.ts`, Zod-free).
 Beats: a `kind` field on `section` (would make `children` and `layout` optional and weaken the invariant D120 locked).
 Costs: every caller that reads `children` has to narrow.
+
+Superseded at item 14c by **D170** (2026-10-02): ready-made sections become
+templates of ordinary blocks. Item 14c's spec says which of D126-D143's rules
+carry over to blocks.
 
 ## D126 - Hero slots are plain strings, not runs (2026-10-01)
 
@@ -2075,6 +2082,9 @@ Costs: item 14 grows - the palette, drag between sections and columns, posts
 with sections, the container format - and splits when spec'd. `editor.html`
 is re-mocked. `architect` decides the container format before item 14.
 
+The container format is decided in **D169**, and ready-made sections become
+templates in **D170** (2026-10-02).
+
 ## D166 - Editing levels: Simple, Pro and Developer, in one editor (2026-10-02)
 
 **Chose:** D148's three levels become a level a site switches between inside
@@ -2101,8 +2111,11 @@ Beats:
 - everything shown at once: against "simple by default";
 - skill labels such as "amateur": they name the person, not the mode.
 Costs: every editor control carries a level, and the browser tests cover Simple
-and Pro. Pro also turns on dark mode for the public site (D168). `architect` decides where the level is stored (on the site, as item
-20 planned, or per member) and the exact lock rule, with item 14's format.
+and Pro. Pro also turns on dark mode for the public site (D168). `architect`
+decides where the level is stored (on the site, as item 20 planned, or per
+member) and the exact lock rule, with item 14's format.
+
+Where the level is stored, and the lock rule: **D172** (2026-10-02).
 
 ## D167 - Branding at onboarding: a logo, a brand colour and three style presets (2026-10-02)
 
@@ -2144,6 +2157,9 @@ logo counts toward the site's storage cap (D150); an SVG that loads outside
 fonts or images renders without them, which the preview shows before saving;
 item 18 splits.
 
+The colour reaches the public pages as a nonce'd inline `<style>`: **D171**
+(2026-10-02).
+
 ## D168 - Public sites are light only in Simple; Pro turns dark mode on (2026-10-02)
 
 **Chose:** a customer's public site is light, whatever the visitor's device
@@ -2164,3 +2180,145 @@ Costs: the dark-mode switch is stored per site - `architect` decides where,
 with the editing level (D166); the browser tests cover a Simple site under a
 dark device; a Pro site with dark mode on can still show a dark logo on a
 dark page.
+
+Where the switch is stored: **D172** (2026-10-02).
+
+## D169 - Item 14 stores one TipTap document per entry, sections and columns as nodes (2026-10-02)
+
+**Chose:** from item 14 an entry - page or post - is one TipTap (ProseMirror)
+JSON document, `blocks_format` `v4`: `doc -> section (1-30) -> column (1-3)
+-> block`. Blocks are paragraph, heading (levels 1-6), bullet and numbered
+lists, quote, image (media id), button (label, allowlisted link), line, space
+and, from item 19, contact form; marks are bold, italic and an allowlisted
+link. A section has `align` (top | middle) and `background` (none | band); a
+column has no attributes in v1. Sections and columns are `isolating` nodes, so
+typing and deleting never cross or merge them. One editor and one undo
+history per page. Our own Zod schema validates the whole tree on save and our
+own renderer draws each node as its semantic element - a button block is a
+link (`coding-standards.md`); TipTap's HTML is never stored (D28-D30). At most
+one level-1 heading, on pages only; a post's Title field is always its visible
+`h1` - the browser-tab and search title can differ (D110, item 17) (D166).
+Level 2 widens the schema - attributes with defaults, a column that may hold a
+section - so every v1 document stays valid without a migration (D165).
+Supersedes: D114's one Editor.js per column, at item 14; plan section 6's "a
+column, and a post, holds one TipTap document".
+Beats:
+- one TipTap per column: moving a block between columns spans two editors and
+  two undo histories, so one move is two undo steps in two places (D123
+  measured that 90 editors mount fast enough, so speed is not the reason);
+- our own block list with a TipTap per block: rebuilds splitting and merging
+  blocks, paste, and arrow keys between blocks, which ProseMirror already does
+  inside one document.
+Costs: the page's structure sits inside the editable area, so section chips,
+block toolbars and drop gaps are drawn outside it and kept in place by our
+code; the stored shape is ProseMirror's JSON, which a Level 3 API would
+expose; D116's caps (30 sections, 200 blocks) bound one document.
+
+## D170 - Ready-made sections become templates of ordinary blocks (2026-10-02)
+
+**Chose:** from item 14c, the palette's sections insert an ordinary section of
+ordinary blocks, as `prototypes/editor.html` draws them:
+- **Hero** - two columns, middle-aligned: a heading (the main heading when the
+  page has none), text and a button, then an image;
+- **Image and text** - two columns: an image, then a heading and text;
+- **Call to action** - one column on a band background: a heading, text and a
+  button;
+- **Blank section** - one empty column.
+Simple's Section settings show Columns only; `align` and `background` are set
+by templates, and Pro may reveal them. Item 18's AI output keeps its shape -
+section kinds with plain-text slots - and the server expands each kind with
+the same templates. A button with no label or link is not rendered publicly;
+an image block with no media shows a placeholder in the editor only.
+Supersedes: D125's section types, at item 14c.
+Beats: keeping fixed-slot section types (D125) - a hero could not take a
+dragged block, there would be two kinds of section to build, test and render,
+and the approved mockup draws the hero as ordinary blocks.
+Costs: items 12a-12c's section code is replaced, not carried over; 12b's
+required button fields and 12c's missing-image message become rules on button
+and image blocks wherever they sit.
+
+## D171 - A site's brand colour reaches its pages as a nonce'd inline `<style>` (2026-10-02)
+
+**Chose:** each public page's `<head>` carries a `<style>` with the response's
+nonce, holding only custom properties, derived at render from
+`site_settings.brand_color` (parsed as exactly `#rrggbb`) and `style_preset`
+(an enum). The public pages' `style-src` becomes `'self' 'nonce-…'`, using the
+per-response nonce F-100 already generates. Only the inputs are stored; the
+shades are derived on each render (D167), so improving the derivation needs no
+migration.
+Beats:
+- a per-site stylesheet route: an extra request, a cache to clear when the
+  colour changes, and one more route on every site host;
+- `style` attributes: they need `'unsafe-inline'`.
+Costs: the public policy admits nonce'd styles; a value reaching CSS
+unvalidated would be CSS injection, so the colour is parsed, never passed
+through; plan section 8's Content-Security-Policy line changes with item 18a.
+
+## D172 - The editing level and dark mode are stored per site, in `site_settings` (2026-10-02)
+
+**Chose:** `site_settings.level` (simple | pro, default simple) replaces item
+20's `advanced_enabled`; `dark_mode` (default off) applies only while the site
+is Pro, so switching to Simple makes the public site light again without
+losing the choice (D168). Item 18a adds `brand_color` (empty for the neutral
+ink look) and `style_preset` (classic | modern | friendly, default modern)
+beside them. **Lock rule:** in Simple, a control whose current value is
+Pro-only - an H5 heading's text style, say - shows it read-only with "Switch
+to Pro to change"; the text stays editable and the block can still be moved or
+deleted (D166).
+Beats:
+- per member: one person per site in v1 (D159), and D166 rejected roles
+  deciding what someone sees; a per-member override can be added at Level 2;
+- on `sites`: that row is the platform's - plan, address, suspension - while
+  these are the site admin's, under row-level security.
+Costs: the columns arrive with the items that use them (18a, 20); item 21's
+paid plan cannot be called "Pro", or a free mode reads as a paid one.
+
+## D173 - Basic SEO adds one main address, no indexing before publishing, and a site language (2026-10-02)
+
+**Chose:** item 17 also covers three gaps found reviewing SEO:
+- **one main address per site** - its verified own domain when it has one,
+  otherwise its subdomain; every other host of the site answers a 301 to the
+  same path there, and every public page carries `<link rel="canonical">`;
+- **nothing indexed until a site publishes** - the "being set up" placeholder
+  sends `noindex`, `sitemap.xml` lists only published entries, and the
+  platform host's `robots.txt` disallows everything;
+- **the site's language** - `site_settings.language`, default `en`, in Settings
+  and on `<html lang>`, which is hard-coded to `en` today (`app/root.tsx`).
+Owner, 2026-10-02.
+Beats:
+- serving a site on both its subdomain and its own domain (plan section 6 until
+  now): search engines see two copies and split the ranking between them;
+- a canonical link alone, without the redirect: visitors and links keep using
+  both addresses.
+Costs: item 17 grows; a site's subdomain stops serving pages once its own
+domain is verified, so links to the subdomain rely on the redirect; the admin
+stays in English whatever the site's language.
+
+## D174 - Images are resized on the server with `sharp` (2026-10-02)
+
+**Chose:** from item 17b, the server turns each upload into WebP at 480, 960,
+1600 and 2400 px wide (never wider than the original) and a 1200 px JPEG for
+the social image, with `sharp` (libvips): rotated by the camera's orientation,
+converted to sRGB, camera details dropped - including location, which today's
+uploads can keep. The upload itself is not kept; animated GIFs are stored as they
+are. One resize at a time. Pages pick the size they show with `srcset` and
+`sizes` from the column count; the first image loads at once with
+`fetchpriority="high"`. Objects get a one-year immutable cache header. A server
+command, `optimise-media` (D158), resizes media uploaded before 17b. AVIF waits
+for a bigger server, made by the same command. The owner said the server can
+be upgraded as usage grows (2026-10-02), which is what makes server-side work
+acceptable.
+Supersedes: the quality bar's "no resizing in v1".
+Beats:
+- resizing in the browser (proposed first): lower quality, no certainty that
+  Safari encodes WebP from a canvas, the server storing files a browser made,
+  and nothing for media already uploaded or a later API;
+- Cloudflare's image transformations: the least code and AVIF, but charged
+  beyond a free monthly allowance, tied to the media custom domain, and a
+  self-hosted copy without Cloudflare gets nothing (D148);
+- no resizing (until now): a phone downloads a 10 MB photo shown 400 px wide.
+Costs: `sharp` is a native runtime dependency - `node_modules` is installed on
+the dev machine and copied, so the server's CPU type must match (`uname -m`
+before installing), and an ARM server means installing for ARM; an upload
+waits a few seconds; resizing is CPU and memory on the one server; storage
+counts every size (D150); about five objects per image instead of one.

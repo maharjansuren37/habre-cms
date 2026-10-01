@@ -133,6 +133,27 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
 - **Accessibility: WCAG 2.2 level AA**, as recorded in
   `blueprint/context/design.md` (its *Accessibility bar*, with measured
   contrast), to which `quality-bar.md` defers.
+- **Semantic HTML on every page** - Habre's screens, the editor and customer
+  sites (owner, 2026-10-02):
+  - Landmarks: one `header`, `main` and `footer` per page, `nav` for each
+    navigation (labelled when there is more than one); a post is an
+    `article`.
+  - One `h1` per page. A heading's level follows the outline, never the look:
+    CSS sets the size.
+  - The element that means the thing: `a` to go somewhere, `button` to do
+    something, `ul` / `ol` for lists, `table` for tabular data, `form` with a
+    `label` for every field and `fieldset` / `legend` for a group, `time` with
+    `datetime` for a date, `figure` / `figcaption` for a captioned image.
+  - No click handlers on a `div` or `span`. ARIA only where no native element
+    exists (a toolbar, a live region), never to repeat what an element already
+    says.
+  - Content renders to its elements (D169): paragraph `p`, heading `h1`-`h6`,
+    lists `ul` / `ol`, quote `blockquote`, line `hr`, image `img` with its alt
+    text, section `section`; **a button block is a link (`a`)**, because it
+    goes somewhere; a space is spacing only, with nothing announced.
+  - Checked by `review`, and in the browser tests by role-based locators
+    (`getByRole`), which fail when an element lacks its role. No automated
+    HTML or accessibility checker is installed.
 - **Performance, scale, availability:** the numbers in `quality-bar.md`; nothing
   stricter.
 
