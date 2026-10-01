@@ -49,5 +49,5 @@ File: app/features/blocks/blocks.ts (`sectionBlock`, `sectionsSchema`); app/feat
 ### F-125 [P1] accepted - The section and Columns controls have never had a keyboard and screen-reader pass, and their own needs-you line makes it a precondition of deploying items 10-11
 File: blueprint/context/needs-you.md (section-controls line); app/features/blocks/sections-editor.client.tsx
 
-### F-126 [P2] open - Release notes and entry-point docs do not describe items 10-11 or the live state
+### F-126 [P2] fixed - Release notes and entry-point docs do not describe items 10-11 or the live state
 File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no release deployed yet")
