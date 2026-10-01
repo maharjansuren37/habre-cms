@@ -16,9 +16,9 @@ export function isReadableEditorContent(content: unknown): content is { blocks: 
   );
 }
 
-/** A ready-made hero's four fields, all text - what its form hands over. */
-function isReadableHero(section: { kind?: unknown; fields?: unknown }): boolean {
-  if (section.kind !== "hero") return false;
+/** A ready-made hero's or call to action's four fields, all text - what its form hands over. */
+function isReadableSlotSection(section: { kind?: unknown; fields?: unknown }): boolean {
+  if (section.kind !== "hero" && section.kind !== "cta") return false;
   const { fields } = section;
   return (
     typeof fields === "object" &&
@@ -43,7 +43,7 @@ export function isReadableSectionsContent(content: unknown): content is { sectio
     sections.every((section) => {
       if (typeof section !== "object" || section === null) return false;
       const each = section as { columns?: unknown; kind?: unknown; fields?: unknown };
-      if (each.kind !== undefined) return each.columns === undefined && isReadableHero(each);
+      if (each.kind !== undefined) return each.columns === undefined && isReadableSlotSection(each);
       return Array.isArray(each.columns) && each.columns.every(isReadableEditorContent);
     })
   );

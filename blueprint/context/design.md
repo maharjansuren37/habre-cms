@@ -62,6 +62,7 @@ Mockups (throwaway): `prototypes/login.html`, `posts-list.html`,
 | `--color-accent` (links) on `--color-bg` | 6.0 | 8.4 |
 | `--color-accent` on `--color-accent-subtle` (active nav) | 5.5 | 6.9 |
 | `--color-on-accent` on `--color-accent` (primary button) | 6.4 | 8.4 |
+| `--color-accent` fill on `--color-surface` (call-to-action button on its panel - item 12b; non-text, needs 3:1) | 6.45 | 7.76 |
 | `--color-border-control` on `--color-surface` (input/button edge) | 3.3 | 3.7 |
 | `--color-border-control` on `--color-bg` | 3.1 | 4.0 |
 | `--color-success` on `--color-success-subtle` (Published badge) | 5.3 | 8.4 |
@@ -258,6 +259,27 @@ mostly the page itself, not spinners.
   between sections is unchanged (`--space-7`); no new colours, so no new contrast
   figures. It reads in the page's 42rem column at every width. Screenshots:
   `blueprint/reference/12a-hero/` (editor and public, light and dark).
+  Screen-reader behaviour is unverified (`needs-you.md`).
+- **Call to action (item 12b, page editor and public page, not in the mockups):**
+  the second ready-made section kind, built like the hero. **In the editor** the
+  add row now holds three default buttons - "Add blank section", "Add hero
+  section", "Add call to action" - all disabled at 30 sections with the same hint,
+  wrapping on a narrow screen. A call-to-action card has the usual bar with a
+  small bordered "Call to action" tag in place of Columns, and the hero's form,
+  except that **the button is required**: "Button label (required)" and "Button
+  link (required)" are `aria-required`, never the native `required`. A new one
+  starts empty with focus in Heading and a polite "Call to action section added.
+  Now N sections." A refused save names it ("Section 2 (call to action): the
+  button needs a label and a link.") and keeps what was typed. Kinds are not
+  convertible. **On the public page** it is a `<section data-kind="cta">`: a panel
+  on `--color-surface` with a 1px `--color-border` (decorative, 1.29:1 light /
+  1.3:1 dark, like every card border), `--radius-md`, `--space-6` padding,
+  centred text, the `<h2>` at `--text-xl`, one paragraph when text is set, and
+  always the button, in the hero button's rule (`--color-on-accent` on
+  `--color-accent`). The only new colour pair is that button fill on the panel
+  (6.45 light / 7.76 dark, table above). It differs from a hero by being a
+  contained panel, so the two are never mistaken on a page. Screenshots:
+  `blueprint/reference/12b-cta/` (editor and public, light and dark).
   Screen-reader behaviour is unverified (`needs-you.md`).
 - **Image block and picker (item 5b, not in the mockups):** a bordered card
   (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every

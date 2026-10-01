@@ -132,4 +132,10 @@ File: app/features/blocks/blocks.ts (`fromEditorJsSections`, `UNREADABLE_SHAPE`)
 File: blueprint/context/design.md (*Sections*); app/features/blocks/sections-editor.client.tsx (`remove`)
 
 ### F-127 [P3] open - The hero parser's "character that cannot be saved" refusal has no test
-File: app/features/blocks/blocks.ts (`heroFromFields`)
+File: app/features/blocks/blocks.ts (`heroFromFields`, now `slotSectionFromFields`; applies to the call to action too)
+
+### F-128 [P3] open - Hero-named identifiers now serve both ready-made kinds
+File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor.client.tsx (HERO_FIELDS, HeroForm); sections-editor.module.css (.hero*)
+
+### F-129 [P3] open - `render.tsx` keeps an import this item made unused
+File: app/features/blocks/render.tsx:4

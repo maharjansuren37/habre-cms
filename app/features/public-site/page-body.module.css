@@ -122,7 +122,8 @@
   font-size: var(--text-2xl);
 }
 
-.body section[data-kind="hero"] [data-hero-button] {
+.body section[data-kind="hero"] [data-hero-button],
+.body section[data-kind="cta"] [data-cta-button] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -136,6 +137,22 @@
   text-decoration: none;
 }
 
-.body section[data-kind="hero"] [data-hero-button]:hover {
+.body section[data-kind="hero"] [data-hero-button]:hover,
+.body section[data-kind="cta"] [data-cta-button]:hover {
   background: var(--color-accent-hover);
+}
+
+/* Call to action (item 12b): the hero's centred text in a bordered panel, so it
+   reads as "do this next". Its button shares the hero button's rule above. */
+.body section[data-kind="cta"] {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.body section[data-kind="cta"] > h2 {
+  margin-top: 0;
+  font-size: var(--text-xl);
 }

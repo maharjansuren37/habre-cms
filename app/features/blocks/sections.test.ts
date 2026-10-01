@@ -57,3 +57,14 @@ test("nonEmptySections keeps a hero, which is never empty", () => {
     ["h1"],
   );
 });
+
+test("a call to action is never empty", () => {
+  const sections = sectionsSchema.parse([
+    {
+      id: "c1",
+      type: "cta",
+      data: { heading: "Join", text: "", button: { label: "Go", href: "/join" } },
+    },
+  ]);
+  assert.equal(nonEmptySections(sections).length, 1);
+});

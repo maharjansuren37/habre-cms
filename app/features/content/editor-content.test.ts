@@ -66,3 +66,18 @@ test("a hero is readable when it hands over its four text fields", () => {
     false,
   );
 });
+
+test("a call to action's fields are readable, like a hero's", () => {
+  const fields = { heading: "Join", text: "", buttonLabel: "Go", buttonHref: "/join" };
+  assert.equal(isReadableSectionsContent({ sections: [{ id: "c", kind: "cta", fields }] }), true);
+  assert.equal(
+    isReadableSectionsContent({ sections: [{ id: "c", kind: "cta", fields: { heading: "x" } }] }),
+    false,
+  );
+  assert.equal(
+    isReadableSectionsContent({
+      sections: [{ id: "c", kind: "cta", fields, columns: [{ blocks: [] }] }],
+    }),
+    false,
+  );
+});

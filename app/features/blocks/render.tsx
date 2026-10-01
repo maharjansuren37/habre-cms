@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import type { Block, HeroSection, ImageMediaSummary, Section } from "./blocks.ts";
+import type { Block, CtaSection, HeroSection, ImageMediaSummary, Section } from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
 import { isPlainSection, nonEmptySections } from "./sections.ts";
 
@@ -75,7 +75,8 @@ export function renderSections(
   mediaById: Record<string, ImageMediaSummary> = {},
 ) {
   return nonEmptySections(sections).map((section) => {
-    if (!isPlainSection(section)) return renderHero(section);
+    if (section.type === "hero") return renderHero(section);
+    if (section.type === "cta") return renderCta(section);
     const columns = section.data.children;
     if (columns.length === 1)
       return <section key={section.id}>{renderBlocks(columns.flat(), mediaById)}</section>;
@@ -112,6 +113,23 @@ function renderHero(hero: HeroSection) {
           </a>
         </p>
       ) : null}
+    </section>
+  );
+}
+
+/** A ready-made call to action (item 12b): the hero's slots with the button
+ *  always present, as React text nodes. */
+function renderCta(cta: CtaSection) {
+  const { heading, text, button } = cta.data;
+  return (
+    <section key={cta.id} data-kind="cta">
+      <h2>{heading}</h2>
+      {text ? <p>{text}</p> : null}
+      <p>
+        <a href={button.href} data-cta-button="">
+          {button.label}
+        </a>
+      </p>
     </section>
   );
 }

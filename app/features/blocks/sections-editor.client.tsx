@@ -31,17 +31,26 @@ type PlainEntry = {
 /** What a hero's form holds - the same four texts the save sends. */
 type HeroFields = { heading: string; text: string; buttonLabel: string; buttonHref: string };
 
-/** A ready-made hero: plain form fields, no Editor.js. */
-type HeroEntry = { kind: "hero"; id: string; fields: HeroFields };
+/** A ready-made hero or call to action: plain form fields, no Editor.js. */
+type SlotKind = "hero" | "cta";
+type SlotEntry = { kind: SlotKind; id: string; fields: HeroFields };
 
-type Entry = PlainEntry | HeroEntry;
+type Entry = PlainEntry | SlotEntry;
 
 /** Where focus goes after the list changes, since the control that held it may
  *  have moved, been disabled or gone. */
 type FocusTarget =
   | {
       id: string;
-      control: "heading" | "up" | "down" | "remove" | "keep" | "editor" | "hero-heading";
+      control:
+        | "heading"
+        | "up"
+        | "down"
+        | "remove"
+        | "keep"
+        | "editor"
+        | "hero-heading"
+        | "cta-heading";
     }
   | { control: "add" };
 
@@ -72,7 +81,7 @@ export function SectionsEditor({
       if (!isPlainSection(section)) {
         const { heading, text, button } = section.data;
         return {
-          kind: "hero",
+          kind: section.type,
           id: section.id,
           fields: {
             heading,
@@ -115,7 +124,8 @@ export function SectionsEditor({
     contentRef.current = async () => ({
       sections: await Promise.all(
         entries.map(async (entry) => {
-          if (entry.kind === "hero") return { id: entry.id, kind: "hero", fields: entry.fields };
+          if (entry.kind !== "plain")
+            return { id: entry.id, kind: entry.kind, fields: entry.fields };
           const columns = await Promise.all(
             entry.columns.map((_, index) => readerFor(entry.id, index).current?.()),
           );
@@ -167,12 +177,14 @@ export function SectionsEditor({
     changed(`Section added. Now ${entries.length + 1} sections.`);
   }
 
-  function addHero() {
+  function addSlotSection(kind: SlotKind) {
     const id = crypto.randomUUID();
     const fields = { heading: "", text: "", buttonLabel: "", buttonHref: "" };
-    setEntries([...entries, { kind: "hero", id, fields }]);
-    setFocusTarget({ id, control: "hero-heading" });
-    changed(`Hero section added. Now ${entries.length + 1} sections.`);
+    setEntries([...entries, { kind, id, fields }]);
+    setFocusTarget({ id, control: `${kind}-heading` });
+    changed(
+      `${kind === "cta" ? "Call to action" : "Hero"} section added. Now ${entries.length + 1} sections.`,
+    );
   }
 
   function move(index: number, by: -1 | 1) {
@@ -293,8 +305,10 @@ export function SectionsEditor({
               >
                 {position}
               </h2>
-              {entry.kind === "hero" ? (
-                <span className={styles.kindTag}>Hero</span>
+              {entry.kind !== "plain" ? (
+                <span className={styles.kindTag}>
+                  {entry.kind === "cta" ? "Call to action" : "Hero"}
+                </span>
               ) : (
                 <fieldset className={styles.layout}>
                   <legend className={styles.layoutLegend}>
@@ -372,14 +386,15 @@ export function SectionsEditor({
                 {layoutError.message}
               </Message>
             ) : null}
-            {entry.kind === "hero" ? (
+            {entry.kind !== "plain" ? (
               <HeroForm
+                kind={entry.kind}
                 idPrefix={`${hintId}-${entry.id}`}
                 fields={entry.fields}
                 onChange={(fields) => {
                   setEntries((current) =>
                     current.map((each) =>
-                      each.kind === "hero" && each.id === entry.id ? { ...each, fields } : each,
+                      each.kind !== "plain" && each.id === entry.id ? { ...each, fields } : each,
                     ),
                   );
                   edited();
@@ -427,9 +442,18 @@ export function SectionsEditor({
           data-control="add-hero"
           disabled={atLimit}
           aria-describedby={atLimit ? hintId : undefined}
-          onClick={addHero}
+          onClick={() => addSlotSection("hero")}
         >
           Add hero section
+        </Button>
+        <Button
+          type="button"
+          data-control="add-cta"
+          disabled={atLimit}
+          aria-describedby={atLimit ? hintId : undefined}
+          onClick={() => addSlotSection("cta")}
+        >
+          Add call to action
         </Button>
         {atLimit ? (
           <p className={styles.hint} id={hintId}>
@@ -472,25 +496,33 @@ const HERO_FIELDS = [
  * `contentRef` like every other section.
  */
 function HeroForm({
+  kind,
   idPrefix,
   fields,
   onChange,
 }: {
+  kind: SlotKind;
   idPrefix: string;
   fields: HeroFields;
   onChange: (fields: HeroFields) => void;
 }) {
   return (
     <div className={styles.heroForm}>
-      {HERO_FIELDS.map(({ name, label, hint }) => {
+      {HERO_FIELDS.map((slot) => {
+        const { name } = slot;
+        // A call to action's button is not optional.
+        const required = name === "heading" || (kind === "cta" && name.startsWith("button"));
+        const label =
+          kind === "cta" && name.startsWith("button") ? `${slot.label} (required)` : slot.label;
+        const hint = kind === "cta" && name === "buttonLabel" ? "Up to 40 characters." : slot.hint;
         const id = `${idPrefix}-${name}`;
         const shared = {
           id,
           className: styles.heroInput,
           value: fields[name],
           "aria-describedby": `${id}-hint`,
-          "aria-required": name === "heading" ? (true as const) : undefined,
-          "data-control": `hero-${name}`,
+          "aria-required": required ? (true as const) : undefined,
+          "data-control": `${kind}-${name}`,
         };
         return (
           <div key={name} className={styles.heroField}>

@@ -721,3 +721,110 @@ test("collectImageMediaIds passes over a hero", () => {
   const sections = sectionsSchema.parse([hero("h1"), section("s1", [textLeaf("a")])]);
   assert.deepEqual(collectImageMediaIds(sections), []);
 });
+
+// ---- ready-made sections: call to action (item 12b) ----
+
+const cta = (id: string, data: Record<string, unknown> = {}) => ({
+  id,
+  type: "cta",
+  data: {
+    heading: "Join us",
+    text: "Come along.",
+    button: { label: "Sign up", href: "https://example.com/" },
+    ...data,
+  },
+});
+const ctaFields = (fields: Record<string, string> = {}) => ({
+  heading: "Join us",
+  text: "Come along.",
+  buttonLabel: "Sign up",
+  buttonHref: "/join",
+  ...fields,
+});
+const saveCta = (fields: Record<string, string> = {}, before: unknown[] = []) =>
+  fromEditorJsSections({
+    sections: [...before, { id: "c1", kind: "cta", fields: ctaFields(fields) }],
+  });
+const ctaMessage = (fields: Record<string, string>, before: unknown[] = []) => {
+  const result = saveCta(fields, before);
+  return result.ok ? "accepted" : result.message;
+};
+
+test("a call to action is valid only with a button", () => {
+  assert.equal(sectionsSchema.safeParse([cta("c1")]).success, true);
+  assert.equal(sectionsSchema.safeParse([cta("c1", { text: "" })]).success, true);
+  assert.equal(sectionsSchema.safeParse([cta("c1", { button: undefined })]).success, false);
+  assert.equal(sectionsSchema.safeParse([cta("c1", { heading: "" })]).success, false);
+});
+
+test("the save parser builds a call to action from its four fields", () => {
+  const result = saveCta();
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.ok && result.sections[0], {
+    id: "c1",
+    type: "cta",
+    data: { heading: "Join us", text: "Come along.", button: { label: "Sign up", href: "/join" } },
+  });
+});
+
+test("a call to action's refusals name the section", () => {
+  const one = [{ id: "s1", columns: [editorColumn("a1")] }];
+  assert.equal(
+    ctaMessage({ heading: " " }, one),
+    "Section 2 (call to action): the heading is required.",
+  );
+  assert.match(ctaMessage({ heading: "x".repeat(121) }), /^Section 1 \(call to action\): .*120/);
+  assert.match(ctaMessage({ text: "x".repeat(401) }), /the text is longer than 400/);
+  const needs = "Section 1 (call to action): the button needs a label and a link.";
+  assert.equal(ctaMessage({ buttonLabel: "", buttonHref: "" }), needs);
+  assert.equal(ctaMessage({ buttonHref: "" }), needs);
+  assert.equal(ctaMessage({ buttonLabel: "" }), needs);
+  assert.match(ctaMessage({ buttonHref: "javascript:alert(1)" }), /link cannot be used/);
+  assert.match(ctaMessage({ buttonHref: "//evil.example" }), /link cannot be used/);
+});
+
+test("a line break in a call to action slot becomes a space", () => {
+  const result = saveCta({ text: "one\n\ntwo" });
+  assert.equal(
+    result.ok && result.sections[0]?.type === "cta" && result.sections[0].data.text,
+    "one two",
+  );
+});
+
+test("ids are unique across a call to action and a hero, and 31 sections are refused", () => {
+  const same = fromEditorJsSections({
+    sections: [
+      { id: "same", kind: "hero", fields: heroFields() },
+      { id: "same", kind: "cta", fields: ctaFields() },
+    ],
+  });
+  assert.equal(same.ok, false);
+  const many = fromEditorJsSections({
+    sections: Array.from({ length: 31 }, (_, i) => ({
+      id: `c${i}`,
+      kind: "cta",
+      fields: ctaFields(),
+    })),
+  });
+  assert.equal(many.ok, false);
+});
+
+test("a call to action with columns is refused; plain, hero and cta lists keep their order", () => {
+  const refused = fromEditorJsSections({
+    sections: [{ id: "x", kind: "cta", fields: ctaFields(), columns: [] }],
+  });
+  assert.equal(refused.ok, false);
+  const result = fromEditorJsSections({
+    sections: [
+      { id: "s1", columns: [editorColumn("a1")] },
+      { id: "c1", kind: "cta", fields: ctaFields() },
+      { id: "h1", kind: "hero", fields: heroFields() },
+    ],
+  });
+  assert.equal(result.ok && result.sections.map((each) => each.type).join(), "section,cta,hero");
+});
+
+test("collectImageMediaIds passes over a call to action", () => {
+  const sections = sectionsSchema.parse([cta("c1"), section("s1", [textLeaf("a")])]);
+  assert.deepEqual(collectImageMediaIds(sections), []);
+});

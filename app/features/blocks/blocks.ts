@@ -279,11 +279,16 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
   for (const [index, section] of outer.data.sections.entries()) {
     if (section.kind !== undefined) {
       // The kind is named by the client, but everything stored is built here.
-      if (section.kind !== "hero" || section.columns !== undefined)
+      if ((section.kind !== "hero" && section.kind !== "cta") || section.columns !== undefined)
         return { ok: false, message: UNREADABLE_SHAPE };
-      const hero = heroFromFields(section.id, section.fields, `Section ${index + 1} (hero)`);
-      if (!hero.ok) return hero;
-      sections.push(hero.section);
+      const ready = slotSectionFromFields(
+        section.kind,
+        section.id,
+        section.fields,
+        `Section ${index + 1} (${section.kind === "cta" ? "call to action" : "hero"})`,
+      );
+      if (!ready.ok) return ready;
+      sections.push(ready.section);
       continue;
     }
     if (section.columns === undefined) return { ok: false, message: UNREADABLE_SHAPE };
@@ -323,11 +328,14 @@ const heroFieldsSchema = z.object({
 const tidy = (value: string) => value.replace(/\s+/g, " ").trim();
 
 /**
- * A hero from the editor's four fields, or the sentence the writer reads. An
- * empty label and an empty link together mean "no button"; exactly one of them
- * is refused rather than guessed at. `name` says which section ("Section 2 (hero)").
+ * A ready-made section (hero or call to action) from the editor's four fields,
+ * or the sentence the writer reads. On a hero an empty label and an empty link
+ * together mean "no button"; a call to action must have one. Exactly one of the
+ * two is refused rather than guessed at. `name` says which section
+ * ("Section 2 (hero)").
  */
-function heroFromFields(
+function slotSectionFromFields(
+  type: "hero" | "cta",
   id: string,
   input: unknown,
   name: string,
@@ -347,6 +355,8 @@ function heroFromFields(
     return refuse(`the text is longer than ${HERO_TEXT_MAX} characters. Shorten it.`);
   if (label.length > HERO_LABEL_MAX)
     return refuse(`the button label is longer than ${HERO_LABEL_MAX} characters. Shorten it.`);
+  if (type === "cta" && (label.length === 0 || href.length === 0))
+    return refuse("the button needs a label and a link.");
   if (label.length === 0 && href.length > 0)
     return refuse("the button has a link but no label. Add a label, or clear the link.");
   if (label.length > 0 && href.length === 0)
@@ -362,7 +372,7 @@ function heroFromFields(
     ok: true,
     section: {
       id,
-      type: "hero",
+      type,
       data: { heading, text, ...(label ? { button: { label, href } } : {}) },
     },
   };
@@ -486,8 +496,25 @@ const heroBlock = z.object({
   }),
 });
 
+/**
+ * A ready-made call to action (item 12b): the hero's slots, but the button is
+ * always there - a call to action with nothing to click is a hero.
+ */
+const ctaBlock = z.object({
+  id: sectionId,
+  type: z.literal("cta"),
+  data: z.strictObject({
+    heading: slot(1, HERO_HEADING_MAX),
+    text: slot(0, HERO_TEXT_MAX),
+    button: z.strictObject({
+      label: slot(1, HERO_LABEL_MAX),
+      href: z.string().refine(isSafeHref, "a link address that cannot be used"),
+    }),
+  }),
+});
+
 /** Every kind of section a page can hold, told apart by `type`. */
-const sectionBlock = z.discriminatedUnion("type", [plainSectionBlock, heroBlock]);
+const sectionBlock = z.discriminatedUnion("type", [plainSectionBlock, heroBlock, ctaBlock]);
 
 export const sectionsSchema = z
   .array(sectionBlock)
@@ -513,6 +540,7 @@ export const sectionsSchema = z
 
 export type PlainSection = z.infer<typeof plainSectionBlock>;
 export type HeroSection = z.infer<typeof heroBlock>;
+export type CtaSection = z.infer<typeof ctaBlock>;
 export type Section = z.infer<typeof sectionBlock>;
 
 /** The id of the section a not-yet-resaved `v2` page is shown as. */
@@ -539,7 +567,7 @@ export function collectImageMediaIds(items: (Block | Section)[]): string[] {
   for (const item of items) {
     if (item.type === "section") {
       for (const column of item.data.children) column.forEach(visit);
-    } else if (item.type !== "hero") visit(item);
+    } else if (item.type !== "hero" && item.type !== "cta") visit(item);
   }
   return [...ids];
 }

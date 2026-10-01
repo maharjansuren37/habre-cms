@@ -92,5 +92,5 @@ blueprint/project-plan.md too, then regenerate the overview.
 - [x] 11. **Columns** - a section can split into 2-3 columns that stack on small screens; editor and public render
 - [ ] 12. **Ready-made sections** - hero, call-to-action, image + text, insertable from the editor, rendered in the built-in theme
   - [x] 12a. **Hero and the typed-section foundation** - a section can be a ready-made kind with fixed slots instead of free columns: schema union, public render, an "Add section" menu (Blank / Hero) and a slot form in the page editor; hero = heading, text, optional button
-  - [ ] 12b. **Call to action** - the second kind: heading, text, one button, on the 12a foundation
+  - [x] 12b. **Call to action** - the second kind: heading, text, one button, on the 12a foundation
   - [ ] 12c. **Image + text** - the third kind: an image slot (media picker), heading, text, optional button, image side by side with the text

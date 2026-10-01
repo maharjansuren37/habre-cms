@@ -1623,3 +1623,27 @@ Costs: no native format hint.
 **Chose:** the image slot and its picker arrive with item 12c (image + text); the hero button uses the primary button's colour pair, so no new contrast figure.
 Beats: building the picker here, before any kind needs it.
 Costs: a hero is text-only until 12c, if a hero image is wanted then.
+
+## D133 - A call to action is its own section type and wire kind, with a required button (2026-10-01)
+
+**Chose:** `cta` is a third sibling in `sectionsSchema` (`{ heading 1-120, text 0-400, button: { label 1-40, href } }`, button required); the wire kind is `cta`; a missing label or link is refused as "the button needs a label and a link". Continues D125 and D130.
+Beats: a hero with a "button required" flag (blurs two kinds the editor labels differently); one shared "optional button" rule (a call to action with nothing to click is a hero by another name).
+Costs: another union member for every caller that switches on `type`.
+
+## D134 - Hero and call to action share one field parser (2026-10-01)
+
+**Chose:** `slotSectionFromFields(type, ...)` in `blocks.ts` builds either kind; they differ only in the type, the name used in messages and whether the button is required. Hero messages are unchanged.
+Beats: a copy of the hero parser per kind (12c would make three).
+Costs: hero-named identifiers (`HeroForm`, `HERO_*`) now serve both - F-128.
+
+## D135 - Three add buttons; the menu decision moves to 12c (2026-10-01)
+
+**Chose:** "Add blank section", "Add hero section", "Add call to action", all disabled at 30 sections, wrapping on a narrow screen. Amends D128's "revisit at three kinds" to "revisit at four".
+Beats: building a popover menu now (three buttons still fit one wrapped row).
+Costs: 12c, which makes four, has to decide between buttons and a menu.
+
+## D136 - A call to action is a bordered panel on `--color-surface` (2026-10-01)
+
+**Chose:** 1px `--color-border`, `--radius-md`, `--space-6` padding, centred, heading at `--text-xl`; the button uses the hero button's rule. The one new colour pair, button fill on the panel, measures 6.45 light / 7.76 dark.
+Beats: a bare banner like the hero (indistinguishable on the page); an accent-filled band (a new full-width colour pair to measure).
+Costs: none beyond one contrast row in `design.md`.
