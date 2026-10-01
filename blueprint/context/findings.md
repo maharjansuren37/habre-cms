@@ -27,7 +27,7 @@ File: app/features/blocks/editor.client.tsx:68
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
 
-### F-17 [P2] open - The browser tests that cover login never run automatically
+### F-17 [P2] fixed - The browser tests that cover login never run automatically
 File: .github/workflows/ci.yml, package.json:22 (`verify` = typecheck, lint, unit tests, build)
 
 ### F-69 [P2] open - `createRequestHandler` is never given a mode, so every error is sanitized in development too - root's own dev-mode stack trace has never been reachable

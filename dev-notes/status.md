@@ -536,9 +536,12 @@ stands*. All 8 items are now live in production.
 
 ## Open / not done
 
-- **Browser tests gate nothing** (F-17): CI runs `verify` only, and the tests
-  covering every item's worst defects are in the Playwright suite (run by
-  hand before each deploy instead).
+- **CI runs 115 of the 141 browser tests** (F-17 fixed 2026-10-01, awaiting
+  `preflight` to close): the new `e2e` job. **The other 26 upload to R2 and skip
+  in CI** (`E2E_SKIP_R2=1`) - image blocks, the picker, the logo, image + text -
+  so run `npm run test:e2e` locally with the real `.env` before a deploy. A fake
+  R2 server would bring them into CI (needs an optional `R2_ENDPOINT` in
+  `r2.server.ts`); not built. `e2e` is not yet a *required* check (`needs-you.md`).
 - **No alerting on a failed backup** - the heartbeat is built but
   `BACKUP_HEARTBEAT_URL` is deliberately unset (owner's decision); a failed
   backup tells nobody.
@@ -602,6 +605,16 @@ nobody knowing how to do it.** Write it down here.
     npm ci --no-audit --no-fund
     npm run verify
 
+**The `e2e` job, by hand** (needs Docker; Node 26; no `.env` needed):
+
+    docker run -d --name ci-db -e POSTGRES_PASSWORD=ci-superuser-password -p 127.0.0.1:5433:5432 postgres:16-alpine
+    docker exec -i -e POSTGRES_USER=postgres -e HABRE_DB_PASSWORD=ci-app-password ci-db sh -s < db/dev/init.sh
+    export DATABASE_URL=postgres://habre_cms:ci-app-password@127.0.0.1:5433/habre_cms
+    npm run db:migrate
+    export JWT_SECRET=$(openssl rand -base64 32) R2_ACCOUNT_ID=ci R2_ACCESS_KEY_ID=ci \
+      R2_SECRET_ACCESS_KEY=ci R2_BUCKET=ci R2_PUBLIC_URL=https://r2.invalid E2E_SKIP_R2=1 CI=1
+    npx playwright install chromium && npm run test:e2e   # 115 passed, 26 skipped
+
 `npm run verify` runs, in order:
 
     npx react-router typegen     # generate route types (gitignored, so CI needs this)
@@ -628,12 +641,9 @@ what is verified above, on purpose.
   the R2 credential separation first** - it is small (a new Cloudflare
   token/bucket) and closes a real gap. The screen-reader pass is bigger and has been deferred since item 1;
   it deserves a dedicated session rather than being squeezed in.
-- **Give CI a database** (closes F-17). The browser suite is now the only
-  thing that actually proves items 1-8 still work together, and it is being
-  run by hand, from a fresh clone, immediately before every production
-  deploy - that is a real check, but it depends on someone remembering to run
-  it. A PostgreSQL service container in `ci.yml` would make it automatic on
-  every push, not just at release time.
+- **Give CI a fake R2 server** so all 141 browser tests run there, not 115.
+  F-17's database part is done; the 26 uploading tests still depend on someone
+  running the suite locally with real R2 before a deploy.
 - **This file is getting long and increasingly chronological** (a preflight
   entry, a migration entry, two deploy entries, each with its own detail).
   Worth a light restructure next time it's touched - collapse older deploy

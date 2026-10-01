@@ -74,7 +74,7 @@ because they need a database; they run only when someone remembers.
   *Done when:* with `CI=1`, a temporary `test.only` fails the run before any
   test starts (shown, then removed), and a normal `CI=1` run still reports 115
   passed / 26 skipped.
-- [ ] **Step 3 - The `e2e` CI job** - in `.github/workflows/ci.yml` add job
+- [x] **Step 3 - The `e2e` CI job** - in `.github/workflows/ci.yml` add job
   `e2e` (`ubuntu-24.04`, `timeout-minutes: 20`, same SHA-pinned checkout and
   setup-node, Node 26, `npm ci`). Service `postgres:16-alpine` with
   `POSTGRES_PASSWORD` and a health check. Steps: create the role and database
@@ -90,7 +90,7 @@ because they need a database; they run only when someone remembers.
   throwaway `postgres:16-alpine` container on a spare port, with a clean clone
   and no `.env`, ends **115 passed / 26 skipped** (the rehearsal's output is the
   evidence).
-- [ ] **Step 4 - Docs and the finding** - `AGENTS.md` *Environments* `ci` row:
+- [x] **Step 4 - Docs and the finding** - `AGENTS.md` *Environments* `ci` row:
   it now has a database service and runs browser tests, skips the 26 R2 tests,
   holds no secrets; keep the Node pin sentence. `dev-notes/status.md`: what CI
   runs, the 26 skipped and why, how to run the same by hand, F-17 resolved.
