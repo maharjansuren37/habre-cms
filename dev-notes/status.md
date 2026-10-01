@@ -536,8 +536,8 @@ stands*. All 8 items are now live in production.
 
 ## Open / not done
 
-- **CI runs 115 of the 141 browser tests** (F-17 fixed 2026-10-01, awaiting
-  `preflight` to close): the new `e2e` job. **The other 26 upload to R2 and skip
+- **CI runs 115 of the 141 browser tests** (F-17 fixed 2026-10-01, closed by
+  `review`): the new `e2e` job. **The other 26 upload to R2 and skip
   in CI** (`E2E_SKIP_R2=1`) - image blocks, the picker, the logo, image + text -
   so run `npm run test:e2e` locally with the real `.env` before a deploy. A fake
   R2 server would bring them into CI (needs an optional `R2_ENDPOINT` in
