@@ -3,10 +3,10 @@
 > **Generated file.** Written by the `context` skill from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
-> the record. Decision numbers (D1-D124) are entries in `dev-notes/decisions.md` -
+> the record. Decision numbers (D1-D132) are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-01 from `main` (`8392922`).
+Generated 2026-10-01 from `main` (`7bc4356`).
 
 ## What this is
 
@@ -39,15 +39,17 @@ items 10-12. **Item 10 is built:** a page is an ordered list of 1-30 sections
 (`blocks_format` v3, move up/down buttons, D114-D118); v2 pages load as one
 section and convert on save; posts stay flat. **Item 11 is built:** a section
 has 1-3 columns, one Editor.js each, stacked below `48rem`; fewer columns merge,
-never discard (D119-D124). **Item 12:** ready-made
-hero, call-to-action and image + text sections. No drag-and-drop, no new runtime
+never discard (D119-D124). **Item 12 is split:** **12a is built** - a
+ready-made `hero` section (heading, text, optional button; plain-string slots,
+its own section type, "Add hero section" in the editor; D125-D132); **12b** call
+to action and **12c** image + text are next. No drag-and-drop, no new runtime
 dependency.
 
 **Deferred - do not build unasked.** Full list and reasons: plan section 11.
-Soon after: reusable saved sections, section styling and page templates,
-categories and tags, scheduled publishing and revisions, SEO fields
-and sitemap, password reset by email, custom domains. Later or
-never: free-form canvas and custom CSS/HTML, headless API, multiple themes, many sites, WordPress import, plugins.
+Soon after: reusable saved sections, section styling, page templates,
+categories and tags, scheduling and revisions, SEO and sitemap, password reset
+by email, custom domains. Later or never: free-form canvas, custom CSS/HTML,
+headless API, multiple themes, many sites, WordPress import, plugins.
 
 ## Stack
 
@@ -136,13 +138,11 @@ without a requirement that calls for them.
 
 ## Current state
 
-- **Plan:** 11 of 12 items done (8 MVP + items 9-11), archived in
-  `blueprint/history/features/`. Item 12 is unchecked; nothing is in flight.
-  Next: `spec` for item 12 (ready-made sections).
-- **Live:** production runs release `5bd0d29`, through item 9. **Items 10-11 are
-  merged to `main` but not deployed** - deploy them together; `0007` is needed,
-  and no symlink rollback once a page is saved as v3 or multi-column. See
-  `blueprint/production-pending.md` and `dev-notes/status.md`.
+- **Plan:** items 1-11 and 12a done, archived in `blueprint/history/features/`;
+  12b, 12c open; nothing in flight. Next: `spec` for 12b.
+- **Live:** production runs release `135bd1d`, through item 11 (migration `0007`
+  applied). **12a is merged, not deployed** - deploy 12a-12c together; no
+  symlink rollback once a page has a hero. See `blueprint/production-pending.md`.
 - **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in

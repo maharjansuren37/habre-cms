@@ -303,8 +303,9 @@ One site per installation - no site id on any table (D8).
   `blocks` is a list of `section` blocks (`blocks_format` v3). A `plain` section
   has `data.layout` (`"1"`, `"2"` or `"3"` columns) and `children`: a list of
   columns, each a list of the leaf blocks below. Ready-made sections (`hero`,
-  `cta`, `image-text`, item 12) are their own typed blocks with fixed slots
-  (runs, an allowlisted link, a media id), not free columns. Nesting stops at
+  `cta`, `image-text`, item 12) are their own section types (siblings of
+  `section`, D125) with fixed slots - plain strings, an allowlisted link, a
+  media id (D126) - not free columns. Nesting stops at
   section -> column -> leaf; sections never contain sections.
 - **v2 content stays valid, nothing is migrated destructively.** A v2 page
   loads as one implicit 1-column section and becomes v3 on its next save; the
