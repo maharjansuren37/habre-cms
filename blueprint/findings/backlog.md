@@ -14,8 +14,9 @@ File: app/lib/security-log.server.ts:16; app/features/auth/require-role.server.t
 ### F-83 [P3] unverified - Item 6a's pages screens reproduce three pre-existing unverified/open posts accessibility findings
 File: app/features/content/page-list.tsx:69-98 (filter tabs, search form); app/features/admin-shell/layout.tsx:39-61 (nav)
 
-### F-79 [P3] unverified - A captioned image's alt text is announced twice in a row by a screen reader
+### F-79 [P3] deferred - A captioned image's alt text is announced twice in a row by a screen reader
 File: app/features/blocks/render.tsx:38-52 (the `image` case)
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: a captioned image is not announced twice (owner, 2026-10-02)
 
 ### F-78 [P3] open - `manage-posts.spec.ts`'s "editor sees all posts" count races against every other spec file's own test data under parallel workers
 File: e2e/manage-posts.spec.ts:29-53 ("the list is scoped by role, and the tabs' counts match")
@@ -23,23 +24,29 @@ File: e2e/manage-posts.spec.ts:29-53 ("the list is scoped by role, and the tabs'
 ### F-71 [P3] open - A cookie comment now describes a reality the hostname split already removed
 File: app/features/auth/session-cookie.server.ts:9-12
 
-### F-50 [P3] open - The stored shape is less canonical than the contract says it is
+### F-50 [P3] deferred - The stored shape is less canonical than the contract says it is
 File: app/features/blocks/inline-runs.ts:56-71 (`runsSchema`); blueprint/context/current-work.md *Data and contracts* and step 1
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-51 [P3] open - An empty list block refuses the whole save, with a raw Zod message
+### F-51 [P3] deferred - An empty list block refuses the whole save, with a raw Zod message
 File: app/features/blocks/blocks.ts:38 (`items: z.array(runsSchema).min(1)`), with the empty item dropped at :166
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-52 [P3] unverified - F-43's "native Ctrl+B does nothing" rests on one manual observation, and the mechanism argues against it
+### F-52 [P3] deferred - F-43's "native Ctrl+B does nothing" rests on one manual observation, and the mechanism argues against it
 File: app/features/blocks/editor.client.tsx:52-58; e2e/inline-formatting.spec.ts:115-140
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-38 [P3] open - Duplicate block ids are accepted, and ids are unconstrained
+### F-38 [P3] deferred - Duplicate block ids are accepted, and ids are unconstrained
 File: app/features/blocks/blocks.ts:16, 45
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-39 [P3] open - The body cap and the block limits disagree, and the refusal destroys the draft
+### F-39 [P3] deferred - The body cap and the block limits disagree, and the refusal destroys the draft
 File: app/features/content/post-form-input.ts:7, app/features/content/post-edit.tsx:37
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: a refused save never loses the draft (owner, 2026-10-02)
 
-### F-31 [P3] unverified - The editor placeholder may never appear
+### F-31 [P3] deferred - The editor placeholder may never appear
 File: app/features/blocks/editor.client.tsx:42 (`placeholder: "Write your post…"`)
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
 ### F-26 [P3] open - `/admin/posts/new` has no loader, so a client-side navigation skips the auth check
 File: app/features/content/post-new.tsx:9
@@ -95,10 +102,10 @@ File: app/features/settings/settings.tsx:222-231 (the page `<select>`'s `default
 ### F-96 [P3] open - `navigation` is trusted as `NavItem[]` on read with no format guard, unlike `blocks` - a malformed value would 500 the one page that could fix it
 File: app/features/settings/settings.server.ts:19-32 (`getSiteSettings`); app/features/settings/navigation-form-input.ts:11-17 (`navItemsToDraftRows`); app/features/public-site/layout.tsx:16-23 (`resolveNavigation`)
 
-### F-98 [P3] open - `README.md` describes the project as it was after item 3, and does not mention items 4-8 at all
+### F-98 [P3] fixed - `README.md` describes the project as it was after item 3, and does not mention items 4-8 at all
 File: README.md:9-13
 
-### F-99 [P3] open - `CHANGELOG.md` stops at the item-3 release; item 4's production deploy and items 5-8 are unrecorded
+### F-99 [P3] fixed - `CHANGELOG.md` stops at the item-3 release; item 4's production deploy and items 5-8 are unrecorded
 File: CHANGELOG.md:7-12
 
 ### F-101 [P3] open - Two security-event log lines still record the raw `.data` path
@@ -107,8 +114,9 @@ File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
 ### F-102 [P3] open - The CSP browser test is described as covering more screens than it visits
 File: app/lib/zod-jitless.client.ts:8-9; e2e/content-security-policy.spec.ts:148
 
-### F-104 [P3] open - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
+### F-104 [P3] deferred - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
 File: app/features/public-site/post.tsx:21-34
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
 ### F-107 [P3] open - A Save with no `homePageId` field silently resets `/` to the latest posts
 File: app/features/settings/settings.tsx:57
@@ -131,11 +139,13 @@ File: app/features/blocks/blocks.ts (`fromEditorJsSections`, `UNREADABLE_SHAPE`)
 ### F-121 [P3] fixed - The design record says focus lands on the next section after a remove; the code lands on the previous one when the last is removed
 File: blueprint/context/design.md (*Sections*); app/features/blocks/sections-editor.client.tsx (`remove`)
 
-### F-127 [P3] open - The hero parser's "character that cannot be saved" refusal has no test
+### F-127 [P3] deferred - The hero parser's "character that cannot be saved" refusal has no test
 File: app/features/blocks/blocks.ts (`heroFromFields`, now `slotSectionFromFields`; applies to the call to action too)
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-128 [P3] open - Hero-named identifiers now serve both ready-made kinds
+### F-128 [P3] deferred - Hero-named identifiers now serve both ready-made kinds
 File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor.client.tsx (HERO_FIELDS, HeroForm); sections-editor.module.css (.hero*)
+Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
 ### F-129 [P3] open - `render.tsx` keeps an import this item made unused
 File: app/features/blocks/render.tsx:4
