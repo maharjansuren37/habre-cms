@@ -57,7 +57,18 @@ because they need a database; they run only when someone remembers.
   suite reports **115 passed, 26 skipped, 0 failed**; without the switch (local
   `.env`) it still reports **141 passed**; `npm run typecheck` and `npm run lint`
   are clean. The skipped count is in the step's note.
-- [ ] **Step 2 - Strict mode in CI** - in `playwright.config.ts` set
+- [x] **Step 1b - Remove the exact-count race in `manage-posts.spec.ts`** -
+  added after autopilot stopped (owner chose this fix, 2026-10-01): the test
+  "the list is scoped by role, and the tabs' counts match" asserted `All3` for
+  an editor, who sees every author's posts, so a post from a spec running in
+  parallel made it `All4` (3 of 4 full runs with 26 tests skipped). The editor
+  step now asserts the other author's post is visible and the All count is at
+  least 3. The author-scoped counts above it stay exact (an author sees only
+  their own). Other specs were searched for the same pattern: none. *Done when:*
+  three consecutive full runs with `CI=1 E2E_SKIP_R2=1` report 115 passed / 26
+  skipped / 0 failed, and the test still goes red if an editor stops seeing
+  another author's post (mutation shown).
+- [x] **Step 2 - Strict mode in CI** - in `playwright.config.ts` set
   `forbidOnly: !!process.env.CI` and, in CI only, `reporter: [["list"],
   ["html", { open: "never" }]]` so the failure artifact exists. No retries.
   *Done when:* with `CI=1`, a temporary `test.only` fails the run before any
