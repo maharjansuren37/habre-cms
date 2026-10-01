@@ -216,6 +216,12 @@ cannot stop and ask the person - it reports to the session that launched it. So
 delegating `build` does not parallelise the reviewed loop; **it converts it into
 an unattended one.** That should be a deliberate choice.
 
+**This is not the subagent `build` uses itself.** `build` hands one step's
+implementation to a subagent and keeps the rest in the session the person is
+in - reading the diff, explaining it, proving the done-when and waiting for the
+yes - so its reviewed loop is intact. What converts it is handing the *whole
+skill* to a subagent, which then has nobody to wait for.
+
 **Give a subagent an `autopilot` range, not a bare skill.** `autopilot spec..review`
 in one part is exactly the shape autopilot was built for: bounded, checkpointed,
 stops at the first real question, ends with a packet a person reads. Every

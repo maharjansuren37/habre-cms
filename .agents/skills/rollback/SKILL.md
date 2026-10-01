@@ -67,6 +67,11 @@ This is the step that makes rollbacks safe. Since that commit, find:
 - data shapes, types, routes, or stored fields introduced by this feature that
   later work now depends on
 - later features whose archives reference this item number
+- later items that changed or removed this feature's claims - read the target's
+  archive `## Behaviour changes` and the files in `blueprint/capabilities/`
+  (part-level in a multi-part product). A claim the target added but a later item
+  changed no longer has the text the target wrote; name each one, and ask whether
+  the reversal should restore the target's text or leave the later one.
 
 Report each dependency, and for each one say whether the reversal breaks it,
 needs it changed too, or leaves it alone.
@@ -107,6 +112,12 @@ Write to `blueprint/context/current-work.md`, marked `Type: Rollback`, recording
   step mandatory rather than optional. Never sample or count real rows to find
   out; ask for the number.
 - what should be gone afterwards, and one unaffected path worth re-checking
+- **a `## Behaviour changes` section that is the inverse of the target's**, which
+  `ship` merges like any other: each add becomes a `Removes`, each change a
+  `Changes` back from the new text to the old, each remove an `Adds` (a new ID -
+  a tombstone is never reused). Write the old text back exactly as the
+  target's archive recorded it. **A claim `verify --all` seeded has no recorded
+  old text**: say so, and list it as not restorable rather than inventing one.
 - build steps, same as any other spec: small, ordered, each with a done-when
 
 The spec must state that the reversal applies only the product diff, excluding

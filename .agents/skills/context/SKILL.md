@@ -5,7 +5,7 @@ description: "Validate the two planning docs and generate `blueprint/context/pro
 
 # context - generate the source of truth from the plans
 
-**Writes:** `blueprint/context/project-overview.md`
+**Writes:** `blueprint/context/project-overview.md` · `blueprint/project-plan.md` · `blueprint/build-plan.md`
 
 Where this sits:
 
@@ -143,10 +143,10 @@ points at.
 
 **Link, never restate.** Open findings, needs-you lines, shipped items,
 decisions and the environments each have a file that is their record - name the
-file, do not copy it here. On a real project the overview restated the findings
-ledger and `needs-you.md` in prose and reached 29 KB; every change to either
-made the overview stale, and 12 of 33 commits were regenerating it. **If a
-section will not fit, it is restating something** - find what, and point at it.
+file, do not copy it here. An overview that restates them grows with every
+item and goes stale whenever any of them changes, so each change costs another
+regeneration. **If a section will not fit, it is restating something** - find
+what, and point at it.
 
 **Measure it before reporting** (`wc -c`). Over 8 KB, cut and measure again.
 
@@ -165,6 +165,12 @@ the plan changes - **but leave it alone if someone has already written prose
 there**, since it is a user-owned file and a hand-written description beats a
 regenerated one.
 
+**And the README's opening line, the same way.** It ships as "One or two
+sentences: what this is, and who it is for." - replace that placeholder
+sentence with the same two sentences, and leave the line alone once someone has
+written their own. `scaffold` fills the README's commands; this is the part
+only the plan knows.
+
 ## Step 4 - report what changed
 
 If an overview already existed, say what this regeneration changed - new items,
@@ -174,12 +180,21 @@ passes it. **Say whether `AGENTS.md`'s `## What this is` was filled, left alone 
 it already had prose, or updated** - it is a user-owned file, so a write to it
 is never silent.
 
+**Then ask to commit what this run wrote** - `project-overview.md`, any change
+to `project-plan.md` or `build-plan.md`, and the `AGENTS.md` or README line it
+filled - as one `docs: ...` commit. Step 2 asks only when it proposes a plan
+change, so this question is the yes; commit on it. **Between items that is
+`main`**, and it is the commit that keeps the next item's branch free of it;
+mid-item it is the item's branch, where the plan change belongs to that item
+anyway.
+
 Then point at what is next:
 
 - `architect` if the architecture section is still thin
-- **`prototype` if the first item is a screen and no visual reference exists** -
-  building a design from prose alone is how an approximation lands and then
-  becomes what the app permanently looks like
+- **`prototype` if the project has a UI and `blueprint/context/design.md` does
+  not exist yet** - `spec` stops without it. Building a design from prose alone
+  is how an approximation lands and then becomes what the app permanently looks
+  like
 - otherwise `spec` to start the first item
 
 ## When to re-run

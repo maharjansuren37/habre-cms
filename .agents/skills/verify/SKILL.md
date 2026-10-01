@@ -1,11 +1,11 @@
 ---
 name: verify
-description: "Prove the current work actually does what its spec says, by running the real app and observing behavior against the done-when criteria in blueprint/context/current-work.md. Drives the app - browser, CLI, or server - captures evidence, and reports pass, fail, or could-not-verify per criterion. With --manual, writes a human walkthrough instead: what to start, where to go, what to click, what to expect, and what would count as wrong. With --all, re-proves the archived done-whens of every feature already shipped, which is the only check in this workflow that would catch a new item breaking an old one by observation rather than by test. Read-only either way: it observes and never edits source or commits. Use when the user runs `verify`, asks to confirm something works, wants proof before shipping, or asks how to test the change by hand."
+description: "Prove the current work does what its spec says by running the real app - browser, CLI, or server - against the done-when criteria in blueprint/context/current-work.md, capturing evidence and reporting pass, fail, or could-not-verify per criterion. With --manual, writes a human walkthrough instead: what to start, where to go, what to click, what to expect. With --all, re-proves the archived done-whens of every feature already shipped, to catch a new item breaking an old one. Never edits source or commits. Use when the user runs `verify`, asks to confirm something works, wants proof before shipping, or asks how to test the change by hand."
 ---
 
 # verify - prove it against the running app
 
-**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `blueprint/context/current-work.md` · `blueprint/capabilities/` · `blueprint/history/`
 
 Where this sits:
 
@@ -87,23 +87,39 @@ done-whens describe behaviour removed on purpose; proving them reports the
 rollback as a regression. Name each one skipped, with its rollback archive. A
 feature shipped again after its rollback is checked again, and counts.
 
-**These claims were proved once, when the item
-shipped, and nothing in this workflow has looked at them since** - which is the
-whole reason for this mode.
+**Where `blueprint/capabilities/` exists, it is the checklist.** Each file there
+says what holds now - superseded, cut and rolled-back claims are already gone or
+tombstoned - so prove its claims, grouped by capability, and do not judge
+supersession again. (In a multi-part product the directory is the part's, like
+the findings.) **An archive that has a `## Behaviour changes` section is covered
+by it**; walk only the archives that lack one, as below.
 
-Three things make an archived claim different from a current one, and each needs
-saying rather than quietly resolving:
+**Those claims were proved once, when the item
+shipped, and nothing in this workflow has looked at them since** - which is the
+whole reason for this mode. Two judgments remain, and each needs saying rather
+than quietly resolving:
 
 - **A claim about a feature that has since been cut** is not a regression. If the
-  item no longer exists in `blueprint/build-plan.md` - after an
-  `ideate --rescope`, say - report it as **no longer applicable** and name the
-  item, rather than failing it or silently skipping it.
-- **A claim that has been superseded** by later work. Item 2 said the list is
-  newest-first; item 6 made the order configurable. The old claim is not wrong,
-  it is stale. Say so and say which item changed it.
+  `*Since:*` item, or an archive's item, no longer exists in
+  `blueprint/build-plan.md` - after an `ideate --rescope`, say - report it as
+  **no longer applicable** and name the item, rather than failing it or silently
+  skipping it.
 - **A claim that was never observable** - "the code is clean", anything without a
   concrete behavior. Those were weak done-whens when written; report them as
   **could not verify** and say why, which is more useful than a pass.
+
+**An archive with no `## Behaviour changes` section is walked claim by claim**,
+judging for each whether later work superseded it (item 2 said the list is
+newest-first; item 6 made the order configurable - the old claim is not wrong,
+it is stale; say which item changed it). **Then offer to seed.** Show every line
+first - the claims that held, each as an `Adds to` or `New capability` line
+ending `- seeded`, and each claim left out as a `Left out: <claim> - <why>`
+line (superseded, cut, never observable) - and stop for a yes. On a yes, append
+the section to that archive and run
+`.agents/bin/merge-capabilities.sh <archive> <archive name>` (`features/03-auth`); show
+the IDs it assigns. **Seeding is per archive and never blocks** - on a no, the
+archive is walked again next time. A seeded claim has no recorded old text, so a
+later `rollback` cannot restore it; say so when offering.
 
 ## Step 2 - get the app running
 
@@ -185,6 +201,14 @@ Drive the app to each claim and capture evidence as you go:
   claims.
 - **Watch the console and the network.** A clean-looking screen with errors in the
   console is not a pass.
+- **Where sign-in guards a page, walk the redirect both ways.** For each
+  protected page this work adds or touches, and each action that ends or changes a
+  session - signing out, a password or role change: start signed out, reach it
+  by a full page load and through the app's own link or form, sign in, and check
+  the final URL is where you started. A 404, or a URL still carrying the
+  framework's data-request form (`.data`, `_data`, `_rsc`), fails. The full
+  page load alone passes while the click fails: a client-side navigation's
+  request URL is that form, and a redirect built from it sends the user there.
 
 ## Step 4 - report
 
@@ -204,6 +228,18 @@ Then the bottom line: are all the done-whens proven, or not yet.
   known cause; it is not where an unknown one gets found.
   Do not fix it here.
 - **Anything unverifiable** - say so plainly and why. Never report it as a pass.
+
+**Record the result in the spec's `**Verified:**` line**, replacing what is
+there: the date, the work fingerprint, and the count -
+`**Verified:** 2026-03-02, 6f06b62b2f2c, 4 of 5 proven, 1 could not verify`.
+`ship` reads it; a report said only in the conversation is gone when the
+context is cleared, and then the item is either verified again at the merge or
+merged on a claim nothing can confirm. The fingerprint is the tree of every
+file outside `blueprint/` and `dev-notes/`, committed or not, so a checkpoint
+commit does not change it and any edit to the code does. Run it from where this
+skill runs:
+
+    i=$(mktemp) && rm -f "$i" && GIT_INDEX_FILE="$i" git add -A -- . ':!blueprint' ':!dev-notes' && GIT_INDEX_FILE="$i" git write-tree | cut -c1-12; rm -f "$i"
 
 **With `--all`, the bottom line is a different sentence.** Nothing here is ready
 for `review` or `ship` - no item is in flight. Report instead:
@@ -232,6 +268,22 @@ that before a release, after a dependency upgrade, or when something feels off -
 not every item. Saying the cost is what stops it being run out of habit and then
 skipped when it matters.
 
+**In every mode, not only `--manual`:**
+
+**Every could-not-verify becomes a line in
+`blueprint/context/needs-you.md`.** A criterion needing a screen reader, a
+real device, or a person looking at the page is not a failure and is not a
+pass - it is work waiting on a human, and unrecorded it reads as neither.
+This is what stops "I have not seen this" from quietly becoming "this
+works" by the time anyone reads the report.
+
+**Widen an open manual check rather than adding a second one**, and count it:
+the line carries `Widened: N`, raised by one each time an item adds to it.
+**At 3, stop widening and ask** - do the check now, or accept the risk. An
+accepted risk is `dropped` with the user's reason, and the next item starts a
+fresh line. A check widened by every item and never done ends up accepted all
+at once, at the end, as a single decision over screens nobody has looked at.
+
 ## Step 5 - the manual walkthrough (`--manual` only)
 
 Instead of Steps 2-4, write a guide a person can follow with no further context:
@@ -246,21 +298,6 @@ Instead of Steps 2-4, write a guide a person can follow with no further context:
 6. **Gaps** - what this walkthrough cannot cover and why.
 
 Write it for someone who has not read the spec.
-
-**Every could-not-verify becomes a line in
-`blueprint/context/needs-you.md`.** A criterion needing a screen reader, a
-real device, or a person looking at the page is not a failure and is not a
-pass - it is work waiting on a human, and unrecorded it reads as neither.
-This is what stops "I have not seen this" from quietly becoming "this
-works" by the time anyone reads the report.
-
-**Widen an open manual check rather than adding a second one**, and count it:
-the line carries `Widened: N`, raised by one each time an item adds to it.
-**At 3, stop widening and ask** - do the check now, or accept the risk. An
-accepted risk is `dropped` with the user's reason, and the next item starts a
-fresh line. On a real project the screen-reader line was widened by every item
-and then accepted all at once, at the end, as a single decision over a dozen
-screens nobody had heard.
 
 ## Rules
 

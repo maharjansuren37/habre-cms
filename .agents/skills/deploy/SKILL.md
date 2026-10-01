@@ -25,17 +25,39 @@ they use the same target, the same credentials, and the same platform knowledge.
 
 ## Before you start
 
+**If section 8 of `blueprint/project-plan.md` says this is not published** -
+"runs from source", "not published" - say so and stop, the way `host` does.
+There is no target to name, and asking for one re-opens a decision the plan
+already records. **If the user says a release is now coming, route to `host`**,
+which records that change and provisions the target; do not edit the plan here.
+
 Name which of these has not happened, rather than proceeding quietly past it:
 
-- **`preflight` has never run** and this is the first release - say so and
-  recommend it. It is the one step people skip, and it is the only one that asks
-  whether this can face real users at all.
+- **`preflight` has never run** - no `preflight:` line in `dev-notes/status.md` -
+  and this is the first release - say so and recommend it. It is the one step
+  people skip, and it is the only one that asks whether this can face real users
+  at all.
 - **`ci` is not set up** - the checks about to gate this release only ever ran on
   someone's laptop.
 - **`host` has not provisioned this environment** - there is nowhere for this to
   go, and finding that out mid-deploy leaves a half-released state.
 - **In a multi-part product, `integrate` has not run since the last part
   shipped** - each part can be individually correct and the product still broken.
+
+**Then read the ledger for what was put off until now** - a `deferred` finding
+whose `Deferred to:` names this skill, in `blueprint/context/findings.md`. A
+release-only blocker - a check on a real device, a backup - is deferred to the
+release so it stops holding `ship`, and this is the release. **Stop on each**,
+as `ship` stops on an `open` P0 or P1: it is repaired and set `fixed` with
+evidence, for `preflight` to close, or the user accepts it with their reason.
+Releasing past it turns "later" into "never".
+
+**Except one deferred to `deploy, after release`** - a check only the released
+copy can answer, which no repair before the release can satisfy. Stopping on it
+leaves acceptance, dropping the check, as the only way out. **Name each before
+the release gate as what Step 3 will run, and what failing it means** - a roll
+back, or on a first release, nothing to roll back to - so the approval covers
+it.
 
 ## Input
 
@@ -111,8 +133,11 @@ Check, and report only what blocks:
   is the step that makes the two agree.
 - **for a multi-part project**: `integrate` passed against these exact versions,
   and the contract is current
-- **for production only**: `preflight` has been run and returned go, or the user
-  has explicitly accepted going without it
+- **for production only**: `preflight` has been run and returned go - its
+  `preflight:` line in `dev-notes/status.md` reads go; name its date and commit,
+  and what has merged since - or the user has explicitly accepted going without
+  it. **No `preflight:` line means it has not run**, whatever was said about it
+  earlier: say so, and proceed only on that acceptance.
 
 **A failing production build stops this.** Hand back to `build`.
 
@@ -146,6 +171,9 @@ A deployment that reports success is not the same as one that works:
   something that touches the database
 - **no error spike** in the first minutes
 - the **version now serving** is the commit you deployed
+- **each finding deferred to `deploy, after release`**, run against this
+  environment - passed, it is set `fixed` with that evidence for `preflight` to
+  close
 
 **If any of these fail, roll back first and investigate afterwards.** A broken
 production is not a debugging session.

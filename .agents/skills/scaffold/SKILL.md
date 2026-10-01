@@ -5,11 +5,11 @@ description: "Create the actual application from the stack recorded in the proje
 
 # scaffold - stand the whole stack up, then check your own work
 
-**Writes:** `blueprint/context/coding-standards.md` · `blueprint/context/needs-you.md` · `dev-notes/decisions.md`
+**Writes:** `blueprint/context/coding-standards.md` · `blueprint/project-plan.md` · `blueprint/context/needs-you.md` · `dev-notes/decisions.md`
 
 Where this sits:
 
-    `stack` -> `layout` -> scaffold -> `ci` -> `context` -> `spec`
+    `stack` -> `layout` -> scaffold -> `ci` -> `context` -> `prototype` (with a UI) -> `spec`
 
 `stack` decided what to build with. This builds it. **It is bigger than running
 the framework's CLI** - a stack of "Next.js, Postgres, Prisma, Auth.js, Tailwind,
@@ -234,6 +234,13 @@ than the branch below rather than harder. Build it directly, in this order:
    and a project with no build step still needs a typecheck or a lint to have
    anything worth running.
 
+6. **The tools' output in `.gitignore`** - whatever the runner, the build and
+   the browser tool write on every run: a coverage directory, Playwright's
+   `test-results/`, a compiled `dist/`. `new-project.sh` ignores the common
+   ones; check each tool this step installed against the file. With no
+   scaffolder there is no generated `.gitignore` to merge, so anything missed
+   here is carried by the first scaffold commit.
+
 Nothing is merged and nothing is moved, so the collision rules below do not
 apply. Go to Step 5. **Say in your report that there was no scaffolder** - it is
 a fact about the project, not an omission.
@@ -253,8 +260,8 @@ Instead:
    report success on an empty result. Confirm the expected files exist before
    going further.
 3. Move the result into the project.
-4. **Never overwrite a workflow file.** `AGENTS.md`, `CLAUDE.md`, the two adapter
-   directories, everything under `blueprint/` and `dev-notes/` are off limits.
+4. **Never overwrite a workflow file.** `AGENTS.md`, `CLAUDE.md`, `.agents/skills/`
+   and the `.claude/skills` link to it, everything under `blueprint/` and `dev-notes/` are off limits.
 5. **Never copy the scaffolder's `.git/` directory.** Several - `create-expo-app`
    among them - initialise their own repository. Copying it over the existing one
    destroys the project's history. Exclude it from the move entirely.
@@ -423,6 +430,14 @@ depends on the platform:**
 
 Then run the verification command. Report exactly what you ran and what happened.
 
+**Then settle every claim `layout` could not probe.** It marks each one in
+`blueprint/project-plan.md` as **unverified until `scaffold`** - this is the
+step it was waiting for. Run each against the tree that now exists, and
+replace the mark with what the run showed and the command that showed it. A
+claim that fails is a Step 8 failure like any other. A mark left in place tells
+every later reader a question is open after it was answered: on a real run
+this step proved both claims and left the plan saying neither was checked.
+
 **If it does not start, that is the result.** Do not describe a broken project
 as scaffolded.
 
@@ -508,6 +523,22 @@ front end share nothing here - written into that part's own
 
 Then add a `dev-notes/decisions.md` entry for anything you chose during setup
 that the plan had not already settled, with the reason.
+
+**Fill the README's placeholders with what you just proved** - the title if it
+is still `# Project Name`, and the `<install command>`, `<dev command>`,
+`<build command>` and `<test command>` lines, from the commands recorded above.
+Only the placeholders: the README is the user's file, so leave any prose alone,
+and leave its one-sentence description to `context`. Left as template, it
+stays that way through the whole build loop until `preflight` calls it a
+blocker.
+
+**Commit what landed, before handing on** - one `chore: scaffold ...` commit
+on `main`, covered by Step 3's approval, once Step 8 has proved it runs: the
+generated tree, the README, and what this step recorded - `coding-standards.md`,
+`project-plan.md`, `needs-you.md` and `decisions.md`. Nothing
+later commits it: `build` branches for the first item from whatever the tree
+holds, so an uncommitted scaffold rides into that item's squashed commit, and
+`ship`'s own check for unrelated work stops on it.
 
 **Then say what comes next: `ci`.** It runs here rather than later, and the
 reason is this step: the verification command and the runtime version it needs

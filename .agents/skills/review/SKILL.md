@@ -1,11 +1,11 @@
 ---
 name: review
-description: "Read-only code audit that records what it finds in the ledger at blueprint/context/findings.md. Reviews the current work (`current`), the changed files (`changed`), a named path, or the whole project (`full`), through every lens or one focused lens: quality, security, performance, or tests. Findings get durable IDs, a severity from P0 to P3, and a status; an open or fixed P0 or P1 blocks the merge at `ship`. Writes nothing but the ledger - never edits source, installs, or commits. Use when the user runs `review`, asks for a code review, security review, performance check, or test-quality pass, or before closing out an item."
+description: "Read-only code audit that records what it finds in the ledger at blueprint/context/findings.md. Reviews the current work (`current`), the changed files (`changed`), a named path, or the whole project (`full`), through every lens or one focused lens: quality, security, performance, or tests. Findings get durable IDs, a severity from P0 to P3, and a status; an open or fixed P0 or P1 blocks the merge at `ship`. Writes nothing but the ledger and the spec's review line - never edits source, installs, or commits. Use when the user runs `review`, asks for a code review, security review, performance check, or test-quality pass, or before closing out an item."
 ---
 
 # review - audit the code, and record what you find
 
-**Writes:** `blueprint/context/findings.md` · `blueprint/findings/`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/current-work.md`
 
 Where this sits:
 
@@ -175,6 +175,11 @@ The lenses:
   authentication or authorization, ownership taken from
   client-supplied input, injection, unsafe parsing, exposed sensitive data,
   secret handling, insecure defaults, trust-boundary mistakes.
+  **A redirect target built from the request URL** - to send someone back
+  after signing in - must drop the framework's data-request forms (`.data`,
+  `_data`, `_rsc`, `index`): on a client-side navigation the request URL is
+  one, and the user signs in to a 404 or raw data. A target taken from input
+  must be a local path, or it is an open redirect.
 - **Performance** - repeated queries in a loop, redundant network work,
   unnecessary re-rendering, blocking work on a hot path, unbounded collections,
   missing pagination, oversized payloads. Mark anything without runtime evidence
@@ -213,6 +218,10 @@ The lenses:
   generic standard: it records the contrast values this project actually measured
   and the states it settled. A feature that invents a fourth kind of error
   message is drift worth reporting even when each version is individually fine.
+  **A colour, size or shadow written as a literal instead of a token is drift
+  too** - it survives the next re-theme unchanged. And check the screens
+  `design.md` marks as applying still exist: a not-found page, an empty state,
+  the whole account family.
 - **Dependencies** - versions far enough behind that it matters, packages with
   known advisories, a lockfile that disagrees with the manifest, licences
   incompatible with how the project is distributed, and anything unused still
@@ -234,7 +243,8 @@ and remediation, with the value redacted. Redact command output too.
 
 `blueprint/context/findings.md` is the durable record. A chat report does not survive a context
 clear; the ledger does. The ledger - that index and the entries under
-`blueprint/findings/` - is all this skill writes. Create the index with a
+`blueprint/findings/` - and the spec's `**Reviewed:**` line are all this skill
+writes. Create the index with a
 `# Findings` heading if it is missing.
 
 **The ledger never scopes the review.** Review the code fresh in Step 3, then
@@ -244,7 +254,9 @@ can introduce a defect no existing entry points at.
 
 Each finding is two pieces. **The index heading** goes in
 `blueprint/context/findings.md`, which every session loads - so it is the
-heading and one `File:` line, nothing more. The heading is a machine-readable
+heading and one `File:` line, nothing more - except that on a `deferred`
+finding its `Deferred to:` line goes under the heading too, since `deploy` and
+`host` read it there. The heading is a machine-readable
 contract and keeps this exact shape, and **status lives only here**:
 
     ### F-03 [P0] open - Session cookie is readable from JavaScript
@@ -260,8 +272,8 @@ contract and keeps this exact shape, and **status lives only here**:
     **Resolution:**
 
 **"Why it matters" is at most three lines.** It is read by the skill that
-repairs the finding, not by every session, but a house style of paragraphs is
-what grew one project's ledger to 80 KB.
+repairs the finding, not by every session, but a house style of paragraphs
+makes every entry cost more than it tells.
 
 IDs are sequential within the ledger, never reused and never renumbered while
 their entries live there - not even after one closes. A bare ID is scoped to the
@@ -348,6 +360,17 @@ If there are no findings, say so plainly for the selected lens, and name any
 remaining risk or missing signal - "no test command declared", "the browser flow
 was not exercised".
 
+**When an item is in flight, record the pass in the spec's `**Reviewed:**` line**,
+replacing what is there: the date, the work fingerprint, the scope and lens, and
+how many P0 or P1 findings are left `open` or `fixed` -
+`**Reviewed:** 2026-03-02, 6f06b62b2f2c, current, every lens - 0 blocking`.
+**Including when nothing was found**: an empty ledger because nothing looked
+reads exactly like one because nothing was wrong, and this line is the only
+difference `ship` can see. The fingerprint is the tree of every file outside
+`blueprint/` and `dev-notes/`, committed or not:
+
+    i=$(mktemp) && rm -f "$i" && GIT_INDEX_FILE="$i" git add -A -- . ':!blueprint' ':!dev-notes' && GIT_INDEX_FILE="$i" git write-tree | cut -c1-12; rm -f "$i"
+
 For `full`, say whether coverage was complete or partial. **Never call a partial
 review a full-project audit.**
 
@@ -359,7 +382,7 @@ list with no verdict reads as approval.
 
 ## Rules
 
-- **The ledger - the index and its entry files - is all this skill writes.** Never edit, format, install,
+- **The ledger - the index and its entry files - and the spec's `**Reviewed:**` line are all this skill writes.** Never edit, format, install,
   commit, or delete anything else.
 - **A focused lens is not a broad audit.** State what was not reviewed.
 - **The ledger reports status; it never defines what to look at.**

@@ -1,5 +1,5 @@
 ---
-description: Lock the visual direction before building, with throwaway static mockups: a theme file of design tokens plus a few standalone HTML pages showing the...
+description: Settle how the app or website looks and works before building it.
 ---
 
 Use the `prototype` skill from this project's workflow, following its steps in

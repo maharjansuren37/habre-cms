@@ -1,11 +1,11 @@
 ---
 name: spec
-description: "Turn one work item into a buildable spec written to blueprint/context/current-work.md. With no argument, specs the next unchecked item in `blueprint/build-plan.md`; with a number or name, specs that one; with a bug or small change described in prose, specs it as an ad-hoc fix; with --preview, explains an upcoming item without writing anything. Sizes the item, splits anything too big into sub-items, writes small build steps with observable done-when criteria, then red-teams its own draft before showing it. Stops at a review gate and never starts building. Use when the user runs `spec`, names or numbers a feature, reports a bug to fix, asks to break down or start the next thing, or asks what an upcoming feature involves."
+description: "Turn one work item into a buildable spec in blueprint/context/current-work.md. With no argument, specs the next unchecked item in `blueprint/build-plan.md`; with a number or name, that one; with a bug or small change described in prose, an ad-hoc fix; with --quick and a bug, a one- or two-file fix as a single test-first step; with --preview, explains an upcoming item without writing anything. Splits anything too big, writes small build steps with observable done-when criteria, red-teams its own draft, and stops at a review gate. Use when the user runs `spec`, names or numbers a feature, reports a bug to fix, asks to break down or start the next thing, or asks what an upcoming feature involves."
 ---
 
 # spec - turn one item into something buildable
 
-**Writes:** `blueprint/context/current-work.md` · `blueprint/context/needs-you.md` · `blueprint/build-plan.md` · `blueprint/status/`
+**Writes:** `blueprint/context/current-work.md` · `blueprint/context/needs-you.md` · `blueprint/build-plan.md` · `blueprint/project-plan.md` · `blueprint/context/design.md` · `blueprint/status/`
 
 Where this sits:
 
@@ -48,6 +48,19 @@ than working around it**:
   one produces a full, confident spec for a feature of a different product.
   **A plan with nothing queued is obvious; a plan queued with the wrong thing is
   not**, which is why this is a stop rather than a note.
+- **The project has a UI and `blueprint/context/design.md` does not exist** -
+  stop and say to run `prototype` first. A UI means the plan's platform is one
+  that renders: a web app, a content website, a PWA or a mobile app. **Design
+  is not optional where there is something to see**: without the record, every
+  item invents its own answer to the same questions - the empty state, the
+  error message, the focus ring - and the first screen built becomes the look
+  by accident. `prototype` also covers an app that already has a look: it
+  records what is there rather than proposing something new.
+
+  Three cases pass this: a CLI, a library or an API with no UI, where there is
+  nothing to design - say so in one line; a **fix**, which repairs what exists
+  and must not wait on design work - name the missing record in the spec's
+  Notes instead; and `--preview`, which writes nothing.
 - **`blueprint/context/coding-standards.md` is still unfilled prompts** while
   real code exists - mention it. `blueprint/context/fundamentals.md` still
   applies, being the pack's own and always present, but `build`
@@ -58,13 +71,14 @@ than working around it**:
 
 ## Input
 
-Four modes, chosen from the argument:
+Six modes, chosen from the argument - a plan addition arrives two ways:
 
 | Argument | Mode | Writes |
 |---|---|---|
 | *(none)* | Next unchecked item in `blueprint/build-plan.md` | the spec |
 | a number or name | That specific planned item | the spec |
 | prose describing a bug or small change | Ad-hoc fix, not a plan item | the spec |
+| `--quick` *(with prose describing a bug)* | Quick fix - an ad-hoc fix on the short path, below | the spec |
 | an observation from `monitor` - a slow path, an unused feature, a repeated request | Plan addition, gated | the plan line, then the spec |
 | **a new feature described in prose** - something the plan does not have | Plan addition, gated | the plan line, then the spec |
 | `--preview` *(optionally with a number or name)* | Read-only briefing | nothing |
@@ -95,6 +109,42 @@ context and reports what the item is, what it depends on, what it will touch, ho
 big it is, and whether it will need splitting - then stops. Nothing is written, so
 it is safe to run while thinking about ordering.
 
+### The quick path - `--quick`
+
+**A fix too small to earn the whole loop gets a shorter one.** A one-line
+repair taken through sizing, a red-team pass, a subagent packet, `verify` and
+`review` spends more on ceremony than on the fix, and a loop that costs that
+much for a typo teaches people to skip it altogether - which is worse than a
+short loop. It qualifies only when **every** one of these holds, checked
+against the code in Step 1, not against how the bug was described:
+
+- **It is a fix** - it repairs what exists and adds no capability.
+- **It changes at most two files outside `blueprint/`**, not counting their
+  tests.
+- **It changes no stored data, no contract, no dependency and no environment
+  variable** - so the spec's Data and contracts, Decisions and Production needs
+  are all "none".
+- **Its Behaviour changes add a claim and nothing more** - the regression's
+  claim, or "None". Changing or removing a claim is a decision about what the
+  product does, and that is not a quick fix.
+- **It touches nothing `blueprint/context/quality-bar.md` names** - a hot path,
+  authentication, personal data - and no security boundary. Those always get
+  `review`, however small the diff.
+- **The defect can be reproduced** by a test the project's runner runs, or,
+  with no runner, by one command whose output shows it.
+
+**If any one fails, say which and spec an ordinary fix instead.** Never stretch
+a criterion to keep the short path: the limits are what make skipping `review`
+safe, and a quick fix that is not small is an unreviewed change with a label on
+it.
+
+What the short path changes: **one build step**, whose done-when is the
+reproduction - the test that fails now and passes after the repair. Step 2 and
+Step 4 are skipped; in their place, check the draft against the list above
+once more. The spec carries a `**Quick:**` line, which is what `build` and
+`ship` read. What it keeps: the spec in `current-work.md`, the gate in Step 5,
+a branch, the test seen failing first, `ship`'s findings gate and one commit.
+
 ## Step 1 - pick the target and the mode
 
 Read the project's state before acting:
@@ -119,6 +169,10 @@ Then resolve what is being spec'd:
 - **A bug or small change** - this is a fix. It gets a spec marked `Type: Fix`
   with no build-plan number, and nothing is added to the plan. A fix repairs or
   adjusts what exists; it does not add a product capability.
+- **`--quick` with a bug** - check it against the quick path's list above
+  before anything else, and read the files it would touch to do so. If it
+  qualifies, it is a fix on the short path; if not, say which criterion failed
+  and continue as an ordinary fix.
 - **A genuinely new capability with no match in the plan** - follow the intake
   below. Never silently add scope to a file the user owns.
 
@@ -208,6 +262,8 @@ misleads the coordinator.
 
 ## Step 2 - size it, and split if it is too big
 
+**A quick fix skips this step** - it is one step by definition. Go to Step 3.
+
 Judge how big the item actually is:
 
 - **Buildable and reviewable as one unit** - one spec. Continue to Step 3.
@@ -243,7 +299,9 @@ Write the spec to `blueprint/context/current-work.md`, filling every section:
 
     **From build plan:** item <n>        (omit for a fix)
     **Type:** Feature | Fix
-    **Status:** not started
+    **Quick:** yes - <files it touches; each criterion held>   (only for --quick)
+    **Verified:** not yet
+    **Reviewed:** not yet
 
     ## Goal
     What this delivers, in a sentence or two, and why it matters.
@@ -273,6 +331,10 @@ Write the spec to `blueprint/context/current-work.md`, filling every section:
     variables by name, migrations, external accounts or services, a changed
     host setting. `ship` carries it to blueprint/production-pending.md. "None"
     is an answer.
+    ## Behaviour changes
+    What this item adds to, changes in, or removes from what the product does
+    now, against `blueprint/capabilities/` - one line each, below. `ship` merges
+    it. "None" is an answer.
     ## Notes
     Conventions and constraints to respect.
 
@@ -282,10 +344,10 @@ the project is shaped the way it is. On a real run a spec settled UUID ids, a
 password rule, logout on every device and a folder the layout never named - and
 none of it reached `dev-notes/decisions.md`, because nothing carried it there.
 
-**Production needs are how a release stops being a surprise.** On a real
-project four items merged before anyone noticed production lacked their
-environment variables and two migrations: each spec knew, and nothing carried
-it to the deploy. Name every variable the item's code reads that did not exist
+**Production needs are how a release stops being a surprise.** The spec is the
+one place that knows an item needs a new variable or a migration; unless it
+says so, nothing carries that to the deploy, and several items can merge
+before anyone notices production lacks them. Name every variable the item's code reads that did not exist
 before, and every migration it adds.
 
 The build steps are a live checklist. `build` ticks each one off as it
@@ -330,6 +392,14 @@ project already settled. If the item needs something the record does not cover, 
 new state or a new component, **say so in the spec**: that is a design decision,
 and it belongs in the record afterwards rather than only in the code.
 
+**Every journey in `design.md` this item passes through is a done-when**, walked
+end to end: from the first click to the final screen, checking the final URL
+and what it shows, as a full page load and through the app's own navigation.
+A screen that works on its own says nothing about the path through it - signing
+in from a protected page, or resetting your own password, can end on a 404
+while every screen involved passes. The journeys come from
+`blueprint/design-kit/ux-checklist.md`; `prototype` records which apply.
+
 **A feature that changes stored data needs a migration step.** If this item adds
 a field, a table, or an index - or changes the shape of something already stored -
 say so in Data and contracts, and make the migration its **own build step, before
@@ -351,7 +421,34 @@ stylesheet on web, a theme object in React Native, `ThemeData` in Flutter - the
 
 This is a draft. Do not present it yet.
 
+**Behaviour changes are how what holds now stays written down.** Before writing
+the section, list `blueprint/capabilities/` and open the files for the areas the
+item touches; write the section against their current claims, not from memory.
+
+    ## Behaviour changes
+    - Adds to `accounts`: <claim> - Step 2
+    - Changes `accounts.2` from "<old text>" to "<new text>" - Step 3
+    - Removes `lists.4`: <why>
+    - New capability `billing`: <claim> - Step 1
+
+- **A claim is one observable behaviour** - the done-when standard.
+- **Every added or changed claim names the build step whose done-when proves
+  it**, so nothing enters a capability file that `verify` has not seen hold.
+- **A change carries the old text and the new.** The capability file keeps only
+  the current text; without the old one, `rollback` has nothing to restore.
+- **By type:** a feature adds, changes and removes. A fix usually adds the
+  regression's claim, and changes one only when the intended behaviour itself
+  was wrong. A quick fix may add one, nothing more.
+- **No capability files but existing archives in `blueprint/history/`:** say
+  that `verify --all` would seed them, write the section for this item alone,
+  and do not block.
+
 ## Step 4 - red-team your own draft
+
+**A quick fix skips this step.** Check the draft against the quick path's list
+instead, and if it no longer qualifies - the reproduction reached a third file,
+or a stored shape - drop the `**Quick:**` line, say why, and run this step as
+for any fix.
 
 Turn on the spec and try to break it. Here, before any code exists, is the
 cheapest place in the whole workflow to catch a scope problem or an oversized
@@ -370,6 +467,9 @@ step. Run the draft against each of these:
 - **Done-whens.** Is each one observable and checkable by `verify`, or is
   it a vague "it works"? Make it concrete. Where does the test behind it run?
   Can the command that checks it actually run there?
+- **Contradiction.** Does this item contradict a claim in
+  `blueprint/capabilities/` that its Behaviour changes did not declare as
+  changed or removed? Declare it, or change the item.
 - **Visual fidelity.** If this is visual work, is a reference actually linked, or
   are we about to build a design blind from prose?
 
@@ -381,6 +481,9 @@ Present the spec, leading with a short **what the critique changed** note - the
 splits, gaps, or scope cuts Step 4 produced, or "nothing, the draft held up."
 
 That note is the point. It shows the gate working before a line of code exists.
+**For a quick fix, lead with why it qualifies instead** - the files it touches
+and each criterion it was checked against - and say that `build` will hand it
+straight to `ship`, so the user can ask for the full loop now.
 
 Then tell the user to review and adjust, and that `build` is next. This
 skill never starts building.

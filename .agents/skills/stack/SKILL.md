@@ -1,6 +1,6 @@
 ---
 name: stack
-description: "Settle the technology stack for a new project - web app, mobile app, progressive web app, or content website. Asks the platform, then asks whether the developer already knows what they want to build with: if they do, that choice is used and only the gaps around it are filled in; if they want a recommendation, proposes one stack with its closest runner-up. Covers framework, language, styling, database, testing, and where it ships, and ends with the exact scaffold command. Writes nothing until approved; then drafts the Tech section of `blueprint/project-plan.md`, or hands the decision back as text if the workflow is not installed yet. Use when the user runs `stack`, is starting a new project, has a stack in mind and wants the rest settled around it, or asks what to build something with."
+description: "Settle the technology stack for a new project - web app, mobile app, progressive web app, content website, command-line tool, library, or API. Uses the developer's own choice where they have one and fills the gaps around it, or recommends one stack with its closest runner-up: framework, language, styling, database, testing, where it ships, and the exact scaffold command, chosen against what `architect` recorded. Writes the Tech and Deployment sections of `blueprint/project-plan.md` once approved. Use when the user runs `stack`, is starting a new project, has a stack in mind and wants the rest settled around it, or asks what to build something with."
 ---
 
 # stack - choose the stack before you scaffold
@@ -11,8 +11,9 @@ Where this sits:
 
     `ideate` -> `architect` -> stack -> `layout` -> `scaffold` -> `ci` -> `context`
 
-This runs *before* there is an app. It works in an empty directory, or after the
-workflow is installed while `blueprint/project-plan.md` is still being filled in.
+This runs *before* there is an app, and after `architect`: it needs the plan's
+problem, features and Architecture filled in and the quality bar written, and it
+stops on a repository that already has code - both below.
 
 
 > **Multi-part project:** `blueprint/project-plan.md` and
@@ -394,7 +395,9 @@ the line out**:
 - **storage or a database**, if Step 2 chose one
 - **a health check path**, if anything serves requests
 
-Touch no other section.
+Touch no other section. Tech and Deployment, the data model's owners in
+sections 4 and 6, and anything new under Constraints in section 10 are the
+whole list, and each is named in the report.
 
 **Record the reasoning where it will be found.** When a choice had a real
 alternative and a real why - a self-hostable auth library because the plan
@@ -428,6 +431,9 @@ and why; that is a different question and it was answered before this skill ran.
 
 ## Rules
 
+- **Leave what this writes uncommitted, on `main`, until `scaffold` has run** -
+  it commits the plans first, as part of its own approval. Offering a commit
+  here, or a branch for one, moves setup work off `main` before any code exists.
 - **Ask before proposing.** Whether the user already has a stack in mind is a
   question, never an assumption in either direction. Ask it every time.
 - **A named choice is a decision, not an opening offer.** Use it. Raise a real

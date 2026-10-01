@@ -1,6 +1,6 @@
 ---
 name: ideate
-description: "Turn a rough idea into a filled-in project plan by interviewing about what you are building, who it is for, and what the first version must do - then writing `blueprint/project-plan.md` and a starting build-plan.md checklist. Pushes back on scope that is too big for a first version, and names what is deliberately not being built. Says plainly when an idea is not ready to build yet, rather than only cutting scope inside one assumed worth building, and records the project's non-negotiable commitments in `blueprint/context/principles.md`. With --rescope, changes the scope of a project that has already built things, carrying completed items and their history across rather than overwriting the plan. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks whether an idea is worth building, asks how to plan a project, or needs to change what an existing project is for."
+description: "Turn a rough idea into a project plan by interviewing about what you are building, who it is for, and what the first version must do, then writing `blueprint/project-plan.md`, a starting build-plan.md checklist, and the project's non-negotiable commitments in `blueprint/context/principles.md`. Pushes back on scope too big for a first version, and says plainly when an idea is not ready to build. With --rescope, changes the scope of a project that has already built things, carrying completed items across. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks whether an idea is worth building, asks how to plan a project, or needs to change what an existing project is for."
 ---
 
 # ideate - turn a rough notion into a plan you can build from
@@ -102,7 +102,10 @@ scope into. Say one of three things, out loud, before moving on:
   the same posture `preflight` takes when it says no-go. **This is advisory,
   never a refusal**: if the user still wants to build it, say so and continue
   to Step 3. It is their project; the point of saying it is that the decision
-  gets made on purpose, not skipped.
+  gets made on purpose, not skipped. **Record it**, in `dev-notes/decisions.md`:
+  the reason it did not clear the bar, and the user's reason for building it
+  anyway. Said only out loud, it is gone with the conversation, and a later
+  session cannot tell a considered choice from one nobody made.
 
 This is the same judgment the scope-cut step below already exercises, one step
 earlier and blunter: instead of asking *how small can the first version be*, it
@@ -247,6 +250,9 @@ Then:
 
 ## Rules
 
+- **Leave what this writes uncommitted, on `main`, until `scaffold` has run** -
+  it commits the plans first, as part of its own approval. Offering a commit
+  here, or a branch for one, moves setup work off `main` before any code exists.
 - **Decide what, not how.** No frameworks, no databases, no architecture. That
   is the next two skills' work, and doing it here makes them worse.
 - **Cut scope, out loud.** Say what you moved and why. A first version that is

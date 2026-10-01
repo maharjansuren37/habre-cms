@@ -131,9 +131,8 @@ service the tests genuinely need.
 browser test tool, add a job that runs it: a database service container for the
 tests that need one, the browser the tool installs, and the migrations applied
 before the tests start. Leaving it out is the user's call, asked for by name
-with its cost - never the default because it is more work. On a real project
-the browser tests covered the worst defects it ever had, and gated nothing for
-its whole life, because CI ran only the unit suite.
+with its cost - never the default because it is more work. Browser tests tend
+to cover the defects that matter most, and a suite CI never runs gates nothing.
 
 **Branch on the platform:**
 
@@ -196,6 +195,14 @@ Then **stop**. Report:
 
 Record the verification command in `dev-notes/status.md` under running it by
 hand, so the same checks can be run without the pipeline.
+
+**Ask to commit what this run wrote, on `main`, locally** - the workflow file,
+the `ci` row in `AGENTS.md`, the line in `dev-notes/status.md`, and any finding
+recorded in `findings.md` and `findings/` - as one `ci: ...` commit. Step 3
+showed the config but asked nothing, so this question is the yes; commit on it.
+**Committing is not pushing**, and pushing stays the user's separate call. Left
+uncommitted, all of it is carried onto the first item's branch and merged as
+part of that item.
 
 **Then say what comes next: `context`.** It generates the overview the build
 loop reads, and it is the last planning step before `spec` starts on items.

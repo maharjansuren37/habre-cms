@@ -1,0 +1,292 @@
+/* Reference styles for the components every app or website needs, built from
+ * tokens.css. No colour literal appears below - every colour is a --color-*
+ * role - so a re-theme is a change to tokens.css alone. The only other literals
+ * are hairlines (1px, 2px) and a few component dimensions, such as a switch's. prototype copies this file next to
+ * the theme; the first UI item ports both into the app's real styles.
+ *
+ * States: every interactive rule pairs the real pseudo-class with an .is-*
+ * class (.is-hover, .is-focus, .is-active, .is-disabled) so components.html can
+ * show each state side by side. Real code keeps only the pseudo-class.
+ */
+
+/* ---- Base ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--font-line-height-normal);
+}
+h1, h2, h3, h4 { line-height: var(--font-line-height-tight); margin: 0 0 var(--space-3); }
+h1 { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); }
+h2 { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); }
+h3 { font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); }
+h4 { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+p { margin: 0 0 var(--space-4); }
+small, .text-muted { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+code, kbd { font-family: var(--font-family-mono); font-size: 0.9em; }
+code { background: var(--color-surface-sunken); padding: 0 var(--space-1); border-radius: var(--radius-sm); }
+.prose { max-width: var(--size-measure); }
+
+/* Focus is always visible for keyboard users, and never removed without a
+ * replacement. One rule, every focusable element. */
+:focus-visible, .is-focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; left: var(--space-2); top: calc(-1 * var(--space-16));
+  z-index: var(--z-toast);
+  background: var(--color-surface); color: var(--color-text);
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-md);
+}
+.skip-link:focus { top: var(--space-2); }
+
+/* ---- Layout -------------------------------------------------------------- */
+.container { max-width: var(--size-container); margin-inline: auto; padding-inline: var(--space-4); }
+.stack > * + * { margin-top: var(--space-4); }
+.cluster { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+
+.app-shell { display: grid; grid-template-columns: 15rem 1fr; min-height: 100vh; }
+.app-shell__main { padding: var(--space-6); min-width: 0; }
+@media (max-width: 768px) {                    /* --breakpoint-md */
+  .app-shell { grid-template-columns: 1fr; }
+  .app-shell > .sidebar { display: none; }
+}
+
+/* ---- Navigation ---------------------------------------------------------- */
+.topbar {
+  position: sticky; top: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; gap: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+}
+.topbar__brand { display: flex; align-items: center; gap: var(--space-2);
+  font-weight: var(--font-weight-bold); color: var(--color-text); text-decoration: none; }
+.topbar__end { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+
+.nav { display: flex; gap: var(--space-1); list-style: none; margin: 0; padding: 0; }
+.nav--vertical { flex-direction: column; }
+.nav__link {
+  display: flex; align-items: center; gap: var(--space-2);
+  min-height: var(--size-control-md); padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted); text-decoration: none; font-weight: var(--font-weight-medium);
+}
+.nav__link:hover, .nav__link.is-hover { color: var(--color-text); background: var(--color-surface-hover); }
+/* The current page is marked for assistive tech with aria-current, and styled
+ * from that same attribute - so the two cannot disagree. */
+.nav__link[aria-current="page"] { color: var(--color-primary); background: var(--color-primary-subtle); }
+
+.sidebar { background: var(--color-surface); border-right: 1px solid var(--color-border); padding: var(--space-4); }
+.sidebar__section { margin-top: var(--space-6); font-size: var(--font-size-xs);
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); padding: 0 var(--space-3); }
+
+/* Mobile menu without JavaScript: <details class="mobile-menu"><summary>. */
+.mobile-menu { display: none; }
+.mobile-menu > summary { list-style: none; cursor: pointer; }
+.mobile-menu > summary::-webkit-details-marker { display: none; }
+.mobile-menu[open] > .nav { position: absolute; left: 0; right: 0; top: 100%;
+  flex-direction: column; padding: var(--space-3); background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-md); }
+@media (max-width: 768px) {
+  .topbar { position: relative; }
+  .topbar > .nav { display: none; }
+  .mobile-menu { display: block; }
+}
+
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; margin: 0 0 var(--space-4); padding: 0;
+  font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.breadcrumbs li + li::before { content: "/"; margin-right: var(--space-2); color: var(--color-border-strong); }
+.breadcrumbs a { color: inherit; }
+
+.tabs { display: flex; gap: var(--space-4); border-bottom: 1px solid var(--color-border); }
+.tabs__tab { padding: var(--space-2) 0; border: 0; background: none; font: inherit;
+  color: var(--color-text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tabs__tab:hover, .tabs__tab.is-hover { color: var(--color-text); }
+.tabs__tab[aria-selected="true"] { color: var(--color-text); border-bottom-color: var(--color-primary); font-weight: var(--font-weight-medium); }
+
+.pagination { display: flex; gap: var(--space-1); list-style: none; padding: 0; margin: var(--space-4) 0 0; }
+.pagination a, .pagination span {
+  display: grid; place-items: center; min-width: var(--size-control-md); height: var(--size-control-md);
+  border-radius: var(--radius-md); color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); }
+.pagination [aria-current="page"] { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+.pagination .is-disabled { color: var(--color-text-muted); pointer-events: none; }
+
+.site-footer { margin-top: var(--space-16); padding: var(--space-8) 0; border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.site-footer a { color: inherit; }
+
+/* ---- Links --------------------------------------------------------------- */
+a { color: var(--color-primary); text-underline-offset: 0.2em; }
+a:hover, a.is-hover { color: var(--color-primary-hover); }
+/* A link in running text keeps its underline: colour alone does not mark it
+ * for everyone (WCAG 1.4.1). */
+.link-quiet { color: var(--color-text); }
+
+/* ---- Buttons ------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: var(--size-control-md); padding: 0 var(--space-4);
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  font: inherit; font-weight: var(--font-weight-medium); line-height: 1;
+  text-decoration: none; cursor: pointer;
+  transition: background var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
+.btn--primary:hover, .btn--primary.is-hover { background: var(--color-primary-hover); }
+.btn--secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border-strong); }
+.btn--secondary:hover, .btn--secondary.is-hover { background: var(--color-surface-hover); }
+.btn--ghost { background: transparent; color: var(--color-text); }
+.btn--ghost:hover, .btn--ghost.is-hover { background: var(--color-surface-hover); }
+.btn--danger { background: var(--color-danger); color: var(--color-on-primary); }
+.btn--danger:hover, .btn--danger.is-hover { filter: brightness(0.92); }
+.btn--sm { min-height: var(--size-control-sm); padding: 0 var(--space-3); font-size: var(--font-size-sm); }
+.btn--lg { min-height: var(--size-control-lg); padding: 0 var(--space-6); font-size: var(--font-size-lg); }
+.btn--icon { padding: 0; width: var(--size-control-md); }
+.btn:disabled, .btn.is-disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+/* Loading keeps the label for screen readers and the width for the layout. */
+.btn[aria-busy="true"] { cursor: progress; }
+.btn[aria-busy="true"]::before { content: ""; width: 1em; height: 1em; border-radius: var(--radius-full);
+  border: 2px solid currentColor; border-right-color: transparent; animation: spin 700ms linear infinite; }
+
+/* ---- Forms --------------------------------------------------------------- */
+.field { display: grid; gap: var(--space-1); }
+.field__label { font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
+.field__hint { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.field__error { font-size: var(--font-size-sm); color: var(--color-danger); }
+.field__required { color: var(--color-danger); }
+.input, .select, .textarea {
+  width: 100%; min-height: var(--size-control-md); padding: var(--space-2) var(--space-3);
+  font: inherit; color: var(--color-text); background: var(--color-surface);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
+}
+.textarea { min-height: 6rem; resize: vertical; }
+.input::placeholder, .textarea::placeholder { color: var(--color-text-muted); }
+.input:hover, .input.is-hover, .select:hover, .textarea:hover { border-color: var(--color-text-muted); }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible { border-color: var(--color-focus-ring); }
+/* Invalid is marked with aria-invalid, which screen readers announce - styled
+ * from the same attribute. */
+.input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--color-danger); }
+.input:disabled, .input.is-disabled, .select:disabled, .textarea:disabled {
+  background: var(--color-surface-sunken); color: var(--color-text-muted); cursor: not-allowed; }
+.choice { display: flex; align-items: center; gap: var(--space-2); min-height: var(--size-control-sm); }
+.choice input { width: 1.125rem; height: 1.125rem; accent-color: var(--color-primary); margin: 0; }
+fieldset { border: 0; padding: 0; margin: 0; }
+legend { font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); margin-bottom: var(--space-2); }
+/* A switch is a checkbox with role="switch". The knob is a gradient, not a
+ * pseudo-element: browsers do not draw ::after on an <input>. */
+.choice .switch, .switch { appearance: none; flex: none; width: 2.5rem; height: 1.5rem; margin: 0;
+  border-radius: var(--radius-full); cursor: pointer;
+  background: radial-gradient(circle at 0.75rem 50%, var(--color-surface) 0.55rem, transparent 0.6rem),
+              var(--color-border-strong);
+  transition: background var(--motion-duration-fast) var(--motion-easing-standard); }
+.choice .switch:checked, .switch:checked {
+  background: radial-gradient(circle at 1.75rem 50%, var(--color-surface) 0.55rem, transparent 0.6rem),
+              var(--color-primary); }
+.form-actions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6); }
+
+/* ---- Feedback ------------------------------------------------------------ */
+.alert { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md); border: 1px solid; }
+.alert--info    { background: var(--color-info-subtle);    border-color: var(--color-info);    color: var(--color-text); }
+.alert--success { background: var(--color-success-subtle); border-color: var(--color-success); color: var(--color-text); }
+.alert--warning { background: var(--color-warning-subtle); border-color: var(--color-warning); color: var(--color-text); }
+.alert--danger  { background: var(--color-danger-subtle);  border-color: var(--color-danger);  color: var(--color-text); }
+.alert__title { font-weight: var(--font-weight-semibold); }
+
+.toast-region { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: var(--z-toast);
+  display: grid; gap: var(--space-2); }
+.toast { width: fit-content; background: var(--color-text); color: var(--color-bg); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg); display: flex; gap: var(--space-4); align-items: center; }
+.toast a, .toast button { color: inherit; }
+
+.badge { display: inline-flex; align-items: center; padding: 0 var(--space-2); min-height: 1.5rem;
+  border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium);
+  background: var(--color-surface-sunken); color: var(--color-text); border: 1px solid var(--color-border); }
+.badge--success { background: var(--color-success-subtle); color: var(--color-success); border-color: transparent; }
+.badge--warning { background: var(--color-warning-subtle); color: var(--color-warning); border-color: transparent; }
+.badge--danger  { background: var(--color-danger-subtle);  color: var(--color-danger);  border-color: transparent; }
+
+.spinner { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-full);
+  border: 3px solid var(--color-border); border-top-color: var(--color-primary); animation: spin 700ms linear infinite; }
+.skeleton { background: var(--color-surface-hover); border-radius: var(--radius-sm); min-height: 1em;
+  animation: pulse 1.4s var(--motion-easing-standard) infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .spinner, .skeleton, .btn[aria-busy="true"]::before { animation: none; } }
+
+.empty-state { text-align: center; padding: var(--space-12) var(--space-4); color: var(--color-text-muted); }
+.empty-state__title { color: var(--color-text); font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+.error-page { text-align: center; padding: var(--space-16) var(--space-4); }
+.error-page__code { font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold); color: var(--color-text-muted); }
+
+/* ---- Overlays ------------------------------------------------------------ */
+.dialog { border: 0; padding: 0; border-radius: var(--radius-lg); max-width: 28rem; width: calc(100% - var(--space-8));
+  background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-lg); }
+.dialog::backdrop { background: var(--color-overlay); }
+.dialog__body { padding: var(--space-6); }
+.dialog__actions { display: flex; justify-content: flex-end; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6); border-top: 1px solid var(--color-border); }
+
+.menu { list-style: none; margin: 0; padding: var(--space-1); min-width: 12rem; width: max-content;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md); z-index: var(--z-dropdown); }
+.menu__item { display: flex; width: 100%; padding: var(--space-2) var(--space-3); border: 0; background: none;
+  font: inherit; color: var(--color-text); text-align: left; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; }
+.menu__item:hover, .menu__item.is-hover, .menu__item:focus-visible { background: var(--color-surface-hover); }
+.menu__item--danger { color: var(--color-danger); }
+.menu__separator { height: 1px; margin: var(--space-1) 0; background: var(--color-border); }
+
+.tooltip { display: inline-block; padding: var(--space-1) var(--space-2); font-size: var(--font-size-xs);
+  background: var(--color-text); color: var(--color-bg); border-radius: var(--radius-sm); }
+
+/* ---- Data display -------------------------------------------------------- */
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: var(--space-6); box-shadow: var(--shadow-sm); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.table { width: 100%; border-collapse: collapse; background: var(--color-surface); font-size: var(--font-size-sm); }
+.table th { text-align: left; font-weight: var(--font-weight-semibold); color: var(--color-text-muted);
+  background: var(--color-surface-sunken); }
+.table th, .table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--color-surface-hover); }
+.list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  background: var(--color-surface); }
+.list > li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.list > li + li { border-top: 1px solid var(--color-border); }
+.avatar { display: inline-grid; place-items: center; width: var(--size-control-md); height: var(--size-control-md);
+  border-radius: var(--radius-full); background: var(--color-primary-subtle); color: var(--color-primary);
+  font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm); }
+.stat__value { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); }
+.stat__label { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+
+/* ---- Touch --------------------------------------------------------------- */
+/* On a touch screen every control is at least a 44px target - the UX
+ * checklist's section 4 asks it, and the md control height (40px) falls short.
+ * Mouse and keyboard keep the denser --size-control-* heights. Only raise:
+ * .textarea (6rem) is already taller, and .btn--lg (48px) sits on a .btn this
+ * block would otherwise pull down to 44px - same specificity, later rule. */
+@media (pointer: coarse) {
+  /* max(), never the target alone: a theme whose controls already exceed it
+     (a roomy density) would otherwise be shrunk on every phone. */
+  .nav__link, .btn, .input, .select {
+    min-height: max(var(--size-target-min), var(--size-control-md));
+  }
+  .btn--sm, .choice { min-height: max(var(--size-target-min), var(--size-control-sm)); }
+  .btn--lg { min-height: max(var(--size-target-min), var(--size-control-lg)); }
+  .pagination a, .pagination span, .btn--icon {
+    min-width: max(var(--size-target-min), var(--size-control-md));
+    height: max(var(--size-target-min), var(--size-control-md));
+  }
+  .btn--icon { width: max(var(--size-target-min), var(--size-control-md)); }
+}

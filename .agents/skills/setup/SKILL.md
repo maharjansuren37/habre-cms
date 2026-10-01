@@ -9,7 +9,7 @@ description: "Tune the freshly installed workflow to this actual repository: det
 
 Where this sits:
 
-    install -> setup -> fill in the plans -> `ci` -> `context` -> `spec`
+    install -> setup -> fill in the plans -> `ci` -> `context` -> `prototype` (with a UI) -> `spec`
 
 The workflow installs with sensible defaults that are deliberately generic - they
 have to be, since they ship before anyone has seen your code. This replaces them
@@ -109,8 +109,10 @@ target the project has never met makes every later check fail against fiction.
 quality bar, a non-negotiable commitment cannot be discovered by reading the
 code - the fact that a codebase happens to have no ads today does not mean the
 project has committed to never having any. If the file does not exist, report
-it as unrecorded and point at `ideate --rescope`, which is the only skill that
-writes one; do not infer commitments from current behavior and do not leave the
+it as unrecorded and point at `ideate`, which is the only skill that writes
+one - plain `ideate` while the plans are still empty, since it writes this file
+with them, and `ideate --rescope` once they are filled, since plain `ideate`
+stops on a filled plan. Do not infer commitments from current behavior and do not leave the
 absence unmentioned.
 
 **The standards are two files, and only one is yours to write.**
@@ -234,6 +236,15 @@ missing**: no test runner, no verification command, no remote, an empty project
 plan. Then name the next actions **in the order of the chain at the top of this
 file**: fill in the two planning docs if they are still empty, then `ci` if Step
 5 found a remote with no automatic checks, then `context`.
+
+**And `prototype`, if the project has a UI and no `blueprint/context/design.md`**:
+after `context`, and before any `spec`, which stops without it. On an app that
+already has a look it records the existing one rather than proposing a new one.
+
+**And `principles.md`, if Step 3 found none** - name it in that list, not only in
+Step 3's report: `ideate` writes it, as part of the plans when they are still
+empty and through `--rescope` when they are filled. It is the one file here this
+skill may not write, so nothing else will bring it back up.
 
 **Name every one that is still to do, not only the first.** A report that names
 one next step reads as the whole list, and the rest are dropped as soon as the

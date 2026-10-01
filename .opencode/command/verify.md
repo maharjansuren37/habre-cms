@@ -1,5 +1,5 @@
 ---
-description: Prove the current work actually does what its spec says, by running the real app and observing behavior against the done-when criteria in...
+description: Prove the current work does what its spec says by running the real app - browser, CLI, or server - against the done-when criteria in...
 ---
 
 Use the `verify` skill from this project's workflow, following its steps in

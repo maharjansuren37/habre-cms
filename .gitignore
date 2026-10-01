@@ -37,6 +37,8 @@ out/
 # so it is a dependency directory as much as a build one.
 bin/
 obj/
+# Except the workflow's own scripts, which `ship` and `verify` run.
+!.agents/bin/
 target/
 *.user
 *.class

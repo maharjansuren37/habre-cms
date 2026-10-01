@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components - design kit</title>
+<!-- prototype copies this sheet into prototypes/, pointing both links at the
+     project's theme.css and components.css. Every component here uses only
+     tokens, so the whole sheet re-themes when the tokens change. -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  /* Sheet chrome only - not part of the kit. */
+  .sheet { padding-block: var(--space-8); }
+  .sheet section { margin-top: var(--space-12); }
+  .sheet h2 { padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); }
+  .sheet h3 { margin-top: var(--space-6); font-size: var(--font-size-md); color: var(--color-text-muted); }
+  .demo { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); }
+  .demo--flush { padding: 0; overflow: hidden; }
+  .state-label { display: block; font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-1); }
+  .swatch { display: grid; gap: var(--space-1); font-size: var(--font-size-xs); }
+  .swatch__chip { height: 3rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="topbar__brand" href="#"><span aria-hidden="true">◆</span> Acme</a>
+  <ul class="nav" aria-label="Primary">
+    <li><a class="nav__link" href="#" aria-current="page">Posts</a></li>
+    <li><a class="nav__link" href="#">Pages</a></li>
+    <li><a class="nav__link" href="#">Media</a></li>
+    <li><a class="nav__link" href="#">Settings</a></li>
+  </ul>
+  <details class="mobile-menu">
+    <summary class="btn btn--ghost btn--icon" aria-label="Menu">☰</summary>
+    <ul class="nav" aria-label="Primary">
+      <li><a class="nav__link" href="#" aria-current="page">Posts</a></li>
+      <li><a class="nav__link" href="#">Pages</a></li>
+      <li><a class="nav__link" href="#">Media</a></li>
+      <li><a class="nav__link" href="#">Settings</a></li>
+    </ul>
+  </details>
+  <div class="topbar__end">
+    <button class="btn btn--secondary btn--sm" type="button"
+      onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+      Toggle theme</button>
+    <span class="avatar" aria-label="Signed in as Priya Shah">PS</span>
+  </div>
+</header>
+
+<main id="main" class="container sheet">
+  <h1>Components</h1>
+  <p class="prose text-muted">Every component a typical app or website needs, in every state, drawn only from the
+  tokens. Resize the window to see the navigation collapse; toggle the theme to check dark mode.</p>
+
+  <section aria-labelledby="s-colour">
+    <h2 id="s-colour">Colour roles</h2>
+    <div class="grid">
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-bg)"></div>bg</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-surface)"></div>surface</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-surface-sunken)"></div>surface-sunken</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-text)"></div>text</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-text-muted)"></div>text-muted</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-primary)"></div>primary</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-danger)"></div>danger</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-success)"></div>success</div>
+      <div class="swatch"><div class="swatch__chip" style="background: var(--color-warning)"></div>warning</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-type">
+    <h2 id="s-type">Typography</h2>
+    <div class="demo stack">
+      <h1>Publish without the busywork</h1>
+      <h2>Drafts you can come back to</h2>
+      <h3>Schedule for later</h3>
+      <h4>Revision history</h4>
+      <p class="prose">Body text sits at a comfortable measure so long paragraphs stay readable. A
+      <a href="#">link in running text</a> keeps its underline, because colour alone does not mark it for
+      everyone. Inline <code>code</code> uses the mono family.</p>
+      <small>Small print - last saved 2 minutes ago.</small>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-buttons">
+    <h2 id="s-buttons">Buttons</h2>
+    <div class="demo stack">
+      <div class="cluster">
+        <button class="btn btn--primary" type="button">Publish</button>
+        <button class="btn btn--secondary" type="button">Save draft</button>
+        <button class="btn btn--ghost" type="button">Cancel</button>
+        <button class="btn btn--danger" type="button">Delete post</button>
+        <button class="btn btn--ghost btn--icon" type="button" aria-label="More actions">⋯</button>
+      </div>
+      <h3>States</h3>
+      <div class="cluster">
+        <span><span class="state-label">hover</span><button class="btn btn--primary is-hover" type="button">Publish</button></span>
+        <span><span class="state-label">focus</span><button class="btn btn--primary is-focus" type="button">Publish</button></span>
+        <span><span class="state-label">loading</span><button class="btn btn--primary" type="button" aria-busy="true">Publishing…</button></span>
+        <span><span class="state-label">disabled</span><button class="btn btn--primary" type="button" disabled>Publish</button></span>
+      </div>
+      <h3>Sizes</h3>
+      <div class="cluster">
+        <button class="btn btn--secondary btn--sm" type="button">Small</button>
+        <button class="btn btn--secondary" type="button">Medium</button>
+        <button class="btn btn--secondary btn--lg" type="button">Large</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-nav">
+    <h2 id="s-nav">Navigation</h2>
+    <h3>Sidebar - an app with sections</h3>
+    <div class="demo demo--flush">
+      <div class="app-shell" style="min-height: auto">
+        <nav class="sidebar" aria-label="Sections">
+          <ul class="nav nav--vertical">
+            <li><a class="nav__link" href="#" aria-current="page">All posts</a></li>
+            <li><a class="nav__link is-hover" href="#">Drafts</a></li>
+            <li><a class="nav__link" href="#">Scheduled</a></li>
+          </ul>
+          <p class="sidebar__section">Site</p>
+          <ul class="nav nav--vertical">
+            <li><a class="nav__link" href="#">Pages</a></li>
+            <li><a class="nav__link" href="#">Navigation menu</a></li>
+          </ul>
+        </nav>
+        <div class="app-shell__main">
+          <ol class="breadcrumbs" aria-label="Breadcrumb">
+            <li><a href="#">Posts</a></li>
+            <li><a href="#">Drafts</a></li>
+            <li aria-current="page">Spring launch notes</li>
+          </ol>
+          <div class="tabs" role="tablist" aria-label="Post views">
+            <button class="tabs__tab" role="tab" aria-selected="true" type="button">Content</button>
+            <button class="tabs__tab" role="tab" aria-selected="false" type="button">SEO</button>
+            <button class="tabs__tab is-hover" role="tab" aria-selected="false" type="button">History</button>
+          </div>
+          <nav aria-label="Pagination">
+            <ul class="pagination">
+              <li><span class="is-disabled" aria-disabled="true">‹</span></li>
+              <li><a href="#" aria-current="page">1</a></li>
+              <li><a href="#">2</a></li>
+              <li><a href="#">3</a></li>
+              <li><a href="#" aria-label="Next page">›</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <h3>Menu - account or row actions</h3>
+    <ul class="menu" role="menu" aria-label="Post actions">
+      <li role="none"><a class="menu__item" role="menuitem" href="#">Edit</a></li>
+      <li role="none"><a class="menu__item is-hover" role="menuitem" href="#">Duplicate</a></li>
+      <li role="none" class="menu__separator"></li>
+      <li role="none"><button class="menu__item menu__item--danger" role="menuitem" type="button">Delete…</button></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-forms">
+    <h2 id="s-forms">Forms</h2>
+    <form class="demo stack" onsubmit="return false">
+      <div class="field">
+        <label class="field__label" for="f-title">Title <span class="field__required" aria-hidden="true">*</span></label>
+        <input class="input" id="f-title" required value="Spring launch notes">
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-slug">Address</label>
+        <input class="input" id="f-slug" aria-describedby="f-slug-hint" placeholder="spring-launch-notes">
+        <span class="field__hint" id="f-slug-hint">Lowercase letters, numbers and dashes.</span>
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-email">Contact email</label>
+        <input class="input" id="f-email" type="email" value="priya@example" aria-invalid="true" aria-describedby="f-email-err">
+        <span class="field__error" id="f-email-err">Enter an email address like name@example.com.</span>
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-author">Author</label>
+        <select class="select" id="f-author"><option>Priya Shah</option><option>Sam Lee</option></select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-summary">Summary</label>
+        <textarea class="textarea" id="f-summary">What changed this spring, and why it matters.</textarea>
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-id">Post ID</label>
+        <input class="input" id="f-id" value="4f2a-91" disabled>
+      </div>
+      <fieldset>
+        <legend>Visibility</legend>
+        <label class="choice"><input type="radio" name="vis" checked> Public</label>
+        <label class="choice"><input type="radio" name="vis"> Only people with the link</label>
+      </fieldset>
+      <label class="choice"><input type="checkbox" checked> Allow comments</label>
+      <label class="choice"><input class="switch" type="checkbox" role="switch" checked> Feature on the home page</label>
+      <div class="form-actions">
+        <button class="btn btn--ghost" type="button">Cancel</button>
+        <button class="btn btn--primary" type="submit">Save</button>
+      </div>
+    </form>
+  </section>
+
+  <section aria-labelledby="s-feedback">
+    <h2 id="s-feedback">Feedback and states</h2>
+    <div class="stack">
+      <div class="alert alert--info" role="status"><div><div class="alert__title">Scheduled</div>This post goes live on 3 October at 09:00.</div></div>
+      <div class="alert alert--success" role="status"><div><div class="alert__title">Published</div>It is live at /spring-launch-notes.</div></div>
+      <div class="alert alert--warning" role="status"><div><div class="alert__title">Unsaved changes</div>Leave this page and they are lost.</div></div>
+      <div class="alert alert--danger" role="alert"><div><div class="alert__title">Could not save</div>The connection dropped. Your text is still here - try again.</div></div>
+      <div class="cluster">
+        <span class="badge">Draft</span><span class="badge badge--success">Published</span>
+        <span class="badge badge--warning">Scheduled</span><span class="badge badge--danger">Failed</span>
+        <span class="spinner" role="status" aria-label="Loading"></span>
+      </div>
+      <h3>Loading</h3>
+      <div class="demo stack" aria-busy="true" aria-label="Loading posts">
+        <div class="skeleton" style="width: 60%"></div>
+        <div class="skeleton" style="width: 90%"></div>
+        <div class="skeleton" style="width: 75%"></div>
+      </div>
+      <h3>Empty</h3>
+      <div class="demo empty-state">
+        <p class="empty-state__title">No posts yet</p>
+        <p>Your first post shows up here once you save it.</p>
+        <a class="btn btn--primary" href="#">Write a post</a>
+      </div>
+      <h3>Error page</h3>
+      <div class="demo error-page">
+        <p class="error-page__code">404</p>
+        <h2>This page does not exist</h2>
+        <p class="text-muted">It may have moved, or the address has a typo.</p>
+        <a class="btn btn--secondary" href="#">Go to the home page</a>
+      </div>
+      <h3>Toast</h3>
+      <div class="toast" role="status">Post deleted. <button class="btn btn--ghost btn--sm" type="button">Undo</button></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-overlays">
+    <h2 id="s-overlays">Dialogs and tooltips</h2>
+    <div class="cluster">
+      <button class="btn btn--danger" type="button" onclick="document.getElementById('d-delete').showModal()">Delete post…</button>
+      <span class="tooltip" role="tooltip">Copied to clipboard</span>
+    </div>
+    <dialog class="dialog" id="d-delete" aria-labelledby="d-delete-title">
+      <div class="dialog__body">
+        <h2 id="d-delete-title">Delete “Spring launch notes”?</h2>
+        <p class="text-muted">It is removed from the site straight away. This cannot be undone.</p>
+      </div>
+      <form class="dialog__actions" method="dialog">
+        <button class="btn btn--ghost" value="cancel">Keep it</button>
+        <button class="btn btn--danger" value="delete">Delete post</button>
+      </form>
+    </dialog>
+  </section>
+
+  <section aria-labelledby="s-data">
+    <h2 id="s-data">Data</h2>
+    <div class="grid">
+      <div class="card"><p class="stat__value">128</p><p class="stat__label">Published posts</p></div>
+      <div class="card"><p class="stat__value">6</p><p class="stat__label">Drafts</p></div>
+      <div class="card"><p class="stat__value">2</p><p class="stat__label">Scheduled</p></div>
+    </div>
+    <h3>Table</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Updated</th></tr></thead>
+        <tbody>
+          <tr><td><a href="#">Spring launch notes</a></td><td>Priya Shah</td><td><span class="badge">Draft</span></td><td>2 min ago</td></tr>
+          <tr><td><a href="#">Why we rebuilt the editor</a></td><td>Sam Lee</td><td><span class="badge badge--success">Published</span></td><td>Yesterday</td></tr>
+          <tr><td><a href="#">October roadmap</a></td><td>Priya Shah</td><td><span class="badge badge--warning">Scheduled</span></td><td>3 Oct</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>List</h3>
+    <ul class="list">
+      <li><span class="avatar" aria-hidden="true">PS</span><div><strong>Priya Shah</strong><br><small>Admin</small></div></li>
+      <li><span class="avatar" aria-hidden="true">SL</span><div><strong>Sam Lee</strong><br><small>Editor</small></div></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container cluster">
+    <span>© Acme</span>
+    <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a>
+  </div>
+</footer>
+</body>
+</html>

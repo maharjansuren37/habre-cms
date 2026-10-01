@@ -5,7 +5,7 @@ description: "Close out finished work: run a final safety pass, archive the spec
 
 # ship - log it, commit it, merge it
 
-**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `blueprint/build-plan.md` · `blueprint/history/` · `dev-notes/decisions.md` · `blueprint/production-pending.md` · `blueprint/status/`
+**Writes:** `blueprint/context/current-work.md` · `blueprint/context/findings.md` · `blueprint/findings/` · `blueprint/context/needs-you.md` · `blueprint/build-plan.md` · `blueprint/history/` · `blueprint/capabilities/` · `dev-notes/decisions.md` · `blueprint/production-pending.md` · `blueprint/status/`
 
 Where this sits:
 
@@ -40,6 +40,22 @@ the ones that matter into a hard stop:
   ledger, and an empty ledger because nothing looked is indistinguishable from an
   empty ledger because nothing was wrong.
 
+**Read the spec's `**Verified:**` and `**Reviewed:**` lines**, then run the work
+fingerprint each of them recorded - the tree of every file outside `blueprint/`
+and `dev-notes/`, committed or not:
+
+    i=$(mktemp) && rm -f "$i" && GIT_INDEX_FILE="$i" git add -A -- . ':!blueprint' ':!dev-notes' && GIT_INDEX_FILE="$i" git write-tree | cut -c1-12; rm -f "$i"
+
+A line still reading `not yet` means that check has not run. **A fingerprint that
+differs means it ran on other code** - usually a repair made after it. Show
+what changed since with `git diff --stat <recorded> <current>`, and ask whether
+to run that check again; a line naming one lens or one path is that much of a
+review, and say so.
+
+**A quick fix skips both by design** - a spec with a `**Quick:**` line, from
+`spec --quick`. Name that instead of the two above, and let Step 1 check that
+it earned the skip.
+
 ## Step 1 - the safety pass
 
 Before logging or committing anything, check each of these and **report only the
@@ -48,12 +64,24 @@ blockers**:
 - `blueprint/context/current-work.md` holds a real spec, and every build step is ticked.
 - The work is on a branch, not on `main` or `master`.
 - The changed files belong to this spec, with no unrelated work mixed in. A dirty
-  `blueprint/context/findings.md` is expected - `review` writes it.
+  `blueprint/context/findings.md` is expected - `review` writes it. Where work
+  that is not this item's goes is the user's call. **If it is set aside** - a
+  stash, another branch - add a `needs-you.md` line saying where and what it
+  is: a stash is invisible to every skill, and no skill reads an archive for it.
 - The project's verification command passed **in this session**. If none is
   declared, the build passed, and the tests passed when the project has a test
   command and this change touched logic.
-- Behavioral done-whens have `verify` evidence. Do not merge on an
-  unverified claim.
+- Behavioral done-whens have `verify` evidence - a `**Verified:**` line, or
+  `verify` run in this session. Do not merge on an
+  unverified claim. **A quick fix's evidence is its reproduction test instead**,
+  seen failing before the repair and passing after - both runs named in
+  `build`'s packet. A green run alone is not that evidence.
+- **A quick fix is still inside its limits** - run `git diff --stat main` and
+  `git status --short` and count, rather than recalling what was built: the
+  branch's diff against `main` changes at most two files outside `blueprint/`, not counting tests, and no
+  stored data, contract, dependency or environment variable, and its Behaviour changes only add. If it does more,
+  it is an ordinary fix that skipped `verify` and `review` - stop and run them.
+- The spec has a `## Behaviour changes` section, even if it says `None`. A missing one is missing evidence: nothing declared what this item changed.
 - **No P0 or P1 finding in `blueprint/context/findings.md` is `open` or `fixed`.**
 
 That last one is the gate. `fixed` still blocks on purpose: the repair exists but
@@ -62,11 +90,26 @@ finding no code fixes. The only ways
 past without more code are `deferred` (the user's decision to do it later, with
 the skill that will do it named) or `accepted` (the user's explicit decision in this
 conversation, with their reason recorded) or `invalid` (a `review`
-verdict backed by evidence). **Never set either on the user's behalf.** A missing
+verdict backed by evidence). **Never set any of the three on the user's behalf.**
+**An order to merge is not that decision**, however it is pressed: `accepted`
+needs the user to accept that finding and say why the defect itself is
+tolerable, and a deadline, an override or the time already spent is not one;
+`deferred` needs them to choose the skill that will do it. Until they do,
+stay stopped - name the finding and what it does, and ask for
+the reason. **Never write a reason the user did not give.** A missing
 ledger file means no findings.
 
 **Evidence, or it didn't happen** - `AGENTS.md`'s rule applies here: name what
 proves it, and "could not verify" beats a fabricated pass every time.
+
+**When the finding holding the gate is one `preflight` raised** - a release
+blocker no code in this item touches, such as a device check or a backup - say
+so plainly. The user may set it `deferred` to the release (`host` or `deploy`)
+with their reason; that is their decision, never this skill's, and it is the
+difference between a release blocker and a merge blocker. **A check only the
+released copy can answer** - a phone against the hosted site - is deferred to
+`deploy, after release`, so `deploy` runs it once it has released rather than
+waiting for it first.
 
 If required evidence is missing, **stop here.** Do not proceed to Step 2 and
 mention it afterwards.
@@ -77,7 +120,8 @@ Check what kind of item this is - the spec's `Type:` line - and archive
 accordingly:
 
 - **Feature** - archive `blueprint/context/current-work.md` to
-  `blueprint/history/features/NN-name.md`, where NN is its build-plan number, and
+  `blueprint/history/features/NN-name.md`, where NN is the spec's `From build plan:`
+  number, and
   check it off in blueprint/build-plan.md. Check the parent item too, but only once
   every sub-item under it is checked.
 - **Fix** - archive to `blueprint/history/fixes/name.md`. A fix is not a plan
@@ -87,6 +131,19 @@ accordingly:
   feature's archive**. Uncheck the target item in `blueprint/build-plan.md` and append
   a short note to its line with the date and the rollback's archive path. Keep
   the item's number stable.
+
+**Merge the spec's `## Behaviour changes` into `blueprint/capabilities/`** -
+before any other write in this step, because the script refuses whole when a
+claim does not match and a refusal must leave nothing half-made. Run
+`.agents/bin/merge-capabilities.sh blueprint/context/current-work.md <archive name>`,
+the archive name being the one the findings take (`features/12-checkout`). It
+adds claims under the next free ID, replaces changed text, turns removed claims
+into tombstones and prints the IDs it assigned - **show them with the rest of
+this step's changes**. A spec with no such section has no evidence of what it
+changed: that is missing evidence at Step 1, not a `None`. In a multi-part
+product the directory is the part's, like the findings. A rollback's section is
+the inverse `rollback` wrote, merged the same way. A refusal names the line;
+fix the spec and run it again.
 
 **Record the item's decisions in `dev-notes/decisions.md`** before the spec is
 archived. Every entry under the spec's `## Decisions`, and every rule a repair
@@ -110,8 +167,9 @@ final status - its index heading followed by the body of its entry file,
 reason. **A `deferred` entry is not resolved and stays in the ledger**, with its
 `Deferred to:` target: one archived as `accepted` was repaired an hour later by
 the very skill it named, and the repair had to be written into an archive
-nobody reads. Prefix each ID with the archive name so it stays unique forever:
-item 12's `F-03` becomes `12/F-03`. Then remove those headings from the index
+nobody reads. Prefix each ID with the archive name so it stays unique forever -
+the archive's file name without `.md`: `F-03` archived in
+`features/12-checkout.md` becomes `12-checkout/F-03`. Then remove those headings from the index
 and delete their entry files.
 
 **Move unresolved P3s to the backlog.** Every P3 still `open`, `fixed` or
@@ -119,9 +177,9 @@ and delete their entry files.
 `blueprint/findings/backlog.md` (create it with a `# Findings backlog` heading);
 its entry file stays where it is and keeps its ID. The backlog is not loaded:
 `spec` offers a tidy item from it, and `review` still closes what it
-re-examines there. **Name each one moved in the report.** On a real project the
-index only grew - 100 findings raised, 26 P3s still open - and every session
-paid for all of them.
+re-examines there. **Name each one moved in the report.** Without this the
+index only grows, and every session pays for every small follow-up ever
+raised.
 
 Unresolved P0 to P2 entries and `unverified` leads above P3 stay in the index
 with their IDs. They are never silently dropped. When nothing is left, reset
@@ -155,8 +213,8 @@ learn how a finding no code fixes gets closed:
 line under its `## Done` heading to `blueprint/history/needs-you-done.md`
 (create it with a `# Needs you - done` heading), under a `## <archive name>`
 heading, then leave `## Done` empty. Open lines are never touched. The file is
-loaded every session, and closed lines left in it are what grew it to thirteen
-kilobytes on a real project.
+loaded every session, so closed lines left in it cost every session something
+and tell it nothing.
 
 Then reset `blueprint/context/current-work.md` to its stub:
 
@@ -187,7 +245,10 @@ several items: a login item consumes the theme and one screen while the editor,
 the list and the public page wait for items 2, 3 and 4. **Check each remaining
 file against `blueprint/context/design.md` and every unchecked item in
 `blueprint/build-plan.md` before removing it**, delete what is spent, and say
-which files stayed and which item holds each. The whole directory goes only when
+which files stayed and which item holds each - **in the archive too**, under a
+`## Prototypes kept` heading, one line per file. The report is gone after this
+session; `progress` reads the archive, and without that line it reports a
+deliberate keep as the old forgotten directory. The whole directory goes only when
 the last of them is consumed - on a real run a session had to keep it and explain
 why, against this skill's own text.
 
@@ -338,7 +399,8 @@ aside because a skill found it inconvenient.
 3. **Archive the spec** to `blueprint/history/abandoned/YYYY-MM-DD-name.md`, read
    from the branch (`git show <branch>:<path to current-work.md>`) exactly as it
    stands, ticks included, followed by `**Abandoned:** <date> - <reason>` and
-   `**Branch:** <name> at <commit>`. **Read this item's findings from the branch
+   `**Branch:** <name> at <commit>`. **Its Behaviour changes merge nothing** - the work is not on `main`, so
+   no claim about it holds; do not run `.agents/bin/merge-capabilities.sh`. **Read this item's findings from the branch
    as well** (`git show <branch>:<path to findings.md>`, and each entry file the
    same way, `git show <branch>:blueprint/findings/<ID>.md`): Step 2 has just moved
    you to `main`, where the ledger is its stub, while the entries live on the
@@ -369,7 +431,9 @@ it - the spec with its ticks, and the branch it names.
   fix, or rollback, however many checkpoints the branch carried.
 - **Never merge failing or unfinished work.**
 - **Never merge past the findings gate.** The recorded ways through are
-  `accepted` and `invalid`; both travel into the archive, never a silent drop.
+  `deferred`, `accepted` and `invalid` - the last two travel into the archive,
+  and `deferred` stays in the ledger until its named skill runs. Never a silent
+  drop.
 - **A rollback preserves the original archive** and adds its own. Never rewrite
   history to make a feature look as though it never existed.
 - **Merging and pushing are separate decisions, and both are the user's.**

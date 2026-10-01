@@ -1,6 +1,6 @@
 ---
 name: architect
-description: "Turn the problem, users, features and constraints already in `blueprint/project-plan.md` into a concrete structure, before any technology is chosen: routes and pages for a web app or PWA, screens and navigation for a mobile app, or a page list for a website - plus the data model, where logic lives, the auth boundary, and any third-party service a feature actually needs. Sized to the project's real scope. In a product with parts, also splits the build plan into each part. Proposes exact edits to the plan's Architecture section and stops for approval before writing. Use when the user runs `architect`, has a plan and needs structure before choosing a stack, or asks how to structure a new project."
+description: "Turn the problem, users and features in `blueprint/project-plan.md` into a concrete structure before any technology is chosen: routes and pages for a web app, screens and navigation for a mobile app, or a page list for a website - plus the data model, where logic lives, the auth boundary, and any third-party service a feature needs. In a product with parts, also splits the build plan into each part. Proposes edits to the plan's Architecture section and stops for approval. Use when the user runs `architect`, has a plan and needs structure before choosing a stack, or asks how to structure a new project."
 ---
 
 # architect - design the structure before you build
@@ -317,17 +317,16 @@ Design only what the project needs, from:
 Everything above is **application** architecture, and for most projects it is the
 whole job. This step asks whether more is genuinely needed.
 
-**Ask whether any of these is true:** more than one deployable service · work
-that must happen outside a request · data that must stay consistent across more
-than one write · a dependency whose failure is not acceptable · real load or a
-hard latency target · an external API that is rate-limited or unreliable.
+**Take the six answers from Step 2 - do not ask them again.** They are the
+same six questions, and asking twice gets a second answer that differs from the
+recorded one.
 
-**If none of them is, say so explicitly and stop here.** "Single process, one
+**If all six were no, say so explicitly and stop here.** "Single process, one
 database, no background work" is a complete and correct system design for most
 things, and stating it prevents a speculative queue or cache being added to a
 project that needs neither.
 
-If any is true, decide:
+If any was yes, decide:
 
 - **Async and background work** - what runs outside the request, what triggers
   it, and what happens if it fails or runs twice. Idempotency belongs here.
@@ -468,28 +467,32 @@ those answers explicitly rather than leaving it to re-read them.
 using the framework's conventions; `scaffold` then installs into them, and `ci`
 and `context` follow that.
 
-Then **branch on whether this project has a UI worth settling before the build
-loop starts**:
+Then **branch on whether this project has a UI**:
 
-- **It has real screens** - name `prototype` after `context` and before the first
-  `spec`. It reads `blueprint/context/project-overview.md` for what the screens
-  must show, and `context` is what generates that, so it cannot usefully run
-  earlier. Deciding what something looks like *while* building it is expensive;
-  deciding it first in throwaway HTML costs almost nothing to redo. Skipping it is
-  a legitimate choice, but it should be a choice, not something nobody mentioned.
+- **It has screens** - name `prototype` after `context` and before the first
+  `spec`, **as a required step**: `spec` stops on a project with a UI and no
+  `blueprint/context/design.md`. It reads `blueprint/context/project-overview.md`
+  for what the screens must show, and `context` is what generates that, so it
+  cannot usefully run earlier. Deciding what something looks like *while*
+  building it is expensive; deciding it first in throwaway HTML costs almost
+  nothing to redo.
 - **It has little or no UI** - an API, a CLI, a library - go straight from
   `context` to `spec` and say why `prototype` does not apply.
 
 ## Rules
 
+- **Leave what this writes uncommitted, on `main`, until `scaffold` has run** -
+  it commits the plans first, as part of its own approval. Offering a commit
+  here, or a branch for one, moves setup work off `main` before any code exists.
 - **Size it to the project.** The most common failure here is designing for a
   scale the project will never reach. Fewer boxes.
 - **Say what does not apply.** An explicit "no queue needed, this is one user"
   is more useful than silence, and stops the question being re-litigated later.
 - **Only what a planned feature needs.** If nothing in the plan calls for it, it
   is not in the architecture.
-- **Never write outside the Architecture section**, except what Step 6 names:
-  the Deployment opening, the quality bar, decisions, and each part's build plan.
+- **Never write outside the Architecture section**, except what Step 6 names -
+  the Deployment opening, the quality bar, decisions, and each part's build plan -
+  and the shape answers and the platform Step 2 records under Constraints.
 
 ## Formatting
 

@@ -1,0 +1,185 @@
+/* The pack's baseline design tokens as CSS custom properties.
+ * Same set as tokens.json - tests/test-seams.sh holds the two in step.
+ * Names:  primitive.<hue>.<n> -> --<hue>-<n>;  color.light|dark.<role> -> --color-<role>;
+ *         everything else -> its path joined with "-" (font.size.md -> --font-size-md).
+ * prototype copies this file to prototypes/theme.css and changes VALUES, never names.
+ * Components use only the --color-* roles, never a primitive, so a re-theme is one file. */
+:root {
+  color-scheme: light dark;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-400: #f87171;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-950: #450a0a;
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-400: #4ade80;
+  --green-700: #15803d;
+  --green-950: #052e16;
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-400: #fbbf24;
+  --amber-700: #b45309;
+  --amber-950: #451a03;
+
+  --font-family-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-line-height-tight: 1.25;
+  --font-line-height-normal: 1.5;
+  --font-line-height-relaxed: 1.7;
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px #0f172a14;
+  --shadow-md: 0 4px 12px #0f172a1f;
+  --shadow-lg: 0 12px 32px #0f172a2e;
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --size-control-sm: 2rem;
+  --size-control-md: 2.5rem;
+  --size-control-lg: 3rem;
+  --size-target-min: 44px;
+  --size-container: 72rem;
+  --size-measure: 68ch;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  /* light roles */
+  --color-bg: var(--slate-50);
+  --color-surface: #ffffff;
+  --color-surface-sunken: var(--slate-100);
+  --color-surface-hover: var(--slate-100);
+  --color-text: var(--slate-900);
+  --color-text-muted: var(--slate-600);
+  --color-border: var(--slate-200);
+  --color-border-strong: var(--slate-500);
+  --color-primary: var(--blue-600);
+  --color-primary-hover: var(--blue-700);
+  --color-on-primary: #ffffff;
+  --color-primary-subtle: var(--blue-50);
+  --color-danger: var(--red-700);
+  --color-danger-subtle: var(--red-50);
+  --color-success: var(--green-700);
+  --color-success-subtle: var(--green-50);
+  --color-warning: var(--amber-700);
+  --color-warning-subtle: var(--amber-50);
+  --color-info: var(--blue-700);
+  --color-info-subtle: var(--blue-50);
+  --color-focus-ring: var(--blue-600);
+  --color-overlay: #0f172a80;
+}
+
+/* Dark: follows the OS unless the page pins a theme with data-theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: var(--slate-950);
+    --color-surface: var(--slate-900);
+    --color-surface-sunken: var(--slate-950);
+    --color-surface-hover: var(--slate-800);
+    --color-text: var(--slate-100);
+    --color-text-muted: var(--slate-400);
+    --color-border: var(--slate-800);
+    --color-border-strong: var(--slate-500);
+    --color-primary: var(--blue-400);
+    --color-primary-hover: var(--blue-300);
+    --color-on-primary: var(--slate-950);
+    --color-primary-subtle: var(--blue-950);
+    --color-danger: var(--red-400);
+    --color-danger-subtle: var(--red-950);
+    --color-success: var(--green-400);
+    --color-success-subtle: var(--green-950);
+    --color-warning: var(--amber-400);
+    --color-warning-subtle: var(--amber-950);
+    --color-info: var(--blue-400);
+    --color-info-subtle: var(--blue-950);
+    --color-focus-ring: var(--blue-400);
+    --color-overlay: #020617b3;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: var(--slate-950);
+  --color-surface: var(--slate-900);
+  --color-surface-sunken: var(--slate-950);
+  --color-surface-hover: var(--slate-800);
+  --color-text: var(--slate-100);
+  --color-text-muted: var(--slate-400);
+  --color-border: var(--slate-800);
+  --color-border-strong: var(--slate-500);
+  --color-primary: var(--blue-400);
+  --color-primary-hover: var(--blue-300);
+  --color-on-primary: var(--slate-950);
+  --color-primary-subtle: var(--blue-950);
+  --color-danger: var(--red-400);
+  --color-danger-subtle: var(--red-950);
+  --color-success: var(--green-400);
+  --color-success-subtle: var(--green-950);
+  --color-warning: var(--amber-400);
+  --color-warning-subtle: var(--amber-950);
+  --color-info: var(--blue-400);
+  --color-info-subtle: var(--blue-950);
+  --color-focus-ring: var(--blue-400);
+  --color-overlay: #020617b3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+  }
+}

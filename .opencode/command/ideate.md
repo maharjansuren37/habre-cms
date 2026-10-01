@@ -1,5 +1,5 @@
 ---
-description: Turn a rough idea into a filled-in project plan by interviewing about what you are building, who it is for, and what the first version must do - then...
+description: Turn a rough idea into a project plan by interviewing about what you are building, who it is for, and what the first version must do, then writing...
 ---
 
 Use the `ideate` skill from this project's workflow, following its steps in

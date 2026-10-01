@@ -87,7 +87,7 @@ the plan first; autopilot starts once there is something to build *from*.
 
 ## The line, and why it is where it is
 
-Three actions are **blocked in every range, permanently, regardless of what is
+Four actions are **blocked in every range, permanently, regardless of what is
 asked mid-run**. They are not blocked out of caution - they share one property:
 
 **git cannot undo them.**
@@ -165,7 +165,8 @@ what would supply it.
 
 **In a multi-part project, read the board first** - `orchestrate` maintains it at
 the product root, and **in a git worktree, resolve it under the main checkout**
-(`orchestrate` gives the command) - and **each of these is a stop**:
+(`orchestrate` gives the command) - and **each of these must hold, or the run
+stops**:
 
 - **the contract is frozen - unless this part owns it** (`Owner:` under *The
   contract* in the product root's `AGENTS.md`). Building against an unfrozen
@@ -232,6 +233,9 @@ the coordinator no way to know - it sees a part that simply went quiet.
 - the overview exists and is newer than the plans - **only when `context` is not
   in the range.** If it is, the run regenerates it, and requiring it first is
   circular.
+- **a project with a UI has `blueprint/context/design.md`** - **only when
+  `prototype` is not in the range.** `spec` stops without it, and a run that
+  starts past `prototype` has no way to produce it.
 
 **If the range includes `scaffold`:**
 
@@ -278,6 +282,13 @@ points, and the reason an unattended pass is recoverable.
 
 **Stop the run immediately** if any of these happen, and report where it stopped:
 
+- **the range reaches `prototype` on a project with no `design.md`.** A look is
+  a choice nobody here can make for the user, even with the direction the
+  plan's UI/UX section names: `prototype` writes `design.md` only after a person
+  has seen the mockups. So run it as far as the mockups, then stop - they are
+  this run's packet, and `spec` stops without the record anyway. **An app that
+  already has a look is the exception**: recording what the code already draws
+  decides nothing, so that branch of `prototype` runs to the end.
 - **a step produces an empty diff** - it did nothing, and a passing verification
   command says nothing about that. Unattended, this is the failure most likely to
   go unnoticed, because every signal looks green.
@@ -296,7 +307,7 @@ points, and the reason an unattended pass is recoverable.
   skill after it in range - `stack`, `layout`, `scaffold` - would otherwise be
   answering for a project of a different shape.
   Report the recommendation and stop.
-- the budget from Step 1b is reached
+- the budget from Step 2 is reached
 
 Stopping early is the correct outcome in every one of those, not a failed run.
 **A run that stops at the first real question has done its job.**

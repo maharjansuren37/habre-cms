@@ -5,7 +5,7 @@ description: "The whole-project go-live audit: everything, once, before the firs
 
 # preflight - is this ready to be live at all?
 
-**Writes:** `blueprint/context/findings.md` · `blueprint/findings/`
+**Writes:** `blueprint/context/findings.md` · `blueprint/findings/` · `dev-notes/status.md`
 
 Where this sits:
 
@@ -52,7 +52,17 @@ the repository. Know the platform and the environments.
 standards and the ledger are **this part's own** - so an unqualified "the plan"
 has two answers and the wrong one is silently plausible.
 
-**First settle which of the two audits this is, and say so** - they ask different
+**Before either, read section 8, Deployment, of `blueprint/project-plan.md` -
+is a release planned at all?** "Runs from source, not published" is a complete
+answer there, and `host` stops on it. Here it means there is no go-live to gate:
+**say so first, and ask whether one is coming.** If one is, **`host` records
+that** - the plan and the decision are its to change, not this skill's, whose
+one write is the ledger - so route there and audit the release it will set up.
+If not, audit what a release
+would need and report it, but **write nothing to the ledger** - a P0 or P1 for a
+release nobody plans blocks every later `ship` in this part for nothing.
+
+**Then settle which of the two audits this is, and say so** - they ask different
 questions and mixing them produces a report where half the findings are noise:
 
 - **Before the first release.** Nothing is deployed. Configuration and Operations
@@ -132,7 +142,6 @@ to run it in, and `integrate` for whether they agree.
   skills that gate on it - `deploy` for its target, `migrate` for real data -
   cannot read what was never written down
 - secrets in the environment, never the repository
-- each environment's config genuinely separate
 
 **Operations**
 
@@ -263,11 +272,30 @@ case this is rather than treating silence as either a pass or a gap.
 
 ## Step 3 - report a verdict
 
-Sort everything into four buckets, and lead with the verdict:
+Sort everything into six buckets, and lead with the verdict:
 
 - **Blockers** - must be fixed before going live. Each one goes into the findings
   ledger as P0 or P1, so the existing machinery carries it: a heading in the
   index, the entry in `blueprint/findings/<ID>.md`, in `review`'s format.
+
+  **Every blocker is a ledger entry at P0 or P1, whatever `review`'s scale
+  would call it** - this audit asks whether it is fit to go live, not how bad
+  the code is. One filed at P2 gates nothing, so the report says no-go while
+  `ship` merges past it; if it is not worth a P1, it is not a blocker. **A
+  blocker whose repair is a person's** - an account, a manual check, an open
+  `needs-you.md` line - **still goes in the ledger**, naming that line: the
+  line says what to do, the finding is what gates, and without it the
+  `preflight:` line has no ID to name.
+
+  **A blocker only a release needs holds the build loop too.** A person trying
+  it on a real device, an account, a backup - once `open` at P0 or P1, it
+  blocks every later `ship` in this part, though the next item's code has
+  nothing to do with it. **Say so, and offer the user `deferred`**, with
+  `Deferred to:` the skill that releases - `host` or `deploy`. It stays in the
+  ledger and in every audit until that skill runs; setting it is the user's
+  call, never this skill's. **A check only the released copy can answer** - a
+  phone against the hosted site - is `deploy, after release`: nothing before
+  the release can satisfy it, so `deploy` runs it straight after.
 
   **On a re-run, close what was repaired.** A blocker no code fixes - backups, a
   host, a README, a rotated secret - is marked `fixed` with evidence by the skill
@@ -275,13 +303,22 @@ Sort everything into four buckets, and lead with the verdict:
   one that closes it**: re-check the evidence against the real system, move it to
   `closed` with what you checked in **Resolution**, or back to `open` if it does
   not hold. Code findings are not yours to close - they wait for `review`.
-- **Risks, accepted** - the user has decided to live with it. **Record who
-  accepted it and why.** Only they can put something here.
+- **Risks, accepted** - the user has decided to live with it. **Set it
+  `accepted` in the ledger, with who accepted it and why in its entry** - an
+  acceptance written only in `dev-notes/status.md` is one nothing that gates
+  reads. Only they can put something here. **An accepted
+  blocker counts as go** - it is a risk now, not a blocker - so a verdict of
+  no-go with every blocker accepted is a go that names them.
 - **Deferred, and to what** - every `deferred` finding in the ledger, with the
   skill or milestone named in it. These are risks the project carries *now*: a
   release goes out with them live, and the only difference from an accepted one
   is that something is meant to come back. Report them at every audit, never as
-  resolved, until that skill has run.
+  resolved, until that skill has run. **But a finding deferred to the release
+  this audit is for is due now**: when this audit gates a release and a
+  finding's `Deferred to:` names `host` or `deploy`, put it under Blockers, not
+  here - the release is the later it was put off to. **Except `deploy, after
+  release`**: list it here as due straight after the release, since no repair
+  before it can exist, and a Blocker nothing can clear is a no-go forever.
 - **Backlog** - the count in `blueprint/findings/backlog.md`, naming any whose
   file this release changed. P3s gate nothing, but a backlog nobody counts is a
   deletion by another name.
@@ -301,6 +338,19 @@ scaffold-default README or absent dev-notes, `host` for backups and secrets,
 
 Then say **go** or **no-go**, plainly, in one line.
 
+**Record the verdict in `dev-notes/status.md`**, replacing any earlier one, as a
+`preflight:` line with the date and the commit audited -
+`preflight: no-go, 2026-03-02, a1b2c3d - blockers F-12, F-14`, or `preflight: go,
+2026-03-02, a1b2c3d - accepted F-12`. `deploy` gates
+production on it, and a verdict said only in the conversation is gone when the
+context is cleared.
+
+**Then ask to commit what this run wrote**, on `main`, as its own
+`chore: preflight` commit: `blueprint/context/findings.md`, the entries under
+`blueprint/findings/`, and the `preflight:` line in `dev-notes/status.md`.
+`deploy` refuses a dirty tree, so a verdict left uncommitted stops the very
+release it cleared.
+
 **This skill must be able to say no.** A readiness check that always passes is
 worse than none, because it converts an unexamined risk into documented false
 assurance. If the project is not ready, the entire value of this skill is saying
@@ -319,7 +369,8 @@ still read as outstanding - and treating a stale line as a blocker fails a
 release for a reason that no longer exists, which is the same false answer as
 missing a real one. Verify, then report; where a line is satisfied, say so and
 name the skill that should close it. Anything genuinely still open and
-required for this release is a **blocker**, not a risk - a launch waiting on an
+required for this release is a **blocker**, not a risk, filed in the ledger
+like any other - a launch waiting on an
 account nobody has created is not ready, however good the code is. Anything
 open but not needed yet belongs in the knowingly-accepted section with its
 timing. `prepare` is the skill that reports that list in full.
@@ -332,7 +383,7 @@ timing. `prepare` is the skill that reports that list in full.
 - **Never claim compliance.** This checks against a standard; it certifies
   nothing. "Nothing found against the recorded bar" is the strongest true claim.
 - **Unverifiable is never a pass.**
-- **Only the user accepts a risk**, and the acceptance is recorded with a reason.
+- **Only the user accepts a risk**, and the acceptance is recorded in the ledger with a reason.
 - **Whole project, not a diff.** That is the entire point.
 
 ## Formatting

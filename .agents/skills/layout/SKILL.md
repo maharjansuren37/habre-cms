@@ -128,6 +128,15 @@ requires, so `scaffold` hit a second failure the same decision had caused.
 layout are usually the runner, the typechecker, the bundler and the build's file
 tracing, and they disagree.
 
+**Probe each claim with the runtime that is installed, or say it is unverified.**
+Nothing is scaffolded yet, so a claim like "the runner is given this directory"
+is reasoning until something runs it - make a scratch directory, put two empty
+files in the proposed shape, and run the command. How a runner treats a
+directory argument - search it, glob it, or load it as a module - differs
+between versions of the same runtime, so a claim reasoned from another version
+passes review here and fails at `scaffold` Step 8. Where a probe is not possible, record the claim as **unverified until
+`scaffold`**, so the step that can check it knows to.
+
 ## Step 4 - stop for approval
 
 Show the directory tree, one line per entry saying what it is for, and the
@@ -151,6 +160,9 @@ Then hand to `scaffold`, which installs the framework into this shape.
 
 ## Rules
 
+- **Leave what this writes uncommitted, on `main`, until `scaffold` has run** -
+  it commits the plans first, as part of its own approval. Offering a commit
+  here, or a branch for one, moves setup work off `main` before any code exists.
 - **Follow the framework, do not fight it.** An imposed layout costs something
   every day and buys nothing.
 - **Decide directories, not architecture.** If a question is really about whether

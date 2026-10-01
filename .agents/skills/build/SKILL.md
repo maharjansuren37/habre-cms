@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time. Creates the matching branch, implements a single step, shows the diff and explains it in plain English, runs the project's checks, and iterates until it works - then ticks the step off so progress survives a context clear. Offers an optional commit checkpoint after each approved step; the work-level commit and the merge belong to `ship`. Resumes from the first unchecked step when a session was interrupted. Use when the user runs `build`, or asks to build, implement, code, or start the current spec."
+description: "Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time. Hands each step to a subagent with a packet where the host supports it, falling back to inline where it does not; the main session reads the diff, explains it, and proves the done-when. Creates the matching branch, runs the project's checks, and iterates until it works - then ticks the step off so progress survives a context clear. Offers an optional commit checkpoint after each approved step; the work-level commit and the merge belong to `ship`. Resumes from the first unchecked step when a session was interrupted. Use when the user runs `build`, or asks to build, implement, code, or start the current spec."
 ---
 
 # build - turn the spec into code, one reviewed step at a time
@@ -27,7 +27,7 @@ is true regardless of stack and is the pack's - refreshed on every install.
 overwritten. **Read both; where they disagree, the project's own file wins.**
 
 **If `coding-standards.md` is still unfilled prompts, say so.** The fundamentals
-always apply, but Step 6 tells you to prefer the project's own conventions over
+always apply, but the Rules below tell you to prefer the project's own conventions over
 generic best practice, and it cannot do that while the language, layout, imports
 and test shape are still comment prompts. `scaffold` fills it for a new project,
 `setup` for one that already had code.
@@ -72,6 +72,16 @@ Create and check out a branch named from the spec: `feature/<name>` for a featur
 the user to run `git init` - the loop depends on branches and on being able to
 show diffs.
 
+**Before creating it, look at `git status`.** A new branch starts from whatever
+the tree holds, and `ship` later squashes all of it into this item's one commit.
+What `spec` just wrote belongs here - `current-work.md`, and any change it made
+to `build-plan.md`, `project-plan.md`, `needs-you.md` or `design.md` for this
+item. **Anything else uncommitted is someone else's work**: a scaffold, a CI
+workflow, a regenerated overview, a new design record `prototype` wrote. Name each
+file and ask to commit it on `main` first, as the skill that made it says to;
+carried along, it merges as this item, and `ship`'s check for unrelated work
+stops on it.
+
 On a resume the branch already exists. Check it out; do not create a second one.
 
 **In a multi-part project, mark this part building** before the first step, in
@@ -100,103 +110,139 @@ Never build on `main` or `master`.
 
 Work the spec's build steps in order, one at a time. For each step:
 
-1. **Implement just that step** - the smallest change that satisfies its
-   *done when*. Nothing from a later step, however tempting.
+1. **Prepare the packet and hand the step off.** From `blueprint/context/current-work.md`, take the step's spec text, its done-when, the files it claims, and the standards it must follow. **Running `build` is the user asking for this handoff** - a host whose tools say not to spawn agents unless the user asks has had its answer, so that is never a reason to build inline. **The one exception is a quick fix** - a spec with a `**Quick:**` line: one step in one or two files costs more to brief than to build, so build it inline and say that is why. If the host supports subagents, hand the step to one with this packet:
 
-2. **Show the diff**, not whole files.
+    - The spec step text
+    - Its done-when, and **whether it is behavioural** - if it is and a test
+      runner is configured, the instruction to write the test first and run it
+      red before writing the code (item 4)
+    - The files it claims to create or modify
+    - The standards it must follow, **by path, all four**:
+      `blueprint/context/fundamentals.md`, `blueprint/context/coding-standards.md`,
+      `blueprint/context/quality-bar.md` and `blueprint/context/principles.md` -
+      the last two at the product root in a multi-part product. **A subagent
+      loads none of them by itself**, and `fundamentals.md` is not loaded even in
+      the main session, so a standard left out of the packet is one the code is
+      never written against.
+    - The instruction not to commit or push
 
-3. **Confirm the step actually did something, before claiming it passed.**
-   **An empty diff means the step did nothing**, whatever the verification
-   command says. Check it explicitly:
+    The subagent implements the step, shows the diff, and reports whether the done-when passed. If the host does not support subagents, or the subagent cannot proceed, implement the step inline and continue to the next checkpoint. The main session still reads the diff and proves the done-when - that is the comprehension gate. **Say which path the step took** when you show it - handed off, or inline and why - because an inline build that says nothing reads exactly like a handoff that happened.
 
-   - the diff is **non-empty**
-   - every file the step said it would create **exists and is not empty**
-   - the change landed where it was meant to, not in a path created by a typo
+2. **Confirm the step actually did something, before claiming it passed.**
+    **An empty diff means the step did nothing**, whatever the verification
+    command says. Check it explicitly:
 
-   This is not paranoia. A step once wrote two files into a directory that did
-   not exist, both writes failed, and **the verification command still returned
-   exit 0** - the test runner was set to pass with no tests, and the untouched
-   template still built. Nothing about that green check was false; it simply had
-   nothing to do with the step. Unattended, it would have carried the run forward
-   on nothing.
+    - the diff is **non-empty**
+    - every file the step said it would create **exists and is not empty**
+    - the change landed where it was meant to, not in a path created by a typo
 
-   **A passing verification does not mean the step happened.** It means the
-   project is in a good state, which is equally true of a step that changed
-   nothing at all.
+    This is not paranoia. A step once wrote two files into a directory that did
+    not exist, both writes failed, and **the verification command still returned
+    exit 0** - the test runner was set to pass with no tests, and the untouched
+    template still built. Nothing about that green check was false; it simply had
+    nothing to do with the step. Unattended, it would have carried the run forward
+    on nothing.
 
-4. **Explain it in plain English.** What the step delivered, one line per changed
-   file on what it does and why. This is the comprehension gate: the user should
-   finish reading it able to explain the change to someone else. Keep it concrete,
-   not ceremonial.
+    **A passing verification does not mean the step happened.** It means the
+    project is in a good state, which is equally true of a step that changed
+    nothing at all.
 
-5. **Prove the done-when.** Name the evidence: build output, a passing assertion,
-   a screenshot. If the project declares a verification command, run that exact
-   command - it is an umbrella over checks the project actually has, so never
-   invent a test runner or a check just to have something to run. A step that adds
-   real logic ships its test in the same diff when a test runner is configured.
-   UI and integration steps ride on a screenshot plus a green build. When a
-   done-when is behavioral - a click, a download, a flow across screens - run
-   `verify` against the running app rather than eyeballing it.
+3. **Explain it in plain English.** What the step delivered, one line per changed
+    file on what it does and why. This is the comprehension gate: the user should
+    finish reading it able to explain the change to someone else. Keep it concrete,
+    not ceremonial.
 
-   **Check the done-when on its own terms, not just that the suite is green.** If
-   it says "tests cover the mapping", the test count must have gone up and those
-   tests must exist - a runner configured to pass with no tests reports success
-   for a step that added none. If it says a string appears in the output, look for
-   the string. **Match the evidence to the claim the step actually made.**
+4. **Prove the done-when.** Name the evidence: build output, a passing assertion,
+    a screenshot. If the project declares a verification command, run that exact
+    command - it is an umbrella over checks the project actually has, so never
+    invent a test runner or a check just to have something to run. A step that adds
+    real logic ships its test in the same diff when a test runner is configured.
+    UI and integration steps ride on a screenshot plus a green build. When a
+    done-when is behavioral - a click, a download, a flow across screens - run
+    `verify` against the running app rather than eyeballing it.
 
-   **A new test is not trusted until it has failed once.** Break the thing it
-   covers, watch it go red, put it back. **And check the break was real** - a
-   mutation that changes no behaviour leaves the test passing against code that
-   was meant to be broken, and that looks identical to a proven test. Reversing a
-   list whose elements carry their own order is the shape to watch for: the rows
-   come back the same and nothing is learned. **If a test still passes after you
-   broke it, suspect the mutation before the test.**
+     **Check the done-when on its own terms, not just that the suite is green.** If
+     it says "tests cover the mapping", the test count must have gone up and those
+     tests must exist - a runner configured to pass with no tests reports success
+     for a step that added none. If it says a string appears in the output, look for
+     the string. **Match the evidence to the claim the step actually made.**
 
-6. **Iterate until it works - but stop guessing after the second try.** If it
-   fails, or the user wants it different, revise the step, show the updated diff,
-   and re-check. Nothing is committed until the user is happy with the step.
+     **Every step with a behavioural done-when is proven test-first**, wherever a
+     test runner is configured: write the test from the done-when **before** the
+     code, run it, and see it fail for the reason the done-when describes - the
+     behaviour is missing, not a typo or an import error. For a module that does
+     not exist yet, create it first with its exported names stubbed, so the red
+     run reaches the assertion. Then write the code and
+     watch it pass. A test first seen after the code has only ever been green, so
+     nothing shows it can fail. **Name the red run when you show the step** - the
+     command and the assertion it failed on - whichever path built it; a step
+     shown without one was not proven test-first. **A hurry is not an exception**:
+     the red run costs seconds, and it is the only proof the test can fail.
 
-   **While a built step waits for the user, mark it in the file:** add
-   `_(built, awaiting approval)_` right after its bold title in
-   `blueprint/context/current-work.md`. Otherwise the only record that the step's
-   code exists is this conversation - and a session that picks the item up cold,
-   or an `autopilot` run started from here, finds an unchecked step whose files
-   are already written, and either rebuilds over them or refuses the tree.
+     **A quick fix's test is its spec's reproduction**, written first and seen
+     failing for the reported reason, exactly as a finding's repair is in Step 4.
+     It is the only evidence the short path has, since `verify` and `review` do
+     not run: **name both runs in the packet**, the red one and the green one.
 
-   **If the same step fails twice and you cannot say why, stop and run `debug`.**
-   A third attempt made without understanding the cause is a guess, and a guess
-   that happens to go green is worse than the failure - it retires the question
-   while leaving the cause in place. `debug` reproduces and isolates without
-   touching product code, then hands the evidence back here. Say plainly that you
-   do not know the cause; "I am changing this because I think it might be it" is
-   the sentence that should trigger it.
+     **Where no test can observe the claim, the evidence is the running app** -
+     no runner configured, or a claim a runner cannot see, such as a rendered
+     layout. That is the screenshot and `verify` above, not a test invented to
+     satisfy this rule; say which kind of proof each done-when got, because the
+     review packet in Step 4 reads it.
 
-7. **Tick it off, then offer the checkpoint.** Once approved, check the step off
-   (`- [x]`) in `blueprint/context/current-work.md` so progress survives a context clear,
-   and remove its `_(built, awaiting approval)_` marker. **If the step settled a
-   choice the spec did not** - a limit, a library, a rule a later item will build
-   on - add it under the spec's `## Decisions` now, while the reason is on screen;
-   `ship` carries that section into `dev-notes/decisions.md`. If the
-   step repaired a finding in `blueprint/context/findings.md`, set that finding to `fixed` and
-   note the repair in the **Resolution** line of its entry,
-   `blueprint/findings/<ID>.md` - never to `closed` at P0 or P1, because a repair
-   is re-reviewed by `review` before it clears. A fix can introduce a worse
-   defect than the one it removed. A P2 or P3 is the exception in Step 4.
+     **A new test is not trusted until it has failed once.** Break the thing it
+     covers, watch it go red, put it back. **And check the break was real** - a
+     mutation that changes no behaviour leaves the test passing against code that
+     was meant to be broken, and that looks identical to a proven test. Reversing a
+     list whose elements carry their own order is the shape to watch for: the rows
+     come back the same and nothing is learned. **If a test still passes after you
+     broke it, suspect the mutation before the test.**
 
-   Then offer a short choice:
+5. **Iterate until it works - but stop guessing after the second try.** If it
+    fails, or the user wants it different, revise the step, show the updated diff,
+    and re-check. Nothing is committed until the user is happy with the step.
 
-   - **Continue** *(default)* - straight into the next step, no commit.
-   - **Commit checkpoint** - commit just this step on the branch with a
-     conventional message. A cheap rollback point, entirely optional.
-   - **Walk me through it** - a deeper, line-level explanation of the new code:
-     why this approach, what each part does, what to watch out for. Then re-ask
-     this choice. It is a loop-back, not a terminal answer.
-   - **Run the rest unattended** - hand the remaining steps to
-     `autopilot build..review`, which resumes from the first unchecked step and
-     ends with a review packet rather than stopping after each one.
-   - **Stop here** - pause. Say where things stand: the branch is intact, the
-     ticked steps record the progress, `build` resumes from the first
-     unchecked step.
+    **While a built step waits for the user, mark it in the file:** add
+    `_(built, awaiting approval)_` right after its bold title in
+    `blueprint/context/current-work.md`. Otherwise the only record that the step's
+    code exists is this conversation - and a session that picks the item up cold,
+    or an `autopilot` run started from here, finds an unchecked step whose files
+    are already written, and either rebuilds over them or refuses the tree.
+
+    **If the same step fails twice and you cannot say why, stop and run `debug`.**
+    A third attempt made without understanding the cause is a guess, and a guess
+    that happens to go green is worse than the failure - it retires the question
+    while leaving the cause in place. `debug` reproduces and isolates without
+    touching product code, then hands the evidence back here. Say plainly that you
+    do not know the cause; "I am changing this because I think it might be it" is
+    the sentence that should trigger it.
+
+6. **Tick it off, then offer the checkpoint.** Once approved, check the step off
+    (`- [x]`) in `blueprint/context/current-work.md` so progress survives a context clear,
+    and remove its `_(built, awaiting approval)_` marker. **If the step settled a
+    choice the spec did not** - a limit, a library, a rule a later item will build
+    on - add it under the spec's `## Decisions` now, while the reason is on screen;
+    `ship` carries that section into `dev-notes/decisions.md`. If the
+    step repaired a finding in `blueprint/context/findings.md`, set that finding to `fixed` and
+    note the repair in the **Resolution** line of its entry,
+    `blueprint/findings/<ID>.md` - never to `closed` at P0 or P1, because a repair
+    is re-reviewed by `review` before it clears. A fix can introduce a worse
+    defect than the one it removed. A P2 or P3 is the exception in Step 4.
+
+    Then offer a short choice:
+
+    - **Continue** *(default)* - straight into the next step, no commit.
+    - **Commit checkpoint** - commit just this step on the branch with a
+      conventional message. A cheap rollback point, entirely optional.
+    - **Walk me through it** - a deeper, line-level explanation of the new code:
+      why this approach, what each part does, what to watch out for. Then re-ask
+      this choice. It is a loop-back, not a terminal answer.
+    - **Run the rest unattended** - hand the remaining steps to
+      `autopilot build..review`, which resumes from the first unchecked step and
+      ends with a review packet rather than stopping after each one.
+    - **Stop here** - pause. Say where things stand: the branch is intact, the
+      ticked steps record the progress, `build` resumes from the first
+      unchecked step.
 
 **Offer the unattended option by name, not just when asked.** Per-step review
 earns its keep on the first step of an item, where the code reveals decisions the
@@ -262,12 +308,21 @@ Before handing off, read blueprint/context/findings.md. A P0 or P1 finding still
   from the finding's reproduction and you **saw it fail with the repair
   reverted** and pass with it back, as above. Set it to `closed`, and record in
   **Resolution** the test, both runs, and `closed by build`. Anything short of
-  that stays `fixed` for `review`. On a real project a repaired P3 stayed
-  `fixed` for a week, loaded by every session, waiting for a pass that had
+  that stays `fixed` for `review`. Otherwise a repaired P3 sits in the loaded
+  index as `fixed`, paid for by every session, waiting for a pass that has
   nothing left to learn from it.
 - **Never set `accepted`, `deferred` or `invalid`.** `accepted` is the user's explicit
   decision with a recorded reason; `invalid` is a `review` verdict backed
   by evidence. Neither is this skill's call.
+
+**A quick fix stays quick only inside its limits.** Before the packet, compare
+the diff against the list in `spec`'s quick path: at most two files outside
+`blueprint/`, not counting tests, and no stored data, contract, dependency,
+environment variable, a changed or removed behaviour claim, or anything `blueprint/context/quality-bar.md` names. **If
+the diff went past any of them, remove the `**Quick:**` line from the spec and
+say which limit it crossed** - it is an ordinary fix now, and `verify` and
+`review` apply. A repair that needed a third file is exactly the one whose
+reach nobody predicted.
 
 When every step is built and the project's checks pass, stop with a compact
 review packet:
@@ -277,7 +332,9 @@ review packet:
 - checks run, with the exact command or proof used
 - how to try it by hand, and **which done-whens, if any, were proven live
   against the running app in Step 3 versus only by a green check** - that list
-  is what the next action reads
+  is what the next action reads. **A browser test that drives the served app
+  counts as live** - it observes the real page, the way `verify` would; a unit
+  test, or any check that never starts the app, does not
 - ledger state: any findings still `open` or `fixed`, by ID
 - known risks, skipped checks, or follow-ups
 - **next action:** `verify` first, when any behavioral done-when was proven
@@ -286,7 +343,10 @@ review packet:
   promise unproven. Then `review`, then `ship`. **If every behavioral
   done-when was already run live in Step 3, say so and name `review`
   directly** - running `verify` again over work it already covers is not the
-  point of naming it in the chain.
+  point of naming it in the chain. **A quick fix still inside its limits names
+  `ship` directly**, saying that `verify` and `review` were skipped by the
+  short path - unless its claim is one only the running app shows, such as a
+  rendered layout, which goes to `verify` first.
 
 **In a multi-part project, post the packet** in `<product root>/blueprint/status/<this part>.md`:
 
