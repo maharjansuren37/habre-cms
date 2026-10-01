@@ -98,7 +98,7 @@ because they need a database; they run only when someone remembers.
   with the evidence (`build` never closes a P2 without a failing-first test; the
   failing-first proof is Step 5). *Done when:* the docs match the workflow file
   when re-read against it.
-- [ ] **Step 5 - Prove it on GitHub** - **needs your yes to push a branch**
+- [x] **Step 5 - Prove it on GitHub** - **needs your yes to push a branch**
   (AGENTS.md: no push without a separate yes). Push the fix branch and open a
   pull request: the `verify` and `e2e` jobs both pass, `e2e` showing 115 passed
   / 26 skipped. Then, on a throwaway commit on the same branch, break one login
@@ -174,3 +174,18 @@ None. CI only; nothing reaches the server and no variable is added to
 - Four docs-only changes are uncommitted on `main` from the 12a-12c deploy record
   (CHANGELOG, `status.md`, `production-pending.md`, overview). They are not part
   of this fix; commit them to `main` first, or they will ride along.
+
+## Step 5 evidence (2026-10-01)
+
+- **Green:** PR #22, run 36821876462 - `Verify` pass (33 s), `Browser tests
+  (Playwright, PostgreSQL)` pass (3 m 14 s): **115 passed, 26 skipped**.
+- **Red:** throwaway draft PR #23 (lockout limit 5 -> 500), run 36822186924 -
+  `Verify` **pass** (31 s, so the old CI would have let it through), `e2e`
+  **fail** (3 m 40 s) on `auth.spec.ts:65` "five failed logins lock the email,
+  even for the right password"; the `playwright-report` artifact uploaded.
+- **Cleanup:** #23 closed and its branch deleted (remote and local); the fix
+  branch carries no trace of the break. Because the break lived on its own
+  branch, "revert and pass again" is shown by #22's green run on the same code.
+- The runner's own `psql` ran `db/dev/init.sh` (the assumption from Step 3).
+- `e2e` takes about 3 m 14 s on GitHub (local: 1.2 min), inside the 20 min limit.
+
