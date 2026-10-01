@@ -281,6 +281,31 @@ mostly the page itself, not spinners.
   contained panel, so the two are never mistaken on a page. Screenshots:
   `blueprint/reference/12b-cta/` (editor and public, light and dark).
   Screen-reader behaviour is unverified (`needs-you.md`).
+- **Image and text (item 12c, page editor and public page, not in the mockups):**
+  the third ready-made kind. **In the editor** the add row now holds four default
+  buttons - "Add blank section", "Add hero section", "Add call to action", "Add
+  image and text" - all disabled at 30 sections, wrapping on a narrow screen;
+  four stay buttons, and a menu is revisited at a fifth kind (D135 closed). The
+  card has the usual bar with a bordered "Image and text" tag in place of
+  Columns, then an "Image (required)" fieldset above the hero's four fields: three
+  states - **empty** ("Choose image" only), **chosen** (a thumbnail up to 12rem
+  wide with `alt=""`, a muted "Alt text: ..." line and a quiet "Change image"
+  button) and **missing** (the library row was deleted: "This image is no longer
+  in the library. Choose another." linked to the button). The button opens the
+  image block's picker dialog; focus returns to it when the dialog closes. A new
+  one starts empty with focus on "Choose image" and a polite "Image and text
+  section added. Now N sections." A save with no image, or a missing one, is
+  refused as "Section N (image and text): choose an image." with typed text kept.
+  The button pair is optional, as on a hero. **On the public page** it is a
+  `<section data-kind="image-text">`: the picture on the left and the `<h2>` (at
+  `--text-xl`), optional paragraph and optional button on the right, two equal
+  columns with a `--space-6` gap from `48rem`, stacked picture-first below; the
+  picture keeps its aspect ratio (`width`/`height` set), has `--radius-lg` like
+  every image, the library's alt text and no caption. With no picture row the text
+  takes the full width. No new colour pair: text on the page background and the
+  hero button's rule, both already tabled. Screenshots:
+  `blueprint/reference/12c-image-text/` (editor and public, light and dark; public
+  at 375 px). Screen-reader behaviour is unverified (`needs-you.md`).
 - **Image block and picker (item 5b, not in the mockups):** a bordered card
   (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
   other card border in the app) holding either a centered "Choose image" button

@@ -16,16 +16,18 @@ export function isReadableEditorContent(content: unknown): content is { blocks: 
   );
 }
 
-/** A ready-made hero's or call to action's four fields, all text - what its form hands over. */
+/** A ready-made section's four fields, all text - what its form hands over - and,
+ *  for image and text, the picture's media id (empty until one is chosen). */
 function isReadableSlotSection(section: { kind?: unknown; fields?: unknown }): boolean {
-  if (section.kind !== "hero" && section.kind !== "cta") return false;
+  if (section.kind !== "hero" && section.kind !== "cta" && section.kind !== "image-text")
+    return false;
   const { fields } = section;
+  const names = ["heading", "text", "buttonLabel", "buttonHref"];
+  if (section.kind === "image-text") names.push("mediaId");
   return (
     typeof fields === "object" &&
     fields !== null &&
-    ["heading", "text", "buttonLabel", "buttonHref"].every(
-      (name) => typeof (fields as Record<string, unknown>)[name] === "string",
-    )
+    names.every((name) => typeof (fields as Record<string, unknown>)[name] === "string")
   );
 }
 

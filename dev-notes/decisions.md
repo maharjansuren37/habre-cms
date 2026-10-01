@@ -1647,3 +1647,45 @@ Costs: 12c, which makes four, has to decide between buttons and a menu.
 **Chose:** 1px `--color-border`, `--radius-md`, `--space-6` padding, centred, heading at `--text-xl`; the button uses the hero button's rule. The one new colour pair, button fill on the panel, measures 6.45 light / 7.76 dark.
 Beats: a bare banner like the hero (indistinguishable on the page); an accent-filled band (a new full-width colour pair to measure).
 Costs: none beyond one contrast row in `design.md`.
+
+## D137 - Image and text is its own section type and wire kind, with a required media id (2026-10-01)
+
+**Chose:** `image-text` is a fourth sibling in `sectionsSchema` (`{ mediaId uuid, heading 1-120, text 0-400, button? }`); the wire kind is `image-text` with `mediaId` among its fields; the stored section holds the media id only, never a url, alt or size (D60). A missing or non-uuid id is refused as "choose an image". Continues D125, D126, D130.
+Beats: an optional image (then it is a hero by another name); storing a url.
+Costs: another union member for every caller that switches on `type`.
+
+## D138 - One shared field parser serves all three ready-made kinds (2026-10-01)
+
+**Chose:** `slotSectionFromFields` takes the third type and reads `mediaId` for image and text only; error labels come from one `SLOT_KIND_LABELS` table. Hero and CTA messages are unchanged.
+Beats: a fourth near-copy of the parser.
+Costs: hero-named identifiers still serve every kind (F-128).
+
+## D139 - The picture's alt text is the library's, with no caption and no per-section alt (2026-10-01)
+
+**Chose:** the public `<img>` takes `alt` from the media row; there is no figcaption; the editor shows the alt text, not a field for it.
+Beats: a second alt field (drift from the library's, more to fill in) and a caption repeating the alt text beside the picture's own words.
+Costs: one picture cannot carry a different alt in two places.
+
+## D140 - The picture is always on the left, stacked above the text below `48rem` (2026-10-01)
+
+**Chose:** two equal columns with a `--space-6` gap from `48rem` up, picture first; with no picture row the text takes the full width. No new colour pair.
+Beats: a left/right choice (a setting no editor asked for, against the product's ease-of-use rule).
+Costs: an editor cannot put the picture on the right.
+
+## D141 - Four add buttons stay buttons; a menu is revisited at a fifth kind (2026-10-01)
+
+**Chose:** "Add blank section", "Add hero section", "Add call to action", "Add image and text", all disabled at 30 sections and wrapping on a narrow screen. Closes D135's open question.
+Beats: a popover menu (more to make keyboard- and screen-reader-accessible for no gain at four short buttons; the section-controls accessibility pass is itself unverified).
+Costs: the row gets longer with each new kind.
+
+## D142 - The picker dialog is the image block's, exported, not rebuilt (2026-10-01)
+
+**Chose:** `openImagePickerDialog` and `PickerMedia` are exported from `image-tool.client.ts`; the section form's "Choose image" button calls it and moves focus back to itself afterwards.
+Beats: a React copy of the dialog (two pickers to keep in step).
+Costs: the form calls into vanilla DOM code, as the image block does.
+
+## D143 - A deleted picture drops silently in public and blocks the save in the editor (2026-10-01)
+
+**Chose:** publicly, the text renders and the picture does not; in the editor, the form says "This image is no longer in the library. Choose another." and a save sends no id, so the server refuses with "choose an image" and keeps the typed text.
+Beats: failing the public page (the plan's stance on missing images is that text still serves) and silently saving a section with a dead id.
+Costs: the server itself accepts any uuid, as an image block does (no database check on save).

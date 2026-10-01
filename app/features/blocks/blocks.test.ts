@@ -828,3 +828,138 @@ test("collectImageMediaIds passes over a call to action", () => {
   const sections = sectionsSchema.parse([cta("c1"), section("s1", [textLeaf("a")])]);
   assert.deepEqual(collectImageMediaIds(sections), []);
 });
+
+// ---- ready-made sections: image and text (item 12c) ----
+
+const IMG_A = "6f1c7d52-3a0b-4f6e-9d1e-0a1b2c3d4e5f";
+const IMG_B = "0b9d6a8e-1c2d-4e3f-8a4b-5c6d7e8f9a0b";
+const imageText = (id: string, data: Record<string, unknown> = {}) => ({
+  id,
+  type: "image-text",
+  data: { mediaId: IMG_A, heading: "Our story", text: "Since 1990.", ...data },
+});
+const imageTextFields = (fields: Record<string, string> = {}) => ({
+  mediaId: IMG_A,
+  heading: "Our story",
+  text: "Since 1990.",
+  buttonLabel: "",
+  buttonHref: "",
+  ...fields,
+});
+const saveImageText = (fields: Record<string, string> = {}, before: unknown[] = []) =>
+  fromEditorJsSections({
+    sections: [...before, { id: "i1", kind: "image-text", fields: imageTextFields(fields) }],
+  });
+const imageTextMessage = (fields: Record<string, string>, before: unknown[] = []) => {
+  const result = saveImageText(fields, before);
+  return result.ok ? "accepted" : result.message;
+};
+
+test("an image and text section needs an image id and a heading, not a button", () => {
+  assert.equal(sectionsSchema.safeParse([imageText("i1")]).success, true);
+  assert.equal(
+    sectionsSchema.safeParse([
+      imageText("i1", { button: { label: "More", href: "https://example.com/" } }),
+    ]).success,
+    true,
+  );
+  assert.equal(sectionsSchema.safeParse([imageText("i1", { mediaId: undefined })]).success, false);
+  assert.equal(sectionsSchema.safeParse([imageText("i1", { mediaId: "nope" })]).success, false);
+  assert.equal(sectionsSchema.safeParse([imageText("i1", { heading: "" })]).success, false);
+});
+
+test("the save parser builds an image and text section, with and without a button", () => {
+  const plain = saveImageText();
+  assert.deepEqual(plain.ok && plain.sections[0], imageText("i1"));
+  const withButton = saveImageText({ buttonLabel: "More", buttonHref: "/more" });
+  assert.deepEqual(
+    withButton.ok && withButton.sections[0],
+    imageText("i1", { button: { label: "More", href: "/more" } }),
+  );
+});
+
+test("an image and text section's refusals name the section", () => {
+  const one = [{ id: "s1", columns: [editorColumn("a1")] }];
+  assert.equal(
+    imageTextMessage({ mediaId: "" }, one),
+    "Section 2 (image and text): choose an image.",
+  );
+  assert.equal(
+    imageTextMessage({ mediaId: "not-a-uuid" }),
+    "Section 1 (image and text): choose an image.",
+  );
+  assert.equal(
+    imageTextMessage({ heading: " " }),
+    "Section 1 (image and text): the heading is required.",
+  );
+  assert.match(
+    imageTextMessage({ heading: "x".repeat(121) }),
+    /^Section 1 \(image and text\): .*120/,
+  );
+  assert.match(imageTextMessage({ text: "x".repeat(401) }), /the text is longer than 400/);
+  assert.match(imageTextMessage({ buttonLabel: "Go" }), /label but no link/);
+  assert.match(imageTextMessage({ buttonHref: "/go" }), /link but no label/);
+  assert.match(
+    imageTextMessage({ buttonLabel: "Go", buttonHref: "javascript:alert(1)" }),
+    /link cannot be used/,
+  );
+  assert.match(
+    imageTextMessage({ buttonLabel: "Go", buttonHref: "//evil.example" }),
+    /link cannot be used/,
+  );
+});
+
+test("a line break in an image and text slot becomes a space", () => {
+  const result = saveImageText({ text: "one\n\ntwo" });
+  assert.equal(
+    result.ok && result.sections[0]?.type === "image-text" && result.sections[0].data.text,
+    "one two",
+  );
+});
+
+test("a client cannot send a stored type, or columns with a kind", () => {
+  const withColumns = fromEditorJsSections({
+    sections: [{ id: "i1", kind: "image-text", columns: [], fields: imageTextFields() }],
+  });
+  assert.equal(withColumns.ok, false);
+  const unknownKind = fromEditorJsSections({
+    sections: [{ id: "i1", kind: "toString", fields: imageTextFields() }],
+  });
+  assert.equal(unknownKind.ok, false);
+});
+
+test("ids are unique across kinds, and 31 sections are refused", () => {
+  const same = fromEditorJsSections({
+    sections: [
+      { id: "same", kind: "hero", fields: heroFields() },
+      { id: "same", kind: "image-text", fields: imageTextFields() },
+    ],
+  });
+  assert.equal(same.ok, false);
+  const many = fromEditorJsSections({
+    sections: Array.from({ length: 31 }, (_, n) => ({
+      id: `s${n}`,
+      kind: "image-text",
+      fields: imageTextFields(),
+    })),
+  });
+  assert.equal(many.ok, false);
+});
+
+test("mixed kinds round-trip, and an image used twice is collected once", () => {
+  const mixed = [
+    hero("h1"),
+    cta("c1"),
+    imageText("i1"),
+    imageText("i2", { mediaId: IMG_B }),
+    imageText("i3"),
+    section("s1", [textLeaf("t1")]),
+  ];
+  const parsed = sectionsSchema.safeParse(mixed);
+  assert.equal(parsed.success, true);
+  assert.deepEqual(parsed.success && parsed.data, mixed);
+  assert.deepEqual(
+    collectImageMediaIds(parsed.success ? parsed.data : []).sort(),
+    [IMG_A, IMG_B].sort(),
+  );
+});

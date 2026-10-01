@@ -176,6 +176,6 @@ not tidying; it is what keeps the open list true.
       changes, and editors inside narrow columns. `open` (spec, item 10,
       2026-10-01; widened, item 11, 2026-10-01). From item 12a, the same pass covers the
       "Add blank section" / "Add hero section" buttons and the hero form's
-      labels, hint, errors and focus (spec, item 12a, 2026-10-01). From item 12b, the same pass covers "Add call to action" and the call-to-action form, whose button fields are required (spec, item 12b, 2026-10-01)
+      labels, hint, errors and focus (spec, item 12a, 2026-10-01). From item 12b, the same pass covers "Add call to action" and the call-to-action form, whose button fields are required (spec, item 12b, 2026-10-01). From item 12c, the same pass covers "Add image and text", the image slot's Choose/Change image button, the picker dialog's focus in and out, and the missing-image message (spec, item 12c, 2026-10-01)
 
 ## Done

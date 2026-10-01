@@ -1,5 +1,12 @@
 import { Fragment } from "react";
-import type { Block, CtaSection, HeroSection, ImageMediaSummary, Section } from "./blocks.ts";
+import type {
+  Block,
+  CtaSection,
+  HeroSection,
+  ImageMediaSummary,
+  ImageTextSection,
+  Section,
+} from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
 import { isPlainSection, nonEmptySections } from "./sections.ts";
 
@@ -77,6 +84,7 @@ export function renderSections(
   return nonEmptySections(sections).map((section) => {
     if (section.type === "hero") return renderHero(section);
     if (section.type === "cta") return renderCta(section);
+    if (section.type === "image-text") return renderImageText(section, mediaById);
     const columns = section.data.children;
     if (columns.length === 1)
       return <section key={section.id}>{renderBlocks(columns.flat(), mediaById)}</section>;
@@ -130,6 +138,43 @@ function renderCta(cta: CtaSection) {
           {button.label}
         </a>
       </p>
+    </section>
+  );
+}
+
+/**
+ * A ready-made image and text (item 12c): the picture, then the heading, text
+ * and optional button. The alt text is the media row's own and there is no
+ * caption - the picture sits beside its own words. An id with no media row
+ * drops the picture and the text still renders, as an image block does.
+ */
+function renderImageText(section: ImageTextSection, mediaById: Record<string, ImageMediaSummary>) {
+  const { mediaId, heading, text, button } = section.data;
+  const media = mediaById[mediaId];
+  return (
+    <section key={section.id} data-kind="image-text">
+      {media ? (
+        <div data-image="">
+          <img
+            src={media.url}
+            alt={media.altText}
+            width={media.width}
+            height={media.height}
+            loading="lazy"
+          />
+        </div>
+      ) : null}
+      <div data-text="">
+        <h2>{heading}</h2>
+        {text ? <p>{text}</p> : null}
+        {button ? (
+          <p>
+            <a href={button.href} data-hero-button="">
+              {button.label}
+            </a>
+          </p>
+        ) : null}
+      </div>
     </section>
   );
 }

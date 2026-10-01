@@ -81,3 +81,13 @@ test("a call to action's fields are readable, like a hero's", () => {
     false,
   );
 });
+
+test("an image and text section's fields need a media id string, which may be empty", () => {
+  const fields = { heading: "Story", text: "", buttonLabel: "", buttonHref: "", mediaId: "" };
+  const readable = (value: unknown) =>
+    isReadableSectionsContent({ sections: [{ id: "i", kind: "image-text", fields: value }] });
+  assert.equal(readable(fields), true);
+  assert.equal(readable({ ...fields, mediaId: "6f1c7d52-3a0b-4f6e-9d1e-0a1b2c3d4e5f" }), true);
+  assert.equal(readable({ heading: "Story", text: "", buttonLabel: "", buttonHref: "" }), false);
+  assert.equal(readable({ ...fields, mediaId: 5 }), false);
+});

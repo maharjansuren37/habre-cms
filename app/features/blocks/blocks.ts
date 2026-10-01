@@ -279,13 +279,13 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
   for (const [index, section] of outer.data.sections.entries()) {
     if (section.kind !== undefined) {
       // The kind is named by the client, but everything stored is built here.
-      if ((section.kind !== "hero" && section.kind !== "cta") || section.columns !== undefined)
+      if (!isSlotKind(section.kind) || section.columns !== undefined)
         return { ok: false, message: UNREADABLE_SHAPE };
       const ready = slotSectionFromFields(
         section.kind,
         section.id,
         section.fields,
-        `Section ${index + 1} (${section.kind === "cta" ? "call to action" : "hero"})`,
+        `Section ${index + 1} (${SLOT_KIND_LABELS[section.kind]})`,
       );
       if (!ready.ok) return ready;
       sections.push(ready.section);
@@ -316,7 +316,19 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
   return { ok: true, sections: validated.data };
 }
 
+/** The ready-made kinds, by their wire name and the label messages use. */
+const SLOT_KIND_LABELS = {
+  hero: "hero",
+  cta: "call to action",
+  "image-text": "image and text",
+} as const;
+type SlotKind = keyof typeof SLOT_KIND_LABELS;
+const isSlotKind = (kind: string | undefined): kind is SlotKind =>
+  kind !== undefined && Object.hasOwn(SLOT_KIND_LABELS, kind);
+
 const heroFieldsSchema = z.object({
+  // Only an image and text section reads it; the other kinds ignore it.
+  mediaId: z.string().optional(),
   heading: z.string(),
   text: z.string(),
   buttonLabel: z.string(),
@@ -328,14 +340,15 @@ const heroFieldsSchema = z.object({
 const tidy = (value: string) => value.replace(/\s+/g, " ").trim();
 
 /**
- * A ready-made section (hero or call to action) from the editor's four fields,
- * or the sentence the writer reads. On a hero an empty label and an empty link
- * together mean "no button"; a call to action must have one. Exactly one of the
+ * A ready-made section (hero, call to action or image and text) from the
+ * editor's fields, or the sentence the writer reads. On a hero or an image and
+ * text an empty label and an empty link together mean "no button"; a call to
+ * action must have one, and an image and text must have an image. Exactly one of the
  * two is refused rather than guessed at. `name` says which section
  * ("Section 2 (hero)").
  */
 function slotSectionFromFields(
-  type: "hero" | "cta",
+  type: SlotKind,
   id: string,
   input: unknown,
   name: string,
@@ -348,6 +361,9 @@ function slotSectionFromFields(
   const href = parsed.data.buttonHref.trim();
 
   const refuse = (message: string) => ({ ok: false, message: `${name}: ${message}` }) as const;
+  const mediaId = (parsed.data.mediaId ?? "").trim();
+  if (type === "image-text" && !z.uuid().safeParse(mediaId).success)
+    return refuse("choose an image.");
   if (heading.length === 0) return refuse("the heading is required.");
   if (heading.length > HERO_HEADING_MAX)
     return refuse(`the heading is longer than ${HERO_HEADING_MAX} characters. Shorten it.`);
@@ -373,7 +389,12 @@ function slotSectionFromFields(
     section: {
       id,
       type,
-      data: { heading, text, ...(label ? { button: { label, href } } : {}) },
+      data: {
+        ...(type === "image-text" ? { mediaId } : {}),
+        heading,
+        text,
+        ...(label ? { button: { label, href } } : {}),
+      },
     },
   };
 }
@@ -513,8 +534,34 @@ const ctaBlock = z.object({
   }),
 });
 
+/**
+ * A ready-made image and text (item 12c): the hero's slots plus one picture,
+ * stored as a media id only - url, alt text and size are resolved at render, as
+ * for an image block.
+ */
+const imageTextBlock = z.object({
+  id: sectionId,
+  type: z.literal("image-text"),
+  data: z.strictObject({
+    mediaId: z.uuid(),
+    heading: slot(1, HERO_HEADING_MAX),
+    text: slot(0, HERO_TEXT_MAX),
+    button: z
+      .strictObject({
+        label: slot(1, HERO_LABEL_MAX),
+        href: z.string().refine(isSafeHref, "a link address that cannot be used"),
+      })
+      .optional(),
+  }),
+});
+
 /** Every kind of section a page can hold, told apart by `type`. */
-const sectionBlock = z.discriminatedUnion("type", [plainSectionBlock, heroBlock, ctaBlock]);
+const sectionBlock = z.discriminatedUnion("type", [
+  plainSectionBlock,
+  heroBlock,
+  ctaBlock,
+  imageTextBlock,
+]);
 
 export const sectionsSchema = z
   .array(sectionBlock)
@@ -541,6 +588,7 @@ export const sectionsSchema = z
 export type PlainSection = z.infer<typeof plainSectionBlock>;
 export type HeroSection = z.infer<typeof heroBlock>;
 export type CtaSection = z.infer<typeof ctaBlock>;
+export type ImageTextSection = z.infer<typeof imageTextBlock>;
 export type Section = z.infer<typeof sectionBlock>;
 
 /** The id of the section a not-yet-resaved `v2` page is shown as. */
@@ -567,7 +615,8 @@ export function collectImageMediaIds(items: (Block | Section)[]): string[] {
   for (const item of items) {
     if (item.type === "section") {
       for (const column of item.data.children) column.forEach(visit);
-    } else if (item.type !== "hero" && item.type !== "cta") visit(item);
+    } else if (item.type === "image-text") ids.add(item.data.mediaId);
+    else if (item.type !== "hero" && item.type !== "cta") visit(item);
   }
   return [...ids];
 }

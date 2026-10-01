@@ -11,7 +11,7 @@ import {
   type Section,
 } from "./blocks.ts";
 import { BlockEditor } from "./editor.client.tsx";
-import { pickedMedia } from "./image-tool.client.ts";
+import { openImagePickerDialog, pickedMedia } from "./image-tool.client.ts";
 import { isPlainSection, resizeColumns } from "./sections.ts";
 import styles from "./sections-editor.module.css";
 
@@ -28,11 +28,25 @@ type PlainEntry = {
   rev: number;
 };
 
-/** What a hero's form holds - the same four texts the save sends. */
-type HeroFields = { heading: string; text: string; buttonLabel: string; buttonHref: string };
+/** What a ready-made section's form holds - the four texts the save sends, and
+ *  for image and text the chosen picture's media id ("" until one is chosen). */
+type HeroFields = {
+  heading: string;
+  text: string;
+  buttonLabel: string;
+  buttonHref: string;
+  mediaId?: string;
+};
 
-/** A ready-made hero or call to action: plain form fields, no Editor.js. */
-type SlotKind = "hero" | "cta";
+/** A ready-made hero, call to action or image and text: plain form fields, no
+ *  Editor.js. */
+type SlotKind = "hero" | "cta" | "image-text";
+
+const KIND_LABELS: Record<SlotKind, string> = {
+  hero: "Hero",
+  cta: "Call to action",
+  "image-text": "Image and text",
+};
 type SlotEntry = { kind: SlotKind; id: string; fields: HeroFields };
 
 type Entry = PlainEntry | SlotEntry;
@@ -50,7 +64,8 @@ type FocusTarget =
         | "keep"
         | "editor"
         | "hero-heading"
-        | "cta-heading";
+        | "cta-heading"
+        | "image-text-choose";
     }
   | { control: "add" };
 
@@ -88,6 +103,7 @@ export function SectionsEditor({
             text,
             buttonLabel: button?.label ?? "",
             buttonHref: button?.href ?? "",
+            ...(section.type === "image-text" ? { mediaId: section.data.mediaId } : {}),
           },
         };
       }
@@ -108,6 +124,9 @@ export function SectionsEditor({
   const root = useRef<HTMLDivElement>(null);
   const hintId = useId();
 
+  /** Every picture the editor can show: the loader's, plus any picked since. */
+  const allMedia = (): Record<string, ImageMediaSummary> => ({ ...mediaById, ...pickedMedia });
+
   const readerFor = (id: string, column: number): ColumnReader => {
     const key = `${id}:${column}`;
     let reader = readers.current.get(key);
@@ -124,6 +143,16 @@ export function SectionsEditor({
     contentRef.current = async () => ({
       sections: await Promise.all(
         entries.map(async (entry) => {
+          if (entry.kind === "image-text") {
+            // A file deleted from the library cannot be saved: sending no id
+            // makes the server ask for another image, with the typed text kept.
+            const known = entry.fields.mediaId ? allMedia()[entry.fields.mediaId] : undefined;
+            return {
+              id: entry.id,
+              kind: entry.kind,
+              fields: { ...entry.fields, mediaId: known ? entry.fields.mediaId : "" },
+            };
+          }
           if (entry.kind !== "plain")
             return { id: entry.id, kind: entry.kind, fields: entry.fields };
           const columns = await Promise.all(
@@ -179,12 +208,19 @@ export function SectionsEditor({
 
   function addSlotSection(kind: SlotKind) {
     const id = crypto.randomUUID();
-    const fields = { heading: "", text: "", buttonLabel: "", buttonHref: "" };
+    const fields: HeroFields = {
+      heading: "",
+      text: "",
+      buttonLabel: "",
+      buttonHref: "",
+      ...(kind === "image-text" ? { mediaId: "" } : {}),
+    };
     setEntries([...entries, { kind, id, fields }]);
-    setFocusTarget({ id, control: `${kind}-heading` });
-    changed(
-      `${kind === "cta" ? "Call to action" : "Hero"} section added. Now ${entries.length + 1} sections.`,
-    );
+    setFocusTarget({
+      id,
+      control: kind === "image-text" ? "image-text-choose" : `${kind}-heading`,
+    });
+    changed(`${KIND_LABELS[kind]} section added. Now ${entries.length + 1} sections.`);
   }
 
   function move(index: number, by: -1 | 1) {
@@ -306,9 +342,7 @@ export function SectionsEditor({
                 {position}
               </h2>
               {entry.kind !== "plain" ? (
-                <span className={styles.kindTag}>
-                  {entry.kind === "cta" ? "Call to action" : "Hero"}
-                </span>
+                <span className={styles.kindTag}>{KIND_LABELS[entry.kind]}</span>
               ) : (
                 <fieldset className={styles.layout}>
                   <legend className={styles.layoutLegend}>
@@ -391,6 +425,7 @@ export function SectionsEditor({
                 kind={entry.kind}
                 idPrefix={`${hintId}-${entry.id}`}
                 fields={entry.fields}
+                media={allMedia()}
                 onChange={(fields) => {
                   setEntries((current) =>
                     current.map((each) =>
@@ -455,6 +490,15 @@ export function SectionsEditor({
         >
           Add call to action
         </Button>
+        <Button
+          type="button"
+          data-control="add-image-text"
+          disabled={atLimit}
+          aria-describedby={atLimit ? hintId : undefined}
+          onClick={() => addSlotSection("image-text")}
+        >
+          Add image and text
+        </Button>
         {atLimit ? (
           <p className={styles.hint} id={hintId}>
             A page can have up to {MAX_SECTIONS} sections.
@@ -499,15 +543,25 @@ function HeroForm({
   kind,
   idPrefix,
   fields,
+  media,
   onChange,
 }: {
   kind: SlotKind;
   idPrefix: string;
   fields: HeroFields;
+  media: Record<string, ImageMediaSummary>;
   onChange: (fields: HeroFields) => void;
 }) {
   return (
     <div className={styles.heroForm}>
+      {kind === "image-text" ? (
+        <ImageSlot
+          id={`${idPrefix}-image`}
+          mediaId={fields.mediaId ?? ""}
+          media={media}
+          onPick={(mediaId) => onChange({ ...fields, mediaId })}
+        />
+      ) : null}
       {HERO_FIELDS.map((slot) => {
         const { name } = slot;
         // A call to action's button is not optional.
@@ -550,5 +604,72 @@ function HeroForm({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * An image and text section's picture: its thumbnail and alt text, and a button
+ * that opens the media library's picker dialog - the one the image block uses.
+ * The alt text is the library's, so it is shown, not edited, here.
+ */
+function ImageSlot({
+  id,
+  mediaId,
+  media,
+  onPick,
+}: {
+  id: string;
+  mediaId: string;
+  media: Record<string, ImageMediaSummary>;
+  onPick: (mediaId: string) => void;
+}) {
+  const chosen = mediaId ? media[mediaId] : undefined;
+  const gone = mediaId !== "" && !chosen;
+  const button = useRef<HTMLButtonElement>(null);
+  return (
+    <fieldset className={`${styles.heroField} ${styles.imageField}`}>
+      <legend className={styles.heroLabel}>Image (required)</legend>
+      {chosen ? (
+        <div className={styles.imageSlot}>
+          <img
+            className={styles.imageThumb}
+            src={chosen.url}
+            alt=""
+            width={chosen.width}
+            height={chosen.height}
+          />
+          <p className={styles.hint}>Alt text: {chosen.altText || "(none)"}</p>
+        </div>
+      ) : null}
+      {gone ? (
+        <p className={styles.hint} id={`${id}-gone`}>
+          This image is no longer in the library. Choose another.
+        </p>
+      ) : null}
+      <div>
+        <Button
+          type="button"
+          variant="quiet"
+          ref={button}
+          data-control="image-text-choose"
+          aria-describedby={gone ? `${id}-gone` : undefined}
+          onClick={() =>
+            openImagePickerDialog((picked) => {
+              pickedMedia[picked.id] = {
+                url: picked.url,
+                altText: picked.altText,
+                width: picked.width,
+                height: picked.height,
+              };
+              onPick(picked.id);
+              // The dialog is closed by now; put focus back on this button.
+              requestAnimationFrame(() => button.current?.focus());
+            })
+          }
+        >
+          {chosen ? "Change image" : "Choose image"}
+        </Button>
+      </div>
+    </fieldset>
   );
 }

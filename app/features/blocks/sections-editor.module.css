@@ -140,3 +140,24 @@
   color: var(--color-text);
   font: inherit;
 }
+
+/* Image and text (item 12c): the picture slot at the top of the form. */
+.imageSlot {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.imageThumb {
+  display: block;
+  max-width: min(12rem, 100%);
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+.imageField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}

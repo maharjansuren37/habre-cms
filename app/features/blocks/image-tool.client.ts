@@ -33,7 +33,7 @@ type ImageBlockData = {
   missing?: boolean;
 };
 
-type PickerMedia = {
+export type PickerMedia = {
   id: string;
   url: string;
   filename: string;
@@ -165,7 +165,7 @@ let dialogIdCounter = 0;
 /** A fresh `<dialog>` per open, appended to `document.body` and removed on
  *  close (however it closed - a pick, Escape, the backdrop, or its own Close
  *  button all fire the platform's own `close` event). */
-function openImagePickerDialog(onSelect: (media: PickerMedia) => void) {
+export function openImagePickerDialog(onSelect: (media: PickerMedia) => void) {
   const titleId = `image-picker-title-${++dialogIdCounter}`;
 
   const dialog = document.createElement("dialog");
