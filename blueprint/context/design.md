@@ -250,8 +250,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
   heading - each shown at its own size. Pro adds two smaller headings
   (H5-H6). **The person chooses the main heading** (owner, 2026-10-02): one
   per page, rendered as the page's `h1`. A hero's heading starts as the main
-  heading; a page with none shows its title as the `h1`. **This amends D166**,
-  which said `h1` is never inside content.
+  heading; a page with none shows its title as the `h1` (D166, amended).
 - **Settings panel** only for a block that has settings - button, image,
   contact form, a section (its columns) - never for text, which is edited
   where it sits. 17rem on the right; a bottom sheet below 1024px.
@@ -348,9 +347,7 @@ record (`git show 1d58e42:blueprint/context/design.md`).
 
 ## Open
 
-- **D166 needs amending** for the main-heading choice (above). The skill that
-  owns decisions does it when D166 and D167 are committed.
-- **Public sites stop following the device into dark mode** in Simple. Items
-  1-12 built a public site that follows it, so this is a change to shipped
-  behaviour: record it as a decision, and the re-theme item carries it out.
+- **Public sites stop following the device into dark mode** in Simple (D168).
+  Items 1-12 built a public site that follows it; the re-theme item carries
+  the change out.
 - Preset names; the platform logo (placeholder "h" mark until then).

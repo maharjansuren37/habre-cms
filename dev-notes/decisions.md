@@ -1778,6 +1778,9 @@ site" is a crowded space - the edge is the path from Level 1 to Level 3 on the
 same content, which only exists once Level 1 does. `architect` runs before
 `spec` for item 13.
 
+Its levels get names and a switch inside the product - Simple, Pro and
+Developer - in **D166** (2026-10-02).
+
 ## D149 - Stripe is the payment provider, as a plain processor (2026-10-01)
 
 **Chose:** Stripe, without its merchant-of-record service, for item 21's paid
@@ -2071,3 +2074,93 @@ Beats:
 Costs: item 14 grows - the palette, drag between sections and columns, posts
 with sections, the container format - and splits when spec'd. `editor.html`
 is re-mocked. `architect` decides the container format before item 14.
+
+## D166 - Editing levels: Simple, Pro and Developer, in one editor (2026-10-02)
+
+**Chose:** D148's three levels become a level a site switches between inside
+the product, named **Simple** (Level 1, the default), **Pro** (Level 2's
+tools) and **Developer** (Level 3). One editor and one stored format; the
+level only reveals controls. In v1, Pro adds Users, the advanced settings and
+the H5-H6 text styles - item 20's switch becomes this. Pro grows at Level 2
+with D165's Elementor-style layout, section styling and the team features;
+Developer arrives with Level 3. Simple's text styles are named, not numbered:
+Main heading, Heading, Subheading, Small heading (H1-H4). The person chooses
+the main heading - one per page, rendered as its `h1`; a hero's heading starts
+as it; a page with none shows its title as the `h1` (owner, at the mockup
+review, 2026-10-02; the first draft said `h1` is never inside content).
+Switching down never breaks a page: content made at a higher level keeps
+rendering, its higher-level settings lock, and its text stays editable. Reached during `prototype`, after comparing Webflow, Wix, Duda,
+WordPress, Elementor and Shopify (`blueprint/reference/page-builders-2026-10-02.md`).
+Supersedes: item 20's single on/off "advanced switch" (plan sections 3 and 6).
+Beats:
+- roles deciding what someone sees (Webflow's Content Editor, Marketer and
+  Designer): v1 has one person per site (D159), so there is nobody to split
+  between;
+- two separate products (Wix Editor and Wix Studio): two editors to build and
+  keep in step;
+- everything shown at once: against "simple by default";
+- skill labels such as "amateur": they name the person, not the mode.
+Costs: every editor control carries a level, and the browser tests cover Simple
+and Pro. Pro also turns on dark mode for the public site (D168). `architect` decides where the level is stored (on the site, as item
+20 planned, or per member) and the exact lock rule, with item 14's format.
+
+## D167 - Branding at onboarding: a logo, a brand colour and three style presets (2026-10-02)
+
+**Chose:** onboarding gains an optional third step after "Tell us about it",
+"Make it yours":
+- **a logo** - JPEG, PNG, WebP or GIF, or **SVG turned into a PNG in the
+  browser** (about 1200px wide) before upload, so the server's type allowlist
+  is unchanged and no SVG is ever stored (D7);
+- **a brand colour**, taken from the logo's pixels in the browser; with no
+  logo, item 18's AI run suggests one from the description; a colour picker
+  always overrides;
+- **a style preset** - three, names provisional (Classic, Modern, Friendly),
+  each a font pair and a corner shape.
+No logo gives a wordmark: the site name in the preset's font and the brand
+colour. Our own function derives the shades the site uses - button text, links
+on light and on dark - each meeting WCAG 2.2 AA, so a user's choice never
+lowers the bar. Settings gains the brand colour and the style, beside the logo
+it already has. AI suggests, the user applies.
+Supersedes: plan section 11's "multiple themes and theme customisation",
+narrowed - one theme with a brand colour and three presets is in v1; more
+themes, styling per element and custom CSS stay out.
+Beats:
+- AI-generated logo images: Anthropic's models do not make images, OpenAI is a
+  fallback only (D155), each image costs money, text inside generated images
+  is often garbled, and a generated mark can resemble someone's trademark -
+  possibly a paid extra later;
+- AI reading the logo image: credits spent on what counting pixels does
+  exactly;
+- a colour picker only: more work for a beginner;
+- storing SVG behind a sanitiser (Ghost, WordPress's Safe SVG): sanitisers are
+  bypassed repeatedly (svg-sanitizer, DOMPurify CVE-2024-47875 and
+  CVE-2026-41238, October CMS), a security dependency to patch forever;
+- no style choice (recommended): the owner chose three presets.
+Costs: three self-hosted font pairs, whose licences must allow self-hosting;
+contrast checked per preset, light and dark; a `site_settings` migration; the
+public pages' Content-Security-Policy is `style-src 'self'`, so the colour
+reaches them through a per-site stylesheet or a nonce - `architect` decides; a
+logo counts toward the site's storage cap (D150); an SVG that loads outside
+fonts or images renders without them, which the preview shows before saving;
+item 18 splits.
+
+## D168 - Public sites are light only in Simple; Pro turns dark mode on (2026-10-02)
+
+**Chose:** a customer's public site is light, whatever the visitor's device
+prefers, unless the site is Pro and its owner turns dark mode on - then it
+follows the device as items 1-12's site does today (`data-dark="auto"`,
+`design.md`). Habre's own screens still follow the device; the editor's canvas
+shows the site light even inside dark Habre. Owner, at the mockup review
+(2026-10-02).
+Supersedes: plan sections 3 and 7, "light and dark mode ... public site
+both", for customer sites. This changes shipped behaviour: items 1-12's public
+site follows the device. The re-theme build item carries it out.
+Beats:
+- following the device (today): the site a visitor sees can differ from the
+  one its owner built and checked, and a dark logo disappears on a dark page;
+- a light / dark / auto choice in Simple: one more setting, against "simple by
+  default".
+Costs: the dark-mode switch is stored per site - `architect` decides where,
+with the editing level (D166); the browser tests cover a Simple site under a
+dark device; a Pro site with dark mode on can still show a dark logo on a
+dark page.

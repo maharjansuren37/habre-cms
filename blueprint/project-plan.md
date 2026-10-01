@@ -34,6 +34,10 @@ engine, three levels of experience:
   approvals, scheduling, several sites. Soon after (section 11).
 - **Level 3 - Developer:** agencies and developers - content models, API,
   webhooks. Later (section 11).
+- **Inside the product** the levels are what a site switches between, named
+  **Simple** (Level 1, the default), **Pro** and **Developer** (D166). One
+  editor, one stored format; the level only reveals controls. v1 has Simple and
+  a first part of Pro.
 - **Visitors** read the public sites and have no accounts.
 - **Before the rescope** (items 1-12): editors, authors and admins at one small
   organisation, one site per installation. That code is the base of Level 1.
@@ -50,7 +54,10 @@ describes what they want, gets a site, edits it and publishes it:
   redo. Ready-made sections (hero, call to action, image and text) carry over.
   TipTap replaces Editor.js for the text. Mobile stacks automatically. Content
   is stored as containers, so Level 2 adds layout settings without a migration.
-  Existing content is discarded, not converted.
+  Text styles are named: Main heading, Heading, Subheading, Small heading
+  (H1-H4); the person chooses one main heading per page, and a page with none
+  shows its title as its `h1` (D166). Existing content is discarded, not
+  converted.
 - Public signup with email verification and password reset by email. Signing
   up creates a site; the person who signs up is its admin. Each site's content,
   media, settings and members are its own. Media storage is capped per site
@@ -59,13 +66,19 @@ describes what they want, gets a site, edits it and publishes it:
 - SEO basics: title and description per page and post, social image,
   `sitemap.xml`, `robots.txt`.
 - Start from a description: "What do you want to create?" (Website, Blog,
-  Business, Portfolio), then "Tell us about it"; AI builds pages, navigation,
+  Business, Portfolio), then "Tell us about it", then an optional "Make it
+  yours": a logo (SVG accepted, turned into a PNG in the browser), a brand
+  colour taken from the logo or suggested by AI, and one of three style
+  presets; no logo gives a wordmark (D167). AI builds pages, navigation,
   starter text and SEO basics in the built-in theme, and the user reviews,
   edits and publishes. AI use is capped per site.
+- Branding in Settings: logo, brand colour and style preset. The public site
+  uses them, with shades worked out to meet WCAG 2.2 AA (D167).
 - A contact form section: visitors enquire, submissions are stored per site and
   emailed to the site owner, with spam protection.
-- Simple by default: a new site's admin shows only Level 1 screens; Users and
-  advanced settings appear when switched on.
+- Simple by default, Pro when switched on (D166): a new site is Simple and
+  shows only Level 1 screens; Pro adds Users, advanced settings, the H5-H6
+  text styles and dark mode for the public site (D168).
 - Billing: one paid plan raises the Free plan's limits (AI use, storage), lets
   a site use its own domain and removes the "Made with Habre" footer link, paid
   through Stripe (D149). Billing stays off through an invite-only beta (D150).
@@ -106,6 +119,9 @@ security (D151, section 6).
 **From item 14 (D165):** pages and posts are stored as containers - a section
 holds columns, a column holds blocks - so Level 2 can add layout settings
 without a migration.
+
+**Per site (D166-D168):** its editing level (Simple or Pro in v1), a brand
+colour, a style preset, and whether its public site has dark mode (Pro only).
 
 ## 5. Tech - what stack are we using?
 
@@ -774,8 +790,15 @@ browser suite green.
   no settings they don't need.
 - **Editing is Mailchimp-style (D165):** drag blocks into place; nothing to
   position by hand. Level 2 reveals Elementor-style layout controls.
-- Light and dark mode from the first screen, not added later - admin area and
-  public site both.
+- **Simple, then Pro (D166):** a new site starts Simple. Switching to Pro
+  reveals more; it never makes the Simple screens busier. Levels are named
+  for the mode, never the person.
+- **Onboarding's third step, "Make it yours" (D167),** can be skipped. Customer
+  sites take the site's brand colour and style preset, instead of one fixed
+  ink accent.
+- Light and dark mode from the first screen, not added later - Habre's own
+  screens follow the device; customer sites are light, and Pro can turn dark
+  mode on (D168).
 - The look is recorded in `blueprint/context/design.md` (`prototype`,
   2026-09-15). Platform v1's new screens - signup, onboarding, the Level 1
   admin and Home, the editor - are being designed (`prototype`, 2026-10-01):
@@ -958,6 +981,10 @@ own key.
   spend are the owner's.
 - **Accessible editing:** every drag in the editor has a keyboard alternative
   (WCAG 2.5.7, D165).
+- **Accessible branding:** whatever brand colour a user picks, the shades the
+  site shows meet WCAG 2.2 AA; a user's choice never lowers the bar (D167).
+- **No stored SVG:** uploads stay JPEG, PNG, WebP and GIF (D7); an SVG logo is
+  turned into a PNG in the browser (D167).
 - **AI cost and abuse:** public signup plus AI means AI use is capped per site
   from the first release.
 - **Self-hostable (D148):** everything must run with only Node.js, PostgreSQL
@@ -982,11 +1009,13 @@ below matters only once it does.
 - **Builder follow-ups** - reusable saved sections, section styling, page
   templates. (The section palette moved into v1, D165.)
 - **Elementor-style layout** - nested containers, row or column direction,
-  widths per device; absolute placement considered then (D165).
+  widths per device; absolute placement considered then (D165). These arrive
+  in the Pro level, which v1 starts small (D166).
 - **Several sites per account, team invites by email.** (Own domains moved
   into v1's paid plan, D150.)
 - **More AI** - suggestions in the editor (rewrite, alt text, meta
   description) and conversational changes ("make it look more professional").
+  AI-generated logos, possibly as a paid extra (D167).
 - **Analytics, and the paid tiers beyond v1's one paid plan.**
 - **Self-hosting install** - an install guide and a single-site mode for
   people running their own copy (v1 only keeps it possible).
@@ -1006,7 +1035,8 @@ signup, many sites, forms and password reset by email move into platform v1.
 
 - **Free-form drag-anywhere canvas, custom CSS/HTML** - fights ease of use and
   multiplies the accessibility surface. Reconsidered and rejected again, D165.
-- **Multiple themes and theme customisation.**
+- **Multiple themes, styling per element, custom fonts.** v1 has one theme
+  with a brand colour and three style presets (D167).
 - **Store / e-commerce, multiple languages, comments, importing from WordPress.**
 - **Other channels** - mobile apps, email, digital displays, AI agents.
 - **Enterprise** - audit log, SSO, SAML, SCIM, data residency.
@@ -1029,6 +1059,13 @@ signup, many sites, forms and password reset by email move into platform v1.
   Owner's decision, needed by item 21.
 - **The open-source licence** - AGPL (a hosted fork must stay open) or MIT
   (anyone may close it). Owner's decision, needed before code is published.
-- **Which blocks the editor's palette offers** beyond text, heading, list and
-  image (D165). The editor mockup also shows button, line, space and contact
-  form. Owner's decision at the mockup review, needed by item 14.
+- ~~Which blocks the editor's palette offers~~ **settled at the mockup review
+  (2026-10-02, `design.md`):** text, heading, list, image, button, quote, line
+  and space, plus contact form from item 19 (D165).
+- ~~The three style presets' font pairs~~ **settled in `prototype`
+  (`design.md`):** Source Serif 4 with Source Sans 3, Inter, Nunito (D167).
+  **Their names** - Classic, Modern, Friendly - are provisional. Owner's,
+  needed by item 18.
+- **Where the editing level and the dark-mode switch are stored** - on the
+  site, as item 20 planned, or per member - and the lock rule when a site
+  switches down (D166, D168). `architect`'s, with item 14's format.
