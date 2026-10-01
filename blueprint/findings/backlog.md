@@ -130,3 +130,6 @@ File: app/features/blocks/blocks.ts (`fromEditorJsSections`, `UNREADABLE_SHAPE`)
 
 ### F-121 [P3] fixed - The design record says focus lands on the next section after a remove; the code lands on the previous one when the last is removed
 File: blueprint/context/design.md (*Sections*); app/features/blocks/sections-editor.client.tsx (`remove`)
+
+### F-127 [P3] open - The hero parser's "character that cannot be saved" refusal has no test
+File: app/features/blocks/blocks.ts (`heroFromFields`)

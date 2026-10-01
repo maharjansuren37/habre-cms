@@ -31,3 +31,38 @@ test("sections content needs at least one section, each column readable", () => 
   assert.equal(isReadableSectionsContent({ blocks: [] }), false);
   assert.equal(isReadableSectionsContent(undefined), false);
 });
+
+test("a hero is readable when it hands over its four text fields", () => {
+  const fields = { heading: "Hi", text: "", buttonLabel: "", buttonHref: "" };
+  assert.equal(isReadableSectionsContent({ sections: [{ id: "h", kind: "hero", fields }] }), true);
+  assert.equal(
+    isReadableSectionsContent({
+      sections: [
+        { id: "a", columns: [{ blocks: [] }] },
+        { id: "h", kind: "hero", fields },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    isReadableSectionsContent({ sections: [{ id: "h", kind: "hero", fields: { heading: "Hi" } }] }),
+    false,
+  );
+  assert.equal(isReadableSectionsContent({ sections: [{ id: "h", kind: "hero" }] }), false);
+  assert.equal(
+    isReadableSectionsContent({
+      sections: [{ id: "h", kind: "hero", fields: { ...fields, text: 3 } }],
+    }),
+    false,
+  );
+  assert.equal(
+    isReadableSectionsContent({
+      sections: [{ id: "h", kind: "hero", fields, columns: [{ blocks: [] }] }],
+    }),
+    false,
+  );
+  assert.equal(
+    isReadableSectionsContent({ sections: [{ id: "h", kind: "banner", fields }] }),
+    false,
+  );
+});

@@ -1575,3 +1575,51 @@ Costs: a slower machine or phone has not been measured; a total cap is the fallb
 **Chose:** `pickedMedia` in `image-tool.client.ts` records each image chosen in the picker; the sections editor adds it to the loader's media map whenever it re-mounts a section's editors (a column-count change).
 Beats: re-fetching media on a count change; letting a just-picked image come back as "missing".
 Costs: a module-level map that lives until the page is left.
+
+## D125 - A ready-made section is its own section type, not a variant of `section` (2026-10-01)
+
+**Chose:** `hero` (and 12b/12c's kinds) are siblings of the plain `section` in `sectionsSchema`, a discriminated union on `type`; callers that read `children` narrow with `isPlainSection` (`sections.ts`, Zod-free).
+Beats: a `kind` field on `section` (would make `children` and `layout` optional and weaken the invariant D120 locked).
+Costs: every caller that reads `children` has to narrow.
+
+## D126 - Hero slots are plain strings, not runs (2026-10-01)
+
+**Chose:** a hero stores `{ heading, text, button?: { label, href } }` as plain strings. **This amends plan section 6**, which worded ready-made slots as "runs, an allowlisted link, a media id".
+Beats: storing runs (the slots are form fields with no toolbar, so marks could never be made and the shape would promise formatting that cannot exist).
+Costs: adding formatting to a slot later is a new shape for that slot.
+
+## D127 - Hero limits: heading 120, text 400, button label 40 characters; no newlines stored (2026-10-01)
+
+**Chose:** the save parser collapses typed line breaks and runs of spaces to one space and trims; the schema refuses a stored line break. A label and a link are both set or both empty.
+Beats: the 20,000-character run cap (a hero is a banner, not an article); refusing line breaks at save (Enter in the text box would break a save).
+Costs: a hero's text is always one paragraph.
+
+## D128 - Adding a section is two buttons, not a menu (2026-10-01)
+
+**Chose:** "Add blank section" and "Add hero section" in the add row, both disabled at 30 sections.
+Beats: a popover menu (more to make keyboard- and screen-reader-accessible for two options).
+Costs: revisit when 12c makes it three kinds.
+
+## D129 - Section kinds are not convertible (2026-10-01)
+
+**Chose:** to change a section's kind, remove it and add the other.
+Beats: converting with a slot-to-block mapping (content-loss rules for no stated need).
+Costs: an editor retypes a hero's words if they wanted blocks instead.
+
+## D130 - The wire names the kind; the server builds everything stored (2026-10-01)
+
+**Chose:** a section is sent as `{ id, columns }` (plain) or `{ id, kind: "hero", fields }`; type, layout and every stored field are derived on the server, and an unknown kind, or a kind sent with columns, is refused as unreadable. Continues D116 and D120.
+Beats: accepting a stored `type` from the client.
+Costs: a new kind needs a new `kind` string on the wire as well as a new `type` in storage.
+
+## D131 - A hero's button link box is plain text with a URL keyboard, not `type=url` (2026-10-01)
+
+**Chose:** `<input type="text" inputMode="url">`; the server's link allowlist is the real check.
+Beats: `type=url`, whose native check refuses a relative link such as `/about` and silently blocks the save (found by the 30-section browser test).
+Costs: no native format hint.
+
+## D132 - A hero has no image in 12a (2026-10-01)
+
+**Chose:** the image slot and its picker arrive with item 12c (image + text); the hero button uses the primary button's colour pair, so no new contrast figure.
+Beats: building the picker here, before any kind needs it.
+Costs: a hero is text-only until 12c, if a hero image is wanted then.

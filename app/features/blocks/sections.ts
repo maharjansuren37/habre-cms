@@ -1,4 +1,4 @@
-import type { Section } from "./blocks.ts";
+import type { PlainSection, Section } from "./blocks.ts";
 
 /**
  * Kept apart from `blocks.ts` on purpose: that module builds Zod schemas when it
@@ -6,9 +6,18 @@ import type { Section } from "./blocks.ts";
  * security policy. The public renderer is bundled for the browser and needs only
  * this, so it imports nothing that runs Zod (`import type` is erased).
  */
-/** The sections with something to show - an empty one renders nothing publicly. */
+/** Whether a section is the free-form kind: columns of blocks, not fixed slots. */
+export function isPlainSection(section: Section): section is PlainSection {
+  return section.type === "section";
+}
+
+/** The sections with something to show - an empty one renders nothing publicly.
+ *  A ready-made section always has its heading, so it is never empty. */
 export function nonEmptySections(sections: Section[]): Section[] {
-  return sections.filter((section) => section.data.children.some((column) => column.length > 0));
+  return sections.filter(
+    (section) =>
+      !isPlainSection(section) || section.data.children.some((column) => column.length > 0),
+  );
 }
 
 /**

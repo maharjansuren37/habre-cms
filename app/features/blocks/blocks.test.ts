@@ -9,6 +9,7 @@ import {
   sectionsSchema,
   toEditorJs,
 } from "./blocks.ts";
+import { isPlainSection } from "./sections.ts";
 
 const editorBlock = (type: string, data: unknown, id = "abc123") => ({
   blocks: [{ id, type, data }],
@@ -474,7 +475,9 @@ test("the save parser derives the layout from the columns sent", () => {
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.deepEqual(
-    result.sections.map((each) => [each.data.layout, each.data.children.length]),
+    result.sections
+      .filter(isPlainSection)
+      .map((each) => [each.data.layout, each.data.children.length]),
     [
       ["1", 1],
       ["3", 3],
@@ -545,4 +548,176 @@ test("collectImageMediaIds finds an image in the third column", () => {
     },
   ]);
   assert.deepEqual(collectImageMediaIds(sections), [mediaId]);
+});
+
+// ---- ready-made sections: hero (item 12a) ----
+
+const hero = (id: string, data: Record<string, unknown> = {}) => ({
+  id,
+  type: "hero",
+  data: { heading: "Welcome", text: "A line about us.", ...data },
+});
+const heroFields = (fields: Record<string, string> = {}) => ({
+  heading: "Welcome",
+  text: "A line about us.",
+  buttonLabel: "",
+  buttonHref: "",
+  ...fields,
+});
+const saveHero = (fields: Record<string, string> = {}, before: unknown[] = []) =>
+  fromEditorJsSections({
+    sections: [...before, { id: "h1", kind: "hero", fields: heroFields(fields) }],
+  });
+
+test("a hero with and without a button is valid", () => {
+  assert.equal(sectionsSchema.safeParse([hero("h1")]).success, true);
+  assert.equal(
+    sectionsSchema.safeParse([
+      hero("h1", { button: { label: "Read more", href: "https://example.com/" } }),
+    ]).success,
+    true,
+  );
+  assert.equal(sectionsSchema.safeParse([hero("h1", { text: "" })]).success, true);
+});
+
+test("a stored hero is refused for an empty heading, over-long slots, a line break or a bad link", () => {
+  const refused = (data: Record<string, unknown>) =>
+    sectionsSchema.safeParse([hero("h1", data)]).success === false;
+  assert.ok(refused({ heading: "" }));
+  assert.ok(refused({ heading: "x".repeat(121) }));
+  assert.ok(refused({ text: "x".repeat(401) }));
+  assert.ok(refused({ text: "two\nlines" }));
+  assert.ok(refused({ heading: "two\rlines" }));
+  assert.ok(refused({ button: { label: "x".repeat(41), href: "/a" } }));
+  assert.ok(refused({ button: { label: "Go", href: "javascript:alert(1)" } }));
+  assert.ok(refused({ button: { label: "Go", href: "//evil.example" } }));
+  assert.ok(refused({ button: { label: "", href: "/a" } }));
+  assert.ok(refused({ extra: "x" }));
+  assert.equal(sectionsSchema.safeParse([hero("h1", { heading: "x".repeat(120) })]).success, true);
+});
+
+test("section ids are unique across a hero and a plain section", () => {
+  assert.equal(
+    sectionsSchema.safeParse([hero("s1"), section("s1", [textLeaf("a")])]).success,
+    false,
+  );
+});
+
+test("heroes hold no blocks, so they add nothing to the 200-block total", () => {
+  const page = (blocks: number) =>
+    sectionsSchema.safeParse([
+      hero("h1"),
+      section(
+        "s1",
+        Array.from({ length: blocks }, (_, i) => textLeaf(`b${i}`)),
+      ),
+    ]).success;
+  assert.equal(page(200), true);
+  assert.equal(page(201), false);
+});
+
+test("the save parser builds a hero from its four fields, with or without a button", () => {
+  const plain = saveHero();
+  assert.deepEqual(plain, {
+    ok: true,
+    sections: [{ id: "h1", type: "hero", data: { heading: "Welcome", text: "A line about us." } }],
+  });
+  const withButton = saveHero({ buttonLabel: " Read more ", buttonHref: " /about " });
+  assert.deepEqual(withButton, {
+    ok: true,
+    sections: [
+      {
+        id: "h1",
+        type: "hero",
+        data: {
+          heading: "Welcome",
+          text: "A line about us.",
+          button: { label: "Read more", href: "/about" },
+        },
+      },
+    ],
+  });
+});
+
+test("the save parser collapses line breaks in a hero slot rather than refusing them", () => {
+  const result = saveHero({ text: "one\n\ntwo   three" });
+  assert.equal(
+    result.ok && result.sections[0]?.data && "text" in result.sections[0].data
+      ? result.sections[0].data.text
+      : null,
+    "one two three",
+  );
+});
+
+test("a hero's refusals name the section and say what to do", () => {
+  const message = (fields: Record<string, string>, before: unknown[] = []) => {
+    const result = saveHero(fields, before);
+    return result.ok ? "accepted" : result.message;
+  };
+  const one = [{ id: "s1", columns: [editorColumn("a1")] }];
+  assert.equal(message({ heading: "  " }, one), "Section 2 (hero): the heading is required.");
+  assert.match(
+    message({ heading: "x".repeat(121) }),
+    /^Section 1 \(hero\): the heading is longer than 120/,
+  );
+  assert.match(message({ text: "x".repeat(401) }), /the text is longer than 400/);
+  assert.match(
+    message({ buttonLabel: "x".repeat(41), buttonHref: "/a" }),
+    /label is longer than 40/,
+  );
+  assert.match(message({ buttonLabel: "Go" }), /label but no link/);
+  assert.match(message({ buttonHref: "/a" }), /link but no label/);
+  assert.match(
+    message({ buttonLabel: "Go", buttonHref: "javascript:alert(1)" }),
+    /link cannot be used/,
+  );
+  assert.match(message({ buttonLabel: "Go", buttonHref: "//evil.example" }), /link cannot be used/);
+});
+
+test("a duplicate id across a hero and a plain section is refused by the save parser", () => {
+  const result = fromEditorJsSections({
+    sections: [
+      { id: "same", columns: [editorColumn("a1")] },
+      { id: "same", kind: "hero", fields: heroFields() },
+    ],
+  });
+  assert.equal(result.ok, false);
+});
+
+test("the save parser refuses an unknown kind, a kind with columns, and missing fields", () => {
+  const unreadable = "The editor sent content in a shape this version cannot read.";
+  const refuse = (section: unknown) => fromEditorJsSections({ sections: [section] });
+  assert.deepEqual(refuse({ id: "x", kind: "banner", fields: heroFields() }), {
+    ok: false,
+    message: unreadable,
+  });
+  assert.deepEqual(refuse({ id: "x", kind: "hero", fields: heroFields(), columns: [] }), {
+    ok: false,
+    message: unreadable,
+  });
+  assert.deepEqual(refuse({ id: "x", kind: "hero", fields: { heading: "Hi" } }), {
+    ok: false,
+    message: unreadable,
+  });
+  assert.deepEqual(refuse({ id: "x", kind: "hero" }), { ok: false, message: unreadable });
+  assert.deepEqual(refuse({ id: "x" }), { ok: false, message: unreadable });
+});
+
+test("mixed pages keep their order", () => {
+  const result = fromEditorJsSections({
+    sections: [
+      { id: "s1", columns: [editorColumn("a1")] },
+      { id: "h1", kind: "hero", fields: heroFields() },
+      { id: "s2", columns: [editorColumn("b1")] },
+    ],
+  });
+  assert.equal(
+    result.ok && result.sections.map((each) => each.type).join(),
+    "section,hero,section",
+  );
+});
+
+test("collectImageMediaIds passes over a hero", () => {
+  const sections = sectionsSchema.parse([hero("h1"), section("s1", [textLeaf("a")])]);
+  assert.deepEqual(collectImageMediaIds(sections), []);
 });

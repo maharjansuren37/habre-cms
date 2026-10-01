@@ -48,10 +48,10 @@ test("sections can be added, moved and saved, and come back in the order left", 
   await writing(page).first().click();
   await page.keyboard.type("First");
   // Adding a section moves focus into its editor, so typing goes straight there.
-  await page.getByRole("button", { name: "Add section" }).click();
+  await page.getByRole("button", { name: "Add blank section" }).click();
   await expect(writing(page).nth(1)).toBeFocused();
   await page.keyboard.type("Second");
-  await page.getByRole("button", { name: "Add section" }).click();
+  await page.getByRole("button", { name: "Add blank section" }).click();
   await expect(writing(page).nth(2)).toBeFocused();
   await page.keyboard.type("Third");
 
@@ -114,7 +114,7 @@ test("a page at 30 sections cannot take a 31st, and stays usable", async ({ page
   await expect(writing(page)).toHaveCount(30);
   console.log(`30 sections mounted in ${Date.now() - started} ms`);
 
-  await expect(page.getByRole("button", { name: "Add section" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Add blank section" })).toBeDisabled();
   await expect(page.getByText("A page can have up to 30 sections.")).toBeVisible();
 
   const saveStarted = Date.now();

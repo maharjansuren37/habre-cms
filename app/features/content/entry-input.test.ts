@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { isPlainSection } from "#app/features/blocks/sections.ts";
 import { parseEntryForm } from "./entry-form-input.ts";
 import { entryInputSchema } from "./entry-input.ts";
 
@@ -84,7 +85,9 @@ test("a page's sections are stored in the order sent, keeping their ids", () => 
   assert.equal(result.ok, true);
   if (!result.ok || !("sections" in result)) return assert.fail("expected sections");
   assert.deepEqual(
-    result.sections.map((each) => [each.id, each.data.layout, each.data.children[0].length]),
+    result.sections
+      .filter(isPlainSection)
+      .map((each) => [each.id, each.data.layout, each.data.children[0].length]),
     [
       ["s-one", "1", 1],
       ["s-two", "1", 2],

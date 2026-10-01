@@ -110,3 +110,32 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* Hero (item 12a): a centred banner built from the page's own tokens. Its
+   button is the primary button's pair (--color-on-accent on --color-accent). */
+.body section[data-kind="hero"] {
+  text-align: center;
+}
+
+.body section[data-kind="hero"] > h2 {
+  margin-top: 0;
+  font-size: var(--text-2xl);
+}
+
+.body section[data-kind="hero"] [data-hero-button] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.body section[data-kind="hero"] [data-hero-button]:hover {
+  background: var(--color-accent-hover);
+}

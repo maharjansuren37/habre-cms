@@ -106,3 +106,37 @@
   /* biome-ignore lint/complexity/noImportantStyles: outranks Editor.js's own !important rule */
   padding-bottom: var(--space-3) !important;
 }
+
+/* Hero (item 12a): a plain form in the card instead of Editor.js. */
+.kindTag {
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.heroForm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.heroField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.heroLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.heroInput {
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}

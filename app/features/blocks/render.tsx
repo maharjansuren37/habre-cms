@@ -1,7 +1,7 @@
 import { Fragment } from "react";
-import type { Block, ImageMediaSummary, Section } from "./blocks.ts";
+import type { Block, HeroSection, ImageMediaSummary, Section } from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
-import { nonEmptySections } from "./sections.ts";
+import { isPlainSection, nonEmptySections } from "./sections.ts";
 
 /**
  * Turns stored blocks into real elements for the public site - always JSX,
@@ -75,6 +75,7 @@ export function renderSections(
   mediaById: Record<string, ImageMediaSummary> = {},
 ) {
   return nonEmptySections(sections).map((section) => {
+    if (!isPlainSection(section)) return renderHero(section);
     const columns = section.data.children;
     if (columns.length === 1)
       return <section key={section.id}>{renderBlocks(columns.flat(), mediaById)}</section>;
@@ -91,6 +92,28 @@ export function renderSections(
       </section>
     );
   });
+}
+
+/**
+ * A ready-made hero (item 12a): heading, optional text, optional button. The
+ * slots are plain strings, rendered as React text nodes. The page's own `<h1>`
+ * is the title, so the heading is an `<h2>`.
+ */
+function renderHero(hero: HeroSection) {
+  const { heading, text, button } = hero.data;
+  return (
+    <section key={hero.id} data-kind="hero">
+      <h2>{heading}</h2>
+      {text ? <p>{text}</p> : null}
+      {button ? (
+        <p>
+          <a href={button.href} data-hero-button="">
+            {button.label}
+          </a>
+        </p>
+      ) : null}
+    </section>
+  );
 }
 
 /** One run's marks nest as `<a><strong><em>text</em></strong></a>` - only the

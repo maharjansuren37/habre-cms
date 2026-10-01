@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  isSafeHref,
   isStorableText,
   parseInlineHtml,
   type Refusal,
@@ -257,7 +258,14 @@ const STALE_EDITOR =
 export function fromEditorJsSections(input: unknown): FromEditorJsSections {
   const outer = z
     .object({
-      sections: z.array(z.object({ id: blockId, columns: z.array(z.unknown()) })),
+      sections: z.array(
+        z.object({
+          id: blockId,
+          columns: z.array(z.unknown()).optional(),
+          kind: z.string().optional(),
+          fields: z.unknown().optional(),
+        }),
+      ),
     })
     .safeParse(input);
   // A tab opened before sections existed still sends the flat shape.
@@ -269,6 +277,16 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
 
   const sections: unknown[] = [];
   for (const [index, section] of outer.data.sections.entries()) {
+    if (section.kind !== undefined) {
+      // The kind is named by the client, but everything stored is built here.
+      if (section.kind !== "hero" || section.columns !== undefined)
+        return { ok: false, message: UNREADABLE_SHAPE };
+      const hero = heroFromFields(section.id, section.fields, `Section ${index + 1} (hero)`);
+      if (!hero.ok) return hero;
+      sections.push(hero.section);
+      continue;
+    }
+    if (section.columns === undefined) return { ok: false, message: UNREADABLE_SHAPE };
     const count = section.columns.length;
     if (count < 1 || count > MAX_COLUMNS) return { ok: false, message: UNREADABLE_SHAPE };
     const children: Block[][] = [];
@@ -291,6 +309,63 @@ export function fromEditorJsSections(input: unknown): FromEditorJsSections {
     };
   }
   return { ok: true, sections: validated.data };
+}
+
+const heroFieldsSchema = z.object({
+  heading: z.string(),
+  text: z.string(),
+  buttonLabel: z.string(),
+  buttonHref: z.string(),
+});
+
+/** A form field's text: line breaks and runs of whitespace become one space, the
+ *  ends are trimmed - a hero slot is a single line of text. */
+const tidy = (value: string) => value.replace(/\s+/g, " ").trim();
+
+/**
+ * A hero from the editor's four fields, or the sentence the writer reads. An
+ * empty label and an empty link together mean "no button"; exactly one of them
+ * is refused rather than guessed at. `name` says which section ("Section 2 (hero)").
+ */
+function heroFromFields(
+  id: string,
+  input: unknown,
+  name: string,
+): { ok: true; section: unknown } | { ok: false; message: string } {
+  const parsed = heroFieldsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: UNREADABLE_SHAPE };
+  const heading = tidy(parsed.data.heading);
+  const text = tidy(parsed.data.text);
+  const label = tidy(parsed.data.buttonLabel);
+  const href = parsed.data.buttonHref.trim();
+
+  const refuse = (message: string) => ({ ok: false, message: `${name}: ${message}` }) as const;
+  if (heading.length === 0) return refuse("the heading is required.");
+  if (heading.length > HERO_HEADING_MAX)
+    return refuse(`the heading is longer than ${HERO_HEADING_MAX} characters. Shorten it.`);
+  if (text.length > HERO_TEXT_MAX)
+    return refuse(`the text is longer than ${HERO_TEXT_MAX} characters. Shorten it.`);
+  if (label.length > HERO_LABEL_MAX)
+    return refuse(`the button label is longer than ${HERO_LABEL_MAX} characters. Shorten it.`);
+  if (label.length === 0 && href.length > 0)
+    return refuse("the button has a link but no label. Add a label, or clear the link.");
+  if (label.length > 0 && href.length === 0)
+    return refuse("the button has a label but no link. Add a link, or clear the label.");
+  if (href.length > 0 && !isSafeHref(href))
+    return refuse(
+      "the button link cannot be used. Links must start with https://, http://, mailto:, # or a single /.",
+    );
+  for (const value of [heading, text, label])
+    if (!isStorableText(value)) return refuse("a character in it cannot be saved. Remove it.");
+
+  return {
+    ok: true,
+    section: {
+      id,
+      type: "hero",
+      data: { heading, text, ...(label ? { button: { label, href } } : {}) },
+    },
+  };
 }
 
 /**
@@ -357,10 +432,15 @@ export const PAGE_BLOCKS_FORMAT = "v3";
  * never contain a section. `layout` is the column count as a string, and the two
  * must agree - the server derives the layout from the columns it is sent.
  */
-const sectionBlock = z.object({
+const sectionId = blockId.regex(
+  /^[A-Za-z0-9_-]+$/,
+  "section ids may only use letters, digits, _ and -",
+);
+
+const plainSectionBlock = z.object({
   // Letters, digits, `_` and `-`: the editor builds a selector from it, and
   // `crypto.randomUUID()` already fits.
-  id: blockId.regex(/^[A-Za-z0-9_-]+$/, "section ids may only use letters, digits, _ and -"),
+  id: sectionId,
   type: z.literal("section"),
   data: z
     .object({
@@ -373,6 +453,42 @@ const sectionBlock = z.object({
     }),
 });
 
+export const HERO_HEADING_MAX = 120;
+export const HERO_TEXT_MAX = 400;
+export const HERO_LABEL_MAX = 40;
+
+/** A slot's text: stored as typed, one line, nothing the database cannot hold. */
+const slot = (min: number, max: number) =>
+  z
+    .string()
+    .min(min)
+    .max(max)
+    .refine(isStorableText, "a character that cannot be stored")
+    .refine((value) => !/[\r\n]/.test(value), "a line break");
+
+/**
+ * A ready-made hero (item 12a): a heading, a line of text and an optional
+ * button, as plain strings - the slots are form fields, so there are no marks
+ * to store. The button's link passes the same allowlist as a link in text.
+ */
+const heroBlock = z.object({
+  id: sectionId,
+  type: z.literal("hero"),
+  data: z.strictObject({
+    heading: slot(1, HERO_HEADING_MAX),
+    text: slot(0, HERO_TEXT_MAX),
+    button: z
+      .strictObject({
+        label: slot(1, HERO_LABEL_MAX),
+        href: z.string().refine(isSafeHref, "a link address that cannot be used"),
+      })
+      .optional(),
+  }),
+});
+
+/** Every kind of section a page can hold, told apart by `type`. */
+const sectionBlock = z.discriminatedUnion("type", [plainSectionBlock, heroBlock]);
+
 export const sectionsSchema = z
   .array(sectionBlock)
   .min(1)
@@ -383,21 +499,27 @@ export const sectionsSchema = z
     "section ids must be unique",
   )
   // The same 200 as a post, in total: it keeps a save under the request size
-  // limit and the save-time target however the blocks are spread.
+  // limit and the save-time target however the blocks are spread. Only plain
+  // sections hold blocks.
   .refine(
     (sections) =>
-      sections.reduce((total, section) => total + section.data.children.flat().length, 0) <=
-      MAX_PAGE_BLOCKS,
+      sections.reduce(
+        (total, section) =>
+          total + (section.type === "section" ? section.data.children.flat().length : 0),
+        0,
+      ) <= MAX_PAGE_BLOCKS,
     `a page can hold at most ${MAX_PAGE_BLOCKS} blocks in total`,
   );
 
+export type PlainSection = z.infer<typeof plainSectionBlock>;
+export type HeroSection = z.infer<typeof heroBlock>;
 export type Section = z.infer<typeof sectionBlock>;
 
 /** The id of the section a not-yet-resaved `v2` page is shown as. */
 export const LEGACY_SECTION_ID = "legacy";
 
 /** A `v2` page's flat blocks as the one section they load as. */
-export function sectionsFromBlocks(blocks: Block[]): Section[] {
+export function sectionsFromBlocks(blocks: Block[]): PlainSection[] {
   return [
     {
       id: LEGACY_SECTION_ID,
@@ -417,7 +539,7 @@ export function collectImageMediaIds(items: (Block | Section)[]): string[] {
   for (const item of items) {
     if (item.type === "section") {
       for (const column of item.data.children) column.forEach(visit);
-    } else visit(item);
+    } else if (item.type !== "hero") visit(item);
   }
   return [...ids];
 }

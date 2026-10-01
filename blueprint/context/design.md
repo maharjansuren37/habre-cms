@@ -232,6 +232,33 @@ mostly the page itself, not spinners.
   enough for a short paragraph or an image, not for long text. No new colours.
   Screenshots: `blueprint/reference/11-columns/` (editor and public, light and
   dark). Screen-reader behaviour is unverified (`needs-you.md`).
+- **Hero (item 12a, page editor and public page, not in the mockups):** the
+  first ready-made section kind - fixed slots instead of free columns. **In the
+  editor** the add row below the last card holds two default buttons, "Add blank
+  section" and "Add hero section" (both disabled at 30 sections, with the same
+  "A page can have up to 30 sections." hint). A hero card has the usual bar -
+  muted "Section 2 of 4" heading, quiet Move up / Move down / Remove with the
+  inline confirm, same focus and announcements - but **no Columns radios**: a
+  small bordered "Hero" tag (`--color-border`, `--color-text-muted`,
+  `--text-sm`) sits where they would be. Below the bar is a plain form, not
+  Editor.js: Heading ("Heading (required)", marked `aria-required`, never the
+  native `required`, so the app's own message shows), Text (3-row textarea),
+  Button label, Button link (plain text with a URL keyboard, never `type=url`, which refuses `/about`), each with a visible label and a muted
+  `--text-sm` hint beneath, tied to the field with `aria-describedby`. The fields
+  carry no `name`: the save reads them through `contentRef`, like every section.
+  A new hero starts empty with focus in Heading and a polite "Hero section added.
+  Now N sections." A refused save shows the server's message ("Section 2 (hero):
+  the heading is required.") in the page form's usual error banner and keeps
+  what was typed. Kinds are not convertible: remove and add the other.
+  **On the public page** a hero is a `<section data-kind="hero">`, centred text,
+  an `<h2>` at `--text-2xl` with no top margin, one paragraph of text when set,
+  and the button as a link in the **primary button's pair** (`--color-on-accent`
+  on `--color-accent`, already measured above: 6.4 light / 8.4 dark), `--text-md`,
+  `--control-height` tall, `--radius-md`, hover `--color-accent-hover`. Spacing
+  between sections is unchanged (`--space-7`); no new colours, so no new contrast
+  figures. It reads in the page's 42rem column at every width. Screenshots:
+  `blueprint/reference/12a-hero/` (editor and public, light and dark).
+  Screen-reader behaviour is unverified (`needs-you.md`).
 - **Image block and picker (item 5b, not in the mockups):** a bordered card
   (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
   other card border in the app) holding either a centered "Choose image" button

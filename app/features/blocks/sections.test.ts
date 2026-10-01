@@ -46,3 +46,14 @@ test("resizeColumns never changes the number of items", () => {
 test("resizeColumns refuses fewer than one column", () => {
   assert.throws(() => resizeColumns([["a"]], 0), /at least one column/);
 });
+
+test("nonEmptySections keeps a hero, which is never empty", () => {
+  const sections = sectionsSchema.parse([
+    { id: "h1", type: "hero", data: { heading: "Hi", text: "" } },
+    section("s1", []),
+  ]);
+  assert.deepEqual(
+    nonEmptySections(sections).map((each) => each.id),
+    ["h1"],
+  );
+});

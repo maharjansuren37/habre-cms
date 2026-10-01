@@ -12,7 +12,7 @@ import {
 } from "./blocks.ts";
 import { BlockEditor } from "./editor.client.tsx";
 import { pickedMedia } from "./image-tool.client.ts";
-import { resizeColumns } from "./sections.ts";
+import { isPlainSection, resizeColumns } from "./sections.ts";
 import styles from "./sections-editor.module.css";
 
 type ColumnReader = { current: (() => Promise<unknown>) | null };
@@ -20,17 +20,29 @@ type ColumnReader = { current: (() => Promise<unknown>) | null };
 /** What the list holds for a section: its id, and the blocks each column's
  *  editor starts with. Editor.js owns the content from then on - it is read back
  *  on save. */
-type Entry = {
+type PlainEntry = {
+  kind: "plain";
   id: string;
   columns: Block[][];
   /** Bumped when the column count changes, which re-mounts the section's editors. */
   rev: number;
 };
 
+/** What a hero's form holds - the same four texts the save sends. */
+type HeroFields = { heading: string; text: string; buttonLabel: string; buttonHref: string };
+
+/** A ready-made hero: plain form fields, no Editor.js. */
+type HeroEntry = { kind: "hero"; id: string; fields: HeroFields };
+
+type Entry = PlainEntry | HeroEntry;
+
 /** Where focus goes after the list changes, since the control that held it may
  *  have moved, been disabled or gone. */
 type FocusTarget =
-  | { id: string; control: "heading" | "up" | "down" | "remove" | "keep" | "editor" }
+  | {
+      id: string;
+      control: "heading" | "up" | "down" | "remove" | "keep" | "editor" | "hero-heading";
+    }
   | { control: "add" };
 
 /**
@@ -56,11 +68,27 @@ export function SectionsEditor({
   // A not-yet-resaved page loads as the section `legacy`; it gets a real id here,
   // once, so what is saved never carries the placeholder.
   const [entries, setEntries] = useState<Entry[]>(() =>
-    initialSections.map((section) => ({
-      id: section.id === LEGACY_SECTION_ID ? crypto.randomUUID() : section.id,
-      columns: section.data.children,
-      rev: 0,
-    })),
+    initialSections.map((section): Entry => {
+      if (!isPlainSection(section)) {
+        const { heading, text, button } = section.data;
+        return {
+          kind: "hero",
+          id: section.id,
+          fields: {
+            heading,
+            text,
+            buttonLabel: button?.label ?? "",
+            buttonHref: button?.href ?? "",
+          },
+        };
+      }
+      return {
+        kind: "plain",
+        id: section.id === LEGACY_SECTION_ID ? crypto.randomUUID() : section.id,
+        columns: section.data.children,
+        rev: 0,
+      };
+    }),
   );
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -87,6 +115,7 @@ export function SectionsEditor({
     contentRef.current = async () => ({
       sections: await Promise.all(
         entries.map(async (entry) => {
+          if (entry.kind === "hero") return { id: entry.id, kind: "hero", fields: entry.fields };
           const columns = await Promise.all(
             entry.columns.map((_, index) => readerFor(entry.id, index).current?.()),
           );
@@ -133,9 +162,17 @@ export function SectionsEditor({
 
   function add() {
     const id = crypto.randomUUID();
-    setEntries([...entries, { id, columns: [[]], rev: 0 }]);
+    setEntries([...entries, { kind: "plain", id, columns: [[]], rev: 0 }]);
     setFocusTarget({ id, control: "editor" });
     changed(`Section added. Now ${entries.length + 1} sections.`);
+  }
+
+  function addHero() {
+    const id = crypto.randomUUID();
+    const fields = { heading: "", text: "", buttonLabel: "", buttonHref: "" };
+    setEntries([...entries, { kind: "hero", id, fields }]);
+    setFocusTarget({ id, control: "hero-heading" });
+    changed(`Hero section added. Now ${entries.length + 1} sections.`);
   }
 
   function move(index: number, by: -1 | 1) {
@@ -159,8 +196,9 @@ export function SectionsEditor({
   function remove(index: number) {
     const gone = entries[index];
     if (!gone || entries.length < 2) return;
-    for (let column = 0; column < gone.columns.length; column++)
-      readers.current.delete(`${gone.id}:${column}`);
+    if (gone.kind === "plain")
+      for (let column = 0; column < gone.columns.length; column++)
+        readers.current.delete(`${gone.id}:${column}`);
     const next = entries.filter((entry) => entry.id !== gone.id);
     setEntries(next);
     setConfirmingId(null);
@@ -174,7 +212,7 @@ export function SectionsEditor({
    *  discards; if any column cannot be read, nothing changes. */
   async function setColumns(index: number, count: number) {
     const entry = entries[index];
-    if (!entry || entry.columns.length === count) return;
+    if (entry?.kind !== "plain" || entry.columns.length === count) return;
     const before = entry.columns.length;
     let read: unknown[];
     try {
@@ -211,7 +249,7 @@ export function SectionsEditor({
     setLayoutError(null);
     setEntries((current) =>
       current.map((each) =>
-        each.id === entry.id
+        each.kind === "plain" && each.id === entry.id
           ? { ...each, columns: resizeColumns(blocks, count), rev: each.rev + 1 }
           : each,
       ),
@@ -255,22 +293,26 @@ export function SectionsEditor({
               >
                 {position}
               </h2>
-              <fieldset className={styles.layout}>
-                <legend className={styles.layoutLegend}>
-                  Columns<span className="visually-hidden"> ({position.toLowerCase()})</span>
-                </legend>
-                {Array.from({ length: MAX_COLUMNS }, (_, option) => option + 1).map((count) => (
-                  <label key={count} className={styles.layoutOption}>
-                    <input
-                      type="radio"
-                      name={`${hintId}-columns-${entry.id}`}
-                      checked={entry.columns.length === count}
-                      onChange={() => void setColumns(index, count)}
-                    />
-                    {count} {count === 1 ? "column" : "columns"}
-                  </label>
-                ))}
-              </fieldset>
+              {entry.kind === "hero" ? (
+                <span className={styles.kindTag}>Hero</span>
+              ) : (
+                <fieldset className={styles.layout}>
+                  <legend className={styles.layoutLegend}>
+                    Columns<span className="visually-hidden"> ({position.toLowerCase()})</span>
+                  </legend>
+                  {Array.from({ length: MAX_COLUMNS }, (_, option) => option + 1).map((count) => (
+                    <label key={count} className={styles.layoutOption}>
+                      <input
+                        type="radio"
+                        name={`${hintId}-columns-${entry.id}`}
+                        checked={entry.columns.length === count}
+                        onChange={() => void setColumns(index, count)}
+                      />
+                      {count} {count === 1 ? "column" : "columns"}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               {confirming ? (
                 <div className={styles.actions}>
                   <span className={styles.confirmText}>Remove this section?</span>
@@ -330,28 +372,43 @@ export function SectionsEditor({
                 {layoutError.message}
               </Message>
             ) : null}
-            <div key={entry.rev} className={styles.columns} data-columns={entry.columns.length}>
-              {entry.columns.map((blocks, columnIndex) => (
-                <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: columns carry no id; the count only changes by remounting the section
-                  key={columnIndex}
-                  className={styles.column}
-                >
-                  <BlockEditor
-                    initialBlocks={blocks}
-                    mediaById={{ ...mediaById, ...pickedMedia }}
-                    contentRef={readerFor(entry.id, columnIndex)}
-                    onChange={edited}
-                    label={
-                      entry.columns.length === 1
-                        ? `Section ${index + 1} content`
-                        : `Section ${index + 1}, column ${columnIndex + 1} content`
-                    }
-                    placeholder="Write your page…"
-                  />
-                </div>
-              ))}
-            </div>
+            {entry.kind === "hero" ? (
+              <HeroForm
+                idPrefix={`${hintId}-${entry.id}`}
+                fields={entry.fields}
+                onChange={(fields) => {
+                  setEntries((current) =>
+                    current.map((each) =>
+                      each.kind === "hero" && each.id === entry.id ? { ...each, fields } : each,
+                    ),
+                  );
+                  edited();
+                }}
+              />
+            ) : (
+              <div key={entry.rev} className={styles.columns} data-columns={entry.columns.length}>
+                {entry.columns.map((blocks, columnIndex) => (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: columns carry no id; the count only changes by remounting the section
+                    key={columnIndex}
+                    className={styles.column}
+                  >
+                    <BlockEditor
+                      initialBlocks={blocks}
+                      mediaById={{ ...mediaById, ...pickedMedia }}
+                      contentRef={readerFor(entry.id, columnIndex)}
+                      onChange={edited}
+                      label={
+                        entry.columns.length === 1
+                          ? `Section ${index + 1} content`
+                          : `Section ${index + 1}, column ${columnIndex + 1} content`
+                      }
+                      placeholder="Write your page…"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -363,7 +420,16 @@ export function SectionsEditor({
           aria-describedby={atLimit ? hintId : undefined}
           onClick={add}
         >
-          Add section
+          Add blank section
+        </Button>
+        <Button
+          type="button"
+          data-control="add-hero"
+          disabled={atLimit}
+          aria-describedby={atLimit ? hintId : undefined}
+          onClick={addHero}
+        >
+          Add hero section
         </Button>
         {atLimit ? (
           <p className={styles.hint} id={hintId}>
@@ -383,4 +449,74 @@ function focusEditorWhenReady(card: HTMLElement | null, triesLeft = 60) {
     return;
   }
   if (triesLeft > 0) requestAnimationFrame(() => focusEditorWhenReady(card, triesLeft - 1));
+}
+
+const HERO_FIELDS = [
+  { name: "heading", label: "Heading (required)", hint: "Up to 120 characters." },
+  { name: "text", label: "Text", hint: "Up to 400 characters. One paragraph." },
+  {
+    name: "buttonLabel",
+    label: "Button label",
+    hint: "Leave the label and link empty for no button.",
+  },
+  {
+    name: "buttonHref",
+    label: "Button link",
+    hint: "Starts with https://, mailto:, / or #.",
+  },
+] as const;
+
+/**
+ * A hero's slots as plain controls - no Editor.js. They carry no `name`, so the
+ * page form never posts them by themselves: the save sends them through
+ * `contentRef` like every other section.
+ */
+function HeroForm({
+  idPrefix,
+  fields,
+  onChange,
+}: {
+  idPrefix: string;
+  fields: HeroFields;
+  onChange: (fields: HeroFields) => void;
+}) {
+  return (
+    <div className={styles.heroForm}>
+      {HERO_FIELDS.map(({ name, label, hint }) => {
+        const id = `${idPrefix}-${name}`;
+        const shared = {
+          id,
+          className: styles.heroInput,
+          value: fields[name],
+          "aria-describedby": `${id}-hint`,
+          "aria-required": name === "heading" ? (true as const) : undefined,
+          "data-control": `hero-${name}`,
+        };
+        return (
+          <div key={name} className={styles.heroField}>
+            <label className={styles.heroLabel} htmlFor={id}>
+              {label}
+            </label>
+            {name === "text" ? (
+              <textarea
+                {...shared}
+                rows={3}
+                onChange={(event) => onChange({ ...fields, [name]: event.target.value })}
+              />
+            ) : (
+              <input
+                {...shared}
+                type="text"
+                inputMode={name === "buttonHref" ? "url" : undefined}
+                onChange={(event) => onChange({ ...fields, [name]: event.target.value })}
+              />
+            )}
+            <p className={styles.hint} id={`${id}-hint`}>
+              {hint}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

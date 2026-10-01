@@ -174,6 +174,8 @@ not tidying; it is what keeps the open list true.
       `preflight` needs it before item 10 is deployed. From item 11, the same
       pass covers the "Columns" radio group, the announcements when the count
       changes, and editors inside narrow columns. `open` (spec, item 10,
-      2026-10-01; widened, item 11, 2026-10-01)
+      2026-10-01; widened, item 11, 2026-10-01). From item 12a, the same pass covers the
+      "Add blank section" / "Add hero section" buttons and the hero form's
+      labels, hint, errors and focus (spec, item 12a, 2026-10-01)
 
 ## Done
