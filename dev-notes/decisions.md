@@ -50,6 +50,9 @@ itself. Not settled: whether the data model carries a site id from day one
 anyway, to make scaling cheaper - an open question in the project plan for
 `architect`.
 
+**Superseded by D148** (2026-10-01): platform v1 has many sites, created by
+public signup.
+
 ## D3 - Three roles on the WordPress model (2026-09-15)
 
 **Chose:** author (own posts), editor (all content), admin (content, users and
@@ -110,6 +113,10 @@ site, which isolates as well and makes backup, restore and deleting a customer
 one command. Cost: at hundreds of sites, per-database migrations and connection
 pools get heavy - reconsider shared tables then. The CMS always gets its own
 PostgreSQL database and role, never tables inside another app's database.
+
+**Superseded by D148** (2026-10-01): public signup means many sites in one
+installation from platform v1. The database-per-site versus shared-tables
+choice reopens for `architect`, with this entry's reasoning as its input.
 
 ## D9 - The server holds no state but the database (2026-09-15)
 
@@ -1481,6 +1488,9 @@ Beats:
 Costs: sections change the stored block shape (D28), so `architect` should run
 before `spec` for item 10, and existing pages must load as one section.
 
+**Superseded by D148** (2026-10-01) as the active direction. Items 10-12 stay
+built; the builder follow-ups move to Level 2.
+
 ## D114 - Sections are v3 container blocks, arranged in React, one Editor.js per column (2026-10-01)
 
 **Chose:** pages only store `section` blocks (`blocks_format` v3): `plain`
@@ -1713,3 +1723,87 @@ Costs: one extra step.
 **Chose:** `forbidOnly` in CI, no `retries`.
 Beats: `retries: 1` (hides the F-103 race and any other flake).
 Costs: a rare red run until F-103 is fixed.
+
+## D148 - Rescope: an AI-powered website platform, Level 1 first (2026-10-01)
+
+**Chose:** Habre becomes an AI-powered platform to create, manage and publish a
+website, for everyone through progressive disclosure - Level 1 Personal, Level 2
+Professional, Level 3 Developer, one content engine. Platform v1 (items 13-21)
+serves Level 1 only: public signup creates a site on a platform subdomain, AI
+builds a draft site from a description, the user edits and publishes, and a
+Free plan with enforced limits plus one paid plan is billed (item 21). It is
+also free and open source to self-host (licence not chosen): v1 must run on
+Node.js, PostgreSQL and S3-compatible storage alone, with billing, AI, email and
+signup each switchable off; the install guide comes soon after. The stack
+is kept; TipTap 3 replaces Editor.js. Existing content is disposable. Two
+principles recorded: "simple by default, powerful when needed" and "AI
+suggests, the user applies".
+Supersedes: D2 and D8 (one site per installation), D113 as the active
+direction, and plan section 11's "public signup", "many sites", "forms",
+"password reset by email" and "SEO fields" deferrals. Will supersede D13
+(Editor.js) when item 14 is built - and with it the Editor.js-specific D29
+(HTML scanner), D33 (editor styling), D58, D63 and D124 (image tool) and
+D114's one Editor.js per column - and D22 (two fixed hostnames) when item 16 is.
+Items 1-12 stay built and checked; nothing is rolled back. D1, D3, D4 and D9
+still hold.
+Beats:
+- a general headless, API-first CMS (from a pasted enterprise brief): competes
+  with mature open-source TypeScript CMSs and drops Habre's one edge, ease of
+  use; its content API and custom types are Level 3, later;
+- the brief's stack (Next.js, NestJS, Redis, OpenSearch, AWS): a rewrite of 12
+  shipped items, and OpenSearch alone exceeds the 954 MB server; Postgres covers
+  search, vectors and jobs at this scale;
+- building all three levels at once, or the Level 2 groups the owner also
+  wanted (editorial, findability, dashboard, media + builder) - they matter only
+  once Level 1 has users.
+Costs: multi-tenancy reaches every table, query and permission check; paid AI
+and email providers; AI use must be capped per site from day one; the platform
+needs its own name and domain (open question). "Describe your business, get a
+site" is a crowded space - the edge is the path from Level 1 to Level 3 on the
+same content, which only exists once Level 1 does. `architect` runs before
+`spec` for item 13.
+
+## D149 - Stripe is the payment provider, as a plain processor (2026-10-01)
+
+**Chose:** Stripe, without its merchant-of-record service, for item 21's paid
+plan. The business starts in Australia and expects mostly Australian customers
+at first: 1.65% + A$0.30 on Australian cards from 2026-10-01 (1.7% before),
+plus 0.7% for Stripe Billing on subscriptions, against 4-5% plus a fixed fee
+for a merchant of record; international cards 3.5% + A$0.30, plus 2% when
+currency is converted; A$25 a dispute. Australian GST (10%, registration required from A$75,000
+turnover) is the owner's to handle; digital services sold overseas are generally
+GST-free from Australia's side. Billing sits behind one module so the provider
+can change. How the app calls Stripe is `architect`'s.
+Beats: Paddle (handles VAT and sales tax worldwide, ~3% more on every sale;
+the better choice if overseas sales grow), Polar (cheaper merchant of record,
+younger), Stripe Managed Payments (not offered to Australian sellers), and Lemon
+Squeezy (owned by Stripe, its future unclear).
+Costs: overseas customers bring their own tax registrations - EU and UK VAT
+from the first sale, US state sales tax past each state's threshold - before
+they are sold to; moving to Paddle later means existing subscribers re-enter a
+card. Fees from comparison sites, not Stripe's page - check stripe.com/au/pricing
+before pricing the plan. The fixed A$0.30 favours yearly billing.
+
+## D150 - Limits from the first signup, billing after a beta, own domains in the paid plan (2026-10-01)
+
+**Chose:** every limit that protects money is on from the first public signup:
+AI use (item 18) and media storage per site (moved from item 21 into item 15).
+Launch is an invite-only beta on the Free plan with billing off; a user at a
+limit sees "Paid plans coming soon". Billing is switched on, and signup opened
+to everyone, once people are hitting limits, the terms of service and privacy
+policy exist, and the GST question is answered. The one paid plan raises the
+limits, lets a site use its own domain (moved from Level 2) and removes the
+"Made with Habre" footer link. A limit refuses the action that would pass it,
+never the published site: downgrading or a failed payment drops a site back to
+Free limits, keeps what it already has, and blocks only new uploads and AI use.
+Starting points to tune, not researched: Free 1 site, 3 AI site generations,
+500 MB; paid e.g. 20 generations a month, 10 GB. The AI number comes from item
+18's measured cost per generation.
+Beats: storage capped only when billing arrives (signup would open uncapped);
+billing live at launch (charges before anyone has used it, and before the legal
+and tax work is done); a paid plan that only raises limits (WordPress.com, Wix
+and similar sell the own domain and removing their branding - limits alone give
+a Level 1 user little reason to pay).
+Costs: item 21 grows - serving a site on its own domain needs certificates
+issued per domain, which `architect` decides alongside D22's replacement, and
+may place in item 16 instead. The beta earns nothing.

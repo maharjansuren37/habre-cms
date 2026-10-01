@@ -8,23 +8,67 @@
 
 ## 1. Problem - what are we solving?
 
-WordPress is the default way to run a content website, but it is heavy and
-confusing for the people who actually edit the content. Habre CMS is a website
-management system that makes writing, managing and publishing a site's content
-**really easy** - and serves the public site itself, so no developer is needed
-to put content online.
+**Rescoped 2026-10-01 (D148).** Habre is now **an AI-powered platform to
+create, manage and publish a website** - not "a headless CMS", because most
+people do not care what a CMS is. They want a website, a blog, their business or
+portfolio online, and later a team to run it or an API for their app.
+
+Getting a good website online still takes either technical knowledge or a
+builder that runs out of room. Habre starts simple - describe what you want, get
+a site, edit it, publish it - and reveals more power only when it is needed:
+**simple by default, powerful when needed.** The CMS serves the public site
+itself, so no developer is needed to put content online.
+
+The original problem - WordPress is heavy and confusing for the people who
+edit content - still holds; it is now the Level 1 half of a wider product.
 
 ## 2. Users - who is this for?
 
-- **Editors and authors** at a small organisation managing one website's
-  content - not developers.
-- **Admins** who set the site up and decide who can edit it.
-- **Visitors** read the public site and have no accounts.
-- Starting small: a handful of users per site.
-- Not for developers wanting a headless API, and not for people wanting a
-  drag-and-drop page builder - both deferred (section 11).
+For everyone, through **progressive disclosure** - one product, one content
+engine, three levels of experience:
+
+- **Level 1 - Personal:** individuals and small businesses with no technical
+  knowledge ("a photographer in Adelaide who wants a site people can enquire
+  from"). **The first platform version serves this level.**
+- **Level 2 - Professional:** teams and businesses - members, roles,
+  approvals, scheduling, several sites. Soon after (section 11).
+- **Level 3 - Developer:** agencies and developers - content models, API,
+  webhooks. Later (section 11).
+- **Visitors** read the public sites and have no accounts.
+- **Before the rescope** (items 1-12): editors, authors and admins at one small
+  organisation, one site per installation. That code is the base of Level 1.
 
 ## 3. Features - what does the first version need?
+
+**Platform v1 (rescope D148, build items 13-21)** - a stranger signs up,
+describes what they want, gets a site, edits it and publishes it:
+
+- Current stack versions before the editor changes.
+- TipTap replaces Editor.js for posts and page columns: drag to reorder blocks,
+  with Move up / Move down as the non-drag alternative (WCAG 2.5.7), undo and
+  redo. Existing content is discarded, not converted.
+- Public signup with email verification and password reset by email. Signing
+  up creates a site; the person who signs up is its admin. Each site's content,
+  media, settings and members are its own. Media storage is capped per site
+  from the first signup (D150).
+- Each site's public site on a platform subdomain, `<name>.<platform domain>`.
+- SEO basics: title and description per page and post, social image,
+  `sitemap.xml`, `robots.txt`.
+- Start from a description: "What do you want to create?" (Website, Blog,
+  Business, Portfolio), then "Tell us about it"; AI builds pages, navigation,
+  starter text and SEO basics in the built-in theme, and the user reviews,
+  edits and publishes. AI use is capped per site.
+- A contact form section: visitors enquire, submissions are stored per site and
+  emailed to the site owner, with spam protection.
+- Simple by default: a new site's admin shows only Level 1 screens; Users and
+  advanced settings appear when switched on.
+- Billing: one paid plan raises the Free plan's limits (AI use, storage), lets
+  a site use its own domain and removes the "Made with Habre" footer link, paid
+  through Stripe (D149). Billing stays off through an invite-only beta (D150).
+- Self-hostable: anyone can run their own copy, free and open source. v1 keeps
+  that possible (section 10); the install guide comes soon after.
+
+**Built before the rescope (items 1-12):**
 
 - Log in and out; 1-week session; no public signup.
 - Write posts and pages in a block editor with basic blocks: text, heading,
@@ -46,6 +90,14 @@ to put content online.
 
 Users (with role), posts, pages (both made of content blocks), media (metadata
 here; files in Cloudflare R2), site settings, navigation menu.
+
+**From platform v1 (D148):** sites are first-class. Every site owns its
+content, media, settings, navigation, members and contact-form submissions;
+nothing of one site is visible to another. Users have a verified email and can
+reset their password by email. Per site: SEO fields on pages and posts, and a
+record of AI use against its cap. Posts and pages remain the only content types
+until Level 3. How sites are separated in the database is `architect`'s call
+(D8 is superseded).
 
 ## 5. Tech - what stack are we using?
 
@@ -387,6 +439,14 @@ at hundreds of sites (D8).
 
 ## 7. UI/UX - how should it look and feel?
 
+- **Simple by default, powerful when needed** (a principle, D148). A beginner
+  never sees content schemas, API versions, webhooks, JSON or role matrices
+  unless they switch them on. Level 1 admin: Home, Pages, Blog, Media,
+  Settings.
+- **The first two minutes matter most.** Onboarding asks "What do you want to
+  create?", then "Tell us about it", then shows a ready site: "Your website is
+  ready. What would you like to change?" - not account, then dashboard, then
+  setup.
 - **Ease of use is the product.** The editing experience must be clearly simpler
   than WordPress for a non-technical editor: few screens, obvious next actions,
   no settings they don't need.
@@ -494,8 +554,20 @@ From `stack`:
 
 ## 9. Money - how does this pay for itself? *(optional)*
 
-Intended as a hosted service eventually, so billing will come. Pricing model not
-decided; no billing in the first version.
+A hosted service (D148). Intended tiers, not built: **Free** (one site, basic
+pages, basic AI, platform subdomain), **Personal** (custom domain, more AI and
+storage, analytics), **Business** (team members, workflows, several sites,
+marketing), **Pro / Developer** (API, webhooks, custom content models),
+**Enterprise** (SSO, advanced permissions, audit, governance). Platform v1 ships
+the Free plan with enforced limits and **one paid plan** that raises them and
+adds the site's own domain, through Stripe (item 21); the other tiers come with
+the features they sell. Prices and exact limits not decided. Launch is an
+invite-only beta on Free only, billing off; billing is switched on later (D150).
+
+**Self-hosted:** anyone can run their own copy, **free and open source**
+(owner, 2026-10-01; licence not chosen). The hosted service is what is sold.
+A self-hosted copy has billing off, signup optional and AI optional with its
+own key.
 
 ## 10. Constraints - what is fixed before anything is chosen?
 
@@ -511,38 +583,80 @@ decided; no billing in the first version.
 - **Auth:** JWT with a one-week lifetime for the MVP. The gap - a removed or
   demoted user keeping access until expiry - is closed by a database check on
   every admin request (section 6, D6).
-- **From scratch:** no existing code or data to migrate.
+- **Existing code (D148):** items 1-12 are built and live. Existing content is
+  disposable - not converted to the new editor or site model (owner,
+  2026-10-01). A destructive migration in production still needs its own
+  explicit yes at the time.
+- **Stack kept (D148):** the rescope does not change the stack beyond the
+  editor swap; no Redis, separate search engine or cloud platform.
+- **Paid services:** an AI provider and an email provider (verification,
+  password reset, form notifications) - both accounts and spend are the owner's.
+- **AI cost and abuse:** public signup plus AI means AI use is capped per site
+  from the first release.
+- **Self-hostable (D148):** everything must run with only Node.js, PostgreSQL
+  and S3-compatible storage. Nothing may depend on a platform-only service;
+  billing, the AI provider, the email provider and signup are each switchable
+  off. A payment provider is a further paid account (item 21).
 - **Deadline / budget:** not stated.
 
 ## 11. Deliberately deferred - what is not in the first version?
 
-**Soon after:**
+Rewritten by the platform rescope (D148). Platform v1 proves Level 1; everything
+below matters only once it does.
 
-- **Categories and tags** - useful, but publishing works without them.
-- **Scheduled publishing and revision history** - editor complexity before the
-  editor is proven.
-- **SEO fields and sitemap** - meta description, social image.
-- **Password reset by email** - needs an email service; an admin resets
-  passwords for now.
-- **Custom domains** - needed once it is a hosted service.
-- **Reusable saved sections, section styling (background, spacing) and page
-  templates** - page-builder follow-ups, after the first cut is proven.
+**Soon after - Level 2, Professional:**
 
-**Done in the rescope (D113):** the page builder's first cut - sections,
-columns and ready-made sections (build items 10-12).
+- **Editorial:** revision history (compare, restore), scheduled publishing, an
+  approval step.
+- **Findability beyond the basics:** redirects, categories and tags.
+- **Dashboard with content health** - counts, missing alt text, broken links.
+- **Media upgrades** - search, "where used", replace a file keeping every
+  reference, responsive image sizes.
+- **Builder follow-ups** - section palette, reusable saved sections, section
+  styling, page templates.
+- **Several sites per account, team invites by email.** (Own domains moved
+  into v1's paid plan, D150.)
+- **More AI** - suggestions in the editor (rewrite, alt text, meta
+  description) and conversational changes ("make it look more professional").
+- **Analytics, and the paid tiers beyond v1's one paid plan.**
+- **Self-hosting install** - an install guide and a single-site mode for
+  people running their own copy (v1 only keeps it possible).
+
+**Later - Level 3, Developer:**
+
+- **Custom content types** - admin-built types and fields; posts and pages are
+  the only types until then.
+- **Content API** - REST with scoped API keys, webhooks on publish.
+- **GraphQL, SDKs, CLI, environments, plugins, custom components.**
+
+**Done in earlier rescopes:** the page builder's first cut - sections, columns
+and ready-made sections (items 10-12, D113). SEO fields, sitemap, public
+signup, many sites, forms and password reset by email move into platform v1.
 
 **Later, or never:**
 
-- **Headless content API.**
 - **Free-form drag-anywhere canvas, custom CSS/HTML** - fights ease of use and
   multiplies the accessibility surface.
 - **Multiple themes and theme customisation.**
-- **Many sites per installation, public signup, billing.**
-- **Importing from WordPress.**
-- **Plugins, comments, forms, e-commerce, multiple languages.**
+- **Store / e-commerce, multiple languages, comments, importing from WordPress.**
+- **Other channels** - mobile apps, email, digital displays, AI agents.
+- **Enterprise** - audit log, SSO, SAML, SCIM, data residency.
 
 ## Open questions
 
 - ~~One installation per customer, or many sites in one system?~~ **Settled by
   D8:** one site per installation, no site id; many sites later means a database
-  per site.
+  per site. **Reopened by D148:** platform v1 has many sites; how they are
+  separated is `architect`'s.
+- **The platform's name and domain.** `surenmaharjan.fyi` is a personal domain;
+  sites need `<name>.<platform domain>`. Owner's decision, needed by item 16.
+  **The owner is buying a new domain for the platform (2026-10-01)**; the name
+  is not chosen. Whether user sites also get a separate domain of their own is
+  `architect`'s.
+- **Which AI and email providers.** Accounts and spend are the owner's; the
+  choice is recorded as a dependency decision by `architect`. ~~Payment
+  provider~~ **settled by D149:** Stripe, as a plain processor.
+- **Prices and plan limits** - what Free allows and what the paid plan raises.
+  Owner's decision, needed by item 21.
+- **The open-source licence** - AGPL (a hosted fork must stay open) or MIT
+  (anyone may close it). Owner's decision, needed before code is published.

@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-01, `main` (`1d58e42`).
+Generated 2026-10-01, `main` (`c17d91f`).
 
 ## What this is
 
@@ -143,6 +143,7 @@ without a requirement that calls for them.
 - **Live:** production runs release `8d82ce4`, through item 12 (migration `0007`
   applied). No symlink rollback once a page has a hero, call to action or
   image + text; see `dev-notes/status.md`.
+- **CI:** `verify` + `e2e` (115 of 141 browser tests; 26 R2 ones local-only, D144).
 - **Principles:** none recorded (`blueprint/context/principles.md`).
 - **Records:** findings in `blueprint/context/findings.md` and
   `blueprint/findings/backlog.md`; work only the owner can do in

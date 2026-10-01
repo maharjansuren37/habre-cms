@@ -192,4 +192,58 @@ not tidying; it is what keeps the open list true.
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 
+- [ ] **A Stripe account for the business, in Australia** - accounts and
+      spend; your business details, bank account and identity checks. Test-mode
+      keys are enough to build item 21; live keys are needed before it deploys.
+      Also ask an accountant when to register for GST and what overseas sales
+      would trigger (D149). Blocks nothing now; needed by item 21. `open`
+      (2026-10-01)
+
+- [ ] **A domain for the platform, and its name** - spend and a decision; your
+      registrar and card. `surenmaharjan.fyi` is personal; sites need
+      `<name>.<platform domain>`. **You are buying one (2026-10-01): leaning
+      `habre.ai`** (appeared unregistered on 2026-10-01; ~US$80 a year, 2-year
+      minimum; `habre.app` the cheaper fallback; `habre.com` is taken). Before
+      paying, search the name - "Habre" results are dominated by Hissène
+      Habré, former president of Chad - and IP Australia's trade mark
+      register. Buy through Cloudflare Registrar if it sells the ending: a
+      certificate covering every subdomain needs a DNS API token, and R2 is
+      already there. `architect` decides whether user sites also need a
+      second domain (candidates `habre.page`, `habresites.com`; avoid `.site`),
+      so hold off on a second one until then. Blocks nothing now; needed by item 16, and by `architect`
+      to name the hosts. `open` (rescope review, 2026-10-01)
+
+- [ ] **An email provider account** - accounts and spend. Sends signup
+      verification, password reset and contact-form notifications;
+      `architect` records which provider. **Blocks item 15** - signup cannot
+      verify anyone without it - and item 19. Test credentials are enough to
+      build. `open` (rescope review, 2026-10-01)
+
+- [ ] **An AI provider account and API key, with a spend limit** - accounts
+      and spend. Powers "start from a description"; `architect` records which
+      provider. Set a monthly spend cap in the provider's console as well as
+      the app's per-site cap. Blocks nothing now; needed by item 18. `open`
+      (rescope review, 2026-10-01)
+
+- [ ] **Free plan limits and the paid plan's price** - decision. How much AI
+      use and storage Free allows, what the paid plan raises them to, and its
+      price. Before setting them: confirm the Oracle account type (Always Free
+      instances can be reclaimed when idle; pay-as-you-go removes that); pick
+      the AI model from item 18's measured cost and quality; re-check Stripe's
+      Australian fees (D149); ask your accountant about GST-inclusive prices.
+      Starting points are in D150. Blocks nothing now; needed by item 21 (and
+      the AI cap's number by item 18). `open` (rescope review, 2026-10-01)
+
+- [ ] **Terms of service and a privacy policy** - decision; legal text only
+      you can stand behind, ideally checked by someone qualified. Public signup
+      makes you the host of strangers' content, and contact-form submissions
+      are visitors' personal data. Blocks nothing now; needed before signup
+      opens to the public (item 15's `deploy`). `open` (rescope review,
+      2026-10-01)
+
+- [ ] **The open-source licence** - decision; AGPL (a hosted fork must stay
+      open) or MIT (anyone may close it). The repository is private, so nothing
+      is published yet. Blocks nothing now; needed before the code is made
+      public. `open` (rescope review, 2026-10-01)
+
 ## Done

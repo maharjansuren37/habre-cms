@@ -94,3 +94,17 @@ blueprint/project-plan.md too, then regenerate the overview.
   - [x] 12a. **Hero and the typed-section foundation** - a section can be a ready-made kind with fixed slots instead of free columns: schema union, public render, an "Add section" menu (Blank / Hero) and a slot form in the page editor; hero = heading, text, optional button
   - [x] 12b. **Call to action** - the second kind: heading, text, one button, on the 12a foundation
   - [x] 12c. **Image + text** - the third kind: an image slot (media picker), heading, text, optional button, image side by side with the text
+
+## Platform v1
+
+Rescope D148: a stranger signs up, describes what they want, gets a site, edits it and publishes it (Level 1). Run `architect` before `spec` for item 13.
+
+- [ ] 13. **Upgrade the stack** - React Router 8.4, Vite, Biome and patch releases, with `verify` and the browser suite green
+- [ ] 14. **TipTap editor** - replaces Editor.js in posts and page columns; new blocks format; drag to reorder blocks, with Move up / Move down as the non-drag alternative (WCAG 2.5.7); undo and redo; existing content discarded, not converted
+- [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
+- [ ] 16. **Sites on platform subdomains** - each site's public site served at `<name>.<platform domain>`
+- [ ] 17. **SEO basics** - title and description per page and post, social image, `sitemap.xml` and `robots.txt` per site
+- [ ] 18. **Start from a description** - "What do you want to create?" then "Tell us about it"; AI builds pages, navigation, starter text and SEO basics as drafts in the built-in theme; the user reviews and publishes; AI use capped per site
+- [ ] 19. **Contact form** - a form section; submissions stored per site and emailed to the owner; spam protection
+- [ ] 20. **Simple by default** - a new site's admin shows only Level 1 screens; Users and advanced settings appear when switched on
+- [ ] 21. **Billing** - one paid plan, paid through Stripe, that raises the Free plan's limits (AI use, storage, already enforced by items 15 and 18), lets a site use its own domain and removes the "Made with Habre" footer link; billing can be switched off for self-hosted copies and stays off through the beta (D150)
