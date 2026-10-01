@@ -1689,3 +1689,27 @@ Costs: the form calls into vanilla DOM code, as the image block does.
 **Chose:** publicly, the text renders and the picture does not; in the editor, the form says "This image is no longer in the library. Choose another." and a save sends no id, so the server refuses with "choose an image" and keeps the typed text.
 Beats: failing the public page (the plan's stance on missing images is that text still serves) and silently saving a section with a dead id.
 Costs: the server itself accepts any uuid, as an image block does (no database check on save).
+
+## D144 - The 26 R2-uploading browser tests skip in CI through an explicit `E2E_SKIP_R2=1` (2026-10-01)
+
+**Chose:** `e2e/helpers/storage.ts` exports `skipWithoutStorage`; the `e2e` job sets the switch, a laptop with a real `.env` does not, so all 141 still run locally.
+Beats: a fake R2 server with an `R2_ENDPOINT` override (a production-code change and a bigger item), real credentials in CI (the shared dev token, fork-PR exposure), and auto-detecting a missing bucket (a silent skip is how coverage disappears).
+Costs: image, logo and media behaviour is not covered by CI; the count is named in the docs.
+
+## D145 - Browser tests are a separate `e2e` CI job, not part of `verify` (2026-10-01)
+
+**Chose:** a second job beside `verify` with a PostgreSQL service; `npm run verify` stays database-free.
+Beats: adding them to `verify` (every laptop run of the quick check would need a database).
+Costs: two checks to read, and `e2e` is not a required check until the owner sets it in branch protection.
+
+## D146 - The CI database role is made by `db/dev/init.sh`, not by the service's `POSTGRES_USER` (2026-10-01)
+
+**Chose:** the app connects as a non-superuser that owns its database, as in development and production.
+Beats: a superuser from the image's own environment (a migration needing superuser would pass in CI and fail in production).
+Costs: one extra step.
+
+## D147 - No retries in CI (2026-10-01)
+
+**Chose:** `forbidOnly` in CI, no `retries`.
+Beats: `retries: 1` (hides the F-103 race and any other flake).
+Costs: a rare red run until F-103 is fixed.

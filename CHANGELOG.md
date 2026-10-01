@@ -4,6 +4,18 @@ What changed in each production release of Habre CMS, for the person running
 it. Internal refactors, dependency bumps and test changes are not listed here -
 see the git log for those.
 
+## 2026-10-01 - release `8d82ce4`
+
+- **New: ready-made sections.** Below the page's sections there are now three
+  more buttons: "Add hero section" (a big heading, a line of text and an
+  optional button), "Add call to action" (a boxed heading, text and a button that
+  is always there) and "Add image and text" (a picture from your media library
+  beside a heading, text and an optional button; stacked on a phone). They are
+  forms, not free writing - fill in the fields and save.
+- **Good to know:** a page that uses one of these sections can no longer be
+  opened by the previous version of the site, so this release cannot simply be
+  switched back once you have saved one.
+
 ## 2026-09-30 - release `135bd1d`
 
 - **New: build a page from sections.** A page is now a list of sections, shown

@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -171,6 +172,7 @@ test("a page stored before sections opens as one section and is saved as v3 with
 });
 
 test("an image in the second section renders on the public page", async ({ page }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, editor);
   const origin = new URL(page.url()).origin;
   const uploaded = await uploadTestMedia(page.request, origin, "1x1.jpg", "A section pixel");

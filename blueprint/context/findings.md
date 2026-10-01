@@ -27,9 +27,6 @@ File: app/features/blocks/editor.client.tsx:68
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
 
-### F-17 [P2] open - The browser tests that cover login never run automatically
-File: .github/workflows/ci.yml, package.json:22 (`verify` = typecheck, lint, unit tests, build)
-
 ### F-69 [P2] open - `createRequestHandler` is never given a mode, so every error is sanitized in development too - root's own dev-mode stack trace has never been reachable
 File: server/app.ts:6 (`createRequestHandler(() => import("virtual:react-router/server-build"))`)
 
@@ -45,14 +42,8 @@ File: app/features/blocks/inline-runs.ts:41; app/features/media/media-input.test
 ### F-119 [P2] fixed - Section ids are not checked for uniqueness or for characters the editor's selector can take
 File: app/features/blocks/blocks.ts (`sectionBlock`, `sectionsSchema`); app/features/blocks/sections-editor.client.tsx:96
 
-### F-125 [P1] accepted - The section and Columns controls have never had a keyboard and screen-reader pass, and their own needs-you line makes it a precondition of deploying items 10-11
-File: blueprint/context/needs-you.md (section-controls line); app/features/blocks/sections-editor.client.tsx
-
 ### F-126 [P2] fixed - Release notes and entry-point docs do not describe items 10-11 or the live state
 File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no release deployed yet")
-
-### F-130 [P1] accepted - The hero, call-to-action and image-and-text forms and the image picker dialog have never had a keyboard and screen-reader pass
-File: blueprint/context/needs-you.md (section-controls line); app/features/blocks/sections-editor.client.tsx; app/features/blocks/image-tool.client.ts
 
 ### F-131 [P2] fixed - Entry-point docs say nothing merged is undeployed and that item 12 is next
 File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md

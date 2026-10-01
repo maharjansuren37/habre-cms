@@ -13,15 +13,35 @@ The `docs` skill maintains it.
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus items 9-11 (home page, sections, columns) are shipped and live in
-production**, as of the deploy below. Production runs `135bd1d`. **Item 12
-(ready-made sections: hero, call to action, image + text; 12a-12c) is merged
-and on `origin/main` (`1d58e42`, CI green) but not deployed** - preflight
-2026-10-01 is go, with the screen-reader pass accepted by the owner (F-130);
-deploy 12a-12c together, no symlink rollback once a page uses one of them
-(`blueprint/production-pending.md`). Nothing is in flight; the build plan is
-complete. **Owner action now:** publish a page and choose it as the home page in
+production**, as of the deploy below. Production runs `8d82ce4`, which is `origin/main`. **Item 12
+(ready-made sections: hero, call to action, image + text; 12a-12c) was deployed
+2026-10-01** (release `8d82ce4`, below); the screen-reader pass was accepted by
+the owner (F-130). Nothing merged is undeployed and nothing is in flight; the
+build plan is complete. **Owner action now:** publish a page and choose it as the home page in
 Settings - production `/` showed the "This site is being set up" placeholder
 on 2026-09-29 (`needs-you.md`).
+
+- **Deploy, 2026-10-01 04:24 UTC (items 12a-12c to production):** release
+  `8d82ce4` ("docs: preflight 12a-12c ...", CI green on this exact SHA; code is
+  `1d58e42`, item 12c, on top of 12a-12b). Built from a **clean clone at that
+  commit**: `npm ci` -> `npm run verify` (exit 0, 296 unit tests) -> `npm ci
+  --omit=dev` -> `rsync --rsync-path="sudo rsync" --chown=habre_cms:habre_cms` to
+  `/srv/habre-cms/releases/8d82ce4` (same layout, 59M). The browser suite (141)
+  ran locally before the merge; CI does not run it (F-17). **No migration, no
+  env, unit or Caddy changes.** `current` repointed and `habre-cms` restarted
+  (04:24:16 UTC, `NRestarts=0`, "Server listening ... (production)"). Verified
+  through the real proxy: `/healthz` on both hostnames ->
+  `{"status":"ok","database":"up"}`; `/` -> 200, `/posts` -> 200, an unknown slug
+  -> 404, `cms.../admin/login` -> 200; the CSP header still names the R2 image
+  host; 0 error lines in the journal since the restart. Not exercised on
+  production: saving a page with a hero, call to action or image + text section
+  (it would create real content). Preflight before it: go, F-130 accepted by the
+  owner. **Rollback:** `sudo ln -sfn /srv/habre-cms/releases/135bd1d
+  /srv/habre-cms/current && sudo systemctl restart habre-cms` - **safe only while
+  no page has been saved with a hero, call to action or image + text section**;
+  after that, `135bd1d` throws on those pages (restore from the nightly backup,
+  or remove those sections by hand). No schema change, so the database is
+  compatible either way.
 
 - **Deploy, 2026-09-30 22:21 UTC (items 10 and 11 to production):** release
   `135bd1d` ("docs: regenerate overview after item 11", CI green on this exact
@@ -516,9 +536,12 @@ stands*. All 8 items are now live in production.
 
 ## Open / not done
 
-- **Browser tests gate nothing** (F-17): CI runs `verify` only, and the tests
-  covering every item's worst defects are in the Playwright suite (run by
-  hand before each deploy instead).
+- **CI runs 115 of the 141 browser tests** (F-17 fixed 2026-10-01, closed by
+  `review`): the new `e2e` job. **The other 26 upload to R2 and skip
+  in CI** (`E2E_SKIP_R2=1`) - image blocks, the picker, the logo, image + text -
+  so run `npm run test:e2e` locally with the real `.env` before a deploy. A fake
+  R2 server would bring them into CI (needs an optional `R2_ENDPOINT` in
+  `r2.server.ts`); not built. `e2e` is not yet a *required* check (`needs-you.md`).
 - **No alerting on a failed backup** - the heartbeat is built but
   `BACKUP_HEARTBEAT_URL` is deliberately unset (owner's decision); a failed
   backup tells nobody.
@@ -582,6 +605,16 @@ nobody knowing how to do it.** Write it down here.
     npm ci --no-audit --no-fund
     npm run verify
 
+**The `e2e` job, by hand** (needs Docker; Node 26; no `.env` needed):
+
+    docker run -d --name ci-db -e POSTGRES_PASSWORD=ci-superuser-password -p 127.0.0.1:5433:5432 postgres:16-alpine
+    docker exec -i -e POSTGRES_USER=postgres -e HABRE_DB_PASSWORD=ci-app-password ci-db sh -s < db/dev/init.sh
+    export DATABASE_URL=postgres://habre_cms:ci-app-password@127.0.0.1:5433/habre_cms
+    npm run db:migrate
+    export JWT_SECRET=$(openssl rand -base64 32) R2_ACCOUNT_ID=ci R2_ACCESS_KEY_ID=ci \
+      R2_SECRET_ACCESS_KEY=ci R2_BUCKET=ci R2_PUBLIC_URL=https://r2.invalid E2E_SKIP_R2=1 CI=1
+    npx playwright install chromium && npm run test:e2e   # 115 passed, 26 skipped
+
 `npm run verify` runs, in order:
 
     npx react-router typegen     # generate route types (gitignored, so CI needs this)
@@ -608,12 +641,9 @@ what is verified above, on purpose.
   the R2 credential separation first** - it is small (a new Cloudflare
   token/bucket) and closes a real gap. The screen-reader pass is bigger and has been deferred since item 1;
   it deserves a dedicated session rather than being squeezed in.
-- **Give CI a database** (closes F-17). The browser suite is now the only
-  thing that actually proves items 1-8 still work together, and it is being
-  run by hand, from a fresh clone, immediately before every production
-  deploy - that is a real check, but it depends on someone remembering to run
-  it. A PostgreSQL service container in `ci.yml` would make it automatic on
-  every push, not just at release time.
+- **Give CI a fake R2 server** so all 141 browser tests run there, not 115.
+  F-17's database part is done; the 26 uploading tests still depend on someone
+  running the suite locally with real R2 before a deploy.
 - **This file is getting long and increasingly chronological** (a preflight
   entry, a migration entry, two deploy entries, each with its own detail).
   Worth a light restructure next time it's touched - collapse older deploy

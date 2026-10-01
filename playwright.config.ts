@@ -21,6 +21,10 @@ export default defineConfig({
   // that (login-rate-limit.server.ts). Almost every test logs in, so more workers
   // than slots made a test fail at random once the suite grew (item 2b, step 6).
   workers: 2,
+  // A committed test.only would quietly shrink the suite CI runs.
+  forbidOnly: !!process.env.CI,
+  // CI keeps the report so a red run can be read afterwards (uploaded by ci.yml).
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

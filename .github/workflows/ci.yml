@@ -31,3 +31,77 @@ jobs:
 
       - name: Verify
         run: npm run verify
+
+  e2e:
+    name: Browser tests (Playwright, PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          # Throwaway: the database lives and dies with this job.
+          POSTGRES_PASSWORD: ci-superuser-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI_DB_PASSWORD: ci-app-password
+      DATABASE_URL: postgres://habre_cms:ci-app-password@127.0.0.1:5432/habre_cms
+      # The app refuses to start without all five R2 values. These cannot
+      # authenticate anywhere, and the 26 tests that upload skip themselves
+      # (F-17: CI holds no storage credentials on purpose).
+      R2_ACCOUNT_ID: ci
+      R2_ACCESS_KEY_ID: ci
+      R2_SECRET_ACCESS_KEY: ci
+      R2_BUCKET: ci
+      R2_PUBLIC_URL: https://r2.invalid
+      E2E_SKIP_R2: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "26"
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Create the app's database role (as development and production have it)
+        # The same script compose.yaml runs, so the app connects as a role that
+        # owns its database and is not a superuser.
+        run: sh db/dev/init.sh
+        env:
+          PGHOST: 127.0.0.1
+          PGPASSWORD: ci-superuser-password
+          POSTGRES_USER: postgres
+          HABRE_DB_PASSWORD: ${{ env.CI_DB_PASSWORD }}
+
+      - name: Migrate
+        run: npm run db:migrate
+
+      - name: Generate a session secret for this run
+        run: echo "JWT_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:e2e
+
+      - name: Keep the report when it fails
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

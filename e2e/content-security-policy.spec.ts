@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -112,6 +113,7 @@ test("HTML pages carry the Content-Security-Policy, with inline styles allowed o
 });
 
 test("the public site renders with nothing refused by the policy", async ({ page }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
   await uploadPixel(page);
   await createDraftFor(
@@ -148,6 +150,7 @@ test("the public site renders with nothing refused by the policy", async ({ page
 test("every admin screen, including the whole editor, works with nothing refused by the policy", async ({
   page,
 }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
   const filename = await uploadPixel(page);
 

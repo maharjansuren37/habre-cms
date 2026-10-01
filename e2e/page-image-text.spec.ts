@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -11,6 +12,8 @@ import {
   type TestUser,
   withDatabase,
 } from "./helpers/users.ts";
+
+test.skip(skipWithoutStorage, STORAGE_REASON);
 
 let editor: TestUser;
 let mediaId: string;

@@ -139,3 +139,6 @@ File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor
 
 ### F-129 [P3] open - `render.tsx` keeps an import this item made unused
 File: app/features/blocks/render.tsx:4
+
+### F-132 [P3] open - `render.tsx` has an unused import, so lint reports a warning
+File: app/features/blocks/render.tsx:11

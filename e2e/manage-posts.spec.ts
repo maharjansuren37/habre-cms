@@ -49,7 +49,13 @@ test("the list is scoped by role, and the tabs' counts match", async ({ page }) 
     // An editor sees every author's posts (plan section 6, Permissions).
     await setRole(author.email, "editor");
     await page.reload();
-    await expect(tabs.getByRole("link", { name: /^All/ })).toHaveText("All3");
+    await expect(
+      page.getByRole("link", { name: "Someone else's post", exact: true }),
+    ).toBeVisible();
+    // At least the three posts made here: other specs running at the same time
+    // add posts of their own, which an editor sees too, so an exact count flakes.
+    const allTab = await tabs.getByRole("link", { name: /^All/ }).innerText();
+    expect(Number(allTab.replace("All", ""))).toBeGreaterThanOrEqual(3);
   } finally {
     await deleteEntriesBy(other.email);
     await deleteTestUser(other.email);
