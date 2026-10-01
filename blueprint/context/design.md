@@ -1,421 +1,356 @@
 # Design
 
-> Written by `prototype` on 2026-09-15. **Survives the mockups:** `ship` deletes
-> `prototypes/` once the look is built; this file stays, and `review`, `spec` and
-> `architect` read it. Change a decision here in the same change that changes the
-> code.
+> Written by `prototype` on 2026-10-02, **a deliberate redesign for platform v1**
+> that replaces the 2026-09-15 record. **Survives the mockups:** `ship` deletes
+> `prototypes/` once the look is built; this file stays, and `review`, `spec`
+> and `architect` read it. Change a decision here in the same change that
+> changes the code.
+>
+> **The shipped app (items 1-12) still has the 2026-09-15 look** until the
+> re-theme build item ports this one. Until then, a screen built before v1 is
+> measured against the old record (`git show 1d58e42:blueprint/context/design.md`),
+> and anything built for v1 against this file.
 
-## Direction
+## Product type and direction
 
-**Calm and neutral, one accent: the content is the loudest thing on screen.**
-Quiet blue-greys, a single blue for actions and links, generous whitespace,
-system fonts. A non-technical editor should never wonder what to press next.
-The admin and the public site share one token set; the public site differs only
-in reading size and a narrow column.
+**Mixed** (`ux-checklist.md` section 1): Habre's own signed-in product -
+signup, onboarding, admin, editor - is a **web app** with a sidebar; each
+customer's public site is a **content website** with a top nav and a footer.
+Separate layouts and separate token scopes, never one nav for both.
 
-Mockups (throwaway): `prototypes/login.html`, `posts-list.html`,
-`posts-empty.html`, `editor.html`, `public-post.html`. Tokens:
-`prototypes/theme.css`. Shared component styles: `prototypes/mockup.css`.
+**Habre: a red panda (habre) - warm, friendly and roomy.** One rust brand
+colour from the fur, cream and chestnut-black neutrals from the face and legs,
+Inter, rounder corners and 44px controls. Light and dark follow the device.
+Built for people with no technical knowledge, who come in for a few minutes at
+a time and must never wonder what to press next.
+
+**Customer sites are theirs, not Habre's.** Neutral ink until the owner picks a
+brand colour; one of three style presets; light only unless the owner turns
+dark mode on (Pro). The only Habre mark is a "Made with Habre" footer link,
+which the paid plan removes.
+
+Mockups (throwaway): `prototypes/signup.html`, `start.html` (onboarding step
+1), `start-brand.html` (step 3, Make it yours), `home.html` (admin Home),
+`editor.html` and `editor.html#heading` (two states), `site-home.html` (a
+published site), `components.html` (every component, both scopes). Tokens:
+`prototypes/theme.css`; components: `prototypes/components.css`. Checks:
+`prototypes/checks/contrast.mjs`, `shoot.mjs`.
 
 ## Where the tokens land
 
-- **`app/app.css`** (already imported by `app/root.tsx`, already sets
-  `color-scheme: light dark`) receives the contents of `theme.css` as custom
-  properties on `:root`. This is the first build step of the first UI item
-  (item 1, Admin login).
-- **Components are CSS Modules** beside their feature (D12), using only the
-  tokens. `mockup.css` is a reference for them, not a file to copy wholesale.
-- Nothing else: no Tailwind, no CSS-in-JS, no web font.
+- **`app/app.css`** receives `theme.css` as custom properties - plain CSS,
+  no Tailwind (D12). Components stay CSS Modules beside their feature, using
+  only role tokens; `prototypes/components.css` is their reference, not a file
+  to copy wholesale.
+- **A re-theme build item** renames the app's current tokens to the kit's
+  names first: `--color-accent` -> `--color-primary`, `--color-focus` ->
+  `--color-focus-ring`, `--color-border-control` -> `--color-border-strong`,
+  `--font-sans` -> `--font-family-sans`.
+- **Fonts are self-hosted** woff2 files with their SIL Open Font License
+  files (`prototypes/fonts/`): Inter for Habre's screens; a customer site loads
+  only its preset's pair. No third-party font request.
+- **A site's brand colour and preset** reach its public pages through a
+  per-site stylesheet or a nonce, because the Content-Security-Policy is
+  `style-src 'self'` - `architect` decides (D167).
 
-## Why the tokens are what they are
+## Token changes from the kit, and why
 
-- **Light and dark from one declaration.** Every color is
-  `light-dark(light, dark)`, driven by `color-scheme`. The app follows the
-  system setting; there is **no theme toggle in v1** (one fewer setting). If a
-  toggle is added later, it sets `color-scheme: light|dark` on `:root` and no
-  token changes.
-- **Neutral hue bias: faint cool blue-grey** (hue ~215), so greys sit with the
-  blue accent instead of against it.
-- **Dark mode separates surfaces by color and border, not shadow** - shadows
-  barely show on dark backgrounds. The dark accent is a light blue with near-
-  black text on it, not the light-mode blue, which fails contrast on dark.
-- **Type:** system font stack (no download, familiar to every editor). Admin body
-  16px; public reading body 19px at line-height 1.7 in a 42rem (~70 character)
-  column. Title size `--text-3xl` is a `clamp()` from 28px on phones to 38px.
-  The editor's canvas uses the reading size and column, so what an editor writes
-  looks like what visitors read.
-- **Spacing:** 4px base, 8 steps. **Control height 40px** - comfortably above the
-  WCAG 2.2 target minimum of 24px.
-- **Breakpoint:** one, `48rem` - sidebar becomes a top bar, table drops the author
-  and date columns. Written as a literal because custom properties do not work
-  inside media queries.
+Values only; no kit token was renamed or removed. `theme.css` marks each one
+`Habre:`.
 
-### Measured contrast (WCAG 2.2) - do not lighten these without re-measuring
+| Token | Kit | Habre | Why |
+|---|---|---|---|
+| `--color-primary` | blue-600 | **rust-700 `#b4441c`** light, **rust-400 `#f08c5a`** dark | The red panda's fur. Rust-500 is decorative only - it fails as text on light. |
+| Neutrals (`--color-bg`, text, borders) | slate | **stone**: bg `#fbf8f4` light / `#18110d` dark | Warm greys that sit with rust; cool slate fought it. |
+| `--color-danger` | red-700 | **crimson-700** / crimson-400 | A different hue from the brand: Delete must not look like Save. |
+| `--color-warning` | amber-700 | **ochre-700** / ochre-400 | Amber sits next to rust. |
+| `--font-family-sans` | names Inter, loads nothing | **Inter, self-hosted** (variable, latin, 47 KB) | Named and not loaded meant system fonts on most machines. |
+| `--radius-sm/md/lg` | 4 / 8 / 12px | **6 / 10 / 16px** | Friendlier, without going soft. |
+| `--size-control-sm/md/lg` | 32 / 40 / 48px | **36 / 44 / 52px** | Roomy, and every default control meets the 44px touch target. |
+| `--shadow-*` | slate-tinted | **stone-950-tinted** | Warm shadows on a warm background. |
 
-| Pair | Light | Dark |
+**Added tokens** (names the kit does not have):
+
+- `--font-family-heading` - so a preset can pair two fonts. Same as the body
+  on Habre's screens.
+- `--color-selection`, `--color-on-selection` - the editor's chrome over the
+  canvas (selected block, drop gap, section chip): Habre's rust, set inside
+  the site scope at the canvas's own scheme, so it stays visible on a light
+  canvas inside dark Habre.
+- `--font-family-ui`, `--radius-ui` (in `components.css`, on `:root`) - carry
+  Habre's font and corners into the canvas, whose preset changes the site's.
+
+**Customer-site scope, `[data-surface="site"]`:** the same role names with
+`--neutral-*` greys and ink buttons, so every component renders unchanged
+inside it. **It sets every role** rather than inheriting Habre's, because a
+Simple site is light even when Habre is dark. `[data-dark="auto"]` (Pro) adds
+the dark values. `[data-brand]` and `[data-style]` layer on top.
+
+### Measured contrast (WCAG 2.2) - do not change a colour without re-measuring
+
+From `node prototypes/checks/contrast.mjs`, 2026-10-02, after the last change.
+**Fails: none.** Columns: Habre's screens, a neutral site, a branded site (the
+`#2f6b5a` example), each with the device in light and dark. A light-only site
+under a dark device measures the same as light, which is the point.
+
+| Pair (min) | App L | App D | Site L | Site D (Pro dark on) | Brand L | Brand D (Pro dark on) |
+|---|---|---|---|---|---|---|
+| text on bg (4.5) | 17.63 | 16.33 | 17.93 | 18.16 | 17.93 | 18.16 |
+| text-muted on surface-hover (4.5) - worst muted | 6.67 | 6.00 | 7.17 | 6.00 | 7.17 | 6.00 |
+| primary on bg (4.5) | 5.24 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
+| primary on surface (4.5) | 5.55 | 6.99 | 17.18 | 16.44 | 5.97 | 6.09 |
+| on-primary on primary (4.5) | 5.55 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
+| primary on primary-subtle (4.5) | 5.08 | 6.63 | 16.44 | 13.88 | 5.67 | 5.02 |
+| border-strong on surface (3) - the lowest | 3.82 | 4.47 | **3.31** | 4.54 | **3.31** | 4.54 |
+| focus-ring on bg (3) | 5.24 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
+| danger on danger-subtle (4.5) | 5.72 | 5.81 | 5.72 | 5.81 | 5.72 | 5.81 |
+| success on success-subtle (4.5) | 4.79 | 8.55 | 4.79 | 8.55 | 4.79 | 8.55 |
+| warning on warning-subtle (4.5) | 4.76 | 9.52 | 4.76 | 9.52 | 4.76 | 9.52 |
+| selection on bg (3) | 5.24 | 7.65 | 5.55 | 8.11 | 5.55 | 8.11 |
+| on-selection on selection (4.5) | 5.55 | 7.65 | 5.55 | 7.65 | 5.55 | 7.65 |
+| bg on text-muted (4.5) - pressed toolbar button | 7.21 | 7.40 | 7.81 | 7.85 | 7.81 | 7.85 |
+
+The script measures 29 pairs; the rest are higher than the rows shown.
+Disabled controls are exempt (1.4.3) and are the only thing below these.
+
+## Customer sites: brand colour, presets, dark mode (D167, 2026-10-02 review)
+
+- **Brand colour.** Our own function derives `--color-primary`, `-hover`,
+  `--color-on-primary`, `--color-primary-subtle` and `--color-focus-ring` from
+  one hex - for light, and for dark when it is on - by moving the colour's
+  OKLCH lightness until each pair meets AA: primary at least 4.5:1 on bg and
+  surface, on-primary at least 4.5:1 on primary and on hover, **and primary at
+  least 4.5:1 on subtle**. A sketch that checked only the first two let gold
+  `#c9a25e` through at 4.39 on subtle, so the subtle check is required.
+  The example `#2f6b5a` passes unchanged: light 6.23, dark `#66a28f` 6.72.
+- **Presets** (names provisional), each a font pair and a corner shape and
+  nothing else, so a preset never changes contrast:
+
+  | Preset | Headings | Text | Radius sm/md/lg | |
+  |---|---|---|---|---|
+  | Classic | Source Serif 4 | Source Sans 3 | 2 / 3 / 4px | square |
+  | **Modern** (default) | Inter | Inter | 4 / 8 / 12px | the kit's |
+  | Friendly | Nunito | Nunito | 10 / 22 / 24px | pill buttons and inputs |
+
+- **No logo gives a wordmark** (`.site-brand.wordmark`): the site's name in
+  the preset's heading font and the brand colour.
+- **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
+  a site looks the way its owner saw it in the editor, and a dark logo never
+  disappears on a dark page. This changes the public site's current behaviour,
+  which follows the device - see *Open* below.
+
+## Navigation map
+
+**Habre - signed out:** Sign up (the front door: email, password, site
+address), Sign in, Forgot password. One centred form; from 1024px a panel
+beside it says what you get.
+
+**Onboarding `/start`:** a full-screen flow, Habre's logo only, three real
+URLs so Back works: 1 What do you want to create? (Website, Blog, Business,
+Portfolio) - 2 Tell us about it - 3 Make it yours (optional: logo, brand
+colour, style; Skip keeps the AI's colour and Modern). Step 1 offers "Start
+blank instead".
+
+**Admin shell** (sidebar from 769px; a top bar with Menu below that):
+- Site card: name, address, View site
+- **Home, Pages, Blog, Media, Messages, Settings** - and **Users** when the
+  site is on Pro (D166)
+- Account menu at the foot, under the person's name and plan: **Your
+  account, Plan, Sign out**
+
+**Editor:** full screen, no sidebar; Back returns to Pages or Blog. Same
+editor for pages and posts.
+
+**A customer's site:** the owner's menu in the header (logo or wordmark on the
+left, links on the right; a Menu button on a phone), footer with their line
+and "Made with Habre".
+
+## Screens
+
+Checklist section 2, for this product. **Mocked** = in `prototypes/`.
+
+| Screen | | |
 |---|---|---|
-| `--color-text` on `--color-bg` | 15.6 | 15.2 |
-| `--color-text` on `--color-surface` (card and dialog titles, filenames - item 5b) | 16.75 | 14.07 |
-| `--color-text-muted` on `--color-surface` | 6.3 | 7.3 |
-| `--color-text-muted` on `--color-surface-sunken` (worst case) | 5.5 | 8.1 |
-| `--color-text-muted` on `--color-bg` (public site: dates, footer, empty state - item 4b) | 5.9 | 7.8 |
-| `--color-accent` (links) on `--color-bg` | 6.0 | 8.4 |
-| `--color-accent` on `--color-accent-subtle` (active nav) | 5.5 | 6.9 |
-| `--color-on-accent` on `--color-accent` (primary button) | 6.4 | 8.4 |
-| `--color-accent` fill on `--color-surface` (call-to-action button on its panel - item 12b; non-text, needs 3:1) | 6.45 | 7.76 |
-| `--color-border-control` on `--color-surface` (input/button edge) | 3.3 | 3.7 |
-| `--color-border-control` on `--color-bg` | 3.1 | 4.0 |
-| `--color-success` on `--color-success-subtle` (Published badge) | 5.3 | 8.4 |
-| `--color-warning` on `--color-warning-subtle` (Draft badge) | 5.6 | 8.7 |
-| `--color-danger` on `--color-danger-subtle` | 5.0 | 7.3 |
-| `--color-danger` on `--color-surface` (field error text) | 6.0 | 7.8 |
+| Sign up | applies | **mocked** (`signup.html`), with the address-taken error and suggestions |
+| Check your email, then the emailed link signs you in (D161) | applies | item 15; the signup layout |
+| Sign in | applies | item 15; the signup layout. Its error never says which half was wrong |
+| Sign out | applies | account menu, every signed-in page |
+| Forgot password -> email -> reset -> signed in | applies | item 15; the signup layout |
+| Session expired -> sign in -> back where you were | applies | existing behaviour, kept |
+| Not allowed (403) | **not applicable** | a refusal is a 404 by design (D69) |
+| Your account: name, email, password, delete account | applies | deferred to item 15 - public signup makes delete-account a requirement |
+| Plan | applies | deferred to item 21 (Stripe's hosted pages, D160) |
+| First run | applies | **mocked**: onboarding (`start.html`, `start-brand.html`) and Home straight after the AI draft (`home.html`) |
+| The AI drafting your site (a wait of seconds to a minute) | applies | **deferred to item 18** - mock it in that item's spec: what is happening, no dead spinner, what to do if it fails |
+| Home (state, next steps, this month's allowance) | applies | **mocked** (`home.html`) |
+| Pages, Blog lists, with search, filter, pagination | applies | conventions carried over (below); the kit's table |
+| Editor | applies | **mocked**, two states (`editor.html`) |
+| Media | applies | carried over (below) |
+| Messages (contact form submissions) | applies | deferred to item 19; the kit's list and empty state |
+| Settings: name, address, logo, brand colour, style, home page, menu, SEO defaults, level, dark mode (Pro) | applies | deferred to items 16-20; the kit's form; brand colour and style reuse `start-brand.html`'s controls |
+| Users | applies, Pro only | carried over from item 8 |
+| Not found (404), on Habre and on a site | applies | the kit's `.error-page`, in each scope; not re-mocked |
+| Something went wrong (500) | applies | the kit's `.error-page`; no stack trace |
+| Loading, empty, error, success for every list and action | applies | conventions carried over (below) |
+| Unique page titles | applies | `<screen> - <site> - Habre` in the admin; the page's own title on a site |
+| A customer site's home page | applies | **mocked** (`site-home.html`) |
+| Footer privacy, terms, contact (Habre's own pages) | applies | blocked on terms of service and a privacy policy (`needs-you.md`) |
+| Social and search metadata | applies | item 17 |
+| Readable measure | applies | `--size-measure` 68ch for running text |
+| Safe areas, offline, platform back | **not applicable** for safe areas and offline - a server-rendered web app, not an installed one; back applies and works (real URLs, including onboarding's steps) |
 
-`--color-text-muted` is the one most likely to be "softened" - at light `#566170`
-it is 5.5:1 at worst; the next obvious lighter grey drops below 4.5:1.
-`--color-border` (1.3:1) is **decorative only** - dividers and card edges - and
-must never be the only edge of an input or button; those use
-`--color-border-control`.
+## Journeys
 
-## States
+`spec` turns each into done-whens for the item that builds it.
 
-Server-rendered with forms that work without JavaScript (D10), so states are
-mostly the page itself, not spinners.
+1. **The first two minutes:** Sign up -> emailed link -> What do you want to
+   create? -> Tell us about it -> Make it yours (or Skip) -> the AI drafts ->
+   Home, "Your website is ready" -> Preview -> Publish website. (items 15, 18)
+2. **Edit and publish:** Home -> Edit the home page -> drag a block in ->
+   change its text -> Publish -> View site shows it. (item 14)
+3. **Move a block without dragging:** select it -> Move up / Move down -> the
+   new position is announced; or focus a palette tile -> Enter -> the block is
+   added after the selected one. (item 14, WCAG 2.5.7)
+4. **Choose the main heading:** select a heading -> Text style -> Main heading
+   -> the previous main heading becomes a Heading, and that is announced; a
+   page with none shows its title. (item 14)
+5. **Make it yours later:** Settings -> brand colour or style -> the preview
+   changes -> Save -> the site changes. (item 18)
+6. Signed out -> a protected page -> sign in -> that page.
+7. Reset your own password -> what happens to your session -> where you end up.
+8. Submit a form with an error (sign up, a contact form) -> the error beside
+   the field, your input kept.
+9. Delete something -> confirmation naming it -> back to the list with its
+   filters.
+10. A visitor sends the contact form -> it appears in Messages and by email.
+    (item 19)
+11. **Switch Pro -> Simple:** every page still renders; Pro-only settings lock;
+    text stays editable. (D166, item 20)
+12. Change another user's role (Pro) -> what they see on their next request.
 
-- **Pending (loading):** the submitting button gets `aria-busy="true"` and
-  `disabled`, drops to 60% opacity, and its label changes to the verb in
-  progress ("Saving…", "Publishing…", "Logging in…"). No full-page spinner, no
-  skeletons. Page loads are server-rendered and fast enough not to need one
-  (quality bar: < 500 ms).
-- **Empty:** a dashed-border panel in the content area with a muted outline icon,
-  a heading that names the next action ("Write your first post"), one sentence on
-  what the thing is and when it becomes public, and the single primary button.
-  See `posts-empty.html`.
-- **Error - form or action failed:** a `message-error` banner at the top of the
-  form or canvas, `role="alert"`: bold sentence saying what happened, plain
-  sentence saying what to do, optional button for the fix (e.g. "Reload"). Never
-  blames the user, never shows codes. See `login.html` and the stale-save
-  conflict in `editor.html`.
-- **Error - one field:** red `--color-danger` border via `aria-invalid="true"`,
-  message below the field in `field-error`, linked with `aria-describedby`.
-  Login does **not** mark a field - it does not reveal which of email or password
-  was wrong.
-- **Success:** a `message-success` banner, `role="status"`, on the page the
-  action returns to, with a link to the result ("View it on the site"). See
-  `posts-list.html`.
-- **Not found (public):** plain 404 page in the public theme - to be decided
-  in item 4; not mocked.
+## Editor decisions (D165-D167, 2026-10-02 review)
 
-## Component conventions
+- **Palette** (owner, 2026-10-02): blocks **Text, Heading, List, Image,
+  Button, Quote, Line, Space**, and **Contact form** from item 19; sections
+  **Blank section, Hero, Image and text, Call to action**. Drag a tile into a
+  column, or focus it and press Enter to add it after the selected block. It
+  collapses to a rail of icons whose names stay as accessible names.
+- **Page structure:** sections of one to three columns; columns hold blocks
+  top to bottom. A heading across three columns is a one-column section above
+  them. **Columns stack when their container is narrower than 40rem** - a
+  container query, so the canvas and the published site behave identically.
+- **Dragging:** a gap opens where the block will land, labelled "Drop image
+  here", a ghost follows the pointer, and a live region says where it will
+  drop ("Image. Drop at the top of column 2, Portraits, in section 3.").
+- **The selected block** gets a 2px rust ring and an inverted toolbar above
+  it: drag handle, **Move up, Move down** (always there), the Text style menu
+  and Bold, Italic, Link for text, then Duplicate and Delete. On a phone the
+  toolbar wraps rather than running off the screen.
+- **Text style menu:** Text, **Main heading**, Heading, Subheading, Small
+  heading - each shown at its own size. Pro adds two smaller headings
+  (H5-H6). **The person chooses the main heading** (owner, 2026-10-02): one
+  per page, rendered as the page's `h1`. A hero's heading starts as the main
+  heading; a page with none shows its title as the `h1`. **This amends D166**,
+  which said `h1` is never inside content.
+- **Settings panel** only for a block that has settings - button, image,
+  contact form, a section (its columns) - never for text, which is edited
+  where it sits. 17rem on the right; a bottom sheet below 1024px.
+- **Section controls:** a rust chip on the section being edited - "Section 1
+  of 5", Move section up/down, Section settings - at its foot below 40rem.
+- **The canvas is the customer's site**, drawn in its scope with its brand
+  colour and preset, light even inside dark Habre. Only the chrome is rust.
+- **Phone:** the palette sits behind an Add button in the top bar.
 
-- **Buttons:** 40px tall, 8px radius, 14px medium weight. **Primary** (accent
-  fill) - at most one per view: New post, Publish, Log in. **Default** (surface
-  with control border) - secondary actions like Save draft, Reload. **Quiet**
-  (no border, muted text) - inline actions like Change. Destructive actions use
-  the default button with danger text and must be confirmed.
-- **Inputs:** 40px tall, control border, 8px radius, visible label above
-  (`field-label`), hint below in muted text. Placeholder is never the label.
-- **Status badges:** pill with a leading dot; **Draft = warning amber, Published
-  = success green.** The only two content statuses; the dot means color is not
-  the sole signal - the word is always there. **The users list (item 8) adds a
-  second, unrelated pair for account status:** Active reuses the same success
-  green; Deactivated is muted (`--color-text-muted` on `--color-surface-sunken`,
-  5.5:1 light / 8.1:1 dark) rather than a warning color, since a deactivated
-  account is an administered state, not a problem to fix.
-- **Messages:** bordered banner with icon, bold first sentence, body text, and an
-  optional action button on the right.
-- **Admin shell:** 15rem left sidebar - site name and logo with "View site",
-  nav (Posts, Pages, Media, Settings, Users - items the role cannot use are
-  hidden), current user and role with Log out at the bottom. Active nav item uses
-  accent-subtle background with accent text. Content max 64rem.
-- **Admin shell before navigation exists** (item 1): the sidebar shows "Habre
-  CMS" with "View site ↗", then name, role and a quiet Log out button at the
-  bottom - no nav list until the first admin section ships. Below `48rem` it
-  becomes one top row (site left, user and Log out right) with
-  `grid-template-rows: auto 1fr`, so the header never stretches. **The site's
-  own title and logo replace "Habre CMS" as of item 7a** - the same
-  `site_settings` row the public header/footer read (`design.md`'s *Settings
-  screen* and *Public site* entries below).
-- **Nav (item 3):** the sidebar's first section - one entry, "Posts". Pages,
-  Media, Settings and Users each add their own entry when they ship, rather
-  than appearing now as dead links; `/admin` itself redirects to `/admin/posts`.
-  **"Media" added in item 5a**, second in the list (ship order, not the
-  eventual Posts/Pages/Media/Settings/Users order named above).
-- **Lists:** a table in a bordered card; title is the link, slug underneath in
-  muted text; status, author, last changed, then a right-aligned "Delete" link
-  in `--color-danger` (6.0:1 light / 7.8:1 dark on the row background - the
-  word carries the meaning, not the color alone). Filter tabs (All / Drafts /
-  Published) with counts above, search on the right, both plain GET so they
-  work with JavaScript off. A search or filter with zero matches shows one
-  muted line under the table - the empty state below is only for a genuinely
-  empty list, and its "New post" button would be wrong advice otherwise. Past
-  20 posts, Previous/Next links carry the active tab and search forward.
-- **Delete confirmation (item 3, not in the mockups):** its own page inside
-  the admin shell - a short question, not a focused task, so it keeps the
-  sidebar rather than dropping it the way the editor does. The post's title,
-  one sentence saying it cannot be undone, a quiet "Cancel" and a default
-  button reading "Delete post" recolored to `--color-danger` text and border
-  (the same measured 6.0:1 / 7.8:1). A successful delete redirects to the list
-  with `?deleted=<title>`, read once and shown as the same success banner the
-  mockup's own publish example uses - item 4's publish/unpublish should reuse
-  this pattern rather than invent a second one.
-- **Media library (item 5a, not in the mockups):** no mockup covered this
-  screen - `prototype`'s pages predate it and are already consumed and
-  deleted, so it is built from the conventions above rather than a fresh
-  design pass. Upload control (file input, an "Alt text" field required
-  before the primary "Upload" button will do anything useful, both native
-  form controls so the upload works with JavaScript off) sits in its own
-  bordered card above a **thumbnail grid** - list's own table shape does not
-  fit a screen whose whole point is the image. Each card is bordered like a
-  list row, `auto-fill, minmax(12rem, 1fr)` so it reflows rather than
-  scrolling sideways: thumbnail (`object-fit: cover`, sunken-surface
-  background so a transparent PNG still shows its edges), filename, then two
-  muted lines - dimensions and size, then uploader and date, matching the
-  list's own "last changed" wording pattern, then a "Delete" link (shown only
-  when the viewer may use it), same `--color-danger` text as *Lists*' own -
-  each one given a visually-hidden filename suffix (`post-list.tsx`'s
-  pattern), since a grid of identical "Delete" links has nothing else to
-  tell them apart by (F-73). Empty state is one muted sentence, matching the
-  existing empty-list convention. Screenshots: `blueprint/reference/5a-media-library/`.
-- **Editor:** the sidebar is dropped - top bar with back link, status badge and
-  save state on the left, Save draft and Publish on the right. Title is a large
-  borderless field; "Web address" (never "slug") shown beneath with Change. Blocks
-  get a hover background and a drag handle in the left margin; a round + button
-  opens a menu of the four block types, each with a one-line description. **Image
-  blocks show the media's own alt text as a read-only line beneath the image, not
-  an editable field** - this line originally said "field", written before item 5a
-  decided alt text is one value per file, captured once at upload (D55); there is
-  nowhere in the post editor to edit it, by design, not by omission.
-- **Sections (item 10, page editor only, not in the mockups):** a page's body is
-  a stack of bordered cards (`--color-border`, `--radius-md`, `--space-4` inside,
-  `--space-5` between - decorative, like every other card border here), each
-  holding its own editor. The card's bar shows a muted "Section 2 of 4" heading
-  (`--color-text-muted`, `--text-sm`) on the left and **quiet** "Move up", "Move
-  down" and "Remove" buttons on the right; each button's accessible name adds the
-  position after the visible words ("Move up (section 2 of 4)"), so the visible
-  label stays inside the name. Below the last card, a default "Add section"
-  button. States: the first card's Move up and the last card's Move down are
-  disabled; **the only section has no Remove at all**; at 30 sections "Add
-  section" is disabled with "A page can have up to 30 sections." beside it.
-  **Remove asks first, inline:** the actions are replaced by "Remove this
-  section?", a default "Remove" and a quiet "Keep", with focus on Keep - never a
-  dialog. Focus otherwise follows the change (the same direction's button after a
-  move, the heading of the section that takes its place after a remove (the one before, when the last was removed), the new section's editor after
-  an add) and each change is announced in a polite live region ("Section moved to
-  position 2 of 4."). Editor.js's 300px of padding under the last block is
-  removed inside a section. **On the public site a section adds no chrome of its
-  own**: a `<section>` with the page's usual spacing, `--space-7` between
-  sections, nothing drawn. Screenshots: `blueprint/reference/10-sections/`
-  (light, dark, and the remove confirmation in each). Screen-reader behaviour is
-  unverified (`needs-you.md`).
-- **Columns (item 11, page editor and public page, not in the mockups):** each
-  section card's bar gains a native radio group - legend "Columns" (its
-  accessible name adds the position, "Columns (section 2 of 4)", like the Move
-  buttons) and three options, "1 column", "2 columns", "3 columns", in
-  `--text-sm` with `accent-color: var(--color-accent)`. It sits between the
-  "Section 2 of 4" heading and the quiet buttons; the bar already wraps, so on a
-  narrow card the buttons drop to a second line. **Below the bar the section's
-  editors sit in equal columns (`--space-4` apart) from `48rem` up and stacked
-  below it** - the app's one breakpoint. Each column has its own editor, named
-  "Section 2, column 1 content" (a one-column section keeps "Section 2
-  content"). **Changing the count happens at once, with no prompt:** growing adds
-  empty columns on the right; shrinking merges the removed columns' blocks onto
-  the end of the last kept one, in column order, so nothing is lost - which is
-  why, unlike Remove, it does not ask. Focus stays on the chosen radio, and a
-  polite announcement follows ("Section 2 now has 2 columns. Column 3 merged
-  into column 2."). If a column cannot be read (for example a
-  checklist, which cannot be stored) the count does **not** change and an error banner (the
-  standard `Message`) above the columns says why. **On the public page** a
-  multi-column section is a grid of equal columns from `48rem` up (`--space-5`
-  gap) and a single stack below it, in column order, so the reading order is the
-  same either way. An empty column keeps its cell when side by side, so the next
-  column does not slide over, and is hidden when stacked. The page body keeps
-  its reading width (`--measure`, 42rem), so three columns are narrow - wide
-  enough for a short paragraph or an image, not for long text. No new colours.
-  Screenshots: `blueprint/reference/11-columns/` (editor and public, light and
-  dark). Screen-reader behaviour is unverified (`needs-you.md`).
-- **Hero (item 12a, page editor and public page, not in the mockups):** the
-  first ready-made section kind - fixed slots instead of free columns. **In the
-  editor** the add row below the last card holds two default buttons, "Add blank
-  section" and "Add hero section" (both disabled at 30 sections, with the same
-  "A page can have up to 30 sections." hint). A hero card has the usual bar -
-  muted "Section 2 of 4" heading, quiet Move up / Move down / Remove with the
-  inline confirm, same focus and announcements - but **no Columns radios**: a
-  small bordered "Hero" tag (`--color-border`, `--color-text-muted`,
-  `--text-sm`) sits where they would be. Below the bar is a plain form, not
-  Editor.js: Heading ("Heading (required)", marked `aria-required`, never the
-  native `required`, so the app's own message shows), Text (3-row textarea),
-  Button label, Button link (plain text with a URL keyboard, never `type=url`, which refuses `/about`), each with a visible label and a muted
-  `--text-sm` hint beneath, tied to the field with `aria-describedby`. The fields
-  carry no `name`: the save reads them through `contentRef`, like every section.
-  A new hero starts empty with focus in Heading and a polite "Hero section added.
-  Now N sections." A refused save shows the server's message ("Section 2 (hero):
-  the heading is required.") in the page form's usual error banner and keeps
-  what was typed. Kinds are not convertible: remove and add the other.
-  **On the public page** a hero is a `<section data-kind="hero">`, centred text,
-  an `<h2>` at `--text-2xl` with no top margin, one paragraph of text when set,
-  and the button as a link in the **primary button's pair** (`--color-on-accent`
-  on `--color-accent`, already measured above: 6.4 light / 8.4 dark), `--text-md`,
-  `--control-height` tall, `--radius-md`, hover `--color-accent-hover`. Spacing
-  between sections is unchanged (`--space-7`); no new colours, so no new contrast
-  figures. It reads in the page's 42rem column at every width. Screenshots:
-  `blueprint/reference/12a-hero/` (editor and public, light and dark).
-  Screen-reader behaviour is unverified (`needs-you.md`).
-- **Call to action (item 12b, page editor and public page, not in the mockups):**
-  the second ready-made section kind, built like the hero. **In the editor** the
-  add row now holds three default buttons - "Add blank section", "Add hero
-  section", "Add call to action" - all disabled at 30 sections with the same hint,
-  wrapping on a narrow screen. A call-to-action card has the usual bar with a
-  small bordered "Call to action" tag in place of Columns, and the hero's form,
-  except that **the button is required**: "Button label (required)" and "Button
-  link (required)" are `aria-required`, never the native `required`. A new one
-  starts empty with focus in Heading and a polite "Call to action section added.
-  Now N sections." A refused save names it ("Section 2 (call to action): the
-  button needs a label and a link.") and keeps what was typed. Kinds are not
-  convertible. **On the public page** it is a `<section data-kind="cta">`: a panel
-  on `--color-surface` with a 1px `--color-border` (decorative, 1.29:1 light /
-  1.3:1 dark, like every card border), `--radius-md`, `--space-6` padding,
-  centred text, the `<h2>` at `--text-xl`, one paragraph when text is set, and
-  always the button, in the hero button's rule (`--color-on-accent` on
-  `--color-accent`). The only new colour pair is that button fill on the panel
-  (6.45 light / 7.76 dark, table above). It differs from a hero by being a
-  contained panel, so the two are never mistaken on a page. Screenshots:
-  `blueprint/reference/12b-cta/` (editor and public, light and dark).
-  Screen-reader behaviour is unverified (`needs-you.md`).
-- **Image and text (item 12c, page editor and public page, not in the mockups):**
-  the third ready-made kind. **In the editor** the add row now holds four default
-  buttons - "Add blank section", "Add hero section", "Add call to action", "Add
-  image and text" - all disabled at 30 sections, wrapping on a narrow screen;
-  four stay buttons, and a menu is revisited at a fifth kind (D135 closed). The
-  card has the usual bar with a bordered "Image and text" tag in place of
-  Columns, then an "Image (required)" fieldset above the hero's four fields: three
-  states - **empty** ("Choose image" only), **chosen** (a thumbnail up to 12rem
-  wide with `alt=""`, a muted "Alt text: ..." line and a quiet "Change image"
-  button) and **missing** (the library row was deleted: "This image is no longer
-  in the library. Choose another." linked to the button). The button opens the
-  image block's picker dialog; focus returns to it when the dialog closes. A new
-  one starts empty with focus on "Choose image" and a polite "Image and text
-  section added. Now N sections." A save with no image, or a missing one, is
-  refused as "Section N (image and text): choose an image." with typed text kept.
-  The button pair is optional, as on a hero. **On the public page** it is a
-  `<section data-kind="image-text">`: the picture on the left and the `<h2>` (at
-  `--text-xl`), optional paragraph and optional button on the right, two equal
-  columns with a `--space-6` gap from `48rem`, stacked picture-first below; the
-  picture keeps its aspect ratio (`width`/`height` set), has `--radius-lg` like
-  every image, the library's alt text and no caption. With no picture row the text
-  takes the full width. No new colour pair: text on the page background and the
-  hero button's rule, both already tabled. Screenshots:
-  `blueprint/reference/12c-image-text/` (editor and public, light and dark; public
-  at 375 px). Screen-reader behaviour is unverified (`needs-you.md`).
-- **Image block and picker (item 5b, not in the mockups):** a bordered card
-  (`--color-border` on `--color-surface`, 1.3:1 - decorative, matching every
-  other card border in the app) holding either a centered "Choose image" button
-  (default button style) or, once chosen, the image itself at up to full column
-  width with 12px radius, a plain-text line of its alt text below
-  (`--color-text-muted` on `--color-surface`, 6.3:1 light / 7.3:1 dark - already
-  tabled above) and a quiet "Change image" button. A media id with no matching
-  row (the file was deleted from the library after being placed) shows the same
-  card with "This image is no longer available." in place of the image, and the
-  same "Choose image" button to replace it - never a crash. "Choose image" opens
-  a native `<dialog>` (`showModal()`, so Escape and the platform's own focus trap
-  are free): a bordered header with the title and a quiet "Close" button, then a
-  thumbnail grid reusing the media library's own card shape - each thumbnail a
-  full `<button>` whose visible filename is its own accessible name, no
-  visually-hidden suffix needed (unlike the list screens' identical "Delete"
-  links, F-73 - nothing else in this grid needs telling apart by anything but
-  the name). A click on the backdrop (the dialog element itself, outside its
-  rendered box) closes it the same as Escape or Close, selecting nothing.
-  Previous/Next between pages below the grid; an empty library shows one muted
-  sentence and a link to `/admin/media` (opens in a new tab, so the post is
-  never left mid-edit). All text in the block and the dialog is
-  `--color-text`/`--color-text-muted` on `--color-surface` - the dialog title and
-  every thumbnail's filename measure **16.75:1 light / 14.07:1 dark**
-  (`--color-text` on `--color-surface`; not previously its own row in the table
-  above despite being the same pairing the toolbar's own icons already use -
-  added below). Every button (Choose image, Change image, Close, Previous, Next)
-  reuses the existing default/quiet button styles and their already-measured
-  `--color-border-control` edge (3.3:1 light / 3.7:1 dark) - nothing here
-  introduces a new button variant. The backdrop is a flat `rgb(0 0 0 / 0.4)`
-  scrim, decorative rather than a contrast-graded pairing. Screenshots:
-  `blueprint/reference/5b-image-block/`.
-- **Settings screen (item 7a, not in the mockups):** like the media library
-  and image picker before it, this screen predates no mockup and is built
-  from the existing conventions rather than a fresh design pass. A single
-  bordered-card form (the same shape as every other admin form): "Site
-  title" as a labelled text field, then a "Logo" field below it - either a
-  centered "Choose logo" button (default style) or, once one is set, a small
-  preview image next to "Change logo" and "Remove logo" (both quiet buttons).
-  "Choose logo" and "Change logo" open the **identical dialog** the post
-  editor's image block already uses (same card grid, same Previous/Next,
-  same measured contrast) - a deliberately separate copy of it
-  (`logo-picker.client.ts`), not a shared component, since this is its
-  second use rather than its third (`fundamentals.md`). Save is the one
-  primary button at the bottom, success and error shown with the existing
-  `Message` banner. Keyboard and screen-reader use is **not yet verified**
-  (`needs-you.md`).
-- **Inline formatting** (item 2b, not in the mockups): selecting text opens
-  Editor.js's own inline toolbar with exactly **Bold, Italic, Link** (shortcuts
-  Ctrl/Cmd+B, I, K) in text and list blocks; the link field opens beneath it.
-  **Headings offer Italic and Link only**, because headings are already bold and
-  Editor.js's Bold un-bolds them with markup no save can keep (F-43, confirmed in
-  the app). Giving headings their own list makes Editor.js 2.31.6 add its
-  "Convert to" menu there, offering only Text - chosen by the owner over hiding
-  it with CSS, which could leave an invisible item in the keyboard order. The + menu shares the same popover. Both are re-coloured onto the tokens in
-  `post-form.module.css` - surface background, `--color-text` icons,
-  `--color-surface-hover` hover, accent for active, 2px inset focus ring on the
-  link field **and on each toolbar button** (inset because the popover clips
-  outside). Editor.js's own focus affordance is a background swap at 1.11 / 1.09
-  against the toolbar - imperceptible, and identical to hover, so keyboard focus
-  could not be seen or told apart from the pointer (F-48); keyboard focus there
-  is a class, not DOM focus, so the ring hangs off `.ce-popover-item--focused`.
-  Measured light / dark: icon 16.75 / 14.07, hovered icon 15.07 / 12.86, link
-  field text 16.75 / 14.07, **focus ring on the toolbar surface 6.45 / 7.76**.
-  Editor.js's tooltip is left as shipped (dark in both schemes): title 10.66,
-  shortcut line 4.73. **Text selection inside the editor** is `--color-accent`
-  with `--color-on-accent` (6.45 / 8.40), overriding Editor.js's own
-  `.codex-editor ::selection` light blue, which hid selected text in dark mode;
-  the rest of the app keeps the browser default. The toolbar's
-  background differs from the page by only 1.07:1, and its border is decorative
-  at 1.29 / 1.30 against that background - **the icons are what identify it**, at
-  16.75 / 14.07 (F-53: the border was credited with a job it cannot do). Keyboard and screen-reader use is **not yet verified** (`needs-you.md`).
-  Screenshots: `blueprint/reference/2b-inline-toolbar/`.
-- **Public site:** header with logo, site title and the navigation menu, all
-  live as of item 7b; article
-  with date and author above the title **on a post** - a page (item 6b) has no
-  byline, since it is static reference content rather than a dated article;
-  images full column width with 12px radius and muted caption; footer on
-  `--color-bg`.
-- **Navigation menu** (item 7b): plain text links in the header, next to the
-  site title, `--color-text` with an underline on hover - the same pairing
-  `home.module.css`'s own post list already uses, not a new one invented for
-  this row. An empty menu renders no `<nav>` at all. Computed from the
-  tokens against the header's `--color-bg` background: text **15.62:1 light /
-  15.15:1 dark**, the `:focus-visible` ring (`--color-focus`, 2px, 2px offset,
-  the project's standard focus treatment) **6.01:1 light / 8.35:1 dark** -
-  both comfortably over the 4.5:1 text and 3:1 non-text bars. Hover adds only
-  an underline, so its contrast is the same as the default state's. Keyboard
-  and screen-reader use is **not yet verified** (`needs-you.md`).
-- **Words:** plain language, no CMS jargon. "Web address" not "slug", "Log in"
-  not "Sign in", "Last changed" not "Modified".
+## Components in use
+
+**From the kit, unchanged apart from tokens:** buttons (primary, secondary,
+ghost, icon, sm, lg), field, input, select, textarea, choice and switch,
+alert, badge, card, table, list, menu, dialog, tabs, topbar, nav, sidebar,
+mobile menu, site footer, empty state, error page, skeleton, spinner, toast,
+tooltip, avatar, breadcrumbs, pagination, skip link, visually hidden. Nothing in
+the kit's own rules was changed.
+
+**Added** (the "Habre additions" block at the end of `components.css`):
+
+- **Brand** - Habre's logo lockup (the mark is a placeholder until the red
+  panda logo exists) and the ringed-tail band, decorative only.
+- **Sign-up layout** (`.auth`), **address field with a fixed suffix**
+  (`.input-group`), an available-address line (`.field__ok`).
+- **Onboarding** - `.flow`, step bars, **radio buttons as large cards**
+  (`.choice-card`; the real input stays inside, focus and checked drawn with
+  `:has()`).
+- **Admin Home** - site card, account button, page header, "ready" panel with
+  a half-size site preview, suggestion links, usage meter.
+- **Sections and columns** - `.page-flow` (the container), `.sec`, `.cols`,
+  `.col`; shared by the canvas and the site.
+- **Blocks** - `.display`, `.lede`, `.quote`, `.rule`, `.spacer`, and a photo
+  stand-in; `.site-brand` and `.wordmark`.
+- **Editor** - bar, palette and tiles, canvas, section chip, block outline
+  (`.blk`), drop gap, drag ghost, block toolbar, text style menu, Add a
+  section, settings panel.
+- **Make it yours** - two-column step with a sticky preview, logo drop,
+  **colour swatches as radio buttons** (44px, ringed in `--color-text` when
+  chosen, named for screen readers), **preset cards** that draw each preset in
+  the site's scope, half-size live preview.
+- **Mockup-only, never ported:** the light/dark toggle and the editor's state
+  switch.
+
+## Conventions carried over from 2026-09-15
+
+These describe behaviour, not the look, and still hold. Full text in the old
+record (`git show 1d58e42:blueprint/context/design.md`).
+
+- **Pending:** the submitting button gets `aria-busy="true"` and `disabled`,
+  and its label becomes the verb in progress ("Publishing…"). No full-page
+  spinners or skeletons for server-rendered pages.
+- **Empty:** a panel naming the next action, one sentence, the single primary
+  button. A search with no matches is one muted line, not the empty state.
+- **Errors:** a form or action failure is a banner, `role="alert"`, saying what
+  happened and what to do; never blames, never shows codes. A field error sits
+  below the field, `aria-invalid` and `aria-describedby`, input kept. Sign-in
+  marks no field.
+- **Success:** a banner, `role="status"`, on the page the action returns to.
+- **At most one primary button per view.** Destructive actions confirm on
+  their own page, naming the thing, then return to the list with a success
+  banner (item 3's pattern).
+- **Lists:** title links, filter tabs with counts, search, Previous/Next past
+  20, all plain GET so they work without JavaScript.
+- **Media and the image picker:** a thumbnail grid; alt text captured once at
+  upload (D55); the picker is a native `<dialog>`; a deleted image shows "This
+  image is no longer available." with a way to replace it.
+- **Words:** plain language, no CMS jargon - "Web address" not "slug", "Last
+  changed" not "Modified". **Sign up, Sign in, Sign out** - this replaces the
+  old record's "Log in", so the three account words match now that there is a
+  sign-up.
 
 ## Accessibility bar
 
-- **Standard: WCAG 2.2 level AA.** This is the accessibility standard
-  `quality-bar.md` defers to this file, and `review` enforces it.
-- **Checked in the mockups (2026-09-15):**
-  - Text contrast >= 4.5:1 and non-text UI contrast >= 3:1 in both schemes - the
-    table above, computed from the hex values with the WCAG relative-luminance
-    formula. Disabled buttons are exempt (1.4.3) and are the only thing below.
-  - Focus is always visible: 2px accent outline with 2px offset on
-    `:focus-visible`. The editor title removes its outline only because the
-    whole canvas is the editing context - **re-check this when building item 2.**
-  - Targets >= 24px (2.5.8): controls 40px; the drag handle is 24px.
-  - Every input has a real `<label>` (visually hidden only for the title, search
-    and alt text, where the context is unambiguous); errors use `role="alert"`,
-    success uses `role="status"`.
-  - Status is never color alone: badges carry the word.
-  - Layout holds at 390px wide (phone) and 1280px, both schemes - viewed as
-    Chromium screenshots.
-- **Not checked yet - needs a person or the real app:** keyboard-only walkthrough
-  and focus order, screen-reader output (especially Editor.js blocks and the block
-  menu), 200% zoom and reflow at 320px, and reduced-motion (only a 120ms hover
-  transition exists so far).
+- **Standard: WCAG 2.2 level AA** - the bar `quality-bar.md` defers to, and
+  `review` enforces.
+- **Checked in the mockups, 2026-10-02:**
+  - Contrast in every scope and scheme - the table above; `contrast.mjs`
+    reports no failures.
+  - Focus: a 2px `--color-focus-ring` outline with offset; swatches and cards
+    draw it from the hidden input with `:has(:focus-visible)`.
+  - Targets: default controls 44px, swatches 44px, toolbar and chip buttons
+    36px (above the 24px minimum, 2.5.8).
+  - **Dragging has a single-pointer alternative** (2.5.7): Move up / Move down
+    on every block and section, Enter on a palette tile; the drop position is
+    announced.
+  - Every input has a visible label; colour is never the only signal (swatches
+    are named, badges carry words, links in text are underlined).
+  - Layout at 390px and 1280px, light and dark, from Chromium screenshots
+    (`shoot.mjs`): no horizontal scroll, no zero-size icon, fonts loaded.
+- **Not checked - needs a person or the real app** (`needs-you.md`):
+  keyboard-only walkthrough and focus order, screen-reader output (the drag
+  announcements, the text style menu, the swatches), 200% zoom and reflow at
+  320px, reduced motion, the colour picker.
+
+## Open
+
+- **D166 needs amending** for the main-heading choice (above). The skill that
+  owns decisions does it when D166 and D167 are committed.
+- **Public sites stop following the device into dark mode** in Simple. Items
+  1-12 built a public site that follows it, so this is a change to shipped
+  behaviour: record it as a decision, and the re-theme item carries it out.
+- Preset names; the platform logo (placeholder "h" mark until then).

@@ -1,0 +1,442 @@
+/* Habre's theme - the pack's tokens.css with VALUES changed, never names.
+ * Copied from blueprint/design-kit/tokens.css by `prototype`, 2026-10-01.
+ * Every change from the kit is marked "Habre:" and recorded, with its reason
+ * and measured contrast, in blueprint/context/design.md.
+ *
+ * Direction: a red panda (habre). Rust fur for the one brand colour, cream face
+ * markings for the light background, chestnut-black legs for dark mode, warm
+ * greys between them. Friendly and roomy: Inter, rounder corners, 44px
+ * controls.
+ *
+ * Two scopes:
+ *   :root                    - Habre's own surfaces: signup, onboarding, admin.
+ *   [data-surface="site"]    - a customer's public site, and the editor canvas
+ *                              that previews it. Neutral on purpose: a
+ *                              customer's site is theirs, not Habre-branded.
+ *   [data-style="..."]       - one of three style presets on a site (D167): a
+ *                              font pair and a corner shape.
+ *   [data-brand="..."]       - a site's brand colour (D167), as the roles our
+ *                              derivation function emits for it. Without one,
+ *                              the site stays neutral ink.
+ *   [data-dark="auto"]       - a site whose owner turned dark mode on (Pro).
+ *                              Without it a site is light only.
+ */
+
+/* Habre: Inter, served from our own host - no third-party font request.
+ * One variable file covers every weight; latin only (47 KB). */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+/* Habre: the style presets' fonts (D167), self-hosted, SIL Open Font License
+ * (fonts/*-LICENSE.txt). A site loads only its own preset's pair. */
+@font-face {
+  font-family: "Source Serif 4 Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "Source Sans 3 Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("fonts/source-sans-3-latin-wght-normal.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "Nunito Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 1000;
+  src: url("fonts/nunito-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+:root {
+  color-scheme: light dark;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-400: #f87171;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-950: #450a0a;
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-400: #4ade80;
+  --green-700: #15803d;
+  --green-950: #052e16;
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-400: #fbbf24;
+  --amber-700: #b45309;
+  --amber-950: #451a03;
+
+  /* Habre: added primitives. The kit's are kept (never removed); the roles
+   * below point at these instead. */
+  /* Rust - the red panda's fur. 700 is the light-mode brand, 400 the dark. */
+  --rust-50: #fdf3ee;
+  --rust-100: #fbe4d8;
+  --rust-200: #f6c6ad;
+  --rust-300: #f4a27a;
+  --rust-400: #f08c5a;
+  --rust-500: #e0672f; /* decorative only - logo, illustration. Fails as text on light. */
+  --rust-600: #c2501f;
+  --rust-700: #b4441c;
+  --rust-800: #8f3514;
+  --rust-900: #6b2810;
+  --rust-950: #3a1608;
+  /* Stone - warm greys from cream (face) to chestnut-black (legs). */
+  --stone-50: #fbf8f4;
+  --stone-100: #f4efe9;
+  --stone-200: #e8e1d9;
+  --stone-300: #d4cbc1;
+  --stone-400: #a8a29e;
+  --stone-500: #8a817a;
+  --stone-600: #57534e;
+  --stone-700: #3d332c;
+  --stone-800: #2e241e;
+  --stone-900: #231a15;
+  --stone-950: #18110d;
+  /* Crimson - danger, moved off the kit's red so it is a different hue from
+   * the rust brand: a Delete button must not read as a Save button. */
+  --crimson-50: #fff1f2;
+  --crimson-400: #fb7185;
+  --crimson-700: #be123c;
+  --crimson-950: #4c0519;
+  /* Ochre - warning, moved off the kit's amber, which sits next to rust. */
+  --ochre-50: #fefce8;
+  --ochre-400: #facc15;
+  --ochre-700: #a16207;
+  --ochre-950: #422006;
+  /* Neutral - true greys for customer sites: no hue, so no brand. */
+  --neutral-0: #ffffff;
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-450: #808080;
+  --neutral-500: #8a8a8a;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --neutral-950: #0a0a0a;
+
+  --font-family-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* Habre: Inter loaded, not just named */
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Habre: added token. Headings' font, so a style preset can pair two. Same as
+   * the body everywhere Habre's own screens are drawn. */
+  --font-family-heading: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-line-height-tight: 1.25;
+  --font-line-height-normal: 1.5;
+  --font-line-height-relaxed: 1.7;
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --radius-sm: 6px;   /* Habre: rounder - kit 4px */
+  --radius-md: 10px;  /* Habre: rounder - kit 8px */
+  --radius-lg: 16px;  /* Habre: rounder - kit 12px */
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px #18110d14;   /* Habre: warm-tinted, from stone-950 */
+  --shadow-md: 0 4px 12px #18110d1f;
+  --shadow-lg: 0 12px 32px #18110d2e;
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --size-control-sm: 2.25rem; /* Habre: roomy - kit 2rem */
+  --size-control-md: 2.75rem; /* Habre: roomy, 44px everywhere - kit 2.5rem */
+  --size-control-lg: 3.25rem; /* Habre: roomy - kit 3rem */
+  --size-target-min: 44px;
+  --size-container: 72rem;
+  --size-measure: 68ch;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  /* light roles - Habre */
+  --color-bg: var(--stone-50);
+  --color-surface: #ffffff;
+  --color-surface-sunken: var(--stone-100);
+  --color-surface-hover: var(--stone-100);
+  --color-text: var(--stone-950);
+  --color-text-muted: var(--stone-600);
+  --color-border: var(--stone-200);
+  --color-border-strong: var(--stone-500);
+  --color-primary: var(--rust-700);
+  --color-primary-hover: var(--rust-800);
+  --color-on-primary: #ffffff;
+  --color-primary-subtle: var(--rust-50);
+  --color-danger: var(--crimson-700);
+  --color-danger-subtle: var(--crimson-50);
+  --color-success: var(--green-700);
+  --color-success-subtle: var(--green-50);
+  --color-warning: var(--ochre-700);
+  --color-warning-subtle: var(--ochre-50);
+  --color-info: var(--blue-700);
+  --color-info-subtle: var(--blue-50);
+  --color-focus-ring: var(--rust-700);
+  --color-overlay: #18110d80;
+}
+
+/* Dark: follows the OS unless the page pins a theme with data-theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: var(--stone-950);
+    --color-surface: var(--stone-900);
+    --color-surface-sunken: var(--stone-950);
+    --color-surface-hover: var(--stone-800);
+    --color-text: var(--stone-100);
+    --color-text-muted: var(--stone-400);
+    --color-border: var(--stone-800);
+    --color-border-strong: var(--stone-500);
+    --color-primary: var(--rust-400);
+    --color-primary-hover: var(--rust-300);
+    --color-on-primary: var(--stone-950);
+    --color-primary-subtle: var(--rust-950);
+    --color-danger: var(--crimson-400);
+    --color-danger-subtle: var(--crimson-950);
+    --color-success: var(--green-400);
+    --color-success-subtle: var(--green-950);
+    --color-warning: var(--ochre-400);
+    --color-warning-subtle: var(--ochre-950);
+    --color-info: var(--blue-400);
+    --color-info-subtle: var(--blue-950);
+    --color-focus-ring: var(--rust-400);
+    --color-overlay: #0c0806b3;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: var(--stone-950);
+  --color-surface: var(--stone-900);
+  --color-surface-sunken: var(--stone-950);
+  --color-surface-hover: var(--stone-800);
+  --color-text: var(--stone-100);
+  --color-text-muted: var(--stone-400);
+  --color-border: var(--stone-800);
+  --color-border-strong: var(--stone-500);
+  --color-primary: var(--rust-400);
+  --color-primary-hover: var(--rust-300);
+  --color-on-primary: var(--stone-950);
+  --color-primary-subtle: var(--rust-950);
+  --color-danger: var(--crimson-400);
+  --color-danger-subtle: var(--crimson-950);
+  --color-success: var(--green-400);
+  --color-success-subtle: var(--green-950);
+  --color-warning: var(--ochre-400);
+  --color-warning-subtle: var(--ochre-950);
+  --color-info: var(--blue-400);
+  --color-info-subtle: var(--blue-950);
+  --color-focus-ring: var(--rust-400);
+  --color-overlay: #0c0806b3;
+}
+
+/* Habre: customer sites - neutral greys, ink buttons, no brand hue.
+ * Same role names, so every component renders unchanged inside the scope.
+ * LIGHT ONLY unless the site turns dark mode on (a Pro setting, decided at
+ * the 2026-10-02 review): a Simple site looks the way its owner saw it, and a
+ * dark logo never vanishes on a dark page. So this block sets every role,
+ * rather than inheriting Habre's, which may be dark. --color-selection is the
+ * editor's chrome over the canvas: Habre's rust, at the canvas's scheme. */
+[data-surface="site"] {
+  color-scheme: light;
+  --color-bg: var(--neutral-0);
+  --color-surface: var(--neutral-50);
+  --color-surface-sunken: var(--neutral-100);
+  --color-surface-hover: var(--neutral-100);
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-600);
+  --color-border: var(--neutral-200);
+  --color-border-strong: var(--neutral-500);
+  --color-primary: var(--neutral-900);
+  --color-primary-hover: var(--neutral-700);
+  --color-on-primary: var(--neutral-0);
+  --color-primary-subtle: var(--neutral-100);
+  --color-danger: var(--crimson-700);
+  --color-danger-subtle: var(--crimson-50);
+  --color-success: var(--green-700);
+  --color-success-subtle: var(--green-50);
+  --color-warning: var(--ochre-700);
+  --color-warning-subtle: var(--ochre-50);
+  --color-info: var(--blue-700);
+  --color-info-subtle: var(--blue-50);
+  --color-focus-ring: var(--neutral-900);
+  --color-overlay: #0a0a0a80;
+  --color-selection: var(--rust-700);
+  --color-on-selection: #ffffff;
+  --shadow-sm: 0 1px 2px #0a0a0a14;
+  --shadow-md: 0 4px 12px #0a0a0a1f;
+  --shadow-lg: 0 12px 32px #0a0a0a2e;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+/* Pro: dark mode on - the site follows each visitor's device. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-surface="site"][data-dark="auto"] {
+    color-scheme: dark;
+    --color-bg: var(--neutral-950);
+    --color-surface: var(--neutral-900);
+    --color-surface-sunken: var(--neutral-900); /* a band, not a well: bg is already 950 */
+    --color-surface-hover: var(--neutral-800);
+    --color-text: var(--neutral-100);
+    --color-text-muted: var(--neutral-400);
+    --color-border: var(--neutral-800);
+    --color-border-strong: var(--neutral-450);
+    --color-primary: var(--neutral-100);
+    --color-primary-hover: var(--neutral-300);
+    --color-on-primary: var(--neutral-950);
+    --color-primary-subtle: var(--neutral-800);
+    --color-danger: var(--crimson-400);
+    --color-danger-subtle: var(--crimson-950);
+    --color-success: var(--green-400);
+    --color-success-subtle: var(--green-950);
+    --color-warning: var(--ochre-400);
+    --color-warning-subtle: var(--ochre-950);
+    --color-info: var(--blue-400);
+    --color-info-subtle: var(--blue-950);
+    --color-focus-ring: var(--neutral-100);
+    --color-overlay: #0a0a0ab3;
+    --color-selection: var(--rust-400);
+    --color-on-selection: var(--stone-950);
+  }
+}
+:root[data-theme="dark"] [data-surface="site"][data-dark="auto"] {
+  color-scheme: dark;
+  --color-bg: var(--neutral-950);
+  --color-surface: var(--neutral-900);
+  --color-surface-sunken: var(--neutral-900); /* a band, not a well: bg is already 950 */
+  --color-surface-hover: var(--neutral-800);
+  --color-text: var(--neutral-100);
+  --color-text-muted: var(--neutral-400);
+  --color-border: var(--neutral-800);
+  --color-border-strong: var(--neutral-450);
+  --color-primary: var(--neutral-100);
+  --color-primary-hover: var(--neutral-300);
+  --color-on-primary: var(--neutral-950);
+  --color-primary-subtle: var(--neutral-800);
+  --color-danger: var(--crimson-400);
+  --color-danger-subtle: var(--crimson-950);
+  --color-success: var(--green-400);
+  --color-success-subtle: var(--green-950);
+  --color-warning: var(--ochre-400);
+  --color-warning-subtle: var(--ochre-950);
+  --color-info: var(--blue-400);
+  --color-info-subtle: var(--blue-950);
+  --color-focus-ring: var(--neutral-100);
+  --color-overlay: #0a0a0ab3;
+  --color-selection: var(--rust-400);
+  --color-on-selection: var(--stone-950);
+}
+
+/* Habre: style presets (D167). Names are provisional. Each sets a font pair
+ * and a corner shape - nothing else, so contrast does not change with the
+ * preset. Modern is the default. */
+[data-style="classic"] {
+  --font-family-heading: "Source Serif 4 Variable", Georgia, "Times New Roman", serif;
+  --font-family-sans: "Source Sans 3 Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+}
+[data-style="modern"] {
+  --font-family-heading: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+[data-style="friendly"] {
+  --font-family-heading: "Nunito Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-sans: "Nunito Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 10px;
+  --radius-md: 22px; /* half a 44px control: buttons and inputs become pills */
+  --radius-lg: 24px;
+}
+
+/* Habre: an example brand colour (D167) - what the derivation function emits
+ * for a logo whose main colour is eucalyptus #2f6b5a. In the app these values
+ * come from the site's settings, never from this file; here they show a
+ * branded site. Measured: primary on white 6.23, on neutral-50 5.97; dark
+ * primary on neutral-950 6.72, on neutral-900 6.09. */
+[data-surface="site"][data-brand="example"] {
+  --color-primary: #2f6b5a;
+  --color-primary-hover: #185747;
+  --color-on-primary: #ffffff;
+  --color-primary-subtle: #e4f9f2;
+  --color-focus-ring: #2f6b5a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-surface="site"][data-dark="auto"][data-brand="example"] {
+    --color-primary: #66a28f;
+    --color-primary-hover: #78b5a1;
+    --color-on-primary: #0a0a0a;
+    --color-primary-subtle: #0e2d24;
+    --color-focus-ring: #66a28f;
+  }
+}
+:root[data-theme="dark"] [data-surface="site"][data-dark="auto"][data-brand="example"] {
+  --color-primary: #66a28f;
+  --color-primary-hover: #78b5a1;
+  --color-on-primary: #0a0a0a;
+  --color-primary-subtle: #0e2d24;
+  --color-focus-ring: #66a28f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+  }
+}

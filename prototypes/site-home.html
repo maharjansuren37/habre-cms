@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lena Novak Photography - Portraits and weddings in the Adelaide Hills</title>
+<!-- Mockup: a customer's published home page at lenanovak-photo.habre.page.
+     data-surface="site" with Lena's brand colour (data-brand) and the Classic
+     preset (data-style), chosen in start-brand.html - no Habre colour; the
+     only Habre mark is the footer link, which the paid plan removes. The
+     sections, columns and blocks are the ones editor.html shows, in the same
+     classes, so this is what the editor publishes. Columns stack when the
+     page is narrower than 40rem.
+     Light only: Simple sites do not follow the device into dark mode; a Pro
+     site can (data-dark="auto"). The hero heading is the page's main heading
+     (h1), as chosen in the editor's Text style menu. Throwaway. -->
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body data-surface="site" data-brand="example" data-style="classic">
+<svg style="display: none" aria-hidden="true">
+  <symbol id="logo-lena" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="22" style="fill: var(--logo-1)"/>
+    <circle cx="24" cy="24" r="12" style="fill: none; stroke: var(--logo-3); stroke-width: 3"/>
+    <circle cx="24" cy="24" r="5" style="fill: var(--logo-2)"/>
+  </symbol>
+</svg>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="site-brand" href="#"><svg class="site-brand__logo" width="36" height="36" aria-hidden="true"
+    style="--logo-1: #2f6b5a; --logo-2: #c9a25e; --logo-3: #ffffff"><use href="#logo-lena"/></svg>Lena Novak Photography</a>
+  <ul class="nav only-desktop" aria-label="Main" style="margin-left: auto">
+    <li><a class="nav__link" href="#" aria-current="page">Home</a></li>
+    <li><a class="nav__link" href="#">Portfolio</a></li>
+    <li><a class="nav__link" href="#">About</a></li>
+    <li><a class="nav__link" href="#contact">Contact</a></li>
+  </ul>
+  <details class="mobile-menu only-mobile" style="margin-left: auto">
+    <summary class="btn btn--secondary btn--sm">Menu</summary>
+    <ul class="nav" aria-label="Main">
+      <li><a class="nav__link" href="#" aria-current="page">Home</a></li>
+      <li><a class="nav__link" href="#">Portfolio</a></li>
+      <li><a class="nav__link" href="#">About</a></li>
+      <li><a class="nav__link" href="#contact">Contact</a></li>
+    </ul>
+  </details>
+</header>
+
+<main id="main" class="page-flow">
+  <section class="sec" aria-labelledby="hero-h">
+    <div class="sec__inner cols cols--middle" style="--cols: 2">
+      <div class="col">
+        <h1 class="display" id="hero-h">Portraits and weddings in the Adelaide Hills</h1>
+        <p class="lede">Relaxed, natural photos of the people you love - no stiff poses, no rush.</p>
+        <div class="spacer" role="presentation"></div>
+        <a class="btn btn--primary btn--lg" href="#contact">Check my dates</a>
+      </div>
+      <div class="col">
+        <div class="photo" role="img" aria-label="Couple laughing under a gum tree at golden hour">Couple laughing under a gum tree at golden hour</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="what" style="padding-bottom: 0">
+    <div class="sec__inner cols">
+      <div class="col">
+        <h2 id="what">What I photograph</h2>
+        <hr class="rule">
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__inner cols" style="--cols: 3">
+      <div class="col">
+        <div class="photo" role="img" aria-label="Bride and groom on a vineyard path">Bride and groom on a vineyard path</div>
+        <h3>Weddings</h3>
+        <p class="text-muted">From getting ready to the last dance. Packages from $2,400.</p>
+      </div>
+      <div class="col">
+        <div class="photo" role="img" aria-label="A woman in a red coat by a stone wall">A woman in a red coat by a stone wall</div>
+        <h3>Portraits</h3>
+        <p class="text-muted">An hour outdoors, 25 edited photos. $380.</p>
+      </div>
+      <div class="col">
+        <div class="photo" role="img" aria-label="Three kids and a kelpie on a hay bale">Three kids and a kelpie on a hay bale</div>
+        <h3>Families</h3>
+        <p class="text-muted">Kids, grandparents and the dog. $450.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="What couples say">
+    <div class="sec__inner cols">
+      <div class="col">
+        <blockquote class="quote"><p>Lena made us forget the camera was there. Every photo looks like the day felt.</p>
+          <footer>Priya and Tom, married at Mount Lofty House</footer></blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec--band" aria-labelledby="contact-h" id="contact">
+    <div class="sec__inner cols" style="--cols: 2">
+      <div class="col">
+        <h2 id="contact-h">Now booking 2027 weddings</h2>
+        <p class="text-muted">Tell me your date and where you're thinking. I reply within two days.</p>
+      </div>
+      <!-- Contact form block (item 19). The honeypot field is hidden from
+           people and assistive tech; it is not shown here. -->
+      <form class="col card" onsubmit="return false" aria-labelledby="contact-form-h">
+        <h3 id="contact-form-h" style="font-size: var(--font-size-lg)">Ask about your date</h3>
+        <div class="field"><label class="field__label" for="c-name">Your name</label><input class="input" id="c-name" autocomplete="name"></div>
+        <div class="field"><label class="field__label" for="c-email">Email</label><input class="input" id="c-email" type="email" autocomplete="email"></div>
+        <div class="field"><label class="field__label" for="c-msg">Message</label>
+          <textarea class="textarea" id="c-msg" placeholder="Date, venue, anything else"></textarea></div>
+        <button class="btn btn--primary" type="submit">Send</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer" style="margin-top: 0">
+  <div class="container cluster" style="justify-content: space-between">
+    <span>© 2026 Lena Novak Photography · Adelaide Hills, SA</span>
+    <a href="#">Made with Habre</a>
+  </div>
+</footer>
+
+<button class="btn btn--secondary btn--sm mock-toggle" type="button"
+  onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+  Mockup: light / dark</button>
+</body>
+</html>

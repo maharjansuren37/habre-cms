@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What do you want to create? - Habre</title>
+<!-- Mockup: /start, step 1 of 3, right after the emailed link signed Lena in.
+     The first of "the first two minutes". Step 2 ("Tell us about it") uses the
+     same layout with one textarea. Step 3, "Make it yours", is
+     start-brand.html. Throwaway. -->
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<svg style="display: none" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-blog" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9 5.5 4h13L20 9"/><path d="M4 9h16v1.5a3 3 0 0 1-5.3 1.9 3 3 0 0 1-5.4 0A3 3 0 0 1 4 10.5z"/><path d="M5 13v7h14v-7"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+</svg>
+
+<div class="flow">
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand__mark" aria-hidden="true">h</span> habre</a>
+    <div class="topbar__end">
+      <a class="btn btn--ghost btn--sm" href="#">Start blank instead</a>
+    </div>
+  </header>
+
+  <main class="flow__main" id="main">
+    <form onsubmit="return false">
+      <div class="steps" aria-label="Progress">
+        <span class="steps__bars" aria-hidden="true"><span class="steps__bar is-done"></span><span class="steps__bar"></span><span class="steps__bar"></span></span>
+        <span>Step 1 of 3</span>
+      </div>
+      <h1>What do you want to create?</h1>
+      <p class="lede">Pick the closest. You can add pages, a blog or a contact form later, whatever you choose.</p>
+
+      <fieldset class="choice-cards">
+        <legend class="visually-hidden">Kind of website</legend>
+        <label class="choice-card">
+          <input type="radio" name="kind" value="website">
+          <span class="choice-card__icon"><svg class="icon" width="28" height="28" aria-hidden="true"><use href="#i-globe"/></svg></span>
+          <span class="choice-card__title">Website</span>
+          <span class="choice-card__desc">A few pages about you, a club or a project.</span>
+          <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+        </label>
+        <label class="choice-card">
+          <input type="radio" name="kind" value="blog">
+          <span class="choice-card__icon"><svg class="icon" width="28" height="28" aria-hidden="true"><use href="#i-blog"/></svg></span>
+          <span class="choice-card__title">Blog</span>
+          <span class="choice-card__desc">Posts, newest first, and an About page.</span>
+          <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+        </label>
+        <label class="choice-card">
+          <input type="radio" name="kind" value="business">
+          <span class="choice-card__icon"><svg class="icon" width="28" height="28" aria-hidden="true"><use href="#i-store"/></svg></span>
+          <span class="choice-card__title">Business</span>
+          <span class="choice-card__desc">What you offer, your prices, and a way to get in touch.</span>
+          <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+        </label>
+        <label class="choice-card">
+          <input type="radio" name="kind" value="portfolio" checked>
+          <span class="choice-card__icon"><svg class="icon" width="28" height="28" aria-hidden="true"><use href="#i-camera"/></svg></span>
+          <span class="choice-card__title">Portfolio</span>
+          <span class="choice-card__desc">Your work, in pictures, with a way to enquire.</span>
+          <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+        </label>
+      </fieldset>
+
+      <div class="form-actions">
+        <button class="btn btn--primary btn--lg" type="submit">Continue</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<button class="btn btn--secondary btn--sm mock-toggle" type="button"
+  onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+  Mockup: light / dark</button>
+</body>
+</html>

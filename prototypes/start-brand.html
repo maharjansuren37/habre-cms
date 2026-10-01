@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make it yours - Habre</title>
+<!-- Mockup: /start, step 3 of 3, "Make it yours" (D167). Optional: Skip
+     keeps the colour the AI suggested from the description and the Modern
+     style. Frozen after Lena uploaded an SVG logo: the browser turned it into
+     a PNG, read three colours from it, and picked the strongest. Changing a
+     choice updates the preview at once; nothing is saved until Finish.
+     Swatch colours are Lena's data (from her logo), so they are set inline as
+     --swatch, not taken from the theme. The preview is the customer's scope:
+     data-brand and data-style. Preset names are provisional. Throwaway. -->
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<svg style="display: none" aria-hidden="true">
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="logo-lena" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="22" style="fill: var(--logo-1)"/>
+    <circle cx="24" cy="24" r="12" style="fill: none; stroke: var(--logo-3); stroke-width: 3"/>
+    <circle cx="24" cy="24" r="5" style="fill: var(--logo-2)"/>
+  </symbol>
+</svg>
+
+<div class="flow">
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand__mark" aria-hidden="true">h</span> habre</a>
+  </header>
+
+  <main class="flow__main flow__main--wide" id="main">
+    <div class="steps" aria-label="Progress">
+      <span class="steps__bars" aria-hidden="true"><span class="steps__bar is-done"></span><span class="steps__bar is-done"></span><span class="steps__bar is-done"></span></span>
+      <span>Step 3 of 3</span>
+    </div>
+    <h1>Make it yours</h1>
+    <p class="lede">Optional. You can change all of this later in Settings.</p>
+
+    <form class="brand-step" onsubmit="return false">
+      <div class="brand-step__fields">
+        <fieldset>
+          <legend>Your logo</legend>
+          <p class="field__hint" id="logo-hint">PNG, JPEG, WebP, GIF or SVG, up to 10 MB. No logo? We'll write your site's name in your colour.</p>
+          <div class="logo-drop">
+            <span class="logo-drop__img"><svg width="56" height="56" role="img" aria-label="Your logo"
+              style="--logo-1: #2f6b5a; --logo-2: #c9a25e; --logo-3: #ffffff"><use href="#logo-lena"/></svg></span>
+            <div>
+              <p class="logo-drop__name" style="margin: 0">lena-novak-logo.svg</p>
+              <p class="text-muted" style="margin: 0 0 var(--space-2)">Saved as a PNG for the web.</p>
+              <div class="cluster" style="gap: var(--space-2)">
+                <label class="btn btn--secondary btn--sm"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-upload"/></svg>Replace
+                  <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" aria-describedby="logo-hint"></label>
+                <button class="btn btn--ghost btn--sm" type="button">Remove</button>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Brand colour</legend>
+          <p class="field__hint">From your logo. Buttons and links use it.</p>
+          <div class="swatches">
+            <label class="swatch-radio" style="--swatch: #2f6b5a"><input type="radio" name="colour" value="#2f6b5a" checked><span class="visually-hidden">Green, from your logo</span></label>
+            <label class="swatch-radio" style="--swatch: #c9a25e"><input type="radio" name="colour" value="#c9a25e"><span class="visually-hidden">Gold, from your logo</span></label>
+            <label class="swatch-radio" style="--swatch: #2b2b2b"><input type="radio" name="colour" value="#2b2b2b"><span class="visually-hidden">Charcoal, from your logo</span></label>
+            <label class="btn btn--secondary btn--sm"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-plus"/></svg>Other colour
+              <input class="visually-hidden" type="color" value="#2f6b5a"></label>
+          </div>
+          <p class="swatch-note">We adjust the shade where needed so text on your site stays easy to read.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Style</legend>
+          <p class="field__hint">Fonts and corners. Your colour stays the same.</p>
+          <div class="choice-cards choice-cards--3">
+            <label class="choice-card choice-card--preset">
+              <input type="radio" name="style" value="classic" checked>
+              <span class="preset-sample" data-surface="site" data-brand="example" data-style="classic" aria-hidden="true">
+                <span class="preset-sample__aa">Aa</span><span class="preset-sample__text">Serif headings</span><span class="btn btn--primary">Book</span></span>
+              <span class="choice-card__title">Classic</span>
+              <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+            </label>
+            <label class="choice-card choice-card--preset">
+              <input type="radio" name="style" value="modern">
+              <span class="preset-sample" data-surface="site" data-brand="example" data-style="modern" aria-hidden="true">
+                <span class="preset-sample__aa">Aa</span><span class="preset-sample__text">Clean and sharp</span><span class="btn btn--primary">Book</span></span>
+              <span class="choice-card__title">Modern</span>
+              <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+            </label>
+            <label class="choice-card choice-card--preset">
+              <input type="radio" name="style" value="friendly">
+              <span class="preset-sample" data-surface="site" data-brand="example" data-style="friendly" aria-hidden="true">
+                <span class="preset-sample__aa">Aa</span><span class="preset-sample__text">Soft and round</span><span class="btn btn--primary">Book</span></span>
+              <span class="choice-card__title">Friendly</span>
+              <svg class="icon choice-card__tick" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="brand-step__preview">
+        <div class="brand-preview" role="img" aria-label="Preview of your home page with this logo, colour and style">
+          <div class="brand-preview__frame page-flow" data-surface="site" data-brand="example" data-style="classic" aria-hidden="true">
+            <div class="topbar" style="position: static">
+              <span class="site-brand"><svg class="site-brand__logo" width="36" height="36"
+                style="--logo-1: #2f6b5a; --logo-2: #c9a25e; --logo-3: #ffffff"><use href="#logo-lena"/></svg>Lena Novak Photography</span>
+              <span class="topbar__end text-muted">Portfolio &nbsp; About &nbsp; Contact</span>
+            </div>
+            <div class="sec">
+              <div class="sec__inner cols cols--middle" style="--cols: 2">
+                <div class="col">
+                  <p class="display">Portraits and weddings in the Adelaide Hills</p>
+                  <p class="lede">Relaxed, natural photos of the people you love.</p>
+                  <span class="btn btn--primary btn--lg">Check my dates</span>
+                  <a href="#" tabindex="-1">See the portfolio</a>
+                </div>
+                <div class="col"><div class="photo">Couple laughing under a gum tree at golden hour</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="brand-preview__caption">Your home page, as visitors will see it.</p>
+      </div>
+
+      <div class="brand-step__actions form-actions">
+        <a class="btn btn--ghost" href="start.html">Back</a>
+        <button class="btn btn--secondary" type="button">Skip for now</button>
+        <button class="btn btn--primary" type="submit">Finish</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<button class="btn btn--secondary btn--sm mock-toggle" type="button"
+  onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+  Mockup: light / dark</button>
+</body>
+</html>

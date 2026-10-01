@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editing Home - Lena Novak Photography - Habre</title>
+<!-- Mockup: the page editor, Mailchimp-style drag and drop (D165). The same
+     editor edits posts.
+     Two frozen states (the button bottom left flips them; #heading opens the
+     second):
+       1. The "Check my dates" button is selected, so its settings panel is
+          open; meanwhile an Image tile is being dragged from the palette and
+          a gap has opened at the top of the Portraits column.
+       2. A heading is selected with its Text style menu open. A heading has
+          no settings, so there is no panel and the canvas widens.
+     The canvas is the customer's site in its own scope: their brand colour
+     (data-brand) and the Classic preset (data-style). It is light even when
+     Habre is dark - Simple sites are light only (2026-10-02 review). The
+     editor's own chrome - selection, drop gap, toolbar - stays Habre's rust.
+     Main heading: the person chooses which text is the page's one main
+     heading (h1), in the Text style menu (2026-10-02 review). A hero's
+     heading starts as the main heading; a page with none shows its title.
+     Throwaway. -->
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<script>if (location.hash === "#heading") document.body.dataset.state = "heading";</script>
+<svg style="display: none" aria-hidden="true">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+  <symbol id="i-collapse" viewBox="0 0 24 24"><path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="i-heading" viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+  <symbol id="i-button" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/></symbol>
+  <symbol id="i-divider" viewBox="0 0 24 24"><path d="M3 12h18"/></symbol>
+  <symbol id="i-spacer" viewBox="0 0 24 24"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h4"/></symbol>
+  <symbol id="i-section" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/></symbol>
+  <symbol id="i-hero" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10h10M9 14h6"/></symbol>
+  <symbol id="i-cta" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="8" y="12" width="8" height="4" rx="2"/><path d="M7 8h10"/></symbol>
+  <symbol id="i-imgtext" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="5" y="7" width="7" height="10" rx="1"/><path d="M15 9h4M15 13h4"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <!-- The customer's logo. In the app it is an uploaded image; its colours
+       are their data, set where it is used. -->
+  <symbol id="logo-lena" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="22" style="fill: var(--logo-1)"/>
+    <circle cx="24" cy="24" r="12" style="fill: none; stroke: var(--logo-3); stroke-width: 3"/>
+    <circle cx="24" cy="24" r="5" style="fill: var(--logo-2)"/>
+  </symbol>
+</svg>
+
+<div class="editor" id="editor">
+  <header class="editor__bar">
+    <a class="btn btn--ghost btn--sm" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-back"/></svg><span class="only-desktop">Pages</span><span class="visually-hidden only-mobile">Back to pages</span></a>
+    <span class="editor__title">Home</span>
+    <span class="badge only-desktop">Draft</span>
+    <span class="text-muted only-desktop"><small>Saved just now</small></span>
+    <div class="cluster only-desktop" style="gap: var(--space-1)">
+      <button class="btn btn--ghost btn--icon" type="button" aria-label="Undo"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-undo"/></svg></button>
+      <button class="btn btn--ghost btn--icon" type="button" aria-label="Redo" disabled><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-redo"/></svg></button>
+    </div>
+    <div class="topbar__end">
+      <button class="btn btn--secondary btn--sm only-mobile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-plus"/></svg>Add</button>
+      <a class="btn btn--secondary btn--sm only-desktop" href="#">Preview</a>
+      <button class="btn btn--primary btn--sm" type="button">Publish</button>
+    </div>
+  </header>
+
+  <div class="editor__body">
+    <aside class="palette" id="palette" aria-label="Add to the page">
+      <div class="palette__head">
+        <p class="panel-heading">Blocks</p>
+        <button class="btn btn--ghost btn--icon btn--sm" type="button" id="palette-toggle" aria-expanded="true" aria-controls="palette"
+          aria-label="Hide block names"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-collapse"/></svg></button>
+      </div>
+      <div class="palette__grid">
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-text"/></svg><span class="tile__label">Text</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-heading"/></svg><span class="tile__label">Heading</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-list"/></svg><span class="tile__label">List</span></button>
+        <button class="tile" type="button" data-state-only="heading"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-image"/></svg><span class="tile__label">Image</span></button>
+        <button class="tile is-dragging" type="button" data-state-only="default" aria-pressed="true"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-image"/></svg><span class="tile__label">Image</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-button"/></svg><span class="tile__label">Button</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-quote"/></svg><span class="tile__label">Quote</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-divider"/></svg><span class="tile__label">Line</span></button>
+        <button class="tile" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-spacer"/></svg><span class="tile__label">Space</span></button>
+        <button class="tile tile--wide" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-form"/></svg><span class="tile__label">Contact form</span></button>
+      </div>
+      <p class="panel-heading">Sections</p>
+      <div class="palette__grid">
+        <button class="tile tile--wide" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-section"/></svg><span class="tile__label">Blank section</span></button>
+        <button class="tile tile--wide" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-hero"/></svg><span class="tile__label">Hero</span></button>
+        <button class="tile tile--wide" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-imgtext"/></svg><span class="tile__label">Image and text</span></button>
+        <button class="tile tile--wide" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-cta"/></svg><span class="tile__label">Call to action</span></button>
+      </div>
+      <p class="kbd-hint" style="margin-top: var(--space-4)">Drag into the page, or press <kbd>Enter</kbd> to add after the selected block.</p>
+    </aside>
+
+    <div class="canvas-wrap">
+      <!-- What a screen reader hears while dragging (state 1). -->
+      <p class="visually-hidden" role="status" data-state-only="default">Image. Drop at the top of column 2, Portraits, in section 3.</p>
+      <div class="canvas page-flow" data-surface="site" data-brand="example" data-style="classic" aria-label="Page">
+        <header class="topbar">
+          <span class="site-brand"><svg class="site-brand__logo" width="36" height="36" role="img" aria-label="Lena Novak Photography logo"
+            style="--logo-1: #2f6b5a; --logo-2: #c9a25e; --logo-3: #ffffff"><use href="#logo-lena"/></svg>Lena Novak Photography</span>
+          <ul class="nav only-desktop" aria-label="Site menu (change it in Settings)" style="margin-left: auto">
+            <li><span class="nav__link">Portfolio</span></li><li><span class="nav__link">About</span></li><li><span class="nav__link">Contact</span></li>
+          </ul>
+        </header>
+
+        <!-- Section 1: a ready-made hero, two columns. -->
+        <section class="sec" aria-label="Section 1 of 5">
+          <div class="section-chip" role="group" aria-label="Section 1 of 5" data-state-only="default">
+            <span>Section 1 of 5</span>
+            <button type="button" aria-label="Move section up" disabled><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-up"/></svg></button>
+            <button type="button" aria-label="Move section down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></button>
+            <button type="button" aria-label="Section settings"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-gear"/></svg></button>
+          </div>
+          <div class="sec__inner cols cols--middle" style="--cols: 2">
+            <div class="col">
+              <div class="blk"><h1 class="display">Portraits and weddings in the Adelaide Hills</h1></div>
+              <div class="blk"><p class="lede">Relaxed, natural photos of the people you love - no stiff poses, no rush.</p></div>
+              <div class="blk"><div class="spacer" role="presentation"></div></div>
+              <div class="blk" data-state-only="heading"><span class="btn btn--primary btn--lg">Check my dates</span></div>
+              <div class="blk is-selected" data-state-only="default" style="align-self: flex-start">
+                <div class="block-toolbar" role="toolbar" aria-label="Button">
+                  <button class="block-toolbar__grip" type="button" aria-label="Drag to move, or use Move up and Move down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-grip"/></svg></button>
+                  <button type="button" aria-label="Move up"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-up"/></svg></button>
+                  <button type="button" aria-label="Move down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></button>
+                  <span class="block-toolbar__sep" aria-hidden="true"></span>
+                  <button type="button" aria-label="Duplicate"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg></button>
+                  <button type="button" aria-label="Delete button"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-trash"/></svg></button>
+                </div>
+                <span class="btn btn--primary btn--lg">Check my dates</span>
+              </div>
+            </div>
+            <div class="col">
+              <div class="blk"><div class="photo">Couple laughing under a gum tree at golden hour</div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: one column, heading and a line. In state 2 the heading
+             is selected with its Text style menu open. -->
+        <section class="sec" aria-label="Section 2 of 5" style="padding-bottom: 0">
+          <div class="section-chip" role="group" aria-label="Section 2 of 5" data-state-only="heading">
+            <span>Section 2 of 5</span>
+            <button type="button" aria-label="Move section up"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-up"/></svg></button>
+            <button type="button" aria-label="Move section down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></button>
+            <button type="button" aria-label="Section settings"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-gear"/></svg></button>
+          </div>
+          <div class="sec__inner cols">
+            <div class="col">
+              <div class="blk" data-state-only="default"><h2>What I photograph</h2></div>
+              <div class="blk is-selected" data-state-only="heading">
+                <div class="block-toolbar" role="toolbar" aria-label="Heading">
+                  <button class="block-toolbar__grip" type="button" aria-label="Drag to move, or use Move up and Move down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-grip"/></svg></button>
+                  <button type="button" aria-label="Move up"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-up"/></svg></button>
+                  <button type="button" aria-label="Move down"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></button>
+                  <span class="block-toolbar__sep" aria-hidden="true"></span>
+                  <button type="button" aria-haspopup="menu" aria-expanded="true" aria-controls="text-style">Heading<svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+                  <button type="button" aria-pressed="false" aria-label="Bold"><strong>B</strong></button>
+                  <button type="button" aria-pressed="false" aria-label="Italic"><em>I</em></button>
+                  <button type="button" aria-label="Link"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-link"/></svg></button>
+                  <span class="block-toolbar__sep" aria-hidden="true"></span>
+                  <button type="button" aria-label="Duplicate"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg></button>
+                  <button type="button" aria-label="Delete heading"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-trash"/></svg></button>
+                </div>
+                <!-- Simple shows these; Pro adds two smaller headings (D166). -->
+                <div class="menu block-menu" id="text-style" role="menu" aria-label="Text style" style="left: calc(3 * var(--size-control-sm) + var(--space-4))">
+                  <button class="menu__item" role="menuitemradio" aria-checked="false" type="button"><span>Text</span><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <div class="menu__separator" role="separator"></div>
+                  <button class="menu__item" role="menuitemradio" aria-checked="false" type="button"><span><span class="style-main">Main heading</span><span class="menu__hint">One per page. Now: "Portraits and weddings…"</span></span><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="menu__item" role="menuitemradio" aria-checked="true" type="button"><span class="style-heading">Heading</span><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="menu__item is-hover" role="menuitemradio" aria-checked="false" type="button"><span class="style-subheading">Subheading</span><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button>
+                  <button class="menu__item" role="menuitemradio" aria-checked="false" type="button"><span class="style-small">Small heading</span><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button>
+                </div>
+                <h2>What I photograph</h2>
+              </div>
+              <div class="blk"><hr class="rule"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: three columns. State 1: a gap is open at the top of
+             column 2, where the dragged image will land. -->
+        <section class="sec" aria-label="Section 3 of 5">
+          <div class="sec__inner cols" style="--cols: 3">
+            <div class="col">
+              <div class="blk"><div class="photo">Bride and groom on a vineyard path</div></div>
+              <div class="blk"><h3>Weddings</h3></div>
+              <div class="blk"><p class="text-muted">From getting ready to the last dance. Packages from $2,400.</p></div>
+            </div>
+            <div class="col" style="position: relative">
+              <div class="drop-zone" data-state-only="default"><span class="drop-zone__label">Drop image here</span></div>
+              <span class="drag-ghost" data-state-only="default" style="top: var(--space-10); left: var(--space-12)" aria-hidden="true"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-image"/></svg>Image</span>
+              <div class="blk"><h3>Portraits</h3></div>
+              <div class="blk"><p class="text-muted">An hour outdoors, 25 edited photos. $380.</p></div>
+            </div>
+            <div class="col">
+              <div class="blk"><div class="photo">Three kids and a kelpie on a hay bale</div></div>
+              <div class="blk"><h3>Families</h3></div>
+              <div class="blk"><p class="text-muted">Kids, grandparents and the dog. $450.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: a quote. -->
+        <section class="sec" aria-label="Section 4 of 5">
+          <div class="sec__inner cols">
+            <div class="col">
+              <div class="blk"><blockquote class="quote"><p>Lena made us forget the camera was there. Every photo looks like the day felt.</p>
+                <footer>Priya and Tom, married at Mount Lofty House</footer></blockquote></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 5: a ready-made call to action. -->
+        <section class="sec sec--band" aria-label="Section 5 of 5">
+          <div class="sec__inner cols">
+            <div class="col">
+              <div class="blk"><h2>Now booking 2027 weddings</h2></div>
+              <div class="blk"><p class="text-muted">Tell me your date and where you're thinking. I reply within two days.</p></div>
+              <div class="blk" style="align-self: flex-start"><span class="btn btn--primary">Ask about your date</span></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="add-section"><button class="btn btn--secondary" type="button"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-plus"/></svg>Add a section</button></div>
+      </div>
+    </div>
+
+    <!-- Settings for the selected button. Text, headings and lists have none:
+         they are edited where they sit. -->
+    <aside class="settings" aria-labelledby="settings-title" data-state-only="default">
+      <div class="settings__head">
+        <h2 id="settings-title">Button</h2>
+        <button class="btn btn--ghost btn--icon btn--sm" type="button" aria-label="Close settings"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <form class="stack" onsubmit="return false">
+        <div class="field"><label class="field__label" for="b-label">Button text</label>
+          <input class="input" id="b-label" value="Check my dates"></div>
+        <div class="field"><label class="field__label" for="b-link">Goes to</label>
+          <select class="input" id="b-link">
+            <option>Page: Home</option><option>Page: Portfolio</option><option>Page: About</option><option selected>Page: Contact</option>
+            <option>A web address…</option><option>An email address…</option>
+          </select></div>
+        <fieldset class="field" style="border: 0; margin: 0; padding: 0">
+          <legend class="field__label" style="padding: 0">Style</legend>
+          <label class="choice"><input type="radio" name="b-style" checked> Filled</label>
+          <label class="choice"><input type="radio" name="b-style"> Outline</label>
+        </fieldset>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<script>
+  // Mockup only: collapse the palette to its icons.
+  document.getElementById("palette-toggle").addEventListener("click", (e) => {
+    const collapsed = document.getElementById("editor").classList.toggle("is-palette-collapsed");
+    e.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+  });
+</script>
+<div class="cluster mock-toggle">
+  <button class="btn btn--secondary btn--sm" type="button"
+    onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+    Mockup: light / dark</button>
+  <button class="btn btn--secondary btn--sm" type="button"
+    onclick="document.body.dataset.state = document.body.dataset.state === 'heading' ? '' : 'heading'">
+    Mockup: other state</button>
+</div>
+</body>
+</html>

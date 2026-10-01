@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home - Lena Novak Photography - Habre</title>
+<!-- Mockup: /admin (Home) straight after the AI draft was applied - the end of
+     "the first two minutes". Shows the admin shell, the Level 1 navigation,
+     and the site's state. Pages, Blog, Media, Messages and Settings reuse
+     this shell with the kit's table, list, empty and form components.
+     Throwaway. -->
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<svg style="display: none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-blog" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+</svg>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- Phone and tablet: the sidebar becomes this bar with one "Menu" control. -->
+<header class="topbar only-mobile">
+  <a class="brand" href="#"><span class="brand__mark" aria-hidden="true">h</span> habre</a>
+  <details class="mobile-menu" style="margin-left: auto">
+    <summary class="btn btn--secondary btn--sm">
+      <svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-menu"/></svg> Menu</summary>
+    <ul class="nav" aria-label="Main">
+      <li><a class="nav__link" href="#" aria-current="page">Home</a></li>
+      <li><a class="nav__link" href="#">Pages</a></li>
+      <li><a class="nav__link" href="#">Blog</a></li>
+      <li><a class="nav__link" href="#">Media</a></li>
+      <li><a class="nav__link" href="#">Messages</a></li>
+      <li><a class="nav__link" href="#">Settings</a></li>
+      <li><a class="nav__link" href="#">Your account</a></li>
+      <li><a class="nav__link" href="#">Plan</a></li>
+      <li><a class="nav__link" href="#">Sign out</a></li>
+    </ul>
+  </details>
+</header>
+
+<div class="app-shell">
+  <nav class="sidebar" aria-label="Main">
+    <a class="brand" href="#"><span class="brand__mark" aria-hidden="true">h</span> habre</a>
+    <div class="sidebar__site">
+      <span class="sidebar__site-name">Lena Novak Photography</span>
+      <span class="text-muted">lenanovak-photo.habre.page</span>
+      <a href="#">View site <span class="visually-hidden">(opens in a new tab)</span>&nearr;</a>
+    </div>
+    <ul class="nav nav--vertical">
+      <li><a class="nav__link" href="#" aria-current="page"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-home"/></svg>Home</a></li>
+      <li><a class="nav__link" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-page"/></svg>Pages</a></li>
+      <li><a class="nav__link" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-blog"/></svg>Blog</a></li>
+      <li><a class="nav__link" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-image"/></svg>Media</a></li>
+      <li><a class="nav__link" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-mail"/></svg>Messages</a></li>
+      <li><a class="nav__link" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-settings"/></svg>Settings</a></li>
+    </ul>
+    <div class="sidebar__foot">
+      <button class="account" type="button" aria-haspopup="menu" aria-expanded="false">
+        <span class="avatar" aria-hidden="true">LN</span>
+        <span><span class="account__name">Lena Novak</span><span class="account__sub">Free plan</span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="app-shell__main" id="main">
+    <div class="container stack" style="padding-inline: 0">
+      <div class="page-header"><h1>Home</h1></div>
+
+      <section class="ready" aria-labelledby="ready-title">
+        <div class="stack">
+          <span class="badge badge--warning">Not published yet</span>
+          <h2 id="ready-title">Your website is ready. What would you like to change?</h2>
+          <p class="text-muted">We drafted 4 pages from your description. Look them over, change anything, then publish - nobody sees it before that.</p>
+          <div class="cluster">
+            <button class="btn btn--primary" type="button">Publish website</button>
+            <a class="btn btn--secondary" href="#">Preview <span class="visually-hidden">(opens in a new tab)</span>&nearr;</a>
+          </div>
+        </div>
+        <div class="ready__preview" data-surface="site" data-brand="example" data-style="classic" role="img" aria-label="Preview of your home page">
+          <div class="page-flow" style="width: 200%; transform: scale(0.5); transform-origin: 0 0" aria-hidden="true">
+            <div class="topbar" style="position: static">
+              <span class="site-brand wordmark">Lena Novak Photography</span>
+              <span class="topbar__end text-muted">Portfolio &nbsp; About &nbsp; Contact</span>
+            </div>
+            <div class="sec">
+              <div class="sec__inner cols cols--middle" style="--cols: 2">
+                <div class="col">
+                  <p class="display">Portraits and weddings in the Adelaide Hills</p>
+                  <p class="lede">Relaxed, natural photos of the people you love.</p>
+                  <span class="btn btn--primary">Check my dates</span>
+                </div>
+                <div class="col"><div class="photo">Couple laughing under a gum tree at golden hour</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="change-title">
+        <h2 id="change-title" class="visually-hidden">Things to change</h2>
+        <ul class="suggest-list">
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-pen"/></svg>Edit the home page</a></li>
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-image"/></svg>Swap in your own photos</a></li>
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-logo"/></svg>Add your logo</a></li>
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-list"/></svg>Change the menu</a></li>
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-mail"/></svg>Check your contact form</a></li>
+          <li><a class="suggest" href="#"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-blog"/></svg>Write your first blog post</a></li>
+        </ul>
+      </section>
+
+      <div class="grid">
+        <section class="card stack" aria-labelledby="pages-title">
+          <h2 id="pages-title" style="font-size: var(--font-size-lg)">Your pages</h2>
+          <ul class="list">
+            <li><span style="flex: 1">Home</span><span class="badge">Draft</span><a href="#">Edit<span class="visually-hidden"> Home</span></a></li>
+            <li><span style="flex: 1">Portfolio</span><span class="badge">Draft</span><a href="#">Edit<span class="visually-hidden"> Portfolio</span></a></li>
+            <li><span style="flex: 1">About</span><span class="badge">Draft</span><a href="#">Edit<span class="visually-hidden"> About</span></a></li>
+            <li><span style="flex: 1">Contact</span><span class="badge">Draft</span><a href="#">Edit<span class="visually-hidden"> Contact</span></a></li>
+          </ul>
+        </section>
+        <section class="card stack" aria-labelledby="month-title">
+          <h2 id="month-title" style="font-size: var(--font-size-lg)">This month</h2>
+          <div class="stack" style="--space-4: var(--space-2)">
+            <div class="cluster" style="justify-content: space-between"><span>AI credits</span><span class="text-muted">4,120 of 5,000 left</span></div>
+            <div class="meter" role="img" aria-label="82% of AI credits left"><div class="meter__bar" style="width: 82%"></div></div>
+          </div>
+          <div class="stack" style="--space-4: var(--space-2)">
+            <div class="cluster" style="justify-content: space-between"><span>Storage</span><span class="text-muted">38 MB of 500 MB used</span></div>
+            <div class="meter" role="img" aria-label="8% of storage used"><div class="meter__bar" style="width: 8%"></div></div>
+          </div>
+          <p class="text-muted"><small>Resets on 1 November. Need more? <a href="#">See the paid plan</a>.</small></p>
+        </section>
+        <section class="card stack" aria-labelledby="msg-title">
+          <h2 id="msg-title" style="font-size: var(--font-size-lg)">Messages</h2>
+          <p class="text-muted">No messages yet. When someone uses your contact form, it shows up here and in your email.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="btn btn--secondary btn--sm mock-toggle" type="button"
+  onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+  Mockup: light / dark</button>
+</body>
+</html>
