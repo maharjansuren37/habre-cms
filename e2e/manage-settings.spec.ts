@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -38,6 +39,7 @@ test.afterEach(async () => {
 test("an admin can set the site title and logo, and both reach the admin sidebar and the public home page", async ({
   page,
 }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
   const origin = new URL(page.url()).origin;
   const uploaded = await uploadTestMedia(page.request, origin, "1x1.png", "A fixture logo");
@@ -94,6 +96,7 @@ test("every public page's browser title names the site, not the CMS (F-116)", as
 test("picking a logo for the first time leaves keyboard focus on the new Change logo button, not lost to <body>", async ({
   page,
 }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   // F-88, the same mechanism F-76 already fixed for the image block: the
   // dialog closes and restores focus to whatever opened it, but that element
   // is exactly what this re-render is about to replace. No save happens here,

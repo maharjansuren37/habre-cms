@@ -1,6 +1,7 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -100,6 +101,7 @@ test("a published post renders its blocks and inline formatting as real elements
 });
 
 test("a published image block shows a caption of the media's own alt text", async ({ page }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   // Uploading needs a logged-in session; viewing the published post afterward does not.
   await logIn(page, author);
   const origin = new URL(page.url()).origin;
@@ -161,6 +163,7 @@ test("a draft's URL 404s inside the public chrome, not root's bare error page", 
 test("a published page renders its blocks, including an image with caption, at its own address", async ({
   page,
 }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, author);
   const origin = new URL(page.url()).origin;
   const { id: mediaId } = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
