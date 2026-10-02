@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -113,30 +114,29 @@ test("HTML pages carry the Content-Security-Policy, with inline styles allowed o
 });
 
 test("the public site renders with nothing refused by the policy", async ({ page }) => {
-  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
-  await uploadPixel(page);
   await createDraftFor(
     admin.email,
-    "CSP Post With Image",
-    [
-      { id: "t1", type: "text", data: { text: [{ text: "Some " }, { text: "bold", bold: true }] } },
-      { id: "img1", type: "image", data: { mediaId } },
-    ],
+    "CSP Post",
+    inSection({
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Some " },
+        { type: "text", text: "bold", marks: [{ type: "bold" }] },
+      ],
+    }),
     { status: "published" },
   );
-  await createDraftFor(
-    admin.email,
-    "CSP Page",
-    [{ id: "t1", type: "text", data: { text: [{ text: "A page." }] } }],
-    { status: "published", type: "page" },
-  );
+  await createDraftFor(admin.email, "CSP Page", textDocument("A page."), {
+    status: "published",
+    type: "page",
+  });
 
   await page.goto("/posts");
-  await expect(page.getByRole("link", { name: "CSP Post With Image" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "CSP Post" })).toBeVisible();
 
-  await page.goto("/posts/csp-post-with-image");
-  await expectImageLoaded(page.getByRole("img", { name: "A CSP pixel" }));
+  await page.goto("/posts/csp-post");
+  await expect(page.getByText("Some bold")).toBeVisible();
 
   await page.goto("/csp-page");
   await expect(page.getByText("A page.")).toBeVisible();

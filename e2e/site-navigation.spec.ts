@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
 import {
   createAdmin,
@@ -18,7 +19,10 @@ test.beforeEach(async ({ page }) => {
     "X-Forwarded-For": `10.${randomInt(256)}.${randomInt(256)}.15`,
   });
   admin = createAdmin("Nav Admin");
-  await createDraftFor(admin.email, "About Us", [], { status: "published", type: "page" });
+  await createDraftFor(admin.email, "About Us", textDocument(), {
+    status: "published",
+    type: "page",
+  });
 });
 
 test.afterEach(async () => {
@@ -108,7 +112,7 @@ test("unpublishing a linked page drops it from the header with no error", async 
 });
 
 test("a menu row whose page was deleted says so beside its select (F-95)", async ({ page }) => {
-  const goneId = await createDraftFor(admin.email, "Soon Gone", [], {
+  const goneId = await createDraftFor(admin.email, "Soon Gone", textDocument(), {
     status: "published",
     type: "page",
   });

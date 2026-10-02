@@ -5,13 +5,21 @@ import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
-  createDraftFor,
+  createDraftFor as createDraftForFormat,
   deleteEntriesBy,
   deleteTestUser,
   setRole,
   type TestUser,
   withDatabase,
 } from "./helpers/users.ts";
+
+// Editor.js entries are v2/v3; the helper now defaults to v4 (removed in step 6).
+const createDraftFor = (
+  email: string,
+  title: string,
+  blocks: unknown,
+  options: Parameters<typeof createDraftForFormat>[3] = {},
+) => createDraftForFormat(email, title, blocks, { blocksFormat: "v2", ...options });
 
 let editor: TestUser;
 

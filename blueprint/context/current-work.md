@@ -142,7 +142,7 @@ shape is locked here.
   chip's Columns control; a page saved with 2 sections of 2 columns renders
   them on the public page.
 
-- [ ] **Step 5 - Browser tests seed v4** - `createDraftFor` takes a v4
+- [x] **Step 5 - Browser tests seed v4** - `createDraftFor` takes a v4
   document and defaults to `v4`; `e2e/helpers/documents.ts` builds one from
   paragraphs (`textDocument("a", "b")`). Every spec that only seeds content
   (`public-site`, `manage-posts`, `manage-pages`, `home-page`, `theme`,
@@ -171,6 +171,15 @@ shape is locked here.
   insert of `v2` is refused by the check; a new post and a new page open in the TipTap
   editor and save; `grep -rn "editorjs\|EditorJS" app package.json` finds
   nothing; `npm run verify` and the whole browser suite pass.
+
+- [ ] **Step 6b - The canvas is as wide as the published content** -
+  for a v4 entry the editor canvas gives the document the same width the
+  public page gives it, so the 40rem container query stacks or places columns
+  in the editor exactly as it will publish (design.md, *Page structure*:
+  "the canvas and the published site behave identically"). The entry form
+  widens for v4 entries only. *Done when:* the editor spec finds a 2-column
+  section side by side in the canvas at 1280px and stacked at 390px, matching
+  `document-render.spec.ts`; the whole suite passes. (Owner, 2026-10-02.)
 
 - [ ] **Step 7 - A refused save keeps the draft, and the bar's numbers** -
   the browser checks the body size before submitting and shows "This is too
@@ -269,6 +278,10 @@ TipTap's `getJSON()` emits it, narrowed:
 
 ## Decisions
 
+- **The editor canvas matches the published content width** (owner,
+  2026-10-02), so columns behave the same in the editor and on the site. Beats
+  keeping the 42rem form (columns always stacked in the editor) and widening
+  both to the prototype's 64rem (changes the public reading width too).
 - **Existing content is deleted, not kept** (owner, 2026-10-02: "this is a
   rebuild") - every entry is deleted and the menu reset. Beats keeping rows
   with emptied bodies (keeps addresses nobody needs, and pages that show only
@@ -348,6 +361,10 @@ contradicted.
   them): F-29 (requirement: step 3), F-31, F-38, F-39 (requirement: step 7),
   F-50, F-51, F-52, F-104, F-127, F-128. **F-79** stays deferred: its
   requirement moves to 14a2's spec with the image block.
+- **For 14a2's spec** (step 5 removed them with the old image block): a
+  published captioned image renders (`public-site`), and an image loads under
+  the public CSP (`content-security-policy`) - restore both with the image
+  block.
 - **After 14a3:** the admin CSP's `'unsafe-inline'` and `data:` exist only for
   Editor.js (`content-security-policy.ts`); once the whole editor is in,
   check whether TipTap needs either and tighten it - a fix spec.
