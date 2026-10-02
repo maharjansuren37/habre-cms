@@ -1,8 +1,19 @@
 import { mergeAttributes, Node } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
+import { closeHistory } from "@tiptap/pm/history";
+import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
+import { Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type RefObject,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
@@ -13,6 +24,8 @@ import { isSafeHref } from "./inline-runs.ts";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
 const MAX_HREF_LENGTH = 2_048;
+/** The most sections a document may hold (`document.ts`, the contract). */
+const MAX_SECTIONS = 30;
 
 /*
  * The v4 document's own structure (D169): a document of sections, a section of
@@ -53,10 +66,12 @@ const SectionNode = Node.create({
   // Only this editor's own sections: a `<section>` pasted from elsewhere is
   // read for its content, never as one of these.
   parseHTML: () => [{ tag: 'section[data-node="section"]' }],
-  renderHTML: ({ node, HTMLAttributes }) => [
+  // The column count is drawn from the columns themselves (content.module.css),
+  // so it follows Columns in the chip without redrawing the section.
+  renderHTML: ({ HTMLAttributes }) => [
     "section",
     mergeAttributes(HTMLAttributes, { class: content.section, "data-node": "section" }),
-    ["div", { class: content.columns, "data-columns": String(node.childCount) }, 0],
+    ["div", { class: content.columns }, 0],
   ],
 });
 
@@ -199,17 +214,249 @@ export function DocumentEditor({
     };
   }, [editor, contentRef]);
 
+  const canvas = useRef<HTMLDivElement>(null);
+
   return (
     <>
       {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
-      <div data-surface="site" className={styles.site}>
+      <div data-surface="site" className={styles.site} ref={canvas}>
         <EditorContent editor={editor} />
+        {/* After the writing area, so Tab reaches it next; outside it, so no
+            control sits inside the textbox (D169). */}
+        {editor ? <SectionChip editor={editor} canvas={canvas} /> : null}
       </div>
+      {editor ? <AddSection editor={editor} /> : null}
     </>
   );
 }
 
 type Editor = NonNullable<ReturnType<typeof useEditor>>;
+
+/* ---- Sections and columns (step 4) ----------------------------------------
+ * Every change below is one transaction, started as its own undo step
+ * (`closeHistory`), so one Undo reverts exactly that change and nothing typed
+ * just before it. */
+
+/** A column holding one empty paragraph - what a new section or column starts as. */
+function emptyColumn(schema: Schema) {
+  return schema.nodes.column.create(null, schema.nodes.paragraph.create());
+}
+
+/** Where section `index` starts in the document. */
+function sectionStart(doc: ProseMirrorNode, index: number) {
+  let position = 0;
+  for (let i = 0; i < index; i++) position += doc.child(i).nodeSize;
+  return position;
+}
+
+/** A column nobody wrote in: one empty paragraph. */
+function isUntouched(column: ProseMirrorNode) {
+  return (
+    column.childCount === 1 &&
+    column.child(0).type.name === "paragraph" &&
+    column.child(0).childCount === 0
+  );
+}
+
+function apply(editor: Editor, change: (tr: Transaction) => void) {
+  const tr = closeHistory(editor.state.tr);
+  change(tr);
+  editor.view.dispatch(tr.scrollIntoView());
+}
+
+/** Adds one section at the end and puts the cursor in it. */
+function addSection(editor: Editor) {
+  apply(editor, (tr) => {
+    const end = tr.doc.content.size;
+    const { schema } = tr.doc.type;
+    tr.insert(end, schema.nodes.section.create(null, emptyColumn(schema)));
+    // Into the section, its column and its paragraph.
+    tr.setSelection(TextSelection.create(tr.doc, end + 3));
+  });
+  editor.view.focus();
+}
+
+/**
+ * Sets a section's column count. Growing adds empty columns on the right;
+ * shrinking appends the removed columns' blocks to the end of the last kept
+ * column, in column order (D119) - a column nobody wrote in adds nothing. A
+ * cursor in a removed column moves with its text.
+ */
+function setColumns(editor: Editor, index: number, columns: number) {
+  apply(editor, (tr) => {
+    const { doc } = tr;
+    const { schema } = doc.type;
+    const section = doc.child(index);
+    const start = sectionStart(doc, index);
+    const sectionEnd = start + section.nodeSize - 1;
+    if (columns > section.childCount) {
+      const added = Array.from({ length: columns - section.childCount }, () => emptyColumn(schema));
+      tr.insert(sectionEnd, added);
+      return;
+    }
+    let removedFrom = start + 1;
+    for (let i = 0; i < columns; i++) removedFrom += section.child(i).nodeSize;
+    // Inside the last kept column, before its end.
+    const keptEnd = removedFrom - 1;
+    const head = tr.selection.head;
+    const moved: ProseMirrorNode[] = [];
+    let movedSize = 0;
+    let newHead: number | undefined;
+    let columnStart = removedFrom;
+    for (let i = columns; i < section.childCount; i++) {
+      const column = section.child(i);
+      if (!isUntouched(column)) {
+        if (head > columnStart && head < columnStart + column.nodeSize) {
+          newHead = keptEnd + movedSize + (head - columnStart - 1);
+        }
+        column.forEach((block) => {
+          moved.push(block);
+        });
+        movedSize += column.content.size;
+      } else if (head > columnStart && head < columnStart + column.nodeSize) {
+        newHead = keptEnd + movedSize;
+      }
+      columnStart += column.nodeSize;
+    }
+    tr.delete(removedFrom, sectionEnd);
+    if (moved.length > 0) tr.insert(keptEnd, moved);
+    if (newHead !== undefined) tr.setSelection(Selection.near(tr.doc.resolve(newHead), -1));
+  });
+}
+
+/** Removes a section; the cursor goes to the end of the one before it, or the
+ *  start of the next. Never the last section: the chip does not offer it. */
+function removeSection(editor: Editor, index: number) {
+  apply(editor, (tr) => {
+    if (tr.doc.childCount <= 1) return;
+    const start = sectionStart(tr.doc, index);
+    tr.delete(start, start + tr.doc.child(index).nodeSize);
+    tr.setSelection(
+      index > 0 ? Selection.near(tr.doc.resolve(start), -1) : Selection.near(tr.doc.resolve(0), 1),
+    );
+  });
+  editor.view.focus();
+}
+
+/**
+ * The section chip (design.md, *Section controls*): on the section holding the
+ * cursor, drawn outside the writing area and placed over its section by this
+ * code. 14a1 offers Columns and Remove section; Move section up and down and
+ * Section settings come with 14a3 and the settings panel.
+ */
+function SectionChip({
+  editor,
+  canvas,
+}: {
+  editor: Editor;
+  canvas: RefObject<HTMLDivElement | null>;
+}) {
+  const chip = useRef<HTMLFieldSetElement>(null);
+  const columnsId = useId();
+  const { index, count, columns } = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      const { doc, selection } = current.state;
+      const index = Math.min(selection.$head.index(0), doc.childCount - 1);
+      return { index, count: doc.childCount, columns: doc.child(index).childCount };
+    },
+  });
+
+  useLayoutEffect(() => {
+    /** Lines the chip up with the top of its section, wherever text above has moved it. */
+    function place() {
+      const element = chip.current;
+      const host = canvas.current;
+      if (!element || !host || editor.isDestroyed) return;
+      const { doc } = editor.state;
+      const section = editor.view.nodeDOM(sectionStart(doc, Math.min(index, doc.childCount - 1)));
+      if (!(section instanceof HTMLElement)) return;
+      const top = section.getBoundingClientRect().top - host.getBoundingClientRect().top;
+      element.style.top = `${top}px`;
+    }
+    place();
+    editor.on("transaction", place);
+    const observer = new ResizeObserver(place);
+    observer.observe(editor.view.dom);
+    return () => {
+      editor.off("transaction", place);
+      observer.disconnect();
+    };
+  }, [editor, canvas, index]);
+
+  const label = `Section ${index + 1} of ${count}`;
+  return (
+    <fieldset ref={chip} className={styles.chip}>
+      <legend className={styles.chipLegend}>{label}</legend>
+      <label className={styles.chipField} htmlFor={columnsId}>
+        Columns
+      </label>
+      <select
+        id={columnsId}
+        className={styles.chipSelect}
+        value={columns}
+        onChange={(event) => setColumns(editor, index, Number(event.currentTarget.value))}
+      >
+        <option value={1}>1</option>
+        <option value={2}>2</option>
+        <option value={3}>3</option>
+      </select>
+      {count > 1 ? (
+        <button
+          type="button"
+          className={styles.chipButton}
+          aria-label="Remove section"
+          title="Remove section"
+          onClick={() => removeSection(editor, index)}
+        >
+          <svg
+            className={styles.chipIcon}
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+          </svg>
+        </button>
+      ) : null}
+    </fieldset>
+  );
+}
+
+/** Add a section, below the canvas: one section of one empty column, with the cursor in it. */
+function AddSection({ editor }: { editor: Editor }) {
+  const isFull = useEditorState({
+    editor,
+    selector: ({ editor: current }) => current.state.doc.childCount >= MAX_SECTIONS,
+  });
+  return (
+    <div className={styles.addSection}>
+      <Button
+        type="button"
+        className={styles.addSectionButton}
+        disabled={isFull}
+        onClick={() => addSection(editor)}
+      >
+        <svg
+          className={styles.icon}
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add a section
+      </Button>
+      {isFull ? (
+        <p className={styles.addSectionNote}>Thirty sections is the most there can be.</p>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * The interim format bar (current-work.md, Design reference): a native select

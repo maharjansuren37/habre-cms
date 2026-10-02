@@ -230,7 +230,7 @@ export function renderDocument(document: Document, type: "post" | "page") {
             data-align={section.attrs.align}
             data-background={section.attrs.background}
           >
-            <div className={content.columns} data-columns={section.content.length}>
+            <div className={content.columns}>
               {section.content.map((column, columnIndex) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: v4 nodes carry no id (D169)
                 <div key={columnIndex} className={content.column}>

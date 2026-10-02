@@ -28,13 +28,16 @@
   align-items: start;
 }
 
-/* The count rides on an attribute rather than an inline style: the public
-   Content-Security-Policy refuses inline styles. */
-.columns[data-columns="2"] {
+/* The count is read from the columns themselves rather than from an
+   attribute or an inline style: the public Content-Security-Policy refuses
+   inline styles, and in the editor the columns change under a section that is
+   not redrawn. `~` rather than `+`, so anything ProseMirror draws between
+   columns (its gap cursor) does not break the count. */
+.columns:has(> .column ~ .column) {
   --columns: 2;
 }
 
-.columns[data-columns="3"] {
+.columns:has(> .column ~ .column ~ .column) {
   --columns: 3;
 }
 

@@ -9,6 +9,7 @@
 /* The public article's reading size and measure (post.module.css), so what is
    typed reads as it will publish. */
 .site {
+  position: relative;
   padding: var(--space-6) var(--space-5);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
@@ -95,6 +96,126 @@
 
 .prose:global(.ProseMirror-hideselection) * {
   caret-color: transparent;
+}
+
+/* ---- Sections in the canvas (editor chrome, not the site) ------------------- */
+
+/* Each section keeps room at its top for the section chip, so the chip never
+   covers text; a dashed line marks where one section ends and the next
+   begins. Neither is drawn on the public site. */
+.prose :global(section[data-node="section"]) {
+  padding-top: calc(var(--size-control-sm) + var(--space-1) * 2 + var(--space-2));
+}
+
+.prose :global(section[data-node="section"] + section[data-node="section"]) {
+  border-top: var(--border-width) dashed var(--color-border-strong);
+}
+
+/* The canvas is narrower than 40rem, so columns stack in it; a dashed outline
+   shows where each column of a multi-column section starts and ends. */
+.prose :global([data-node="column"] ~ [data-node="column"]),
+.prose :global([data-node="column"]:has(~ [data-node="column"])) {
+  outline: var(--border-width) dashed var(--color-border);
+  outline-offset: var(--space-2);
+}
+
+/* The section chip (prototypes/components.css, .section-chip): rust, on the
+   section holding the cursor, placed by the editor's code (`top`). */
+.chip {
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  position: absolute;
+  top: 0;
+  right: var(--space-5);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-selection);
+  color: var(--color-on-selection);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+}
+
+/* Floated, so the legend lines up in the row rather than on the border. */
+.chipLegend {
+  float: left;
+  padding: 0;
+}
+
+.chipField {
+  margin-left: var(--space-2);
+}
+
+.chipSelect {
+  min-height: var(--size-control-sm);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* The open list is drawn by the browser on its own background. */
+.chipSelect option {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.chipButton {
+  display: grid;
+  place-items: center;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chipSelect:focus-visible,
+.chipButton:focus-visible {
+  outline: var(--focus-width) solid var(--color-on-selection);
+  outline-offset: 1px;
+}
+
+.chipIcon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Add a section (prototypes/components.css, .add-section): Habre's chrome,
+   below the canvas. */
+.addSection {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) 0 0;
+}
+
+/* Doubled class, so it outranks the Button component's solid border
+   whichever stylesheet loads first. */
+.addSection .addSectionButton {
+  gap: var(--space-2);
+  border-style: dashed;
+}
+
+.addSectionNote {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
 /* ---- Format bar (interim; 14a3 moves these into the block toolbar) -------- */

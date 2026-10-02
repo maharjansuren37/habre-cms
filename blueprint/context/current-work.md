@@ -129,7 +129,7 @@ shape is locked here.
   only contract nodes - the text kept, the image and table dropped, the list
   flat, the link gone.
 
-- [ ] **Step 4 - Sections and columns** - Add a section; the section chip,
+- [x] **Step 4 - Sections and columns** - Add a section; the section chip,
   positioned by our code at the section holding the cursor, after the
   writing area in tab order; Columns 1 / 2 / 3 (shrinking moves the removed
   columns' blocks to the end of the last kept column, D119); Remove section,

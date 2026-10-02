@@ -13,7 +13,9 @@ import {
 
 // Item 14a1, step 3: a v4 entry opens in the TipTap document editor - text
 // styles, lists, quote, bold, italic, links, undo and redo - and what it saves
-// is the v4 contract and nothing else.
+// is the v4 contract and nothing else. Step 4: sections and columns - Add a
+// section, the section chip's Columns and Remove section, and typing or
+// deleting never crossing a section or column.
 
 let editor: TestUser;
 // The admin's Content-Security-Policy is not loosened for TipTap: anything it
@@ -54,8 +56,13 @@ const startDocument = {
   ],
 };
 
-async function openSeeded(page: Page, type: "post" | "page", title: string) {
-  const id = await createDraftFor(editor.email, title, startDocument, { type, blocksFormat: "v4" });
+async function openSeeded(
+  page: Page,
+  type: "post" | "page",
+  title: string,
+  document: unknown = startDocument,
+) {
+  const id = await createDraftFor(editor.email, title, document, { type, blocksFormat: "v4" });
   await logIn(page, editor);
   await page.goto(`/admin/${type}s/${id}`);
   const name = type === "page" ? "Page content" : "Post content";
@@ -375,3 +382,241 @@ test("pasted HTML saves only contract nodes: image and table dropped, list flat,
   expect(json).not.toContain('"link"');
   expect(json).not.toContain("photo.png");
 });
+
+// ---- Step 4: sections and columns ------------------------------------------
+
+const para = (text?: string) => ({
+  type: "paragraph",
+  ...(text && { content: [{ type: "text", text }] }),
+});
+const section = (...columns: string[][]) => ({
+  type: "section",
+  attrs: { align: "top", background: "none" },
+  content: columns.map((texts) => ({ type: "column", content: texts.map((text) => para(text)) })),
+});
+const doc = (...sections: unknown[]) => ({ type: "doc", content: sections });
+
+/** The section chip, found by the name it reads ("Section 2 of 5"). */
+function chip(page: Page, name: string) {
+  return page.getByRole("group", { name, exact: true });
+}
+
+/** The canvas's sections, as the texts of each column: [[["A"], ["B"]], ...].
+ *  Run in the page, so written as source: these tests' types have no DOM. */
+async function canvasShape(page: Page) {
+  return page.evaluate(`[...document.querySelectorAll('[role="textbox"] [data-node="section"]')].map(
+    (section) => [...section.querySelectorAll('[data-node="column"]')].map(
+      (column) => [...column.children].map((block) => block.textContent),
+    ),
+  )`);
+}
+
+test("Add a section, then type in it: the chip reads Section 2 of 2 with the cursor there", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Added Section Page");
+  await textbox.getByText("Start here.").click();
+  await expect(chip(page, "Section 1 of 1")).toBeVisible();
+  // The last section cannot be removed, so the chip does not offer it.
+  await expect(page.getByRole("button", { name: "Remove section" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Add a section" }).click();
+  await page.keyboard.type("A second section");
+  await expect(chip(page, "Section 2 of 2")).toBeVisible();
+  await expect(
+    chip(page, "Section 2 of 2").getByRole("button", { name: "Remove section" }),
+  ).toBeVisible();
+  expect(await canvasShape(page)).toEqual([[["Start here."]], [["A second section"]]]);
+
+  await save(page);
+  const stored = await storedEntry(id);
+  expect(stored.blocks).toEqual(doc(section(["Start here."]), section(["A second section"])));
+});
+
+test("3 columns -> 2 keeps every block, as one undoable step", async ({ page }) => {
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Columns Page",
+    doc(section(["Alpha"], ["Beta"], ["Gamma", "Delta"])),
+  );
+  await textbox.getByText("Alpha").click();
+  const columns = chip(page, "Section 1 of 1").getByLabel("Columns");
+  await expect(columns).toHaveValue("3");
+
+  await columns.selectOption("2");
+  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"]]]);
+  // The canvas draws the new count from the same stylesheet the site uses.
+  expect(
+    await page.evaluate(
+      `getComputedStyle(document.querySelector('[role="textbox"] [data-node="section"] > div')).getPropertyValue("--columns").trim()`,
+    ),
+  ).toBe("2");
+
+  // One Undo reverts the whole change; Redo puts it back.
+  await textbox.getByText("Alpha").click();
+  await settle(page);
+  await page.keyboard.press("Control+z");
+  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta"], ["Gamma", "Delta"]]]);
+  await expect(columns).toHaveValue("3");
+  await page.keyboard.press("Control+Shift+z");
+  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"]]]);
+
+  // Growing adds an empty column on the right.
+  await columns.selectOption("3");
+  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"], [""]]]);
+  await columns.selectOption("2");
+
+  await save(page);
+  const stored = await storedEntry(id);
+  expect(stored.blocks).toEqual(doc(section(["Alpha"], ["Beta", "Gamma", "Delta"])));
+});
+
+test("Remove section, then Ctrl+Z restores it with its text", async ({ page }) => {
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Removed Section Page",
+    doc(section(["First words"]), section(["Second words"], ["More words"])),
+  );
+  await textbox.getByText("Second words").click();
+  await expect(chip(page, "Section 2 of 2")).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove section" }).click();
+  expect(await canvasShape(page)).toEqual([[["First words"]]]);
+  await expect(chip(page, "Section 1 of 1")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove section" })).toHaveCount(0);
+
+  await page.keyboard.press("Control+z");
+  expect(await canvasShape(page)).toEqual([[["First words"]], [["Second words"], ["More words"]]]);
+
+  await save(page);
+  const stored = await storedEntry(id);
+  expect(stored.blocks).toEqual(
+    doc(section(["First words"]), section(["Second words"], ["More words"])),
+  );
+});
+
+test("Backspace at the start of a column and Delete at the end of a section change nothing outside them", async ({
+  page,
+}) => {
+  const seeded = doc(section(["Left"], ["Right"]), section(["Below"]));
+  const { id, textbox } = await openSeeded(page, "page", "Isolated Page", seeded);
+  const shape = [[["Left"], ["Right"]], [["Below"]]];
+
+  // The start of the second column.
+  await textbox.getByText("Right").click();
+  await settle(page);
+  await page.keyboard.press("Home");
+  await settle(page);
+  await page.keyboard.press("Backspace");
+  expect(await canvasShape(page)).toEqual(shape);
+
+  // The end of the first section (its last column's last block).
+  await page.keyboard.press("End");
+  await settle(page);
+  await page.keyboard.press("Delete");
+  expect(await canvasShape(page)).toEqual(shape);
+
+  // The start of the second section.
+  await textbox.getByText("Below").click();
+  await settle(page);
+  await page.keyboard.press("Home");
+  await settle(page);
+  await page.keyboard.press("Backspace");
+  expect(await canvasShape(page)).toEqual(shape);
+
+  // The end of the first column.
+  await textbox.getByText("Left").click();
+  await settle(page);
+  await page.keyboard.press("End");
+  await settle(page);
+  await page.keyboard.press("Delete");
+  expect(await canvasShape(page)).toEqual(shape);
+
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(seeded);
+});
+
+test("Tab from the writing area reaches the chip's Columns control", async ({ page }) => {
+  const { textbox } = await openSeeded(page, "post", "Tab Post");
+  await textbox.getByText("Start here.").click();
+  await page.keyboard.press("Tab");
+  await expect(chip(page, "Section 1 of 1").getByLabel("Columns")).toBeFocused();
+});
+
+test("a page saved with 2 sections of 2 columns renders them side by side on the public page", async ({
+  page,
+}) => {
+  const { textbox } = await openSeeded(page, "page", "Two By Two");
+  const columns = () => textbox.locator('[data-node="column"]');
+
+  await textbox.getByText("Start here.").click();
+  await page.getByLabel("Columns").selectOption("2");
+  await columns().nth(1).click();
+  await page.keyboard.type("Top right");
+  await page.getByRole("button", { name: "Add a section" }).click();
+  await page.keyboard.type("Bottom left");
+  await page.getByLabel("Columns").selectOption("2");
+  await columns().nth(3).click();
+  await page.keyboard.type("Bottom right");
+  expect(await canvasShape(page)).toEqual([
+    [["Start here."], ["Top right"]],
+    [["Bottom left"], ["Bottom right"]],
+  ]);
+
+  await save(page);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?/);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/two-by-two");
+  await expect(page.getByRole("main").locator("section")).toHaveCount(2);
+  for (const [left, right] of [
+    ["Start here.", "Top right"],
+    ["Bottom left", "Bottom right"],
+  ]) {
+    const a = await page.getByText(left, { exact: true }).boundingBox();
+    const b = await page.getByText(right, { exact: true }).boundingBox();
+    expect(a && b && Math.abs(a.y - b.y) < 2 && b.x >= a.x + a.width).toBe(true);
+  }
+});
+
+// Journey 2 (design.md, *Edit and publish*), the part this item has: open a
+// page, change its text, Publish, and the public page shows it - once opening
+// the editor as a full page load, once through the admin's own links.
+for (const arrival of ["a full page load", "the admin's own links"] as const) {
+  test(`Journey 2: open a page by ${arrival}, change its text, Publish, and the public page shows it`, async ({
+    page,
+  }) => {
+    const title = `Journey Page ${randomInt(1_000_000)}`;
+    const id = await createDraftFor(editor.email, title, startDocument, {
+      type: "page",
+      blocksFormat: "v4",
+    });
+    await logIn(page, editor);
+    if (arrival === "a full page load") {
+      await page.goto(`/admin/pages/${id}`);
+    } else {
+      await page.goto("/admin");
+      await page.getByRole("link", { name: "Pages", exact: true }).click();
+      await page.getByRole("link", { name: title, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+    }
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await textbox.getByText("Start here.").click();
+    await settle(page);
+    await page.keyboard.press("End");
+    await settle(page);
+    await page.keyboard.type(" Changed for the journey.");
+
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page.getByText(`Published`, { exact: false }).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/pages\?/);
+
+    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await expect(
+      page.getByRole("main").getByText("Start here. Changed for the journey."),
+    ).toBeVisible();
+  });
+}
