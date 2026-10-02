@@ -1,22 +1,29 @@
 import buttonStyles from "#app/lib/ui/button.module.css";
-import styles from "./logo-picker.module.css";
+import styles from "./media-picker-dialog.module.css";
 
 /**
- * The media picker dialog for the logo. Item 14a1 removed the old image
- * block's copy of it, so this is now its only use. Vanilla DOM, called from a
- * plain `onClick` in `settings.tsx`.
+ * The media picker dialog, shared by the logo in Settings and the image block
+ * in the editor (item 14a2), each naming it in `title`. Vanilla DOM, called
+ * from a plain `onClick`; it closes before handing back the pick.
  */
 
 const PICKER_ENDPOINT = "/admin/media/picker";
 
-export type PickedLogo = { id: string; url: string; filename: string };
+export type PickedMedia = {
+  id: string;
+  url: string;
+  filename: string;
+  altText: string;
+  width: number;
+  height: number;
+};
 
-type PickerResponse = { media: PickedLogo[]; page: number; totalPages: number };
+type PickerResponse = { media: PickedMedia[]; page: number; totalPages: number };
 
 let dialogIdCounter = 0;
 
-export function openLogoPickerDialog(onSelect: (media: PickedLogo) => void) {
-  const titleId = `logo-picker-title-${++dialogIdCounter}`;
+export function openMediaPickerDialog(title: string, onSelect: (media: PickedMedia) => void) {
+  const titleId = `media-picker-title-${++dialogIdCounter}`;
 
   const dialog = document.createElement("dialog");
   dialog.className = styles.dialog;
@@ -28,16 +35,16 @@ export function openLogoPickerDialog(onSelect: (media: PickedLogo) => void) {
 
   const header = document.createElement("div");
   header.className = styles.dialogHeader;
-  const title = document.createElement("h2");
-  title.id = titleId;
-  title.className = styles.dialogTitle;
-  title.textContent = "Choose a logo";
+  const heading = document.createElement("h2");
+  heading.id = titleId;
+  heading.className = styles.dialogTitle;
+  heading.textContent = title;
   const close = document.createElement("button");
   close.type = "button";
   close.className = `${buttonStyles.button} ${buttonStyles.quiet}`;
   close.textContent = "Close";
   close.addEventListener("click", () => dialog.close());
-  header.append(title, close);
+  header.append(heading, close);
 
   const body = document.createElement("div");
   body.className = styles.dialogBody;
@@ -52,7 +59,7 @@ export function openLogoPickerDialog(onSelect: (media: PickedLogo) => void) {
 async function loadPickerPage(
   body: HTMLElement,
   page: number,
-  onSelect: (media: PickedLogo) => void,
+  onSelect: (media: PickedMedia) => void,
   dialog: HTMLDialogElement,
 ) {
   body.replaceChildren(statusMessage("Loading…"));

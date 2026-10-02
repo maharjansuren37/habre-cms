@@ -156,7 +156,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   with focus in the writing area; a seeded document of 200 blocks shows every
   tile disabled.
 
-- [ ] **Step 5 - One media picker** - `settings/logo-picker.client.ts` (+
+- [x] **Step 5 - One media picker** - `settings/logo-picker.client.ts` (+
   CSS) moves to `app/features/media/media-picker-dialog.client.ts`, titled by
   its caller ("Choose a logo" / "Choose an image") and handing back
   `PickedMedia`; `settings.tsx` imports it. Nothing else changes. *Done
