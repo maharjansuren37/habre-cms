@@ -1,0 +1,110 @@
+/* The settings panel (item 14a2, step 6): prototypes/components.css
+   `.settings`. 17rem on the right from 1024px, in the slot the entry form
+   owns; below it a bottom sheet over the page's foot. */
+
+.panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 3;
+  max-height: 45vh;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    position: static;
+    max-height: calc(100dvh - 9rem);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: none;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+/* The kit's sm ghost icon button. Doubled class so it outranks the Button
+   component's own padding and height, whichever stylesheet loads first. */
+.head .close {
+  min-height: var(--size-control-sm);
+  width: var(--size-control-sm);
+  padding: 0;
+}
+
+.icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.select {
+  width: 100%;
+  min-height: var(--size-control-md);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.select:hover {
+  border-color: var(--color-text-muted);
+}
+
+.select:focus-visible {
+  border-color: var(--color-focus-ring);
+}
+
+.alt {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.readonly {
+  margin: 0;
+  min-height: 1lh;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

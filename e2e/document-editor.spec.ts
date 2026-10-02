@@ -9,7 +9,7 @@ import {
   spaceBlock,
   textDocument,
 } from "./helpers/documents.ts";
-import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
+import { deleteTestMedia, insertTestMediaRow, testMediaFilename } from "./helpers/media.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -421,6 +421,14 @@ function chip(page: Page, name: string) {
   return page.getByRole("group", { name, exact: true });
 }
 
+/** Presses the chip's Section settings and returns the panel it opens, named `name` ("Section 2"). */
+async function openSectionSettings(page: Page, name: string) {
+  await page.getByRole("button", { name: "Section settings" }).click();
+  const panel = page.getByRole("complementary", { name, exact: true });
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
 /** The canvas's sections, as the texts of each column: [[["A"], ["B"]], ...].
  *  Run in the page, so written as source: these tests' types have no DOM. */
 async function canvasShape(page: Page) {
@@ -453,23 +461,27 @@ test("Add a section, then type in it: the chip reads Section 2 of 2 with the cur
   expect(stored.blocks).toEqual(doc(section(["Start here."]), section(["A second section"])));
 });
 
-test("3 columns -> 2 keeps every block, as one undoable step", async ({ page }) => {
+test("3 columns -> 2 keeps every block, as one undoable step (Section settings, Columns)", async ({
+  page,
+}) => {
   const { id, textbox } = await openSeeded(
     page,
     "page",
     "Columns Page",
-    doc(section(["Alpha"], ["Beta"], ["Gamma", "Delta"])),
+    doc(section(["First"]), section(["Alpha"], ["Beta"], ["Gamma", "Delta"])),
   );
   await textbox.getByText("Alpha").click();
-  const columns = chip(page, "Section 1 of 1").getByLabel("Columns");
+  const columns = await openSectionSettings(page, "Section 2").then((panel) =>
+    panel.getByLabel("Columns"),
+  );
   await expect(columns).toHaveValue("3");
 
   await columns.selectOption("2");
-  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"]]]);
+  expect(await canvasShape(page)).toEqual([[["First"]], [["Alpha"], ["Beta", "Gamma", "Delta"]]]);
   // The canvas draws the new count from the same stylesheet the site uses.
   expect(
     await page.evaluate(
-      `getComputedStyle(document.querySelector('[role="textbox"] [data-node="section"] > div')).getPropertyValue("--columns").trim()`,
+      `getComputedStyle(document.querySelectorAll('[role="textbox"] [data-node="section"] > div')[1]).getPropertyValue("--columns").trim()`,
     ),
   ).toBe("2");
 
@@ -477,19 +489,24 @@ test("3 columns -> 2 keeps every block, as one undoable step", async ({ page }) 
   await textbox.getByText("Alpha").click();
   await settle(page);
   await page.keyboard.press("Control+z");
-  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta"], ["Gamma", "Delta"]]]);
+  expect(await canvasShape(page)).toEqual([[["First"]], [["Alpha"], ["Beta"], ["Gamma", "Delta"]]]);
   await expect(columns).toHaveValue("3");
   await page.keyboard.press("Control+Shift+z");
-  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"]]]);
+  expect(await canvasShape(page)).toEqual([[["First"]], [["Alpha"], ["Beta", "Gamma", "Delta"]]]);
 
   // Growing adds an empty column on the right.
   await columns.selectOption("3");
-  expect(await canvasShape(page)).toEqual([[["Alpha"], ["Beta", "Gamma", "Delta"], [""]]]);
+  expect(await canvasShape(page)).toEqual([
+    [["First"]],
+    [["Alpha"], ["Beta", "Gamma", "Delta"], [""]],
+  ]);
   await columns.selectOption("2");
 
   await save(page);
   const stored = await storedEntry(id);
-  expect(stored.blocks).toEqual(doc(section(["Alpha"], ["Beta", "Gamma", "Delta"])));
+  expect(stored.blocks).toEqual(
+    doc(section(["First"]), section(["Alpha"], ["Beta", "Gamma", "Delta"])),
+  );
 });
 
 test("Remove section, then Ctrl+Z restores it with its text", async ({ page }) => {
@@ -558,11 +575,13 @@ test("Backspace at the start of a column and Delete at the end of a section chan
   expect((await storedEntry(id)).blocks).toEqual(seeded);
 });
 
-test("Tab from the writing area reaches the chip's Columns control", async ({ page }) => {
+test("Tab from the writing area reaches the chip's Section settings button", async ({ page }) => {
   const { textbox } = await openSeeded(page, "post", "Tab Post");
   await textbox.getByText("Start here.").click();
   await page.keyboard.press("Tab");
-  await expect(chip(page, "Section 1 of 1").getByLabel("Columns")).toBeFocused();
+  await expect(
+    chip(page, "Section 1 of 1").getByRole("button", { name: "Section settings" }),
+  ).toBeFocused();
 });
 
 test("a page saved with 2 sections of 2 columns renders them side by side on the public page", async ({
@@ -572,12 +591,12 @@ test("a page saved with 2 sections of 2 columns renders them side by side on the
   const columns = () => textbox.locator('[data-node="column"]');
 
   await textbox.getByText("Start here.").click();
-  await page.getByLabel("Columns").selectOption("2");
+  await (await openSectionSettings(page, "Section 1")).getByLabel("Columns").selectOption("2");
   await columns().nth(1).click();
   await page.keyboard.type("Top right");
   await page.getByRole("button", { name: "Add a section" }).click();
   await page.keyboard.type("Bottom left");
-  await page.getByLabel("Columns").selectOption("2");
+  await (await openSectionSettings(page, "Section 2")).getByLabel("Columns").selectOption("2");
   await columns().nth(3).click();
   await page.keyboard.type("Bottom right");
   expect(await canvasShape(page)).toEqual([
@@ -1200,4 +1219,222 @@ test("a document of 200 blocks disables every tile and says why", async ({ page 
   for (const name of ["Text", "Heading", "List", "Image", "Button", "Quote", "Line", "Space"]) {
     await expect(tile(page, name)).toBeDisabled();
   }
+});
+
+// ---- Item 14a2, step 6: the settings panel -----------------------------------
+
+function settingsPanel(page: Page, name: string) {
+  return page.getByRole("complementary", { name, exact: true });
+}
+
+/** Opens the picker from the panel and chooses the seeded row by its thumbnail's filename. */
+async function pickImage(page: Page, buttonName: string, mediaId: string) {
+  await settingsPanel(page, "Image").getByRole("button", { name: buttonName }).click();
+  const picker = page.getByRole("dialog", { name: "Choose an image" });
+  await expect(picker).toBeVisible();
+  await picker.getByRole("button", { name: await testMediaFilename(mediaId) }).click();
+  await expect(picker).toHaveCount(0);
+}
+
+async function seedMedia(altText: string) {
+  const id = await insertTestMediaRow({ uploadedBy: editor.email, altText });
+  seededMedia.push(id);
+  return id;
+}
+
+test("settings panel: selecting an image opens it headed Image; text, line and space hide it", async ({
+  page,
+}) => {
+  const { textbox } = await openWithFourBlocks(page);
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await textbox.getByRole("img", { name: "A red door" }).click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await expect(settingsPanel(page, "Image").getByRole("heading", { level: 2 })).toHaveText("Image");
+
+  await textbox.getByText("Before the blocks.").click();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await textbox.getByRole("img", { name: "A red door" }).click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await textbox.getByRole("separator").click();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await textbox.getByRole("img", { name: "A red door" }).click();
+  await textbox.locator('[data-node="space"]').click();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  // 14a2 step 7 gives the button its own panel; until then it opens none.
+  await textbox.getByText("Book now", { exact: true }).click();
+  await expect(page.getByRole("complementary", { name: "Button" })).toHaveCount(0);
+});
+
+test("settings panel: Choose image on an empty image draws the pick, and Save stores its id", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Choose Image Page");
+  const media = await seedMedia("A blue boat");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Image").click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await expect(
+    settingsPanel(page, "Image").getByRole("button", { name: "Replace image" }),
+  ).toHaveCount(0);
+
+  await pickImage(page, "Choose image", media);
+  await expect(textbox.getByRole("img", { name: "A blue boat" })).toBeVisible();
+  // The panel stays, now offering Replace, with the alt text read-only.
+  const panel = settingsPanel(page, "Image");
+  await expect(panel.getByRole("button", { name: "Replace image" })).toBeVisible();
+  await expect(panel.getByText("Alt text", { exact: true })).toBeVisible();
+  await expect(panel.getByText("A blue boat", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Alt text is set when the image is uploaded.")).toBeVisible();
+  await expect(panel.getByRole("textbox")).toHaveCount(0);
+
+  await save(page);
+  const blocks = firstColumn((await storedEntry(id)).blocks) as { type: string; attrs?: unknown }[];
+  expect(blocks.map((block) => block.type)).toEqual(["paragraph", "image"]);
+  expect(blocks[1].attrs).toEqual({ mediaId: media });
+});
+
+test("settings panel: Replace image swaps it, and one Ctrl+Z restores the first", async ({
+  page,
+}) => {
+  const first = await seedMedia("The first picture");
+  const second = await seedMedia("The second picture");
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Replace Image Page",
+    inSection(imageBlock(first)),
+  );
+  await textbox.getByRole("img", { name: "The first picture" }).click();
+  await pickImage(page, "Replace image", second);
+  await expect(textbox.getByRole("img", { name: "The second picture" })).toBeVisible();
+  await expect(textbox.getByRole("img", { name: "The first picture" })).toHaveCount(0);
+  // The image stays selected, so its panel is still there.
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+
+  await textbox.focus();
+  await page.keyboard.press("Control+z");
+  await expect(textbox.getByRole("img", { name: "The first picture" })).toBeVisible();
+  await expect(textbox.getByRole("img", { name: "The second picture" })).toHaveCount(0);
+
+  await save(page);
+  expect(firstColumn((await storedEntry(id)).blocks)).toEqual([imageBlock(first)]);
+});
+
+test("settings panel: a deleted image's panel offers Replace image, and the swap clears the message", async ({
+  page,
+}) => {
+  const { textbox } = await openWithFourBlocks(page);
+  const replacement = await seedMedia("A fresh picture");
+  const message = "This image is no longer available.";
+  await textbox.getByText(message).click();
+  const panel = settingsPanel(page, "Image");
+  await expect(panel.getByText(message)).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Choose image" })).toHaveCount(0);
+
+  await pickImage(page, "Replace image", replacement);
+  await expect(textbox.getByRole("img", { name: "A fresh picture" })).toBeVisible();
+  await expect(panel.getByText(message)).toHaveCount(0);
+  await expect(textbox.getByText(message)).toHaveCount(0);
+});
+
+test("settings panel: the chip's Section settings opens Section 2, and the chip no longer holds Columns", async ({
+  page,
+}) => {
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Section Panel Page",
+    doc(section(["One"]), section(["Two"])),
+  );
+  await textbox.getByText("Two").click();
+  await expect(chip(page, "Section 2 of 2").getByLabel("Columns")).toHaveCount(0);
+  await expect(
+    chip(page, "Section 2 of 2").getByRole("button", { name: "Remove section" }),
+  ).toBeVisible();
+  await expect(page.getByRole("complementary", { name: /^Section/ })).toHaveCount(0);
+  const panel = await openSectionSettings(page, "Section 2");
+  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Section 2");
+  // Moving the cursor to another section hides it.
+  await textbox.getByText("One").click();
+  await expect(page.getByRole("complementary", { name: /^Section/ })).toHaveCount(0);
+});
+
+test("settings panel: Escape closes it with focus in the writing area, and Close settings does too", async ({
+  page,
+}) => {
+  const { textbox } = await openSeeded(page, "page", "Escape Panel Page");
+  await textbox.getByText("Start here.").click();
+  const panel = await openSectionSettings(page, "Section 1");
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+
+  // Pressing Section settings again brings it back.
+  await openSectionSettings(page, "Section 1");
+  await page.getByRole("button", { name: "Close settings" }).click();
+  await expect(panel).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+});
+
+test("settings panel: Escape and Close settings hide an image's panel until the image is selected again", async ({
+  page,
+}) => {
+  const { textbox } = await openWithFourBlocks(page);
+  const image = textbox.getByRole("img", { name: "A red door" });
+  await image.click();
+  await settingsPanel(page, "Image").getByRole("button", { name: "Close settings" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+
+  await textbox.getByText("Before the blocks.").click();
+  await image.click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await page.getByRole("button", { name: "Close settings" }).click();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+});
+
+test("settings panel: at 390px it is a bottom sheet that leaves the selected image visible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { textbox } = await openWithFourBlocks(page);
+  const image = textbox.getByRole("img", { name: "A red door" });
+  await image.click();
+  const panel = settingsPanel(page, "Image");
+  await expect(panel).toBeVisible();
+
+  await expect
+    .poll(async () => {
+      const sheet = await panel.boundingBox();
+      const picture = await image.boundingBox();
+      if (!sheet || !picture) return false;
+      return (
+        picture.y >= 0 &&
+        picture.y + picture.height <= sheet.y + 1 &&
+        sheet.y + sheet.height <= 800 + 1 &&
+        sheet.height <= 800 * 0.45 + 1
+      );
+    })
+    .toBe(true);
+  // Fixed to the bottom edge.
+  const sheet = await panel.boundingBox();
+  expect(Math.round((sheet?.y ?? 0) + (sheet?.height ?? 0))).toBe(800);
+});
+
+test("settings panel: the writing area is still the only content textbox, and the panel holds none", async ({
+  page,
+}) => {
+  const { textbox } = await openWithFourBlocks(page);
+  await textbox.getByRole("img", { name: "A red door" }).click();
+  const panel = settingsPanel(page, "Image");
+  await expect(panel).toBeVisible();
+  // The page holds two textboxes: the Title input and the writing area.
+  await expect(page.getByRole("textbox")).toHaveCount(2);
+  await expect(page.getByRole("textbox", { name: /content$/ })).toHaveCount(1);
+  await expect(panel.getByRole("textbox")).toHaveCount(0);
+  await expect(textbox.getByRole("textbox")).toHaveCount(0);
+  await expect(textbox.getByRole("button")).toHaveCount(0);
 });

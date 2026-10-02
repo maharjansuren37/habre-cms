@@ -163,7 +163,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   when:* `manage-settings.spec.ts`'s logo picker tests pass unchanged and
   `grep -rn "logo-picker" app` finds nothing.
 
-- [ ] **Step 6 - The settings panel, and Columns move into it** - an `aside`
+- [x] **Step 6 - The settings panel, and Columns move into it** - an `aside`
   labelled by its heading, after the writing area in tab order, shown while
   an Image or Button is the selected block or after the chip's **Section
   settings** is pressed; Close settings and Escape hide it (Design

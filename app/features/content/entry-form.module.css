@@ -80,7 +80,8 @@
   display: block;
 }
 
-.paletteSlot {
+.paletteSlot,
+.settingsSlot {
   display: contents;
 }
 
@@ -93,11 +94,24 @@
     padding-left: var(--space-4);
   }
 
-  .paletteSlot {
+  .paletteSlot,
+  .settingsSlot {
     display: block;
     position: sticky;
     top: 7rem;
     margin-top: var(--space-5);
+  }
+
+  /* The settings panel's column exists only while the panel is open, so the
+     canvas keeps its place when nothing is selected. Below 1024px the panel
+     is a bottom sheet and needs no column. */
+  .settingsSlot:empty {
+    display: none;
+  }
+
+  .body:has(.settingsSlot:not(:empty)) {
+    grid-template-columns: 15rem minmax(0, 1fr) 17rem;
+    padding-right: var(--space-4);
   }
 }
 
@@ -111,7 +125,8 @@
   width: 100%;
   max-width: calc(var(--size-measure) + var(--space-5) * 2 + var(--space-4) * 2);
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-7);
+  /* The settings sheet, on a phone, sits over the foot of the page: room for it. */
+  padding: var(--space-5) var(--space-4) calc(var(--space-7) + var(--settings-sheet, 0px));
   font-size: var(--text-lg);
 }
 

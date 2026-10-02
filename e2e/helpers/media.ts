@@ -85,3 +85,12 @@ export function insertTestMediaRow(options: {
     return row.id;
   });
 }
+
+/** Test-only: the filename a seeded row shows in the picker, where a thumbnail's button is named by it. */
+export function testMediaFilename(id: string): Promise<string> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ filename: string }[]>`select filename from media where id = ${id}`;
+    if (!row) throw new Error(`no media row ${id}`);
+    return row.filename;
+  });
+}

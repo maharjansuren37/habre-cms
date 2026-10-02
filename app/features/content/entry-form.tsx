@@ -69,6 +69,7 @@ export function EntryForm({
   const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
   const [paletteSlot, setPaletteSlot] = useState<HTMLDivElement | null>(null);
   const [addSlot, setAddSlot] = useState<HTMLDivElement | null>(null);
+  const [settingsSlot, setSettingsSlot] = useState<HTMLDivElement | null>(null);
 
   // The editor reaches for the DOM as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
@@ -232,6 +233,7 @@ export function EntryForm({
               barSlot={formatBarSlot}
               paletteSlot={paletteSlot}
               addSlot={addSlot}
+              settingsSlot={settingsSlot}
             />
           ) : (
             <p className={styles.needsJs}>
@@ -239,6 +241,8 @@ export function EntryForm({
             </p>
           )}
         </div>
+        {/* After the canvas, so the panel follows the writing area in tab order. */}
+        <div ref={setSettingsSlot} className={styles.settingsSlot} />
       </div>
     </Form>
   );

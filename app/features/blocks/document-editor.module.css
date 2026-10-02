@@ -148,26 +148,6 @@
   padding: 0;
 }
 
-.chipField {
-  margin-left: var(--space-2);
-}
-
-.chipSelect {
-  min-height: var(--size-control-sm);
-  padding: 0 var(--space-2);
-  border: var(--border-width) solid currentColor;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-}
-
-/* The open list is drawn by the browser on its own background. */
-.chipSelect option {
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
 .chipButton {
   display: grid;
   place-items: center;
@@ -181,7 +161,6 @@
   cursor: pointer;
 }
 
-.chipSelect:focus-visible,
 .chipButton:focus-visible {
   outline: var(--focus-width) solid var(--color-on-selection);
   outline-offset: 1px;
