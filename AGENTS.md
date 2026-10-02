@@ -158,13 +158,13 @@ Or just ask in plain language - "spec the next item", "run the review".
 - Platform: web app - browser-based admin plus a server-rendered public site
 - Language(s): TypeScript 7.0.2 for everything; `server.js` is JavaScript checked
   by TypeScript (`checkJs`)
-- Framework and version: React Router **8.3.1** (framework mode, `@react-router/dev`
-  and `@react-router/node` 8.3.1), React 19.3.0, Vite 8.3.0. Served by `node:http`
+- Framework and version: React Router **8.4.0** (framework mode, `@react-router/dev`
+  and `@react-router/node` 8.4.0), React 19.3.0, Vite 8.3.0. Served by `node:http`
   through `createRequestListener` - no Express.
 - Runtime version: Node.js 26 (26.8.1 installed on the dev machine); `engines`
   requires >= 26
 - Other installed versions (from `package-lock.json`): `postgres` 3.4.9, Zod 4.6.5,
-  `isbot` 5.2.2, `@remix-run/node-fetch-server` 0.14.1,
+  `isbot` 5.2.2, `@remix-run/node-fetch-server` 0.14.2,
   Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list` 2.0.9, `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
   Playwright 1.63.0 (Chromium 153), Biome 2.5.13. Development database:
   PostgreSQL 16.15 (`postgres:16-alpine`).

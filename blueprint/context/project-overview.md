@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-02, `rescope/platform` after `4314312`.
+Generated 2026-10-02, `feature/upgrade-react-router` after `366115e`.
 
 ## What this is
 
@@ -35,7 +35,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Platform v1 (items 13-21, queued):** stack upgrade; the new look (13b,
+**Platform v1 (items 13-21, queued):** React Router 8.4.0; the new look (13b,
 `design.md`); a Mailchimp-style drag-and-drop editor on TipTap 3 (14a-14c,
 content discarded); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
@@ -53,7 +53,7 @@ Pinned versions: plan section 5 and `AGENTS.md`. **Minimal dependencies is a
 constraint** - each new runtime dependency is a recorded decision.
 
 - TypeScript 7.0.2 strict, `erasableSyntaxOnly`; Node.js 26 (D15).
-- **React Router 8.3.1 framework mode**, React 19.3.0, Vite 8.3.0, on
+- **React Router 8.4.0 framework mode**, React 19.3.0, Vite 8.3.0, on
   `node:http` - **no Express** (D10, D17, D23). The installed docs in
   `node_modules/react-router/docs/` decide.
 - PostgreSQL 16, `postgres` driver, **raw SQL, no ORM** (D11).
@@ -127,7 +127,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-12 done; 11 queued (13, 13b, 14, 15, 16, 17, 17b, 18-21);
+- **Plan:** items 1-13 done; 10 queued (13b, 14, 15, 16, 17, 17b, 18-21);
   nothing in flight. 14, 15 and 18 split when spec'd.
-- **Next:** `spec` item 13.
+- **Next:** `spec` item 13b.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

@@ -29,7 +29,7 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
 - **Framework guidance:** React Router's installed docs,
   `node_modules/react-router/docs/`, and its agent skill in
   `.agents/skills/react-router/`. Where a React Router pattern is in question,
-  the installed docs for 8.3.1 decide, not memory.
+  the installed docs for 8.4.0 decide, not memory.
 - **Inferred from a new codebase:** everything else below reflects the handful
   of files written at scaffold time. It is a starting convention, not a team
   agreement - change it here when the code shows a better one.

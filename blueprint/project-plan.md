@@ -142,7 +142,7 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   to a patch (`.github/workflows/ci.yml`). All will move to the first 26 LTS
   release when it is promoted (expected October 2026). React Router 8 requires
   >= 22.22.
-- **Framework:** React Router **8.3.1**, framework mode; React **19.3.0**;
+- **Framework:** React Router **8.4.0**, framework mode; React **19.3.0**;
   Vite **8.3.0**. Served by a plain `node:http` server through
   `@remix-run/node-fetch-server` (see *Node server* below) - no Express. v8 is newer than an agent's training; its installed
   docs in `node_modules/react-router/docs/` are the authority.
@@ -156,7 +156,7 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
 - **Auth:** JWT via `jose` **6.2.12**; passwords hashed with `node:crypto`
   scrypt. No auth library.
 - **Validation:** Zod **4.6.5** at every trust boundary.
-- **Node server:** `@remix-run/node-fetch-server` **0.14.1** - the listener is
+- **Node server:** `@remix-run/node-fetch-server` **0.14.2** - the listener is
   built from it directly so `trustProxy` can be set, which is what makes the app
   read Caddy's `X-Forwarded-Proto` (D23, fixes F-21).
 - **Bot detection:** `isbot` **5.2.2** - required by React Router's default
