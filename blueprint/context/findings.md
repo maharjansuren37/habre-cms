@@ -67,7 +67,7 @@ File: app/features/blocks/document.ts:58-78 (`markSchema`, `marks`, paragraph `c
 ### F-156 [P3] open - A link with mixed formatting renders as several adjacent links
 File: app/features/blocks/render.tsx:108-117 (`renderText`)
 
-### F-157 [P3] fixed - The editor bundle loads Zod's core only to configure it
+### F-157 [P3] closed - The editor bundle loads Zod's core only to configure it
 File: app/features/content/entry-form.tsx:7 (`import "#app/lib/zod-jitless.client.ts"`)
 
 ### F-158 [P3] closed - The editor's options are rebuilt on every render
@@ -76,8 +76,20 @@ File: app/features/blocks/document-editor.client.tsx:190-207 (`extensionsFor(...
 ### F-159 [P3] open - The contract's caps are copied into several files
 File: app/features/blocks/document.ts:28,34,47,52; inline-runs.ts:9; document-editor.client.tsx:26,28,623
 
-### F-160 [P3] fixed - Comments still name code this item deleted
+### F-160 [P3] closed - Comments still name code this item deleted
 File: app/features/settings/logo-picker.client.ts:5; logo-picker.module.css:1; settings.tsx:216; app/lib/content-security-policy.ts:11,28; content-security-policy.test.ts:34
 
 ### F-161 [P3] open - Two test gaps: the placeholder is untested, and the caps timing test moves the caret without settling
 File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
+
+### F-162 [P2] open - The F-154 repair locks the editor on documents the server stores: a text node with two marks of one kind
+File: app/features/blocks/document-editor.client.tsx:222-225; app/features/blocks/document.ts (`markSchema`, `marks`)
+
+### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
+File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
+
+### F-164 [P3] open - One more comment names the deleted editors
+File: app/features/blocks/document-editor.client.tsx:198
+
+### F-165 [P3] open - The Text style select's label is visually hidden
+File: app/features/blocks/document-editor.client.tsx:520-522
