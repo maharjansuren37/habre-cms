@@ -165,7 +165,7 @@ Or just ask in plain language - "spec the next item", "run the review".
   requires >= 26
 - Other installed versions (from `package-lock.json`): `postgres` 3.4.9, Zod 4.6.5,
   `isbot` 5.2.2, `@remix-run/node-fetch-server` 0.14.2,
-  Editor.js 2.31.6 with `@editorjs/header` 2.8.9 and `@editorjs/list` 2.0.9, `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
+  TipTap 3.31.4 (`@tiptap/core`, `pm`, `react`, `starter-kit`, `extensions`), `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
   Playwright 1.63.0 (Chromium 153), Biome 2.5.13. Development database:
   PostgreSQL 16.15 (`postgres:16-alpine`).
 - **React Router 8 is newer than an agent's training can be trusted on.** Its docs

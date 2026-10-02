@@ -63,7 +63,7 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
   for what they show (`home.tsx`, `healthz.ts`).
 - **`*.server.ts`** for anything touching the database, secrets, JWT or R2 - the
   build fails if browser code imports one. **`*.client.tsx`** for browser-only
-  code (Editor.js). Everything else may run in both.
+  code (the TipTap editor). Everything else may run in both.
 - Logic worth unit-testing lives in `.ts` files, not in `.tsx` route modules:
   `node --test` cannot run JSX. `db/pending-migrations.ts` beside `db/migrate.ts`
   is the pattern - pure function separate from the code that does I/O.

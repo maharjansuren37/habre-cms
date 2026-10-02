@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-02, `main` after `249a9f9`.
+Generated 2026-10-02, `main` after `75048ad`.
 
 ## What this is
 
@@ -37,10 +37,13 @@ mode; sections, columns and ready-made sections (D114-D143).
 
 **Built for v1, not yet deployed:** React Router 8.4.0 (13); the new look
 (13b, `design.md`, D181-D190) - stone and rust admin in light and dark, Inter
-self-hosted, public sites neutral and light only (D168).
+self-hosted, public sites neutral and light only (D168); the new editor's
+first part (14a1) - TipTap on one v4 document per entry, sections of 1-3
+columns, text styles, lists, quote, links, undo, the public renderer;
+Editor.js and all old content removed (migration `0009`).
 
-**Platform v1 (items 14-21, queued):** a Mailchimp-style drag-and-drop editor on TipTap 3 (14a-14c,
-content discarded); signup with email verification, one isolated site per
+**Platform v1 (queued):** the rest of the drag-and-drop editor (14a2 image,
+button, line, space; 14a3 block toolbar; 14b drag and drop; 14c templates); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
@@ -63,8 +66,9 @@ constraint** - each new runtime dependency is a recorded decision.
 - Plain CSS, tokens in `app/app.css`, CSS Modules, **no Tailwind** (D12); look
   in `design.md`; public pages in the `data-surface="site"` scope (D183).
 - `jose` JWT + scrypt, **no auth library** (D6); Zod at every trust boundary.
-- Editor.js today; R2 via `aws4fetch`; Biome; `node:test`; Playwright.
-- **v1 adds, pinned when installed:** TipTap 3 (item 14), `@anthropic-ai/sdk`
+- TipTap 3.31.4, pinned exactly (D197); R2 via `aws4fetch`; Biome;
+  `node:test`; Playwright.
+- **v1 adds, pinned when installed:** `@anthropic-ai/sdk`
   and `openai` (D155), `nodemailer` (D156), `sharp` (D174), `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
@@ -87,8 +91,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 - **Data model:** `sites`, `site_domains`, `users`, `site_members`,
   `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
   `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
-- **Content (D169, D170):** from item 14 an entry is **one TipTap JSON
-  document**, sections and columns as nodes; our own Zod schema and escaping
+- **Content (D169, D170):** an entry is **one TipTap JSON document**
+  (`blocks_format` v4), sections and columns as nodes; our own Zod schema and escaping
   renderer, **never raw HTML** (D28-D30). Ready-made sections are templates of
   ordinary blocks. One main heading per page; a post's title is its `h1`.
 - **Per site (D167, D171, D172):** level, dark mode (Pro only), brand colour,
@@ -131,8 +135,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13b done; 9 queued (14, 15, 16, 17, 17b, 18-21); nothing
-  in flight. 14, 15 and 18 split when spec'd. Last shipped: 13b, the new look
-  (`blueprint/history/features/13b-the-new-look.md`).
-- **Next:** `spec` item 14, the new editor (splits into 14a-14c).
+- **Plan:** items 1-13b and 14a1 done; 14a2-14c and 15-21 queued; nothing in
+  flight. 15 and 18 split when spec'd. Last shipped: 14a1
+  (`blueprint/history/features/14a1-the-document.md`).
+- **Next:** `spec` item 14a2, image, button, line and space.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

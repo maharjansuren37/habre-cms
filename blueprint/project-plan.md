@@ -161,15 +161,14 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   read Caddy's `X-Forwarded-Proto` (D23, fixes F-21).
 - **Bot detection:** `isbot` **5.2.2** - required by React Router's default
   server entry (added by `scaffold`, D20).
-- **Block editor:** Editor.js (`@editorjs/editorjs` **2.31.6**) with `@editorjs/header`
-  **2.8.9** and `@editorjs/list` **2.0.9** (installed with item 2a, pinned exactly);
-  the image tool is hand-written in the repo, not a package (D58). Their shipped `.ts` types use `enum`,
-  which `erasableSyntaxOnly` forbids, so `app/types/editorjs.d.ts` describes the
-  surface we use and `tsconfig.vite.json` maps the packages to it.
+- **Block editor:** TipTap (`@tiptap/core`, `pm`, `react`, `starter-kit`,
+  `extensions`) **3.31.4**, pinned exactly, `injectCSS: false` (D197). Installed
+  with item 14a1, which removed Editor.js. Content is our own document format
+  with its own Zod schema and renderer (D169).
 - **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**;
   from item 17b `sharp` for resizing, pinned when installed (D174).
-- **Installed with their item, not at scaffold:** `jose` (item 1), Editor.js and
-  its header and list tools (item 2), `aws4fetch` and `image-size` (item 5) - so
+- **Installed with their item, not at scaffold:** `jose` (item 1), TipTap (item
+  14a1), `aws4fetch` and `image-size` (item 5) - so
   no package sits in `package.json` with nothing calling it. Versions above stay
   the pins.
 - **Testing:** `node:test` (built in) for unit tests; `@playwright/test`
@@ -217,7 +216,7 @@ habre-cms/
 │   │   ├── users/              admin user routes, user queries
 │   │   ├── content/            post + page admin routes, entry queries, version check
 │   │   ├── blocks/             block types, Zod schemas, HTML renderer,
-│   │   │                       editor.client.tsx (Editor.js wrapper, browser only)
+│   │   │                       document-editor.client.tsx (TipTap editor, browser only)
 │   │   ├── media/              media library route, upload handler, R2 client (*.server.ts)
 │   │   ├── settings/           settings route, navigation menu
 │   │   └── public-site/        /, /posts/:slug, /:slug, /healthz, 404
@@ -249,7 +248,7 @@ habre-cms/
   component renders on both. The boundary is marked per file:
   - `*.server.ts` - server only (database, JWT, R2, env). The build fails if
     browser code imports one.
-  - `*.client.ts(x)` - browser only (Editor.js).
+  - `*.client.ts(x)` - browser only (the TipTap editor).
   - Everything else runs in both on purpose (block renderer, Zod schemas).
 - **Imports:** `#app/...` with an explicit `.ts` extension, declared once in
   `package.json` `"imports"`. No `~/` alias - plain `node` cannot resolve it
@@ -837,7 +836,7 @@ browser suite green.
     heading, undo and redo, posts on sections, the public renderer, and
     discarding v2/v3 content (a destructive production migration with its
     own yes). The keyboard path lands here, before any dragging. The first
-    image on a page loads at once (D174). It may split again when spec'd.
+    image on a page loads at once (D174). Split when spec'd into 14a1 (document, text, render), 14a2 (image, button, line, space, settings panel), 14a3 (block toolbar).
   - **14b. The palette and drag and drop** - the drop gap, the ghost, the
     announcements, and Duplicate.
   - **14c. Ready-made sections as templates.**
@@ -1019,7 +1018,7 @@ From `stack`:
   `app/entry.server.tsx`, not `server.js`, because it carries a per-request
   nonce for React Router's inline scripts. The public site and the admin get
   separate policies: the admin also allows inline styles and `data:` images
-  for Editor.js (D22). Images are allowed from `self` and the `R2_PUBLIC_URL`
+  which Editor.js once needed (D22); kept until the editor is re-checked after item 14a3. Images are allowed from `self` and the `R2_PUBLIC_URL`
   origin. It is not sent in development. `e2e/content-security-policy.spec.ts`
   fails on any violation.
 - **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,
