@@ -70,7 +70,7 @@ File: app/features/blocks/render.tsx:108-117 (`renderText`)
 ### F-157 [P3] open - The editor bundle loads Zod's core only to configure it
 File: app/features/content/entry-form.tsx:7 (`import "#app/lib/zod-jitless.client.ts"`)
 
-### F-158 [P3] open - The editor's options are rebuilt on every render
+### F-158 [P3] closed - The editor's options are rebuilt on every render
 File: app/features/blocks/document-editor.client.tsx:190-207 (`extensionsFor(...)`, `editorProps`)
 
 ### F-159 [P3] open - The contract's caps are copied into several files

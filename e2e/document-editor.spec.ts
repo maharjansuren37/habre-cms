@@ -890,3 +890,29 @@ test("content the editor cannot read is not saved over (F-154)", async ({ page }
   expect(after.version).toBe(before.version);
   expect(after.blocks).toEqual(before.blocks);
 });
+
+test("a re-render of the entry form never hands the editor new options (F-158)", async ({
+  page,
+}) => {
+  const { textbox } = await openSeeded(page, "post", "Options Post");
+  // TipTap sets `editor` on the writing area; count each setOptions call.
+  await textbox.evaluate((dom) => {
+    const instance = (dom as unknown as { editor: { setOptions: (o: unknown) => void } }).editor;
+    const original = instance.setOptions.bind(instance);
+    const calls = { count: 0 };
+    (globalThis as unknown as { setOptionsCalls: { count: number } }).setOptionsCalls = calls;
+    instance.setOptions = (options) => {
+      calls.count += 1;
+      original(options);
+    };
+  });
+  // Typing in the title flips the form's unsaved state, which re-renders it
+  // and the editor inside it.
+  await page.getByRole("textbox", { name: "Title" }).fill("Options Post, edited");
+  await expect(page.getByText("Not saved yet", { exact: true })).toBeVisible();
+  await settle(page);
+  const count = await page.evaluate(
+    () => (globalThis as unknown as { setOptionsCalls: { count: number } }).setOptionsCalls.count,
+  );
+  expect(count).toBe(0);
+});

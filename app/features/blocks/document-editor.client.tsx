@@ -159,6 +159,25 @@ const COPY = {
 } as const;
 
 /**
+ * TipTap compares its options by identity and calls `setOptions` when they
+ * differ, so they are built once per entry type here, never in a render (F-158).
+ */
+function optionsFor(copy: { label: string; placeholder: string }) {
+  return {
+    extensions: extensionsFor(copy.placeholder),
+    editorProps: {
+      attributes: {
+        class: [content.document, styles.prose].join(" "),
+        role: "textbox",
+        "aria-multiline": "true",
+        "aria-label": copy.label,
+      },
+    },
+  };
+}
+const OPTIONS = { page: optionsFor(COPY.page), post: optionsFor(COPY.post) };
+
+/**
  * The v4 document editor (item 14a1): TipTap on one document per entry. The
  * format bar is drawn into `barSlot`, a place under the editor's top bar that
  * the entry form owns; the writing area is the customer's site, in its own
@@ -181,7 +200,7 @@ export function DocumentEditor({
   onChange: () => void;
   barSlot: HTMLElement | null;
 }) {
-  const copy = COPY[entryType];
+  const { extensions, editorProps } = OPTIONS[entryType];
   const latestOnChange = useRef(onChange);
   useEffect(() => {
     latestOnChange.current = onChange;
@@ -198,20 +217,13 @@ export function DocumentEditor({
     // Its few required rules live in document-editor.module.css, so the admin
     // can later drop 'unsafe-inline' from its style policy.
     injectCSS: false,
-    extensions: extensionsFor(copy.placeholder),
+    extensions,
     content: initialDocument,
     enableContentCheck: true,
     onContentError: () => {
       unreadable.current = true;
     },
-    editorProps: {
-      attributes: {
-        class: [content.document, styles.prose].join(" "),
-        role: "textbox",
-        "aria-multiline": "true",
-        "aria-label": copy.label,
-      },
-    },
+    editorProps,
     onUpdate: () => latestOnChange.current(),
   });
 

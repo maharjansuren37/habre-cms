@@ -144,6 +144,12 @@ test("the post editor, posts list, media, settings and users screens work with n
   const writing = page.getByRole("textbox", { name: "Post content" });
   await writing.click();
   await page.keyboard.type("Make this bold and linked");
+  // Let the editor settle after typing; a selection made while it is still
+  // catching up is sometimes lost (F-152).
+  await expect(writing).toHaveText("Make this bold and linked");
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
   await page.keyboard.press("Shift+Control+ArrowLeft");
   // ProseMirror reads a keyboard selection from `selectionchange`, a separate task.
   await page.evaluate("new Promise((done) => requestAnimationFrame(() => setTimeout(done)))");

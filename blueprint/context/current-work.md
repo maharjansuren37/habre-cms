@@ -206,6 +206,19 @@ shape is locked here.
   the refusal and finds the stored row unchanged; the test fails with the
   repair reverted.
 
+- [x] **Repair F-158 and F-152 - The editor's options are rebuilt on every
+  render; a keyboard selection is sometimes lost** - build the editor's
+  extensions and `editorProps` once per entry type, so a re-render never
+  hands TipTap new options. Then re-measure F-152 (debug, 2026-10-02: 9 of 30
+  serial runs failed; the selection is lost after typing, not slow; cause
+  unconfirmed, a late write of the editor's stale selection most likely).
+  *Done when:* a test shows a re-render of the entry form does not call
+  `setOptions`, failing with the repair reverted (F-158); and
+  `content-security-policy.spec.ts:133` passes 30 of 30 with
+  `--repeat-each=30 --workers=1`, unchanged (F-152). If it still fails, the
+  test waits for the editor to settle after typing, and F-152 stays open as a
+  test-only workaround with this evidence.
+
 ## Files and areas
 
 - `package.json`, `package-lock.json` - TipTap in, Editor.js out.
