@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
 import type { Block, ImageMediaSummary, Section } from "#app/features/blocks/blocks.ts";
+import type { Document } from "#app/features/blocks/document.ts";
+import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
 import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
 import { SectionsEditor } from "#app/features/blocks/sections-editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
-import { isReadableEditorContent, isReadableSectionsContent } from "./editor-content.ts";
+import {
+  isReadableDocumentContent,
+  isReadableEditorContent,
+  isReadableSectionsContent,
+} from "./editor-content.ts";
 import styles from "./entry-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
@@ -37,6 +43,8 @@ type EntryFormProps = {
   blocks?: Block[];
   /** A page's sections. */
   sections?: Section[];
+  /** A v4 post or page's one document (item 14a1); it opens in the document editor. */
+  document?: Document;
   /** Resolves each image block's media id, so reopening an entry shows its
    *  images immediately - a new entry has none to resolve. */
   mediaById?: Record<string, ImageMediaSummary>;
@@ -51,6 +59,7 @@ export function EntryForm({
   slug,
   blocks = [],
   sections = [],
+  document: initialDocument,
   mediaById = {},
   status,
   version,
@@ -68,6 +77,8 @@ export function EntryForm({
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
+  // Where the document editor draws its format bar: under the top bar.
+  const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
 
   // Editor.js reaches for `document` as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
@@ -116,9 +127,11 @@ export function EntryForm({
       content = undefined;
     }
     if (
-      !(entryType === "page"
-        ? isReadableSectionsContent(content)
-        : isReadableEditorContent(content))
+      !(initialDocument
+        ? isReadableDocumentContent(content)
+        : entryType === "page"
+          ? isReadableSectionsContent(content)
+          : isReadableEditorContent(content))
     ) {
       setUnreadableContent(true);
       return;
@@ -130,48 +143,51 @@ export function EntryForm({
 
   return (
     <Form method="post" onSubmit={handleSubmit} className={styles.editor}>
-      <div className={styles.topbar}>
-        <div className={styles.topbarLeft}>
-          <Link to={copy.backHref} className={styles.back}>
-            ← {copy.backLabel}
-          </Link>
-          <span className={[styles.badge, styles[status]].join(" ")}>{STATUS_LABEL[status]}</span>
-          <span className={styles.saveState} aria-live="polite">
-            {saveState}
-          </span>
-        </div>
-        <div className={styles.topbarActions}>
-          {/* Save appears only once the editor has mounted: a native submit
+      <div className={styles.chrome}>
+        <div className={styles.topbar}>
+          <div className={styles.topbarLeft}>
+            <Link to={copy.backHref} className={styles.back}>
+              ← {copy.backLabel}
+            </Link>
+            <span className={[styles.badge, styles[status]].join(" ")}>{STATUS_LABEL[status]}</span>
+            <span className={styles.saveState} aria-live="polite">
+              {saveState}
+            </span>
+          </div>
+          <div className={styles.topbarActions}>
+            {/* Save appears only once the editor has mounted: a native submit
               carries no blocks field, which reads as an empty post and wipes
               the body (F-34). Publish/Unpublish wait on the post existing too
               - there is nothing to publish before the first save creates it. */}
-          {isEditorReady ? (
-            <Button type="submit" name="intent" value="save" isPending={isSaving}>
-              {pendingIntent === "save"
-                ? "Saving…"
-                : status === "published"
-                  ? "Save"
-                  : "Save draft"}
-            </Button>
-          ) : null}
-          {isEditorReady && isSaved ? (
-            <Button
-              type="submit"
-              name="intent"
-              value={status === "published" ? "unpublish" : "publish"}
-              variant={status === "published" ? "default" : "primary"}
-              isPending={isSaving}
-            >
-              {status === "published"
-                ? pendingIntent === "unpublish"
-                  ? "Unpublishing…"
-                  : "Unpublish"
-                : pendingIntent === "publish"
-                  ? "Publishing…"
-                  : "Publish"}
-            </Button>
-          ) : null}
+            {isEditorReady ? (
+              <Button type="submit" name="intent" value="save" isPending={isSaving}>
+                {pendingIntent === "save"
+                  ? "Saving…"
+                  : status === "published"
+                    ? "Save"
+                    : "Save draft"}
+              </Button>
+            ) : null}
+            {isEditorReady && isSaved ? (
+              <Button
+                type="submit"
+                name="intent"
+                value={status === "published" ? "unpublish" : "publish"}
+                variant={status === "published" ? "default" : "primary"}
+                isPending={isSaving}
+              >
+                {status === "published"
+                  ? pendingIntent === "unpublish"
+                    ? "Unpublishing…"
+                    : "Unpublish"
+                  : pendingIntent === "publish"
+                    ? "Publishing…"
+                    : "Publish"}
+              </Button>
+            ) : null}
+          </div>
         </div>
+        {initialDocument ? <div ref={setFormatBarSlot} /> : null}
       </div>
 
       {/* One message at a time. The client-side guard wins: it describes the
@@ -192,6 +208,8 @@ export function EntryForm({
       ) : null}
 
       <input type="hidden" name="version" value={version} />
+      {/* Tells the action which editor's content this is (item 14a1). */}
+      {initialDocument ? <input type="hidden" name="blocksFormat" value="v4" /> : null}
 
       <div className={styles.canvas}>
         <label className={styles.titleLabel} htmlFor="entry-title">
@@ -212,7 +230,15 @@ export function EntryForm({
         </p>
 
         {isEditorReady ? (
-          entryType === "page" ? (
+          initialDocument ? (
+            <DocumentEditor
+              initialDocument={initialDocument}
+              entryType={entryType}
+              contentRef={readEditor}
+              onChange={() => setUnsavedChanges(true)}
+              barSlot={formatBarSlot}
+            />
+          ) : entryType === "page" ? (
             <SectionsEditor
               initialSections={sections}
               mediaById={mediaById}

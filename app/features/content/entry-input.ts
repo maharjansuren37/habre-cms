@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { blocksSchema, sectionsSchema } from "#app/features/blocks/blocks.ts";
+import type { Document } from "#app/features/blocks/document.ts";
 
 /**
  * The trust boundary for everything the editor submits. Messages are what the
@@ -27,5 +28,10 @@ export const entryInputSchema = z.object({ title: titleSchema, blocks: blocksSch
 /** A page: a title and its sections (`blocks_format` v3, D114). */
 export const pageInputSchema = z.object({ title: titleSchema, sections: sectionsSchema });
 
+/** A v4 entry's title (item 14a1); its document is `parseDocument`'s. */
+export const documentTitleSchema = titleSchema;
+
 export type EntryInput = z.infer<typeof entryInputSchema>;
+/** A v4 post or page: a title and one document (D169). */
+export type DocumentInput = { title: string; document: Document };
 export type PageInput = z.infer<typeof pageInputSchema>;

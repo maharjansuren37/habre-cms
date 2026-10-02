@@ -9,7 +9,7 @@ import { BLOCKS_FORMAT_V4, type Document } from "#app/features/blocks/document.t
 import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
-import type { EntryInput, PageInput } from "./entry-input.ts";
+import type { DocumentInput, EntryInput, PageInput } from "./entry-input.ts";
 import type { EntryListQuery } from "./entry-list-query.ts";
 import { type EntryType, nextFreeSlug, RESERVED_PAGE_SLUGS, slugFromTitle } from "./slug.ts";
 
@@ -117,10 +117,14 @@ export async function findEntryForUser(
 
 /**
  * What an entry is stored as: a post keeps its flat blocks as `v2`, a page its
- * sections as `v3`. `sql.json`, not `JSON.stringify`: the column is jsonb, and a
- * string would be stored as a JSON string rather than the array itself.
+ * sections as `v3`, and either one a document as `v4` (item 14a1). `sql.json`,
+ * not `JSON.stringify`: the column is jsonb, and a string would be stored as a
+ * JSON string rather than the value itself.
  */
-function storedContent(type: EntryType, input: EntryInput | PageInput) {
+function storedContent(type: EntryType, input: EntryInput | PageInput | DocumentInput) {
+  if ("document" in input) {
+    return { blocks: sql.json(input.document as never), blocks_format: BLOCKS_FORMAT_V4 };
+  }
   return type === "page" && "sections" in input
     ? { blocks: sql.json(input.sections), blocks_format: PAGE_BLOCKS_FORMAT }
     : { blocks: sql.json((input as EntryInput).blocks), blocks_format: BLOCKS_FORMAT };
@@ -197,7 +201,7 @@ function transitionUpdate(transition: StatusTransition | undefined) {
 export async function saveEntry(
   type: "post",
   id: string,
-  input: EntryInput,
+  input: EntryInput | DocumentInput,
   version: number,
   actor: Actor,
   transition?: StatusTransition,
@@ -205,7 +209,7 @@ export async function saveEntry(
 export async function saveEntry(
   type: "page",
   id: string,
-  input: PageInput,
+  input: PageInput | DocumentInput,
   version: number,
   actor: Actor,
   transition?: StatusTransition,
@@ -213,7 +217,7 @@ export async function saveEntry(
 export async function saveEntry(
   type: EntryType,
   id: string,
-  input: EntryInput | PageInput,
+  input: EntryInput | PageInput | DocumentInput,
   version: number,
   actor: Actor,
   transition?: StatusTransition,

@@ -50,3 +50,20 @@ export function isReadableSectionsContent(content: unknown): content is { sectio
     })
   );
 }
+
+/**
+ * The v4 editor's counterpart (item 14a1): TipTap's `getJSON()` is a document
+ * holding a list of sections. The contract itself is `parseDocument`'s, on the
+ * server; this only refuses what is plainly not a document - nothing at all
+ * when the editor had not mounted - rather than send it to be refused there.
+ */
+export function isReadableDocumentContent(
+  content: unknown,
+): content is { type: "doc"; content: unknown[] } {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    (content as { type?: unknown }).type === "doc" &&
+    Array.isArray((content as { content?: unknown }).content)
+  );
+}

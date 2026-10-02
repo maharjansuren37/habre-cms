@@ -109,7 +109,7 @@ shape is locked here.
   heading) and a post's `h1` is its title; a 2-column section sits side by
   side at 1280px and stacks at 390px; the whole existing suite still passes.
 
-- [ ] **Step 3 - The editor on v4 entries** - `document-editor.client.tsx`:
+- [x] **Step 3 - The editor on v4 entries** - `document-editor.client.tsx`:
   TipTap with our `section` and `column` nodes (`isolating`), the text
   blocks and marks above and nothing else from StarterKit, `injectCSS:
   false`, an accessible name ("Page content" / "Post content"), a

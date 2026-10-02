@@ -4,7 +4,8 @@ import {
   fromEditorJsSections,
   type Section,
 } from "#app/features/blocks/blocks.ts";
-import { entryInputSchema, pageInputSchema } from "./entry-input.ts";
+import { type Document, parseDocument } from "#app/features/blocks/document.ts";
+import { documentTitleSchema, entryInputSchema, pageInputSchema } from "./entry-input.ts";
 import type { EntryType } from "./slug.ts";
 
 // An entry of 200 blocks at the per-block cap is far smaller than this. The
@@ -40,6 +41,37 @@ export type PageFormResult =
 export function parseEntryForm(form: FormData, type: "post"): EntryFormResult;
 export function parseEntryForm(form: FormData, type: "page"): PageFormResult;
 export function parseEntryForm(form: FormData, type: EntryType): EntryFormResult | PageFormResult {
+  const editorOutput = readEditorOutput(form);
+  if (!editorOutput.ok) return editorOutput;
+
+  const title = form.get("title") ?? "";
+  if (type === "page") {
+    const sections = fromEditorJsSections(editorOutput.value);
+    if (!sections.ok) return { ok: false, message: sections.message };
+    const input = pageInputSchema.safeParse({ title, sections: sections.sections });
+    if (!input.success) {
+      return { ok: false, message: input.error.issues[0]?.message ?? "This could not be saved." };
+    }
+    return { ok: true, title: input.data.title, sections: input.data.sections };
+  }
+
+  const blocks = fromEditorJs(editorOutput.value);
+  if (!blocks.ok) return { ok: false, message: blocks.message };
+
+  const input = entryInputSchema.safeParse({ title, blocks: blocks.blocks });
+  if (!input.success) {
+    return {
+      ok: false,
+      message: input.error.issues[0]?.message ?? "This could not be saved.",
+    };
+  }
+  return { ok: true, title: input.data.title, blocks: input.data.blocks };
+}
+
+/** The editor's submitted `blocks` field, parsed as JSON, or why it cannot be read. */
+function readEditorOutput(
+  form: FormData,
+): { ok: true; value: unknown } | { ok: false; message: string } {
   // An absent field is not an empty post. The editor adds `blocks` as it
   // submits, so a submission without it never came from the editor - a native
   // submit with JavaScript off, a keypress before hydration, a truncated body -
@@ -52,35 +84,31 @@ export function parseEntryForm(form: FormData, type: EntryType): EntryFormResult
     };
   }
 
-  let editorOutput: unknown;
   try {
-    editorOutput = JSON.parse(String(form.get("blocks")));
+    return { ok: true, value: JSON.parse(String(form.get("blocks"))) };
   } catch {
     return { ok: false, message: "The editor's content could not be read. Reload and try again." };
   }
+}
 
-  const title = form.get("title") ?? "";
-  if (type === "page") {
-    const sections = fromEditorJsSections(editorOutput);
-    if (!sections.ok) return { ok: false, message: sections.message };
-    const input = pageInputSchema.safeParse({ title, sections: sections.sections });
-    if (!input.success) {
-      return { ok: false, message: input.error.issues[0]?.message ?? "This could not be saved." };
-    }
-    return { ok: true, title: input.data.title, sections: input.data.sections };
+export type DocumentFormResult =
+  | { ok: true; title: string; document: Document }
+  | { ok: false; message: string };
+
+/**
+ * A v4 editor's submission (item 14a1): its title, and its document as
+ * `parseDocument` returns it - the schema's output, never the submitted JSON.
+ */
+export function parseDocumentForm(form: FormData, type: EntryType): DocumentFormResult {
+  const editorOutput = readEditorOutput(form);
+  if (!editorOutput.ok) return editorOutput;
+  const title = documentTitleSchema.safeParse(form.get("title") ?? "");
+  if (!title.success) {
+    return { ok: false, message: title.error.issues[0]?.message ?? "This could not be saved." };
   }
-
-  const blocks = fromEditorJs(editorOutput);
-  if (!blocks.ok) return { ok: false, message: blocks.message };
-
-  const input = entryInputSchema.safeParse({ title, blocks: blocks.blocks });
-  if (!input.success) {
-    return {
-      ok: false,
-      message: input.error.issues[0]?.message ?? "This could not be saved.",
-    };
-  }
-  return { ok: true, title: input.data.title, blocks: input.data.blocks };
+  const document = parseDocument(editorOutput.value, type);
+  if (!document.ok) return document;
+  return { ok: true, title: title.data, document: document.document };
 }
 
 /** The version the editor loaded, or null when the form carried no usable one. */

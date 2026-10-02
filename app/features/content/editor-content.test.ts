@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isReadableEditorContent, isReadableSectionsContent } from "./editor-content.ts";
+import {
+  isReadableDocumentContent,
+  isReadableEditorContent,
+  isReadableSectionsContent,
+} from "./editor-content.ts";
 
 test("an empty list of blocks is readable - an empty post is a real thing", () => {
   assert.equal(isReadableEditorContent({ blocks: [] }), true);
@@ -90,4 +94,13 @@ test("an image and text section's fields need a media id string, which may be em
   assert.equal(readable({ ...fields, mediaId: "6f1c7d52-3a0b-4f6e-9d1e-0a1b2c3d4e5f" }), true);
   assert.equal(readable({ heading: "Story", text: "", buttonLabel: "", buttonHref: "" }), false);
   assert.equal(readable({ ...fields, mediaId: 5 }), false);
+});
+
+test("a v4 document is readable only as a doc holding a list", () => {
+  assert.equal(isReadableDocumentContent({ type: "doc", content: [] }), true);
+  assert.equal(isReadableDocumentContent(undefined), false);
+  assert.equal(isReadableDocumentContent(null), false);
+  assert.equal(isReadableDocumentContent({ type: "doc" }), false);
+  assert.equal(isReadableDocumentContent({ type: "section", content: [] }), false);
+  assert.equal(isReadableDocumentContent({ blocks: [] }), false);
 });

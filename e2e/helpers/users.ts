@@ -135,12 +135,14 @@ export async function entryExists(id: string): Promise<boolean> {
   return exists;
 }
 
-/** Test-only: the blocks and version stored for one entry, as the database holds them. */
-export async function storedEntry(id: string): Promise<{ blocks: unknown; version: number }> {
-  let entry = { blocks: null as unknown, version: 0 };
+/** Test-only: the blocks, their format and version stored for one entry, as the database holds them. */
+export async function storedEntry(
+  id: string,
+): Promise<{ blocks: unknown; blocksFormat: string; version: number }> {
+  let entry = { blocks: null as unknown, blocksFormat: "", version: 0 };
   await withDatabase(async (sql) => {
-    const [row] = await sql<{ blocks: unknown; version: number }[]>`
-      select blocks, version from entries where id = ${id}
+    const [row] = await sql<{ blocks: unknown; blocksFormat: string; version: number }[]>`
+      select blocks, blocks_format as "blocksFormat", version from entries where id = ${id}
     `;
     entry = row;
   });

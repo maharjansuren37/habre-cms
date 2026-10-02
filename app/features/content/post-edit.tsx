@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
+import { BLOCKS_FORMAT_V4 } from "#app/features/blocks/document.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -10,7 +11,12 @@ import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
 import { EntryForm } from "./entry-form.tsx";
-import { isEntryBodySizeAllowed, parseEntryForm, parseVersion } from "./entry-form-input.ts";
+import {
+  isEntryBodySizeAllowed,
+  parseDocumentForm,
+  parseEntryForm,
+  parseVersion,
+} from "./entry-form-input.ts";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
@@ -36,13 +42,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
-  // A v4 post opens in the document editor, which step 3 of item 14a1 adds;
-  // until then this build can show it publicly but not edit it.
-  if ("document" in entry) {
-    throw data("This post needs the new editor, which this build does not have yet.", {
-      status: 501,
-    });
-  }
+  // A v4 post opens in the document editor, which has no images yet (14a2).
+  if ("document" in entry) return { entry, mediaById: {} as Record<string, ImageMediaSummary> };
   // One query for every image block this entry has, so reopening it shows
   // them immediately - no picker round trip, no per-image fetch.
   const rows = await findMediaByIds(collectImageMediaIds(entry.blocks));
@@ -77,7 +78,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  const parsed = parseEntryForm(form, "post");
+  // The document editor says which format it sends; anything else is one of
+  // the older editors' (item 14a1 keeps both until step 6).
+  const parsed =
+    form.get("blocksFormat") === BLOCKS_FORMAT_V4
+      ? parseDocumentForm(form, "post")
+      : parseEntryForm(form, "post");
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },
@@ -92,7 +98,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const result = await saveEntry(
     "post",
     id,
-    { title: parsed.title, blocks: parsed.blocks },
+    "document" in parsed
+      ? { title: parsed.title, document: parsed.document }
+      : { title: parsed.title, blocks: parsed.blocks },
     version,
     context.get(userContext),
     intent.data === "save" ? undefined : intent.data,
@@ -118,7 +126,7 @@ export default function EditPost({ loaderData, actionData }: Route.ComponentProp
       entryType="post"
       title={entry.title}
       slug={entry.slug}
-      blocks={entry.blocks}
+      {...("document" in entry ? { document: entry.document } : { blocks: entry.blocks })}
       mediaById={mediaById}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
