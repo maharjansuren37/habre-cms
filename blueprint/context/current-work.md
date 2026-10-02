@@ -106,7 +106,7 @@ is themed once, not twice.
       dark, the site scope in light, and the site scope with the device dark.
       *Done when:* the spec passes and prints the measured table; changing
       `--stone-600` to a lighter grey makes it fail (seen once, reverted).
-- [ ] **Step 5 - Shared controls, login and the admin shell** _(partly built, stopped: at 390px /admin/posts with posts scrolls sideways (537px) though the new no-scroll test passes - it runs without posts; narrow-screen shell arrangement broken vs before. Implementer hit its usage limit before fixing)_ -
+- [x] **Step 5 - Shared controls, login and the admin shell** -
       `app/lib/ui/button`, `field`, `message` modules to the kit's button
       (primary, secondary, ghost, danger; 44px), field and alert; the admin
       shell to the kit's sidebar, the current page's entry marked in rust,
@@ -122,7 +122,7 @@ is themed once, not twice.
       (signed out -> protected page -> sign in -> that page) still passes in
       `auth.spec.ts` ("logging in from a protected page returns to that
       page"); the full browser suite passes.
-- [ ] **Step 6 - Admin lists, media, users and delete screens** -
+- [x] **Step 6 - Admin lists, media, users and delete screens** -
       `entry-list`, `entry-delete`, `media-list`, `media-delete`,
       `user-list` modules to the kit's table, tabs, badge, pagination, empty
       state, card grid (media) and confirmation layout. *Done when:*

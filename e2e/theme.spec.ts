@@ -1,6 +1,8 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -133,6 +135,38 @@ test.describe("the admin shell", () => {
     await logIn(page, admin);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await sidewaysOverflow(page)).toEqual([]);
+  });
+
+  test("the users list and a delete confirmation do not scroll sideways at 390px", async ({
+    page,
+  }) => {
+    const id = await createDraftFor(admin.email, "A published post about gardens", [], {
+      status: "published",
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await logIn(page, admin);
+    for (const path of ["/admin/users", `/admin/posts/${id}/delete`]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(await sidewaysOverflow(page), path).toEqual([]);
+    }
+  });
+
+  test("the media grid does not scroll sideways at 390px", async ({ page }) => {
+    test.skip(skipWithoutStorage, STORAGE_REASON);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await logIn(page, admin);
+    const origin = new URL(page.url()).origin;
+    const uploaded = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
+    try {
+      for (const path of ["/admin/media", `/admin/media/${uploaded.id}/delete`]) {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        expect(await sidewaysOverflow(page), path).toEqual([]);
+      }
+    } finally {
+      await deleteTestMedia(uploaded.id);
+    }
   });
 
   test("keyboard focus on a nav link and on a button shows a 2px solid ring", async ({ page }) => {
