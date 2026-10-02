@@ -219,6 +219,14 @@ shape is locked here.
   test waits for the editor to settle after typing, and F-152 stays open as a
   test-only workaround with this evidence.
 
+- [x] **Repair F-162 and F-155, and F-164** - `parseDocument` keeps at most
+  one mark of each kind on a text node (the first, as the renderer reads the
+  first link) and stores an empty `content` as absent, so nothing it stores
+  can fail the editor's content check; F-164's stale comment goes. *Done
+  when:* unit tests show duplicate bold, duplicate links and many marks
+  collapse to one of each and `content: []` is stored without `content`, each
+  failing with the repair reverted; `npm run verify` and the editor spec pass.
+
 ## Files and areas
 
 - `package.json`, `package-lock.json` - TipTap in, Editor.js out.

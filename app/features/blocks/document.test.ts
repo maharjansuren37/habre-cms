@@ -337,3 +337,41 @@ test("a deeply nested document is refused rather than throwing", () => {
     "The editor sent content in a shape this version cannot read.",
   );
 });
+
+function storedText(input: unknown) {
+  const result = parseDocument(input, "page");
+  assert.equal(result.ok, true);
+  if (!result.ok) return undefined;
+  const column = result.document.content[0]?.content[0];
+  const block = column?.content[0];
+  return block?.type === "paragraph" ? block : undefined;
+}
+
+test("a text node keeps one mark of each kind, the first link winning", () => {
+  const marks = [
+    { type: "bold" },
+    { type: "link", attrs: { href: "/first" } },
+    { type: "bold" },
+    { type: "italic" },
+    { type: "link", attrs: { href: "/second" } },
+    ...Array.from({ length: 1000 }, () => ({ type: "italic" })),
+  ];
+  assert.deepEqual(storedText(oneBlock({ type: "paragraph", content: [text("a", marks)] })), {
+    type: "paragraph",
+    content: [
+      {
+        type: "text",
+        text: "a",
+        marks: [{ type: "bold" }, { type: "link", attrs: { href: "/first" } }, { type: "italic" }],
+      },
+    ],
+  });
+});
+
+test("empty content and empty marks are stored as absent", () => {
+  assert.deepEqual(storedText(oneBlock({ type: "paragraph", content: [] })), { type: "paragraph" });
+  assert.deepEqual(storedText(oneBlock({ type: "paragraph", content: [text("a", [])] })), {
+    type: "paragraph",
+    content: [{ type: "text", text: "a" }],
+  });
+});

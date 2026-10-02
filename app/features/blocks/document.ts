@@ -70,24 +70,47 @@ const markSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
-const textSchema = z.object({
-  type: z.literal("text"),
-  text: z.string().min(1, REFUSALS.unreadable).refine(isStorableText, REFUSALS.badText),
-  marks: z.array(markSchema).optional(),
-});
+/**
+ * At most one mark of each kind, the first kept (the renderer reads the first
+ * link), and none stored as absent: the editor refuses two marks of one kind
+ * (F-162), and one shape per meaning keeps what is stored canonical (F-155).
+ */
+const textSchema = z
+  .object({
+    type: z.literal("text"),
+    text: z.string().min(1, REFUSALS.unreadable).refine(isStorableText, REFUSALS.badText),
+    marks: z.array(markSchema).optional(),
+  })
+  .transform(({ marks, ...node }) => {
+    const kept = (marks ?? []).filter(
+      (mark, index, all) => all.findIndex((other) => other.type === mark.type) === index,
+    );
+    return kept.length > 0 ? { ...node, marks: kept } : node;
+  });
 
-const paragraphSchema = z.object({
-  type: z.literal("paragraph"),
-  content: z.array(textSchema).optional(),
-});
+/** Text content, with an empty list stored as absent - TipTap's own shape (F-155). */
+const inlineContent = z
+  .array(textSchema)
+  .optional()
+  .transform((content) => (content && content.length > 0 ? content : undefined));
 
-const headingSchema = z.object({
-  type: z.literal("heading"),
-  attrs: z.object({
-    level: z.number().int().min(1, REFUSALS.badLevel).max(6, REFUSALS.badLevel),
-  }),
-  content: z.array(textSchema).optional(),
-});
+function withoutEmptyContent<T extends { content?: unknown }>({ content, ...node }: T) {
+  return content === undefined ? node : { ...node, content };
+}
+
+const paragraphSchema = z
+  .object({ type: z.literal("paragraph"), content: inlineContent })
+  .transform(withoutEmptyContent);
+
+const headingSchema = z
+  .object({
+    type: z.literal("heading"),
+    attrs: z.object({
+      level: z.number().int().min(1, REFUSALS.badLevel).max(6, REFUSALS.badLevel),
+    }),
+    content: inlineContent,
+  })
+  .transform(withoutEmptyContent);
 
 const listItemSchema = z.object({
   type: z.literal("listItem"),

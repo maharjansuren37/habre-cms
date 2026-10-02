@@ -195,7 +195,7 @@ export function DocumentEditor({
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
-  /** Reads the current document - the same hand-off the older editors use. */
+  /** Reads the current document when the form submits. */
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
   barSlot: HTMLElement | null;
