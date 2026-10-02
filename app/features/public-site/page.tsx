@@ -17,7 +17,8 @@ export async function loader({ params }: Route.LoaderArgs) {
   // One address per page (D-4): the home page lives at `/`. Temporary, since
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
-  const mediaById = await resolvePageMedia(page.sections);
+  // A v4 page holds no images yet (item 14a2 adds them).
+  const mediaById = "sections" in page ? await resolvePageMedia(page.sections) : {};
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
   return { page: publicPage, mediaById };

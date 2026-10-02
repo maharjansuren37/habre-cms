@@ -19,7 +19,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 export async function loader() {
   const page = await findHomePage();
   if (page) {
-    const mediaById = await resolvePageMedia(page.sections);
+    // A v4 page holds no images yet (item 14a2 adds them).
+    const mediaById = "sections" in page ? await resolvePageMedia(page.sections) : {};
     return { kind: "page" as const, page, mediaById };
   }
   return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts() };

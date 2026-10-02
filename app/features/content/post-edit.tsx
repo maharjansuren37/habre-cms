@@ -36,6 +36,13 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
+  // A v4 post opens in the document editor, which step 3 of item 14a1 adds;
+  // until then this build can show it publicly but not edit it.
+  if ("document" in entry) {
+    throw data("This post needs the new editor, which this build does not have yet.", {
+      status: 501,
+    });
+  }
   // One query for every image block this entry has, so reopening it shows
   // them immediately - no picker round trip, no per-image fetch.
   const rows = await findMediaByIds(collectImageMediaIds(entry.blocks));

@@ -5,6 +5,7 @@ import {
   type Section,
   sectionsFromBlocks,
 } from "#app/features/blocks/blocks.ts";
+import { BLOCKS_FORMAT_V4, type Document } from "#app/features/blocks/document.ts";
 import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
@@ -31,7 +32,12 @@ type EntryBase = {
 /** A post is a flat list of blocks; a page is a list of sections (D114). */
 export type PostEntry = EntryBase & { type: "post"; blocks: Block[] };
 export type PageEntry = EntryBase & { type: "page"; sections: Section[] };
-export type Entry = PostEntry | PageEntry;
+/** From `v4` (item 14a1, D169), a post or a page is one document. */
+export type DocumentEntry = EntryBase & { type: EntryType; document: Document };
+export type Entry = PostEntry | PageEntry | DocumentEntry;
+
+/** What a stored `blocks` column holds, before its format is known. */
+type StoredContent = Block[] | Section[] | Document;
 
 /**
  * What a stored `blocks` column means for this entry type and format. A `v2`
@@ -39,7 +45,7 @@ export type Entry = PostEntry | PageEntry;
  * next save. The column is trusted as stored, the same as it always was -
  * `assertKnownFormat` has already refused a format this build cannot read.
  */
-function pageSections(format: string, stored: Block[] | Section[]): Section[] {
+function pageSections(format: string, stored: StoredContent): Section[] {
   return format === "v2" ? sectionsFromBlocks(stored as Block[]) : (stored as Section[]);
 }
 
@@ -58,12 +64,13 @@ const entryColumns = sql`
 /** What the columns above return; the format is checked, then reshaped. */
 type EntryRow = EntryBase & {
   type: EntryType;
-  blocks: Block[] | Section[];
+  blocks: StoredContent;
   blocksFormat: string;
 };
 
 function toEntry({ blocks, blocksFormat, ...entry }: EntryRow): Entry {
   assertKnownFormat(entry.id, entry.type, blocksFormat);
+  if (blocksFormat === BLOCKS_FORMAT_V4) return { ...entry, document: blocks as Document };
   return entry.type === "page"
     ? { ...entry, type: "page", sections: pageSections(blocksFormat, blocks) }
     : { ...entry, type: "post", blocks: blocks as Block[] };
@@ -85,12 +92,12 @@ export async function findEntryForUser(
   type: "post",
   id: string,
   actor: Actor,
-): Promise<PostEntry | null>;
+): Promise<PostEntry | DocumentEntry | null>;
 export async function findEntryForUser(
   type: "page",
   id: string,
   actor: Actor,
-): Promise<PageEntry | null>;
+): Promise<PageEntry | DocumentEntry | null>;
 export async function findEntryForUser(
   type: EntryType,
   id: string,
@@ -374,13 +381,13 @@ type PublicBase = {
   publishedAt: Date;
   authorName: string;
 };
-export type PublicPost = PublicBase & { blocks: Block[] };
-export type PublicPage = PublicBase & { sections: Section[] };
+export type PublicPost = PublicBase & ({ blocks: Block[] } | { document: Document });
+export type PublicPage = PublicBase & ({ sections: Section[] } | { document: Document });
 
 /** What the columns below return; the format is checked, then reshaped - same
  *  reason `toEntry` does this for the admin side. */
 type PublicEntryRow = PublicBase & {
-  blocks: Block[] | Section[];
+  blocks: StoredContent;
   blocksFormat: string;
 };
 
@@ -413,6 +420,7 @@ export async function findPublishedEntry(
   if (!row) return null;
   const { blocks, blocksFormat, ...rest } = row;
   assertKnownFormat(slug, type, blocksFormat);
+  if (blocksFormat === BLOCKS_FORMAT_V4) return { ...rest, document: blocks as Document };
   return type === "page"
     ? { ...rest, sections: pageSections(blocksFormat, blocks) }
     : { ...rest, blocks: blocks as Block[] };
@@ -436,5 +444,6 @@ export async function findHomePage(): Promise<PublicPage | null> {
   if (!row) return null;
   const { blocks, blocksFormat, slug, ...page } = row;
   assertKnownFormat(slug, "page", blocksFormat);
+  if (blocksFormat === BLOCKS_FORMAT_V4) return { ...page, document: blocks as Document };
   return { ...page, sections: pageSections(blocksFormat, blocks) };
 }

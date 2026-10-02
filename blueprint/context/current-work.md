@@ -94,7 +94,7 @@ shape is locked here.
   (`orderedList.start`, `link.target`) absent from the output - and
   `npm run verify` is green.
 
-- [ ] **Step 2 - Read and render v4** - migration `0008_blocks_v4.sql`
+- [x] **Step 2 - Read and render v4** - migration `0008_blocks_v4.sql`
   widens the check to `('v2','v3','v4')` (nothing rewritten; built with
   `migrate`). `entries.server.ts` loads a `v4` row as a `document`; the
   public post, page and chosen home page render it with a new

@@ -39,6 +39,13 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
   if (!entry) throw data("Not Found", { status: 404 });
+  // A v4 page opens in the document editor, which step 3 of item 14a1 adds;
+  // until then this build can show it publicly but not edit it.
+  if ("document" in entry) {
+    throw data("This page needs the new editor, which this build does not have yet.", {
+      status: 501,
+    });
+  }
   // One query for every image block this entry has, so reopening it shows
   // them immediately - no picker round trip, no per-image fetch.
   const rows = await findMediaByIds(collectImageMediaIds(entry.sections));

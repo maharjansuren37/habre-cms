@@ -92,15 +92,17 @@ export async function entriesBy(
 export async function createDraftFor(
   email: string,
   title: string,
-  blocks: unknown[],
+  /** A v2 post's blocks, a v3 page's sections, or a v4 document. */
+  blocks: unknown,
   options: {
     status?: "draft" | "published";
     publishedAt?: Date;
     /** Defaults to "post" - most callers are posts tests; item 6a's pages
      *  tests pass "page" to seed a page instead. */
     type?: "post" | "page";
-    /** Defaults to "v2" (the column default); a page of sections is "v3". */
-    blocksFormat?: "v2" | "v3";
+    /** Defaults to "v2" (the column default); a page of sections is "v3", a
+     *  TipTap document "v4" (item 14a1). */
+    blocksFormat?: "v2" | "v3" | "v4";
   } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";

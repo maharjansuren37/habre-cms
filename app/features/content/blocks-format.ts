@@ -1,9 +1,12 @@
 import { BLOCKS_FORMAT, PAGE_BLOCKS_FORMAT } from "#app/features/blocks/blocks.ts";
+import { BLOCKS_FORMAT_V4 } from "#app/features/blocks/document.ts";
 import type { EntryType } from "./slug.ts";
 
 /** The formats this build can read, and so may overwrite, for an entry type. */
 export function readableFormats(type: EntryType): string[] {
-  return type === "page" ? [BLOCKS_FORMAT, PAGE_BLOCKS_FORMAT] : [BLOCKS_FORMAT];
+  return type === "page"
+    ? [BLOCKS_FORMAT, PAGE_BLOCKS_FORMAT, BLOCKS_FORMAT_V4]
+    : [BLOCKS_FORMAT, BLOCKS_FORMAT_V4];
 }
 
 /**
@@ -12,8 +15,9 @@ export function readableFormats(type: EntryType): string[] {
  * back would overwrite the writer's content with that misreading - so this fails
  * loudly, naming the entry, instead.
  *
- * A page reads `v2` (not yet re-saved) or `v3` (sections); a post only `v2` -
- * posts never hold sections, so a `v3` post is a corrupt row, not a new format.
+ * A page reads `v2` (not yet re-saved), `v3` (sections) or `v4` (one document,
+ * item 14a1); a post `v2` or `v4` - a post never held v3's sections, so a `v3`
+ * post is a corrupt row, not a new format.
  */
 export function assertKnownFormat(entryId: string, type: EntryType, format: string): void {
   const known = readableFormats(type);

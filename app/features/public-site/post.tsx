@@ -1,6 +1,6 @@
 import { data, Link } from "react-router";
 import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
-import { renderBlocks } from "#app/features/blocks/render.tsx";
+import { renderBlocks, renderDocument } from "#app/features/blocks/render.tsx";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
@@ -21,7 +21,8 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!post) throw data("Not Found", { status: 404 });
   // One query for every image block this post has - an id with no row (the
   // file was deleted after being placed) simply renders nothing, not an error.
-  const rows = await findMediaByIds(collectImageMediaIds(post.blocks));
+  // A v4 post holds no images yet (item 14a2 adds them).
+  const rows = "blocks" in post ? await findMediaByIds(collectImageMediaIds(post.blocks)) : [];
   const mediaById: Record<string, ImageMediaSummary> = Object.fromEntries(
     rows.map((row) => [
       row.id,
@@ -50,7 +51,11 @@ export default function Post({ loaderData }: Route.ComponentProps) {
         {post.authorName}
       </p>
       <h1 className={styles.title}>{post.title}</h1>
-      <div className={styles.body}>{renderBlocks(post.blocks, mediaById)}</div>
+      {"document" in post ? (
+        renderDocument(post.document, "post")
+      ) : (
+        <div className={styles.body}>{renderBlocks(post.blocks, mediaById)}</div>
+      )}
       <Link className={styles.back} to="/posts">
         ← All posts
       </Link>
