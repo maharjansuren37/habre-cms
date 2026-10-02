@@ -1,40 +1,120 @@
 /*
  * Habre CMS global styles: design tokens and base element styles only.
  * Component styles live in CSS Modules beside their component (D12).
- * Every color is light-dark(light, dark), switched by `color-scheme`; the app
- * follows the system setting. Measured contrast ratios are recorded in
- * blueprint/context/design.md - re-measure before changing a color.
+ * Colour primitives are plain scales; every role is light-dark(light, dark),
+ * switched by `color-scheme`; the app follows the system setting. Measured
+ * contrast ratios are recorded in blueprint/context/design.md - re-measure
+ * before changing a color.
  */
+
+/* Inter, served from our own host - no third-party font request. One variable
+ * file covers every weight; latin only. The relative url lets Vite hash it into
+ * /assets/. SIL Open Font License: fonts/inter-LICENSE.txt. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 :root {
   color-scheme: light dark;
 
-  /* Neutrals - faint cool (blue-grey) bias */
-  --color-bg: light-dark(#f6f7f9, #101317);
-  --color-surface: light-dark(#ffffff, #171b20);
-  --color-surface-sunken: light-dark(#eef1f4, #0c0f12);
-  --color-surface-hover: light-dark(#f1f3f6, #1e232a);
-  --color-border: light-dark(#dfe3e8, #2a3038);
-  --color-border-strong: light-dark(#848e9b, #6b7582);
-  --color-text: light-dark(#1a1e23, #e5e8ec);
-  --color-text-muted: light-dark(#566170, #a0a9b4);
+  /* Primitives - from prototypes/theme.css. Roles below point at these. */
+  --rust-50: #fdf3ee;
+  --rust-100: #fbe4d8;
+  --rust-200: #f6c6ad;
+  --rust-300: #f4a27a;
+  --rust-400: #f08c5a;
+  --rust-500: #e0672f; /* decorative only - fails as text on light */
+  --rust-600: #c2501f;
+  --rust-700: #b4441c;
+  --rust-800: #8f3514;
+  --rust-900: #6b2810;
+  --rust-950: #3a1608;
+  --stone-50: #fbf8f4;
+  --stone-100: #f4efe9;
+  --stone-200: #e8e1d9;
+  --stone-300: #d4cbc1;
+  --stone-400: #a8a29e;
+  --stone-500: #8a817a;
+  --stone-600: #57534e;
+  --stone-700: #3d332c;
+  --stone-800: #2e241e;
+  --stone-900: #231a15;
+  --stone-950: #18110d;
+  --crimson-50: #fff1f2;
+  --crimson-400: #fb7185;
+  --crimson-700: #be123c;
+  --crimson-950: #4c0519;
+  --ochre-50: #fefce8;
+  --ochre-400: #facc15;
+  --ochre-700: #a16207;
+  --ochre-950: #422006;
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-400: #4ade80;
+  --green-700: #15803d;
+  --green-950: #052e16;
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+  --neutral-0: #ffffff;
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-450: #808080;
+  --neutral-500: #8a8a8a;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --neutral-950: #0a0a0a;
 
-  /* Accent - primary actions, links, focus */
-  --color-primary: light-dark(#2d56c6, #8eabff);
-  --color-primary-hover: light-dark(#2449ad, #a9c0ff);
-  --color-primary-subtle: light-dark(#e8eefc, #1a2340);
-  --color-on-primary: light-dark(#ffffff, #0b1220);
-  --color-focus-ring: light-dark(#2d56c6, #8eabff);
+  /* Roles - warm stone neutrals, rust brand */
+  --color-bg: light-dark(var(--stone-50), var(--stone-950));
+  --color-surface: light-dark(#ffffff, var(--stone-900));
+  --color-surface-sunken: light-dark(var(--stone-100), var(--stone-950));
+  --color-surface-hover: light-dark(var(--stone-100), var(--stone-800));
+  --color-border: light-dark(var(--stone-200), var(--stone-800));
+  --color-border-strong: light-dark(var(--stone-500), var(--stone-500));
+  --color-text: light-dark(var(--stone-950), var(--stone-100));
+  --color-text-muted: light-dark(var(--stone-600), var(--stone-400));
+
+  /* Primary - actions, links, focus */
+  --color-primary: light-dark(var(--rust-700), var(--rust-400));
+  --color-primary-hover: light-dark(var(--rust-800), var(--rust-300));
+  --color-primary-subtle: light-dark(var(--rust-50), var(--rust-950));
+  --color-on-primary: light-dark(#ffffff, var(--stone-950));
+  --color-focus-ring: light-dark(var(--rust-700), var(--rust-400));
 
   /* Status */
-  --color-success: light-dark(#1b7043, #6fd39b);
-  --color-success-subtle: light-dark(#e3f3ea, #15291e);
-  --color-warning: light-dark(#8a5300, #f0bb5c);
-  --color-warning-subtle: light-dark(#fbefd6, #2e2412);
-  --color-danger: light-dark(#b8322a, #ff8f84);
-  --color-danger-subtle: light-dark(#fbe8e6, #33191a);
+  --color-success: light-dark(var(--green-700), var(--green-400));
+  --color-success-subtle: light-dark(var(--green-50), var(--green-950));
+  --color-warning: light-dark(var(--ochre-700), var(--ochre-400));
+  --color-warning-subtle: light-dark(var(--ochre-50), var(--ochre-950));
+  --color-danger: light-dark(var(--crimson-700), var(--crimson-400));
+  --color-danger-subtle: light-dark(var(--crimson-50), var(--crimson-950));
+  --color-info: light-dark(var(--blue-700), var(--blue-400));
+  --color-info-subtle: light-dark(var(--blue-50), var(--blue-950));
+  --color-overlay: light-dark(#18110d80, #0c0806b3);
 
-  /* Type - system fonts only, no web font to download */
-  --font-family-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Type - Inter, self-hosted; system fonts as the fallback */
+  --font-family-sans:
+    "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-heading:
+    "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --text-xs: 0.8125rem; /* 13px - badges, meta */
@@ -66,17 +146,19 @@
   --space-8: 4rem;
 
   /* Sizes */
-  --size-measure: 42rem; /* reading column: ~70 characters at --text-lg */
+  --size-measure: 68ch; /* reading column */
   --content-max: 64rem; /* admin content width */
   --sidebar-width: 15rem;
-  --size-control-md: 2.5rem; /* 40px - above the 24px WCAG 2.2 target minimum */
+  --size-control-sm: 36px;
+  --size-control-md: 44px; /* every default control meets the 44px touch target */
+  --size-control-lg: 52px;
   --icon-size: 1.25rem;
   --logo-size: 2rem;
 
   /* Radii */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
   --radius-full: 999px;
 
   /* Borders */
@@ -84,12 +166,24 @@
   --focus-width: 2px;
   --focus-offset: 2px;
 
-  /* Shadows - soft in light; in dark, surfaces separate by color and border */
-  --shadow-sm: 0 1px 2px light-dark(rgb(16 24 40 / 0.06), rgb(0 0 0 / 0.4));
-  --shadow-md: 0 4px 12px light-dark(rgb(16 24 40 / 0.08), rgb(0 0 0 / 0.5));
+  /* Shadows - warm, tinted from stone-950 */
+  --shadow-sm: 0 1px 2px #18110d14;
+  --shadow-md: 0 4px 12px #18110d1f;
+  --shadow-lg: 0 12px 32px #18110d2e;
 
   /* Motion */
   --duration-fast: 120ms;
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+  }
 }
 
 *,

@@ -74,7 +74,7 @@ is themed once, not twice.
       -- "--(color-accent|color-on-accent|color-border-control|font-sans|control-height|measure)\b|--color-focus([^-]|$)"
       app` prints nothing; `npm run verify` passes; `npm run test:e2e` passes
       with the same count as before the step.
-- [ ] **Step 2 - Habre's tokens and Inter** - `app.css` gets theme.css's
+- [x] **Step 2 - Habre's tokens and Inter** - `app.css` gets theme.css's
       primitives and Habre's roles as `light-dark()` pairs (Decisions),
       `--font-family-heading`, radii 6 / 10 / 16px, controls 36 / 44 / 52px,
       warm shadows, motion tokens with the reduced-motion override,
@@ -221,6 +221,12 @@ layer onto.
 - **Contrast is proved by a browser test on the real app**, since
   `prototypes/` is deleted when this item ships. Beat: keeping the
   prototype script.
+
+- **Kept `--font-mono` and `--duration-fast`** (theme.css: `--font-family-mono`,
+  `--motion-duration-fast`), since modules already use them; the kit's
+  `--motion-*` tokens sit beside them and the reduced-motion override zeroes
+  both. Added roles `--color-info`, `--color-info-subtle`, `--color-overlay`.
+  One `--shadow-*` value for both schemes, as theme.css has. (Step 2)
 
 ## Production needs
 
