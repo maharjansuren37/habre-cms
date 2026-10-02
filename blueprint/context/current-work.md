@@ -138,7 +138,7 @@ is themed once, not twice.
       edit-user screen, at 390px and 1280px, light and dark, are shown at
       review; no horizontal scroll at 390px on settings (in
       `e2e/theme.spec.ts`); the full browser suite passes.
-- [ ] **Step 8 - The editors** - `entry-form`, `sections-editor`,
+- [x] **Step 8 - The editors** - `entry-form`, `sections-editor`,
       `image-tool` modules: the editor bar from `editor.html`, the kit's
       fields, and Editor.js's own chrome (toolbox, inline toolbar, popovers)
       in role tokens. *Done when:* screenshots of the post editor and a page

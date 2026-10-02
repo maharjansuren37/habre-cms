@@ -1,5 +1,6 @@
-/* The editor drops the admin sidebar (design.md, Editor): a top bar with the
-   back link, status and save state on the left, actions on the right. */
+/* The editor drops the admin sidebar (design.md, Editor): the kit's editor bar,
+   back link, status and save state on the left, actions on the right. It wraps
+   on a phone rather than pushing the actions off screen. */
 .editor {
   min-height: 100dvh;
   background: var(--color-bg);
@@ -7,11 +8,12 @@
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
   position: sticky;
   top: 0;
@@ -21,6 +23,7 @@
 .topbarLeft,
 .topbarActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
@@ -34,21 +37,16 @@
   color: var(--color-text);
 }
 
+/* The kit's badge, as on the lists. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-}
-
-.badge::before {
-  content: "";
-  width: 0.5em;
-  height: 0.5em;
-  border-radius: var(--radius-full);
-  background: currentColor;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
 }
 
 /* Same two tones as entry-list.module.css - measured there (design.md). */
@@ -90,9 +88,9 @@
   border: none;
   background: none;
   color: var(--color-text);
-  font-family: var(--font-family-sans);
+  font-family: var(--font-family-heading);
   font-size: var(--text-xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   padding: 0;
 }
 
@@ -114,7 +112,7 @@
 
 .needsJs {
   padding: var(--space-4);
-  border: 1px solid var(--color-border);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
 }
@@ -161,11 +159,13 @@
 }
 
 .canvas :global(.ce-popover__container) {
-  border: 1px solid var(--editor-border);
+  border: var(--border-width) solid var(--editor-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .canvas :global(.ce-inline-tool-input) {
-  border: 1px solid var(--editor-border-control);
+  border: var(--border-width) solid var(--editor-border-control);
   background: var(--color-surface);
   color: var(--color-text);
 }
