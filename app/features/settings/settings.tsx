@@ -213,9 +213,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   // which restores focus to whatever opened it - but that element is the exact
   // one this re-render is about to remove (placeholder <-> preview swap the
   // button's own root element), so the browser's restored focus lands on a node
-  // that is gone by the time it paints. image-tool.client.ts hits the identical
-  // mechanism and fixes it the same way (F-76): re-focus a button by hand once
-  // the new content exists. Skipped on mount so loading an already-set logo
+  // that is gone by the time it paints. The fix (F-76): re-focus a button by
+  // hand once the new content exists. Skipped on mount so loading an already-set logo
   // does not steal focus from nothing.
   const logoFieldRef = useRef<HTMLFieldSetElement>(null);
   const hasMountedRef = useRef(false);

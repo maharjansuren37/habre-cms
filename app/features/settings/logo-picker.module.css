@@ -1,6 +1,5 @@
-/* Deliberately duplicated from image-tool.module.css's dialog rules
-   (current-work.md's Decisions) - the second use of this dialog shape, not
-   the third, so it is copied rather than shared (fundamentals.md). */
+/* The logo picker's dialog. Its old twin in the image block was removed with
+   Editor.js (item 14a1), so these rules are the only copy. */
 
 .dialog {
   width: calc(100% - var(--space-5) * 2);

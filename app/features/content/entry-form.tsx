@@ -4,7 +4,6 @@ import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
-import "#app/lib/zod-jitless.client.ts";
 import { isReadableDocumentContent } from "./editor-content.ts";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryFormSizeAllowed } from "./entry-body-size.ts";
 import styles from "./entry-form.module.css";
