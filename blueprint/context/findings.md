@@ -55,10 +55,10 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
 
-### F-153 [P2] open - The Text style select moves focus into the writing area on every change
+### F-153 [P2] closed - The Text style select moves focus into the writing area on every change
 File: app/features/blocks/document-editor.client.tsx:487-503 (`setTextStyle`, the select's onChange)
 
-### F-154 [P2] open - A stored document the editor's schema cannot read opens empty, and Save overwrites it
+### F-154 [P2] closed - A stored document the editor's schema cannot read opens empty, and Save overwrites it
 File: app/features/blocks/document-editor.client.tsx:190-207 (`useEditor`, no `enableContentCheck` / `onContentError`)
 
 ### F-155 [P3] open - Marks are not limited to one of each kind, so the stored shape is still not canonical

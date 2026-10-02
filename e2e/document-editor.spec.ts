@@ -842,3 +842,51 @@ test("a document at the caps saves in under 1 s and its published page answers i
   expect(saveMs).toBeLessThan(1000);
   expect(Math.max(...timings)).toBeLessThan(500);
 });
+
+test("the Text style select keeps focus while arrow keys step through its styles (F-153)", async ({
+  page,
+}) => {
+  const { textbox } = await openSeeded(page, "page", "Keyboard Style Page");
+  const textStyle = page.getByLabel("Text style");
+
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await textStyle.focus();
+
+  // With the select closed, Chromium fires `change` on each arrow key.
+  for (const level of [2, 3, 4]) {
+    await page.keyboard.press("ArrowDown");
+    await expect(textStyle).toBeFocused();
+    await expect(textbox.getByRole("heading", { level, name: "Start here." })).toBeVisible();
+  }
+});
+
+test("content the editor cannot read is not saved over (F-154)", async ({ page }) => {
+  const unknownNode = {
+    type: "doc",
+    content: [
+      {
+        type: "section",
+        attrs: { align: "top", background: "none" },
+        content: [
+          {
+            type: "column",
+            content: [
+              { type: "paragraph", content: [{ type: "text", text: "Keep me." }] },
+              { type: "image", attrs: { mediaId: "x" } },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const { id } = await openSeeded(page, "page", "Unreadable Page", unknownNode);
+  const before = await storedEntry(id);
+
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("The editor's content could not be read.")).toBeVisible();
+
+  const after = await storedEntry(id);
+  expect(after.version).toBe(before.version);
+  expect(after.blocks).toEqual(before.blocks);
+});

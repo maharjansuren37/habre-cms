@@ -187,6 +187,11 @@ export function DocumentEditor({
     latestOnChange.current = onChange;
   }, [onChange]);
 
+  // Set when the stored document holds something this editor's schema does not
+  // know. TipTap then opens an empty one, which Save would store over the real
+  // content (F-154), so reading the editor fails instead.
+  const unreadable = useRef(false);
+
   const editor = useEditor({
     // The entry form mounts this after hydration; never on the server.
     immediatelyRender: false,
@@ -195,6 +200,10 @@ export function DocumentEditor({
     injectCSS: false,
     extensions: extensionsFor(copy.placeholder),
     content: initialDocument,
+    enableContentCheck: true,
+    onContentError: () => {
+      unreadable.current = true;
+    },
     editorProps: {
       attributes: {
         class: [content.document, styles.prose].join(" "),
@@ -208,7 +217,10 @@ export function DocumentEditor({
 
   useEffect(() => {
     if (!editor) return;
-    contentRef.current = async () => editor.getJSON();
+    contentRef.current = async () => {
+      if (unreadable.current) throw new Error("The stored document could not be read.");
+      return editor.getJSON();
+    };
     return () => {
       contentRef.current = null;
     };
@@ -485,7 +497,9 @@ function FormatBar({ editor }: { editor: Editor }) {
   });
 
   function setTextStyle(value: TextStyle) {
-    const chain = editor.chain().focus();
+    // No .focus(): the select keeps it, so arrow keys can step through the
+    // styles (F-153, WCAG 3.2.2). The command acts on the saved selection.
+    const chain = editor.chain();
     if (value === "paragraph") chain.setParagraph().run();
     else chain.setHeading({ level: Number(value) as 2 | 3 | 4 }).run();
   }

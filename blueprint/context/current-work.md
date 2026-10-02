@@ -193,6 +193,19 @@ shape is locked here.
   (`quality-bar.md`); both browser tests run in `npm run test:e2e` and in
   CI's `e2e` job (neither needs R2).
 
+- [x] **Repair F-153 - The Text style select moves focus into the writing
+  area on every change** - the select applies its style without moving focus.
+  *Done when:* a browser test focuses the Text style select and presses
+  ArrowDown with the keyboard: focus stays on the select and the block takes
+  each style in turn; the test fails with the repair reverted.
+
+- [x] **Repair F-154 - A stored document the editor cannot read opens empty
+  and Save overwrites it** - the editor checks its content and, when it cannot
+  read it, the form refuses to save. *Done when:* a browser test seeds a v4
+  row holding a node the editor does not know, opens it, presses Save, sees
+  the refusal and finds the stored row unchanged; the test fails with the
+  repair reverted.
+
 ## Files and areas
 
 - `package.json`, `package-lock.json` - TipTap in, Editor.js out.
