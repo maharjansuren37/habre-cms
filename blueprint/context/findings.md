@@ -51,3 +51,6 @@ File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md
 
 ### F-151 [P2] unverified - A percent-encoded admin path (`/%61dmin/...`) may route to an admin screen while host routing, the CSP and the site scope see a public path
 File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.ts; app/root.tsx
+
+### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
+File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx

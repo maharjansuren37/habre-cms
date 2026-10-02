@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -690,3 +691,154 @@ for (const type of ["post", "page"] as const) {
     await expect(page.getByRole("textbox", { name })).toContainText("Written from scratch.");
   });
 }
+
+// ---- Step 7: a refused save keeps the draft, and the bar's numbers ---------
+
+const TOO_LONG = "This is too long to save. Remove some text and save again.";
+// Past the 1 MB a save body may be: 220,000 five-byte words.
+const OVER_A_MEGABYTE = "word ".repeat(220_000);
+
+test("text past 1 MB is refused before it is sent, and stays in the writing area (F-39)", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Too Long Page");
+  await newParagraphAfter(page, textbox);
+  await page.keyboard.type("Keep this draft.");
+  await settle(page);
+  await page.evaluate(`(() => {
+    const element = document.querySelector('[role="textbox"]');
+    const data = new DataTransfer();
+    data.setData("text/plain", ${JSON.stringify(` ${OVER_A_MEGABYTE}`)});
+    element.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+  })()`);
+
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+  await page.getByRole("button", { name: "Save draft" }).click();
+
+  await expect(page.getByText("Your changes were not saved.")).toBeVisible();
+  await expect(page.getByText(TOO_LONG)).toBeVisible();
+  await expect(page.getByText("Not saved - see message below")).toBeVisible();
+  await expect(textbox).toContainText("Keep this draft.");
+  expect(((await textbox.textContent()) ?? "").length).toBeGreaterThan(1_000_000);
+  expect(posts).toEqual([]);
+  expect((await storedEntry(id)).version).toBe(1);
+});
+
+test("a save the server refuses as too large shows the message and keeps the editor", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "post", "Server Refused Post");
+  await newParagraphAfter(page, textbox);
+  await page.keyboard.type("Still here.");
+  // The browser's own check passes this small body; the request is padded on
+  // its way out, so only the server's check can refuse it.
+  await page.route("**/admin/posts/**", (route) => {
+    const request = route.request();
+    if (request.method() !== "POST") return route.continue();
+    return route.continue({ postData: `${request.postData()}&pad=${"x".repeat(1_100_000)}` });
+  });
+  const refused = page.waitForResponse((response) => response.request().method() === "POST");
+  await page.getByRole("button", { name: "Save draft" }).click();
+
+  expect((await refused).status()).toBe(413);
+  await expect(page.getByText(TOO_LONG)).toBeVisible();
+  await expect(textbox).toContainText("Still here.");
+  expect((await storedEntry(id)).version).toBe(1);
+});
+
+// The browser's check would hide the server's, so this posts past it: a
+// plain fetch from the logged-in page, as any script on the machine could.
+test("a raw POST over 1 MB to any entry save answers 413 with the message, not an error", async ({
+  page,
+}) => {
+  const postId = await createDraftFor(editor.email, "Raw Post", startDocument, { type: "post" });
+  const pageId = await createDraftFor(editor.email, "Raw Page", startDocument, { type: "page" });
+  await logIn(page, editor);
+  const blocks = JSON.stringify(textDocument(OVER_A_MEGABYTE));
+
+  for (const path of [
+    `/admin/posts/${postId}`,
+    `/admin/pages/${pageId}`,
+    "/admin/posts/new",
+    "/admin/pages/new",
+  ]) {
+    const { status, text } = (await page.evaluate(`(async () => {
+      const body = new URLSearchParams({ intent: "save", version: "1", title: "Raw", blocks: ${JSON.stringify(blocks)} });
+      const response = await fetch(${JSON.stringify(path)}, { method: "POST", body, redirect: "manual" });
+      return { status: response.status, text: await response.text() };
+    })()`)) as { status: number; text: string };
+    expect(status, path).toBe(413);
+    expect(text, path).toContain(TOO_LONG);
+  }
+  expect((await storedEntry(postId)).version).toBe(1);
+  expect((await storedEntry(pageId)).version).toBe(1);
+});
+
+/** A document at the caps: 30 sections and 200 blocks of about 1,000 characters. */
+function documentAtTheCaps() {
+  const sentence = "A sentence of ordinary length that a writer might put on a page. ";
+  const text = (n: number) => `Block ${n}. ${sentence.repeat(15)}`.trim();
+  let n = 0;
+  return doc(
+    ...Array.from({ length: 30 }, (_, s) => {
+      const blocks = s < 20 ? 7 : 6; // 20 x 7 + 10 x 6 = 200
+      const columns = (s % 3) + 1;
+      const content = Array.from({ length: columns }, () => ({
+        type: "column",
+        content: [] as unknown[],
+      }));
+      for (let b = 0; b < blocks; b++) {
+        n += 1;
+        content[b % columns].content.push(
+          b === 0
+            ? {
+                type: "heading",
+                attrs: { level: 2 },
+                content: [{ type: "text", text: `Part ${n}` }],
+              }
+            : para(text(n)),
+        );
+      }
+      return { type: "section", attrs: { align: "top", background: "none" }, content };
+    }),
+  );
+}
+
+test("a document at the caps saves in under 1 s and its published page answers in under 500 ms", async ({
+  page,
+}) => {
+  const atTheCaps = documentAtTheCaps();
+  const { id, textbox } = await openSeeded(page, "page", "At The Caps", atTheCaps);
+  await expect(textbox.locator('[data-node="section"]')).toHaveCount(30);
+  await textbox.getByText("Part 1", { exact: true }).click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" edited");
+
+  const response = page.waitForResponse((r) => r.request().method() === "POST");
+  const started = Date.now();
+  await page.getByRole("button", { name: "Save draft" }).click();
+  expect((await response).ok()).toBe(true);
+  const saveMs = Date.now() - started;
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  const stored = await storedEntry(id);
+  expect(stored.version).toBe(2);
+  expect((stored.blocks as { content: unknown[] }).content).toHaveLength(30);
+
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?/);
+
+  const timings: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    const before = Date.now();
+    const published = await page.request.get("/at-the-caps");
+    expect(published.status()).toBe(200);
+    expect(await published.text()).toContain("Part 1 edited");
+    timings.push(Date.now() - before);
+  }
+  console.log(`At the caps: save ${saveMs} ms; published page ${timings.join(", ")} ms`);
+  expect(saveMs).toBeLessThan(1000);
+  expect(Math.max(...timings)).toBeLessThan(500);
+});

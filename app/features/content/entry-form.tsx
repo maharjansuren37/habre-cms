@@ -6,6 +6,7 @@ import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
 import { isReadableDocumentContent } from "./editor-content.ts";
+import { ENTRY_TOO_LONG_MESSAGE, isEntryFormSizeAllowed } from "./entry-body-size.ts";
 import styles from "./entry-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
@@ -60,6 +61,7 @@ export function EntryForm({
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
+  const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws its format bar: under the top bar.
   const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
 
@@ -84,7 +86,7 @@ export function EntryForm({
         ? "Unpublishing…"
         : isSaving
           ? "Saving…"
-          : problem || hasUnreadableContent
+          : problem || hasUnreadableContent || isTooLong
             ? "Not saved - see message below"
             : hasUnsavedChanges
               ? "Not saved yet"
@@ -112,6 +114,13 @@ export function EntryForm({
     }
     setUnreadableContent(false);
     form.set("blocks", JSON.stringify(content));
+    // The server refuses a body over its limit; checking first keeps that
+    // round trip from happening (F-39). The server's check is the boundary.
+    if (!isEntryFormSizeAllowed(form)) {
+      setTooLong(true);
+      return;
+    }
+    setTooLong(false);
     submit(form, { method: "post" });
   }
 
@@ -164,12 +173,16 @@ export function EntryForm({
         <div ref={setFormatBarSlot} />
       </div>
 
-      {/* One message at a time. The client-side guard wins: it describes the
+      {/* One message at a time. The client-side guards win: they describe the
           save that was just refused, while `problem` describes an earlier one
           the writer has already read. */}
       {hasUnreadableContent ? (
         <Message tone="error" title="Your changes were not saved.">
           The editor's content could not be read. Copy anything you want to keep, then reload.
+        </Message>
+      ) : isTooLong ? (
+        <Message tone="error" title="Your changes were not saved.">
+          {ENTRY_TOO_LONG_MESSAGE}
         </Message>
       ) : problem?.kind === "stale" ? (
         <Message tone="error" title="Your changes were not saved.">

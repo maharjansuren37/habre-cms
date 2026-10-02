@@ -5,8 +5,9 @@ import { userContext } from "#app/features/auth/user-context.ts";
 import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
+import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
-import { isEntryBodySizeAllowed, parseDocumentForm, parseVersion } from "./entry-form-input.ts";
+import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
@@ -38,7 +39,12 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
   if (!isEntryBodySizeAllowed(request.headers)) {
-    throw data("Request too large", { status: 413 });
+    // Returned, not thrown: a thrown 413 replaced the editor with the error
+    // page and lost the draft (F-39). The body is never read.
+    return data(
+      { problem: { kind: "invalid" as const, message: ENTRY_TOO_LONG_MESSAGE } },
+      { status: 413 },
+    );
   }
   const form = await request.formData();
   // A native submit with no JavaScript carries no `intent` at all - the

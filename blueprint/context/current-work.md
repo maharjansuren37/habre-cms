@@ -181,7 +181,7 @@ shape is locked here.
   section side by side in the canvas at 1280px and stacked at 390px, matching
   `document-render.spec.ts`; the whole suite passes. (Owner, 2026-10-02.)
 
-- [ ] **Step 7 - A refused save keeps the draft, and the bar's numbers** -
+- [x] **Step 7 - A refused save keeps the draft, and the bar's numbers** -
   the browser checks the body size before submitting and shows "This is too
   long to save. Remove some text and save again." without submitting; the
   action answers an oversized body with that banner (`data(..., 413)`), not a

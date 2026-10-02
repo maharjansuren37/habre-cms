@@ -2,22 +2,6 @@ import { type Document, parseDocument } from "#app/features/blocks/document.ts";
 import { titleSchema } from "./entry-input.ts";
 import type { EntryType } from "./slug.ts";
 
-// An entry of 200 blocks at the per-block cap is far smaller than this. The
-// limit bounds what one authenticated request can make the server buffer - the
-// same guard login has (F-01, where three 100 MB bodies took the process past
-// 1.5 GB).
-const MAX_ENTRY_BODY_BYTES = 1024 * 1024;
-
-/**
- * Whether a save's declared size is small enough to read. A missing
- * Content-Length means a body of unknown size, which a form submission from the
- * editor never sends.
- */
-export function isEntryBodySizeAllowed(headers: Headers): boolean {
-  const declared = Number(headers.get("Content-Length"));
-  return Number.isFinite(declared) && declared > 0 && declared <= MAX_ENTRY_BODY_BYTES;
-}
-
 /** The editor's submitted `blocks` field, parsed as JSON, or why it cannot be read. */
 function readEditorOutput(
   form: FormData,
