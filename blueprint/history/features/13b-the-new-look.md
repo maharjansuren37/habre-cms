@@ -2,8 +2,8 @@
 
 **From build plan:** item 13b
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-02, 68530b1b3b8b, 10 of 10 steps' done-whens proven (browser tests on the production build: 175 passed with real R2 after the F-143 repair, 147 passed + 27 skipped as CI before it; screenshots at 390/1280, light/dark, opened and checked)
+**Reviewed:** 2026-10-02, 0ca7d8158192, current (22b623a..HEAD), every lens via the independent `reviewer` agent - 0 blocking (F-143 P2, F-144..F-148 P3 open; F-149..F-151 unverified); F-143 repaired after, closed by build (P2, test seen failing first) and not re-reviewed
 
 ## Goal
 
@@ -64,7 +64,7 @@ is themed once, not twice.
 
 ## Build steps
 
-- [ ] **Step 1 - Rename the tokens, no visual change** - in `app/app.css`
+- [x] **Step 1 - Rename the tokens, no visual change** - in `app/app.css`
       and every `*.module.css`: `--color-accent*` -> `--color-primary*`
       (`-hover`, `-subtle`, `--color-on-accent` -> `--color-on-primary`),
       `--color-focus` -> `--color-focus-ring`, `--color-border-control` ->
@@ -74,7 +74,7 @@ is themed once, not twice.
       -- "--(color-accent|color-on-accent|color-border-control|font-sans|control-height|measure)\b|--color-focus([^-]|$)"
       app` prints nothing; `npm run verify` passes; `npm run test:e2e` passes
       with the same count as before the step.
-- [ ] **Step 2 - Habre's tokens and Inter** - `app.css` gets theme.css's
+- [x] **Step 2 - Habre's tokens and Inter** - `app.css` gets theme.css's
       primitives and Habre's roles as `light-dark()` pairs (Decisions),
       `--font-family-heading`, radii 6 / 10 / 16px, controls 36 / 44 / 52px,
       warm shadows, motion tokens with the reduced-motion override,
@@ -87,7 +87,7 @@ is themed once, not twice.
       Variable"')` true after `document.fonts.ready`; the font response's URL
       is on the app's own origin under `/assets/`; no request leaves the
       origin for a font. `npm run verify` and `npm run test:e2e` pass.
-- [ ] **Step 3 - Public sites in the site scope, light only** -
+- [x] **Step 3 - Public sites in the site scope, light only** -
       `[data-surface="site"]` in `app.css` sets every role from the neutral
       greys, `color-scheme: light`, and Modern's font and radii. The root
       `Layout` puts `data-surface="site"` on `<html>` for every path that is
@@ -97,7 +97,7 @@ is themed once, not twice.
       missing public URL (404) have `<html data-surface="site">`, computed
       `color-scheme` `light`, body background `rgb(255, 255, 255)`; an admin
       page under the same emulation keeps `rgb(24, 17, 13)`.
-- [ ] **Step 4 - Contrast proved on the real app** - `e2e/contrast.spec.ts`
+- [x] **Step 4 - Contrast proved on the real app** - `e2e/contrast.spec.ts`
       resolves each role on a probe element (computed `color`, so
       `light-dark()` is resolved by the browser) and asserts the pairs of
       `prototypes/checks/contrast.mjs` at their minimums (4.5 or 3), less the
@@ -106,7 +106,7 @@ is themed once, not twice.
       dark, the site scope in light, and the site scope with the device dark.
       *Done when:* the spec passes and prints the measured table; changing
       `--stone-600` to a lighter grey makes it fail (seen once, reverted).
-- [ ] **Step 5 - Shared controls, login and the admin shell** -
+- [x] **Step 5 - Shared controls, login and the admin shell** -
       `app/lib/ui/button`, `field`, `message` modules to the kit's button
       (primary, secondary, ghost, danger; 44px), field and alert; the admin
       shell to the kit's sidebar, the current page's entry marked in rust,
@@ -118,26 +118,35 @@ is themed once, not twice.
       and 1280px, light and dark, are shown at review; at 390px
       `document.documentElement.scrollWidth <= clientWidth` on both (in
       `e2e/theme.spec.ts`); keyboard focus on a nav link and a button shows
-      the 2px focus ring (existing outline assertions still pass); the full
-      browser suite passes.
-- [ ] **Step 6 - Admin lists, media, users and delete screens** -
+      the 2px focus ring (existing outline assertions still pass); journey 6
+      (signed out -> protected page -> sign in -> that page) still passes in
+      `auth.spec.ts` ("logging in from a protected page returns to that
+      page"); the full browser suite passes.
+- [x] **Step 6 - Admin lists, media, users and delete screens** -
       `entry-list`, `entry-delete`, `media-list`, `media-delete`,
       `user-list` modules to the kit's table, tabs, badge, pagination, empty
       state, card grid (media) and confirmation layout. *Done when:*
       screenshots of the posts list, media grid, users list and a delete
       confirmation at 390px and 1280px, light and dark, are shown at review;
-      no horizontal scroll at 390px on each (in `e2e/theme.spec.ts`); the full
-      browser suite passes.
-- [ ] **Step 7 - Admin forms and the editors** - `entry-form`,
-      `sections-editor`, `image-tool`, `settings`, `logo-picker`, `user-form`
-      modules: the kit's fields, select, choice, dialog, the editor bar from
-      `editor.html`, Editor.js's own chrome in role tokens. *Done when:*
-      screenshots of the post editor, a page editor with two sections, the
-      settings form with the logo picker open, and the edit-user screen, at
-      390px and 1280px, light and dark, are shown at review; no horizontal
-      scroll at 390px on the editor and settings; the full browser suite
-      passes.
-- [ ] **Step 8 - The public pages** - `public-site/layout`, `post-list`,
+      no horizontal scroll at 390px on each (in `e2e/theme.spec.ts`); journey 9
+      (delete -> confirmation naming it -> back to the list with its filters)
+      still passes in `manage-pages.spec.ts` ("deleting or canceling from a
+      filtered, searched list returns to it"); the full browser suite passes.
+- [x] **Step 7 - Admin forms** - `settings`, `logo-picker`, `user-form`
+      modules: the kit's fields, select, choice and dialog. *Done when:*
+      screenshots of the settings form with the logo picker open and the
+      edit-user screen, at 390px and 1280px, light and dark, are shown at
+      review; no horizontal scroll at 390px on settings (in
+      `e2e/theme.spec.ts`); the full browser suite passes.
+- [x] **Step 8 - The editors** - `entry-form`, `sections-editor`,
+      `image-tool` modules: the editor bar from `editor.html`, the kit's
+      fields, and Editor.js's own chrome (toolbox, inline toolbar, popovers)
+      in role tokens. *Done when:* screenshots of the post editor and a page
+      editor with two sections, at 390px and 1280px, light and dark, are
+      shown at review; no horizontal scroll at 390px on the post editor (in
+      `e2e/theme.spec.ts`); `inline-formatting.spec.ts`'s focus-outline
+      assertions and the full browser suite pass.
+- [x] **Step 9 - The public pages** - `public-site/layout`, `post-list`,
       `post`, `page-body` modules to `components.css`'s site header, footer,
       sections and columns at today's breakpoints (the 40rem container query
       comes with 14a's renderer, which replaces this one), `.display`,
@@ -148,14 +157,16 @@ is themed once, not twice.
       1280px with the device light and dark (both must look the same), are
       shown at review; no horizontal scroll at 390px; the full browser suite
       passes.
-- [ ] **Step 9 - The record** - `design.md`: the header note says the
+- [x] **Step 10 - The record** - `design.md`: the header note says the
       shipped app has this look (drop the "measured against the old record"
       rule), *Open*'s D168 line moves into *Customer sites* as done, the
       measured table notes it is now also proved by `e2e/contrast.spec.ts`.
       *Done when:* `npm run verify` passes, and `npm run test:e2e` locally
-      with real R2 reports every test passed (141 before this item, plus the
+      with real R2 reports every test passed (155 before this item, plus the
       new specs), and `npm run test:e2e` with `E2E_SKIP_R2=1` passes as CI
       runs it.
+
+- [x] Repair F-143 - The current admin nav entry is marked by hue alone
 
 ## Files and areas
 
@@ -164,9 +175,9 @@ is themed once, not twice.
 - `app/root.tsx` - `data-surface` on `<html>` for public paths (step 3);
   imports the area rule from wherever `areaForPath` lives, not a copy.
 - `app/lib/ui/*.module.css`, `app/features/*/**.module.css` - every module
-  (steps 1, 5-8). TSX only where a kit class needs a wrapper element.
-- `e2e/theme.spec.ts`, `e2e/contrast.spec.ts` - new (steps 2-8).
-- `blueprint/context/design.md` (step 9).
+  (steps 1, 5-9). TSX only where a kit class needs a wrapper element.
+- `e2e/theme.spec.ts`, `e2e/contrast.spec.ts` - new (steps 2-9).
+- `blueprint/context/design.md` (step 10).
 
 ## Data and contracts
 
@@ -213,6 +224,24 @@ layer onto.
   `prototypes/` is deleted when this item ships. Beat: keeping the
   prototype script.
 
+- **Kept `--font-mono` and `--duration-fast`** (theme.css: `--font-family-mono`,
+  `--motion-duration-fast`), since modules already use them; the kit's
+  `--motion-*` tokens sit beside them and the reduced-motion override zeroes
+  both. Added roles `--color-info`, `--color-info-subtle`, `--color-overlay`.
+  One `--shadow-*` value for both schemes, as theme.css has. (Step 2)
+
+- **A wide admin table scrolls inside its card** (the kit's `.table-wrap`),
+  and the card is positioned so visually hidden cell text cannot widen the
+  page. Beat: hiding columns on a phone, which drops Delete. (Step 5)
+- **The narrow admin shell keeps its pre-13b arrangement** - site card and
+  account on a row, the nav as a wrapping row below - which its rules had
+  silently lost by targeting the list instead of its `<nav>`. (Step 5)
+- **Buttons in a form grid keep their own width**; only fields run full
+  width, as in the kit's forms. (Step 7)
+- **The kit's `.quote`, `.rule` and `.spacer` are not ported**: no block
+  renders them until item 14. `.display` and `.lede` are the hero's heading
+  and text. (Step 9)
+
 ## Production needs
 
 None. No variables, no migrations; the font is a build asset. Production holds
@@ -220,20 +249,17 @@ on `8d82ce4` until v1 (D163).
 
 ## Behaviour changes
 
-`blueprint/capabilities/` does not exist yet; `verify --all` would seed it from
-`blueprint/history/`. For this item alone:
-
-- Changes the public site from "follows the device's light or dark setting" to
-  "is light whatever the device's setting" (D168) - Step 3
-- Adds: Habre's admin and login follow the device's light or dark setting, in
-  the warm stone and rust colours - Step 2
-- Adds: text is set in Inter, served from the site's own origin; no font
-  request goes to a third party - Step 2
-- Adds: every colour pair in the admin and on the public site meets WCAG 2.2
-  AA contrast, proved by `e2e/contrast.spec.ts` - Step 4
+- Adds to `public-site`: public pages, the public 404 and the error page are light whatever the device's setting (D168; items 1-12 followed the device, never recorded as a claim) - Step 3
+- New capability `appearance`: Habre's admin and login follow the device's light or dark setting, in the warm stone and rust colours - Step 2
+- Adds to `appearance`: text is set in Inter, served from the app's own origin; no font request goes to a third party - Step 2
+- Adds to `appearance`: every colour pair in the admin and on the public site meets WCAG 2.2 AA contrast, proved by `e2e/contrast.spec.ts` - Step 4
+- Adds to `appearance`: at 390px no admin or public screen scrolls sideways - Step 9
 
 ## Notes
 
+- Behaviour changes were written against `blueprint/capabilities/`
+  (`entry-lists`, `public-site`, `settings`); this item changes none of their
+  claims.
 - Role tokens only inside modules; no hex values outside `app.css`.
   `components.css` is the reference, not a file to copy (design.md).
 - **Do not change a colour without re-running `contrast.spec.ts`**.
@@ -244,7 +270,31 @@ on `8d82ce4` until v1 (D163).
   hero) must keep passing.
 - Disabled controls are exempt from contrast (1.4.3) and are the only thing
   below the bar.
+- The public error page (500) is in the site scope by the same `Layout`
+  rule as the 404; it is not provoked in a test, since nothing reaches it on
+  purpose. Step 3's 404 check covers the rule.
 - F-29 (the editor's writing area has no accessible name) stays deferred to
   14a; this item does not touch it.
 - `prototypes/` is deleted by `ship` once this look is built (design.md);
   everything this item needs from it is copied in by then.
+
+## Findings
+
+### 13b-the-new-look/F-143 [P2] closed - The current admin nav entry is marked by hue alone
+
+**Found:** 2026-10-02 by review (independent `reviewer` agent; scope: current, item 13b; lens: all)
+**Why it matters:** Active vs inactive nav text is ~1.03:1 in dark and 1.37:1 in light, and the active fill barely differs from the sidebar - a colour-blind user cannot see which page they are on (WCAG 2.2 1.4.1, 1.4.11). Before 13b the gap was ~2.6:1. The kit's `.nav__link[aria-current]` has the same defect.
+**Suggested fix:** Add a non-colour cue to `[aria-current="page"]` - `font-weight: var(--weight-semibold)` or an inset start bar (`box-shadow: inset 3px 0 var(--color-primary)`) - and record it in design.md's *Components in use*.
+**Resolution:** The current entry is now `font-weight: var(--weight-semibold)` with a 3px inset `--color-primary` bar on its start edge (`layout.module.css`), recorded in design.md's *Components in use*. Test: `e2e/theme.spec.ts` "the current admin nav entry is marked by weight, not colour alone" - red before the repair (`Expected: "600" Received: "500"`), green after; full suite 175 passed, `npm run verify` exit 0. Closed by build (P2, test seen failing first), 2026-10-02.
+
+## Prototypes kept
+
+- `prototypes/theme.css`, `components.css`, `components.html` - tokens and components still to build: editor (item 14), sign-up and onboarding (items 15, 18), admin Home (items 15-19), brand and presets (item 18a)
+- `prototypes/editor.html` - item 14
+- `prototypes/signup.html` - item 15
+- `prototypes/start.html`, `start-brand.html` - item 18
+- `prototypes/home.html` - admin Home, items 15-19
+- `prototypes/site-home.html` - brand colour, presets and wordmark on a site, item 18a
+- `prototypes/fonts/` (Source Serif 4, Source Sans 3, Nunito) - the presets, item 18a
+- `prototypes/checks/contrast.mjs` - the branded-site column, item 18a
+- Removed: `prototypes/checks/shoot.mjs` (the browser suite checks the real app), `prototypes/fonts/inter-*` (now `app/fonts/`)

@@ -49,29 +49,5 @@ File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no re
 ### F-131 [P2] fixed - Entry-point docs say nothing merged is undeployed and that item 12 is next
 File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md
 
-### F-143 [P2] closed - The current admin nav entry is marked by hue alone
-File: app/features/admin-shell/layout.module.css:56-78
-
-### F-144 [P3] open - The left edge of Log out's focus ring is clipped on wide screens
-File: app/features/admin-shell/layout.module.css:107-110 (with :9-16)
-
-### F-145 [P3] open - No test proves the site scope overrides each role
-File: e2e/theme.spec.ts:62-73; e2e/contrast.spec.ts:103-111
-
-### F-146 [P3] open - Two theme tests reuse the fixed slug `a-published-post-about-gardens`
-File: e2e/theme.spec.ts:131,144
-
-### F-147 [P3] open - Stale contrast figures and test counts in comments and docs
-File: app/features/content/entry-list.module.css:218,224; app/features/users/user-list.module.css:86; app/features/content/entry-delete.module.css:28; app/features/media/media-delete.module.css:35; app/app.css:4-5; AGENTS.md:267; blueprint/context/needs-you.md:171
-
-### F-148 [P3] open - The heading font is applied rule by rule, with no global rule
-File: app/app.css (no h1-h4 rule); prototypes/components.css:436
-
-### F-149 [P3] unverified - The production build polyfills `light-dark()`, so a `color-scheme` set outside Vite's CSS will not switch roles
-File: app/app.css (`:root` roles); build output
-
-### F-150 [P3] unverified - The font face declares only `format("woff2-variations")`
-File: app/app.css:13-19
-
 ### F-151 [P2] unverified - A percent-encoded admin path (`/%61dmin/...`) may route to an admin screen while host routing, the CSP and the site scope see a public path
 File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.ts; app/root.tsx

@@ -156,3 +156,24 @@ File: app/features/settings/settings-input.ts:24; app/features/settings/navigati
 
 ### F-140 [P3] open - The F-95 note vanishes after any add/move/remove, and is not tied to its select
 File: app/features/settings/settings.tsx:372
+
+### F-144 [P3] open - The left edge of Log out's focus ring is clipped on wide screens
+File: app/features/admin-shell/layout.module.css:107-110 (with :9-16)
+
+### F-145 [P3] open - No test proves the site scope overrides each role
+File: e2e/theme.spec.ts:62-73; e2e/contrast.spec.ts:103-111
+
+### F-146 [P3] open - Two theme tests reuse the fixed slug `a-published-post-about-gardens`
+File: e2e/theme.spec.ts:131,144
+
+### F-147 [P3] open - Stale contrast figures and test counts in comments and docs
+File: app/features/content/entry-list.module.css:218,224; app/features/users/user-list.module.css:86; app/features/content/entry-delete.module.css:28; app/features/media/media-delete.module.css:35; app/app.css:4-5; AGENTS.md:267; blueprint/context/needs-you.md:171
+
+### F-148 [P3] open - The heading font is applied rule by rule, with no global rule
+File: app/app.css (no h1-h4 rule); prototypes/components.css:436
+
+### F-149 [P3] unverified - The production build polyfills `light-dark()`, so a `color-scheme` set outside Vite's CSS will not switch roles
+File: app/app.css (`:root` roles); build output
+
+### F-150 [P3] unverified - The font face declares only `format("woff2-variations")`
+File: app/app.css:13-19

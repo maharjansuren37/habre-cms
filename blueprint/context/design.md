@@ -34,7 +34,8 @@ Mockups (throwaway): `prototypes/signup.html`, `start.html` (onboarding step
 `editor.html` and `editor.html#heading` (two states), `site-home.html` (a
 published site), `components.html` (every component, both scopes). Tokens:
 `prototypes/theme.css`; components: `prototypes/components.css`. Checks:
-`prototypes/checks/contrast.mjs`, `shoot.mjs`.
+`prototypes/checks/contrast.mjs` (`shoot.mjs` removed with item 13b; the
+browser suite's 390px tests and `e2e/contrast.spec.ts` check the real app).
 
 ## Where the tokens land
 
@@ -47,7 +48,8 @@ published site), `components.html` (every component, both scopes). Tokens:
   `--color-focus-ring`, `--color-border-control` -> `--color-border-strong`,
   `--font-sans` -> `--font-family-sans`.
 - **Fonts are self-hosted** woff2 files with their SIL Open Font License
-  files (`prototypes/fonts/`): Inter for Habre's screens; a customer site loads
+  files: Inter for Habre's screens in `app/fonts/` (item 13b), the presets'
+  pairs still in `prototypes/fonts/` until item 18a; a customer site loads
   only its preset's pair. No third-party font request.
 - **A site's brand colour and preset** reach its public pages through a
   per-site stylesheet or a nonce, because the Content-Security-Policy is
