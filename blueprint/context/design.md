@@ -265,6 +265,28 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
   where it sits. 17rem on the right; a bottom sheet below 1024px.
 - **Section controls:** a rust chip on the section being edited - "Section 1
   of 5", Move section up/down, Section settings - at its foot below 40rem.
+- **Built in item 14a2:**
+  - **Image block:** with no file, the `.photo` stand-in reads "No image
+    chosen" and the panel offers **Choose image**; a deleted file reads "This
+    image is no longer available." and the panel offers **Replace image**. The
+    panel shows the file's alt text read-only - it is set at upload (D55). A
+    published image is a plain `img`, no caption (F-79).
+  - **Settings panel:** its `h2` names what it edits ("Image", "Button",
+    "Section 2"); **Close settings** or Escape hides it and returns focus to
+    the writing area; it opens again when another block with settings is
+    selected, or Section settings is pressed. **Columns live in Section
+    settings**, not on the chip; the chip keeps its label and Remove section
+    until 14a3. Opening it at 1024px and wider narrows the canvas by 17rem.
+  - **Button settings:** Button text; Goes to - each page by title (a draft
+    marked "(not published)"), "A web address…", "An email address…", the
+    last two showing one field checked on Enter or leaving it, refused beside
+    the field with the link dialog's words; Style - Filled or Outline.
+  - **Phone:** the top bar's **Add** opens the palette in the kit's native
+    `<dialog>`; choosing a tile adds the block, closes it and returns focus
+    to the writing area. Below 1024px the settings panel is a bottom sheet
+    that keeps the selected block in view above it.
+  - **Tab order:** palette, title, writing area, section chip, settings
+    panel.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

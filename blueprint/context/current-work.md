@@ -198,7 +198,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   public page shows it, as a full page load and through the app's links.
   An empty button reads "Button text" on the canvas, muted.
 
-- [ ] **Step 8 - The record** - `design.md` *Editor decisions* gains the
+- [x] **Step 8 - The record** - `design.md` *Editor decisions* gains the
   "decided here" states from Design reference; `needs-you.md`'s two
   screen-reader lines name the palette and Add dialog, the settings panel,
   the media picker in the editor, and published images and buttons. *Done
