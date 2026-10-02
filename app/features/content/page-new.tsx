@@ -22,7 +22,7 @@ export const middleware: Route.MiddlewareFunction[] = [
 // It also hands over the empty document a new entry starts with, so the
 // schema module stays out of the browser bundle.
 export async function loader(_: Route.LoaderArgs) {
-  return { document: emptyDocument() };
+  return { document: emptyDocument(), mediaById: {} };
 }
 
 export function meta(_: Route.MetaArgs) {
@@ -55,6 +55,7 @@ export default function NewPage({ loaderData, actionData }: Route.ComponentProps
       title=""
       slug=""
       document={loaderData.document}
+      mediaById={loaderData.mediaById}
       status="draft"
       version={1}
       problem={actionData?.problem ?? null}

@@ -1,7 +1,15 @@
 import { randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { textDocument } from "./helpers/documents.ts";
+import {
+  buttonBlock,
+  imageBlock,
+  inSection,
+  lineBlock,
+  spaceBlock,
+  textDocument,
+} from "./helpers/documents.ts";
+import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -22,9 +30,12 @@ let editor: TestUser;
 // The admin's Content-Security-Policy is not loosened for TipTap: anything it
 // refuses while the editor runs fails the test (Chromium logs each refusal).
 let refusedByPolicy: string[];
+// Media rows a test seeded; removed before the user they belong to.
+let seededMedia: string[];
 
 test.beforeEach(async ({ page }) => {
   refusedByPolicy = [];
+  seededMedia = [];
   page.on("console", (message) => {
     if (message.text().includes("Content Security Policy")) refusedByPolicy.push(message.text());
   });
@@ -36,6 +47,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async () => {
+  for (const id of seededMedia) await deleteTestMedia(id);
   await deleteEntriesBy(editor.email);
   await deleteTestUser(editor.email);
   expect(refusedByPolicy).toEqual([]);
@@ -110,6 +122,10 @@ const CONTRACT_NODES: Record<string, string[]> = {
   listItem: [],
   blockquote: [],
   text: [],
+  image: ["mediaId"],
+  button: ["label", "href", "style"],
+  horizontalRule: [],
+  space: [],
 };
 const CONTRACT_MARKS: Record<string, string[]> = { bold: [], italic: [], link: ["href"] };
 const NODE_KEYS = new Set(["type", "attrs", "content", "text", "marks"]);
@@ -873,7 +889,8 @@ test("content the editor cannot read is not saved over (F-154)", async ({ page }
             type: "column",
             content: [
               { type: "paragraph", content: [{ type: "text", text: "Keep me." }] },
-              { type: "image", attrs: { mediaId: "x" } },
+              // Not a node of the v4 contract (an image became one in 14a2).
+              { type: "video", attrs: { src: "x" } },
             ],
           },
         ],
@@ -915,4 +932,96 @@ test("a re-render of the entry form never hands the editor new options (F-158)",
     () => (globalThis as unknown as { setOptionsCalls: { count: number } }).setOptionsCalls.count,
   );
   expect(count).toBe(0);
+});
+
+// ---- Item 14a2, step 3: image, button, line and space on the canvas ---------
+
+/** A page holding an image, a button, a line, a space and an image whose media row is gone. */
+async function openWithFourBlocks(page: Page) {
+  const present = await insertTestMediaRow({ uploadedBy: editor.email, altText: "A red door" });
+  const gone = await insertTestMediaRow({ uploadedBy: editor.email, altText: "Lost picture" });
+  seededMedia.push(present, gone);
+  const blocks = [
+    { type: "paragraph", content: [{ type: "text", text: "Before the blocks." }] },
+    imageBlock(present),
+    buttonBlock("Book now", "/about", "outline"),
+    lineBlock(),
+    spaceBlock(),
+    imageBlock(gone),
+  ];
+  const seeded = inSection(...blocks);
+  const { id, textbox } = await (async () => {
+    const entryId = await createDraftFor(editor.email, "Blocks Page", seeded, { type: "page" });
+    await deleteTestMedia(gone);
+    await logIn(page, editor);
+    await page.goto(`/admin/pages/${entryId}`);
+    const box = page.getByRole("textbox", { name: "Page content" });
+    await expect(box).toBeVisible();
+    return { id: entryId, textbox: box };
+  })();
+  return { id, textbox, blocks };
+}
+
+test("an image, a button, a line, a space and a deleted image are all drawn in the canvas", async ({
+  page,
+}) => {
+  const { textbox } = await openWithFourBlocks(page);
+  await expect(textbox.getByRole("img", { name: "A red door" })).toBeVisible();
+  await expect(textbox.getByText("Book now", { exact: true })).toBeVisible();
+  await expect(textbox.getByRole("separator")).toBeVisible();
+  await expect(textbox.locator('[data-node="space"]')).toBeVisible();
+  await expect(textbox.getByText("This image is no longer available.")).toBeVisible();
+  // Nothing interactive sits inside the writing area (D169); it stays the
+  // only content textbox.
+  await expect(textbox.getByRole("textbox")).toHaveCount(0);
+  await expect(textbox.getByRole("link")).toHaveCount(0);
+  await expect(textbox.getByRole("button")).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: /content$/ })).toHaveCount(1);
+});
+
+test("clicking the line then Backspace removes it, and Ctrl+Z restores it", async ({ page }) => {
+  const { textbox } = await openWithFourBlocks(page);
+  const line = textbox.getByRole("separator");
+  await line.click();
+  await settle(page);
+  await page.keyboard.press("Backspace");
+  await expect(textbox.getByRole("separator")).toHaveCount(0);
+  await expect(textbox.getByText("Book now", { exact: true })).toBeVisible();
+  await page.keyboard.press("Control+z");
+  await expect(textbox.getByRole("separator")).toBeVisible();
+});
+
+test("Save then reload keeps every attr of the four blocks, and stores nothing else", async ({
+  page,
+}) => {
+  const { id, textbox, blocks } = await openWithFourBlocks(page);
+  await save(page);
+  const stored = await storedEntry(id);
+  expect(contractViolations(stored.blocks)).toEqual([]);
+  expect(firstColumn(stored.blocks)).toEqual(blocks);
+
+  await page.reload();
+  await expect(textbox).toBeVisible();
+  await expect(textbox.getByRole("img", { name: "A red door" })).toBeVisible();
+  await expect(textbox.getByText("Book now", { exact: true })).toBeVisible();
+  await expect(textbox.getByRole("separator")).toBeVisible();
+  await expect(textbox.getByText("This image is no longer available.")).toBeVisible();
+});
+
+test("an insert the editor refuses after it has loaded does not lock Save (F-154 follow-up)", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Late Error Page");
+  await textbox.evaluate((dom) => {
+    const instance = (
+      dom as unknown as {
+        editor: { commands: { insertContent: (c: unknown, o?: unknown) => boolean } };
+      }
+    ).editor;
+    // A node the schema does not have, once the stored document has loaded.
+    instance.commands.insertContent({ type: "video" }, { errorOnInvalidContent: true });
+  });
+  await save(page);
+  await expect(page.getByText("The editor's content could not be read.")).toHaveCount(0);
+  expect((await storedEntry(id)).version).toBe(2);
 });

@@ -1,13 +1,21 @@
-import { mergeAttributes, Node } from "@tiptap/core";
+import { mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 import { Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
-import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
+  createContext,
   type FormEvent,
   type RefObject,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -19,7 +27,7 @@ import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
-import type { Document } from "./document-nodes.ts";
+import type { Document, DocumentMedia } from "./document-nodes.ts";
 import { isSafeHref } from "./inline-runs.ts";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
@@ -107,6 +115,103 @@ const BlockquoteNode = Node.create({
   renderHTML: () => ["blockquote", 0],
 });
 
+/* ---- Image, button, line and space (item 14a2, step 3) ----------------------
+ * Four blocks that hold no text: atoms, selected by a click and removed with
+ * Backspace or Delete. They are drawn with the public site's own classes, so
+ * the canvas shows what publishes. None has a parse rule, so pasted HTML never
+ * creates one (an `<img>` pasted from a page is dropped, as in 14a1), and none
+ * has an input rule (`---` typed in text stays text). Nothing interactive sits
+ * inside the writing area (D169): a button is drawn as a `span`, never a link,
+ * and its controls come with the settings panel. */
+
+/** The media each image block draws, by id. Held in state by `DocumentEditor`
+ *  and read through context, so it never reaches the editor's options (F-158). */
+const MediaContext = createContext<Record<string, DocumentMedia>>({});
+
+function ImageView({ node }: NodeViewProps) {
+  const mediaById = useContext(MediaContext);
+  const mediaId = String(node.attrs.mediaId ?? "");
+  const media = Object.hasOwn(mediaById, mediaId) ? mediaById[mediaId] : undefined;
+  return (
+    <NodeViewWrapper>
+      {media ? (
+        <img
+          className={content.image}
+          src={media.url}
+          alt={media.altText}
+          width={media.width}
+          height={media.height}
+          draggable={false}
+        />
+      ) : (
+        <div className={styles.photo}>
+          {mediaId === "" ? "No image chosen" : "This image is no longer available."}
+        </div>
+      )}
+    </NodeViewWrapper>
+  );
+}
+
+const ImageNode = Node.create({
+  name: "image",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return { mediaId: { default: "" } };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
+});
+
+const ButtonNode = Node.create({
+  name: "button",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return {
+      label: { default: "", rendered: false },
+      href: { default: "", rendered: false },
+      style: { default: "filled", rendered: false },
+    };
+  },
+  renderHTML: ({ node }) => {
+    const label = String(node.attrs.label ?? "");
+    const classes = [
+      content.button,
+      node.attrs.style === "outline" ? content.outline : content.filled,
+    ];
+    if (label === "") classes.push(styles.buttonEmpty);
+    return ["span", { class: classes.join(" "), "data-node": "button" }, label || "Button text"];
+  },
+});
+
+const LineNode = Node.create({
+  name: "horizontalRule",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  renderHTML: () => ["hr", { class: content.line }],
+});
+
+const SpaceNode = Node.create({
+  name: "space",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  // Drawn with hatching so an author can see and select the gap.
+  renderHTML: () => [
+    "div",
+    { class: [content.space, styles.spacer].join(" "), "data-node": "space" },
+  ],
+});
+
 const TEXT_STYLES = [
   { value: "paragraph", label: "Text" },
   { value: "2", label: "Heading" },
@@ -122,6 +227,10 @@ function extensionsFor(placeholder: string) {
     ColumnNode,
     ListItemNode,
     BlockquoteNode,
+    ImageNode,
+    ButtonNode,
+    LineNode,
+    SpaceNode,
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -192,6 +301,7 @@ export function DocumentEditor({
   contentRef,
   onChange,
   barSlot,
+  mediaById,
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
@@ -199,8 +309,12 @@ export function DocumentEditor({
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
   barSlot: HTMLElement | null;
+  /** What the document's images need to draw, by media id. */
+  mediaById: Record<string, DocumentMedia>;
 }) {
   const { extensions, editorProps } = OPTIONS[entryType];
+  // In state so a later step can add the media a person picks.
+  const [media] = useState(mediaById);
   const latestOnChange = useRef(onChange);
   useEffect(() => {
     latestOnChange.current = onChange;
@@ -220,8 +334,10 @@ export function DocumentEditor({
     extensions,
     content: initialDocument,
     enableContentCheck: true,
-    onContentError: () => {
-      unreadable.current = true;
+    // Only while the stored document is being loaded: a later insert that
+    // fails the check must not lock Save over a document that did load (F-154).
+    onContentError: ({ editor: current }) => {
+      if (!current.isInitialized) unreadable.current = true;
     },
     editorProps,
     onUpdate: () => latestOnChange.current(),
@@ -244,7 +360,9 @@ export function DocumentEditor({
     <>
       {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
-        <EditorContent editor={editor} />
+        <MediaContext.Provider value={media}>
+          <EditorContent editor={editor} />
+        </MediaContext.Provider>
         {/* After the writing area, so Tab reaches it next; outside it, so no
             control sits inside the textbox (D169). */}
         {editor ? <SectionChip editor={editor} canvas={canvas} /> : null}

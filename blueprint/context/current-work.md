@@ -120,7 +120,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   500 ms**, measured from the browser test on the dev machine
   (`quality-bar.md`); the whole suite passes.
 
-- [ ] **Step 3 - The four blocks in the editor** - TipTap `image`, `button`,
+- [x] **Step 3 - The four blocks in the editor** - TipTap `image`, `button`,
   `horizontalRule` and `space` nodes: atoms, selectable by click, drawn in the
   canvas with the site's own classes (a button as the site's button, not a
   link that navigates; the space with the canvas's hatching); the image node

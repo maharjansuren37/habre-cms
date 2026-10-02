@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
 import type { Route } from "./+types/page-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
@@ -36,7 +37,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
   if (!entry) throw data("Not Found", { status: 404 });
-  return { entry };
+  return { entry, mediaById: await resolveDocumentMedia(entry.document) };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -102,6 +103,7 @@ export default function EditPage({ loaderData, actionData }: Route.ComponentProp
       title={entry.title}
       slug={entry.slug}
       document={entry.document}
+      mediaById={loaderData.mediaById}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
 import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
+import type { DocumentMedia } from "#app/features/blocks/document-nodes.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { isReadableDocumentContent } from "./editor-content.ts";
@@ -34,6 +35,8 @@ type EntryFormProps = {
   slug: string;
   /** The post or page's one document (item 14a1); a new entry's is empty. */
   document: Document;
+  /** What the document's images need to draw (item 14a2): empty for a new entry. */
+  mediaById: Record<string, DocumentMedia>;
   status: "draft" | "published";
   version: number;
   problem: SaveProblem;
@@ -44,6 +47,7 @@ export function EntryForm({
   title,
   slug,
   document: initialDocument,
+  mediaById,
   status,
   version,
   problem,
@@ -216,6 +220,7 @@ export function EntryForm({
         {isEditorReady ? (
           <DocumentEditor
             initialDocument={initialDocument}
+            mediaById={mediaById}
             entryType={entryType}
             contentRef={readEditor}
             onChange={() => setUnsavedChanges(true)}
