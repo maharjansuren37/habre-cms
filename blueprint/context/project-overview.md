@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-02, `main` after `d3c2c81`.
+Generated 2026-10-02, `main` after `249a9f9`.
 
 ## What this is
 
@@ -35,8 +35,11 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Platform v1 (items 13-21, queued):** React Router 8.4.0; the new look (13b,
-`design.md`); a Mailchimp-style drag-and-drop editor on TipTap 3 (14a-14c,
+**Built for v1, not yet deployed:** React Router 8.4.0 (13); the new look
+(13b, `design.md`, D181-D190) - stone and rust admin in light and dark, Inter
+self-hosted, public sites neutral and light only (D168).
+
+**Platform v1 (items 14-21, queued):** a Mailchimp-style drag-and-drop editor on TipTap 3 (14a-14c,
 content discarded); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
@@ -57,7 +60,8 @@ constraint** - each new runtime dependency is a recorded decision.
   `node:http` - **no Express** (D10, D17, D23). The installed docs in
   `node_modules/react-router/docs/` decide.
 - PostgreSQL 16, `postgres` driver, **raw SQL, no ORM** (D11).
-- Plain CSS, tokens, CSS Modules, **no Tailwind** (D12); look in `design.md`.
+- Plain CSS, tokens in `app/app.css`, CSS Modules, **no Tailwind** (D12); look
+  in `design.md`; public pages in the `data-surface="site"` scope (D183).
 - `jose` JWT + scrypt, **no auth library** (D6); Zod at every trust boundary.
 - Editor.js today; R2 via `aws4fetch`; Biome; `node:test`; Playwright.
 - **v1 adds, pinned when installed:** TipTap 3 (item 14), `@anthropic-ai/sdk`
@@ -127,8 +131,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13 done; 10 queued (13b, 14, 15, 16, 17, 17b, 18-21);
-  nothing in flight. 14, 15 and 18 split when spec'd. Last shipped: the
-  findings-backlog tidy (`blueprint/history/fixes/`).
-- **Next:** `spec` item 13b (draft parked in `blueprint/drafts/`).
+- **Plan:** items 1-13b done; 9 queued (14, 15, 16, 17, 17b, 18-21); nothing
+  in flight. 14, 15 and 18 split when spec'd. Last shipped: 13b, the new look
+  (`blueprint/history/features/13b-the-new-look.md`).
+- **Next:** `spec` item 14, the new editor (splits into 14a-14c).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
