@@ -80,3 +80,12 @@ File: app/features/public-site/document-media-ids.ts:6
 
 ### F-175 [P3] open - Stale comment and R2 test counts
 File: app/features/media/media-picker-dialog.module.css:1-2; blueprint/context/needs-you.md:170; AGENTS.md (ci row)
+
+### F-176 [P2] open - Close or Escape on a section panel opened over an image or button shows that block's panel instead of hiding
+File: app/features/blocks/document-editor.client.tsx:709-713 (`close`)
+
+### F-177 [P2] open - Reducing Columns while an image in a removed column is selected swaps the section panel for the Image panel and drops focus
+File: app/features/blocks/document-editor.client.tsx:698-703 (reset effect), :499-513 (`setColumns`)
+
+### F-178 [P3] open - After the gear, clicking the already-selected image keeps the section panel
+File: app/features/blocks/document-editor.client.tsx:698-707
