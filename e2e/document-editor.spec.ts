@@ -62,7 +62,7 @@ async function openSeeded(
   title: string,
   document: unknown = startDocument,
 ) {
-  const id = await createDraftFor(editor.email, title, document, { type, blocksFormat: "v4" });
+  const id = await createDraftFor(editor.email, title, document, { type });
   await logIn(page, editor);
   await page.goto(`/admin/${type}s/${id}`);
   const name = type === "page" ? "Page content" : "Post content";
@@ -592,7 +592,6 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     const title = `Journey Page ${randomInt(1_000_000)}`;
     const id = await createDraftFor(editor.email, title, startDocument, {
       type: "page",
-      blocksFormat: "v4",
     });
     await logIn(page, editor);
     if (arrival === "a full page load") {
@@ -618,5 +617,31 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(
       page.getByRole("main").getByText("Start here. Changed for the journey."),
     ).toBeVisible();
+  });
+}
+
+// Step 6: Editor.js is gone, so a new entry starts as the empty v4 document.
+for (const type of ["post", "page"] as const) {
+  test(`a new ${type} opens in the document editor and saves as v4`, async ({ page }) => {
+    await logIn(page, editor);
+    await page.goto(`/admin/${type}s/new`);
+    const name = type === "page" ? "Page content" : "Post content";
+    const textbox = page.getByRole("textbox", { name });
+    await expect(textbox).toBeVisible();
+
+    await page.getByRole("textbox", { name: "Title" }).fill(`Fresh ${type}`);
+    await textbox.click();
+    await page.keyboard.type("Written from scratch.");
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await page.waitForURL(new RegExp(`/admin/${type}s/[0-9a-f-]{36}$`));
+    const id = new URL(page.url()).pathname.split("/").pop() ?? "";
+
+    const stored = await storedEntry(id);
+    expect(stored.blocksFormat).toBe("v4");
+    expect(firstColumn(stored.blocks)).toEqual([
+      { type: "paragraph", content: [{ type: "text", text: "Written from scratch." }] },
+    ]);
+    await page.reload();
+    await expect(page.getByRole("textbox", { name })).toContainText("Written from scratch.");
   });
 }

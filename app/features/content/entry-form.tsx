@@ -1,18 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
-import type { Block, ImageMediaSummary, Section } from "#app/features/blocks/blocks.ts";
 import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
-import { BlockEditor } from "#app/features/blocks/editor.client.tsx";
-import { SectionsEditor } from "#app/features/blocks/sections-editor.client.tsx";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
-import {
-  isReadableDocumentContent,
-  isReadableEditorContent,
-  isReadableSectionsContent,
-} from "./editor-content.ts";
+import { isReadableDocumentContent } from "./editor-content.ts";
 import styles from "./entry-form.module.css";
 
 /** What the editor screen shows about the last save attempt. */
@@ -39,15 +32,8 @@ type EntryFormProps = {
   title: string;
   /** Empty for an entry that has not been saved yet. */
   slug: string;
-  /** A post's flat blocks. */
-  blocks?: Block[];
-  /** A page's sections. */
-  sections?: Section[];
-  /** A v4 post or page's one document (item 14a1); it opens in the document editor. */
-  document?: Document;
-  /** Resolves each image block's media id, so reopening an entry shows its
-   *  images immediately - a new entry has none to resolve. */
-  mediaById?: Record<string, ImageMediaSummary>;
+  /** The post or page's one document (item 14a1); a new entry's is empty. */
+  document: Document;
   status: "draft" | "published";
   version: number;
   problem: SaveProblem;
@@ -57,10 +43,7 @@ export function EntryForm({
   entryType,
   title,
   slug,
-  blocks = [],
-  sections = [],
   document: initialDocument,
-  mediaById = {},
   status,
   version,
   problem,
@@ -71,8 +54,8 @@ export function EntryForm({
   // An entry with no address yet has never been saved, so there is nothing to
   // publish - only Save, which creates it (as a draft, as today).
   const isSaved = slug !== "";
-  // Editor.js owns its DOM, so its content is read on demand rather than held in
-  // React state; this is the function it hands back.
+  // The editor's content is read on demand rather than held in React state;
+  // this is the function it hands back.
   const readEditor = useRef<(() => Promise<unknown>) | null>(null);
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
@@ -80,7 +63,7 @@ export function EntryForm({
   // Where the document editor draws its format bar: under the top bar.
   const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
 
-  // Editor.js reaches for `document` as it is constructed, so it mounts only
+  // The editor reaches for the DOM as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
   useEffect(() => setEditorReady(true), []);
 
@@ -114,25 +97,16 @@ export function EntryForm({
     // sees which button was pressed - it has to be told the submitter.
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const form = new FormData(event.currentTarget, submitter);
-    // Four ways this can give nothing usable: Editor.js's save() resolves
-    // undefined when a tool throws inside it; the ref is null before the editor
-    // mounts; the result can lack `blocks`; and `editor.isReady` rejects when
-    // the editor never started - which the Save button does not wait for, so
-    // that click would otherwise reject silently and do nothing at all.
-    // Defaulting any of them to an empty list saved over a real post (F-42).
+    // The ref is null before the editor mounts, and reading it can throw or
+    // give something that is not a document. Defaulting any of those to an
+    // empty one saved over a real post (F-42).
     let content: unknown;
     try {
       content = await readEditor.current?.();
     } catch {
       content = undefined;
     }
-    if (
-      !(initialDocument
-        ? isReadableDocumentContent(content)
-        : entryType === "page"
-          ? isReadableSectionsContent(content)
-          : isReadableEditorContent(content))
-    ) {
+    if (!isReadableDocumentContent(content)) {
       setUnreadableContent(true);
       return;
     }
@@ -187,7 +161,7 @@ export function EntryForm({
             ) : null}
           </div>
         </div>
-        {initialDocument ? <div ref={setFormatBarSlot} /> : null}
+        <div ref={setFormatBarSlot} />
       </div>
 
       {/* One message at a time. The client-side guard wins: it describes the
@@ -208,8 +182,6 @@ export function EntryForm({
       ) : null}
 
       <input type="hidden" name="version" value={version} />
-      {/* Tells the action which editor's content this is (item 14a1). */}
-      {initialDocument ? <input type="hidden" name="blocksFormat" value="v4" /> : null}
 
       <div className={styles.canvas}>
         <label className={styles.titleLabel} htmlFor="entry-title">
@@ -230,29 +202,13 @@ export function EntryForm({
         </p>
 
         {isEditorReady ? (
-          initialDocument ? (
-            <DocumentEditor
-              initialDocument={initialDocument}
-              entryType={entryType}
-              contentRef={readEditor}
-              onChange={() => setUnsavedChanges(true)}
-              barSlot={formatBarSlot}
-            />
-          ) : entryType === "page" ? (
-            <SectionsEditor
-              initialSections={sections}
-              mediaById={mediaById}
-              contentRef={readEditor}
-              onChange={() => setUnsavedChanges(true)}
-            />
-          ) : (
-            <BlockEditor
-              initialBlocks={blocks}
-              mediaById={mediaById}
-              contentRef={readEditor}
-              onChange={() => setUnsavedChanges(true)}
-            />
-          )
+          <DocumentEditor
+            initialDocument={initialDocument}
+            entryType={entryType}
+            contentRef={readEditor}
+            onChange={() => setUnsavedChanges(true)}
+            barSlot={formatBarSlot}
+          />
         ) : (
           <p className={styles.needsJs}>
             The editor needs JavaScript. Turn it on and reload to write your {entryType}.

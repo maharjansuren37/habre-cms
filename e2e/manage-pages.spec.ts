@@ -28,8 +28,7 @@ test.afterEach(async () => {
 });
 
 async function writeBody(page: Page, text: string) {
-  const canvas = page.locator("[contenteditable=true]").first();
-  await canvas.waitFor();
+  const canvas = page.getByRole("textbox", { name: "Page content" });
   await canvas.click();
   await page.keyboard.type(text);
 }
@@ -52,16 +51,9 @@ test("an editor can write, publish, edit and delete a page, entirely under /admi
   // A page is served at its own address off the site root, not under /posts/.
   await expect(page.getByText("/about", { exact: false })).toBeVisible();
 
-  // Edit its content: retyping into an already-loaded Editor.js block turned
-  // out to be unreliable in this harness (three different interaction
-  // techniques - click+End, click+Ctrl/Cmd+A, with and without confirming the
-  // DOM change first - each passed some runs and silently saved the old body
-  // on others, with no confirmed cause). Editing the title exercises the
-  // identical `saveEntry` round trip through a plain input instead, which is
-  // deterministic - matching this project's own precedent of not driving a
-  // flaky rich-text interaction when it is not worth what it adds
-  // ("Driving the floating menu proved too flaky", write-post.spec.ts).
-  await expect(page.locator("[contenteditable=true]").first()).toContainText("Who we are.");
+  // Edit it through the title: the same `saveEntry` round trip as a body edit,
+  // which document-editor.spec.ts covers.
+  await expect(page.getByRole("textbox", { name: "Page content" })).toContainText("Who we are.");
   await page.getByPlaceholder("Page title").fill("About us");
   // A second save never navigates (unlike the first, which redirects here
   // from /new) - waitForURL is a no-op against an already-matching URL, so

@@ -22,9 +22,6 @@
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
-    "@editorjs/editorjs": "2.31.6",
-    "@editorjs/header": "2.8.9",
-    "@editorjs/list": "2.0.9",
     "@react-router/node": "8.4.0",
     "@remix-run/node-fetch-server": "0.14.2",
     "@tiptap/core": "3.31.4",

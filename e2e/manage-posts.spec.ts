@@ -281,7 +281,7 @@ test("an author cannot publish or unpublish another author's post", async ({ pag
         intent: "publish",
         title: "Not Yours To Publish",
         version: "1",
-        blocks: JSON.stringify({ blocks: [] }),
+        blocks: JSON.stringify(textDocument()),
       },
     });
     expect(response.status()).toBe(404);
@@ -305,7 +305,7 @@ test("a stale-version publish is refused rather than overwriting a concurrent ed
       intent: "publish",
       title: "Racing Save",
       version: "999",
-      blocks: JSON.stringify({ blocks: [] }),
+      blocks: JSON.stringify(textDocument()),
     },
   });
   expect(response.status()).toBe(409);

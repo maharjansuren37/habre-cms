@@ -56,7 +56,6 @@ const doc = (...sections: unknown[]) => ({ type: "doc", content: sections });
 async function publish(type: "post" | "page", title: string, document: unknown) {
   await createDraftFor(editor.email, title, document, {
     type,
-    blocksFormat: "v4",
     status: "published",
   });
 }

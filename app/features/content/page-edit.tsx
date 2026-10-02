@@ -3,21 +3,11 @@ import { z } from "zod";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
-import { BLOCKS_FORMAT_V4 } from "#app/features/blocks/document.ts";
-import { findMediaByIds } from "#app/features/media/media.server.ts";
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
-import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/page-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
 import { EntryForm } from "./entry-form.tsx";
-import {
-  isEntryBodySizeAllowed,
-  parseDocumentForm,
-  parseEntryForm,
-  parseVersion,
-} from "./entry-form-input.ts";
+import { isEntryBodySizeAllowed, parseDocumentForm, parseVersion } from "./entry-form-input.ts";
 
 // Outside the admin-shell layout (routes.ts), same as post-edit.tsx.
 export const middleware: Route.MiddlewareFunction[] = [
@@ -45,23 +35,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
   if (!entry) throw data("Not Found", { status: 404 });
-  // A v4 page opens in the document editor, which has no images yet (14a2).
-  if ("document" in entry) return { entry, mediaById: {} as Record<string, ImageMediaSummary> };
-  // One query for every image block this entry has, so reopening it shows
-  // them immediately - no picker round trip, no per-image fetch.
-  const rows = await findMediaByIds(collectImageMediaIds(entry.sections));
-  const mediaById: Record<string, ImageMediaSummary> = Object.fromEntries(
-    rows.map((row) => [
-      row.id,
-      {
-        url: buildMediaUrl(env.R2_PUBLIC_URL, row.storageKey),
-        altText: row.altText,
-        width: row.width,
-        height: row.height,
-      },
-    ]),
-  );
-  return { entry, mediaById };
+  return { entry };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -72,7 +46,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const form = await request.formData();
   // A native submit with no JavaScript carries no `intent` at all - the
   // buttons that set it only render once the editor has mounted (F-34's same
-  // condition) - and that has to fall through to `parseEntryForm`'s own
+  // condition) - and that has to fall through to `parseDocumentForm`'s own
   // missing-blocks message below, not a new "action could not be read" one.
   const intent = intentSchema.safeParse(form.get("intent") ?? "save");
   if (!intent.success) {
@@ -81,12 +55,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  // The document editor says which format it sends; anything else is one of
-  // the older editors' (item 14a1 keeps both until step 6).
-  const parsed =
-    form.get("blocksFormat") === BLOCKS_FORMAT_V4
-      ? parseDocumentForm(form, "page")
-      : parseEntryForm(form, "page");
+  const parsed = parseDocumentForm(form, "page");
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },
@@ -101,9 +70,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const result = await saveEntry(
     "page",
     id,
-    "document" in parsed
-      ? { title: parsed.title, document: parsed.document }
-      : { title: parsed.title, sections: parsed.sections },
+    { title: parsed.title, document: parsed.document },
     version,
     context.get(userContext),
     intent.data === "save" ? undefined : intent.data,
@@ -122,14 +89,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { entry, mediaById } = loaderData;
+  const { entry } = loaderData;
   return (
     <EntryForm
       entryType="page"
       title={entry.title}
       slug={entry.slug}
-      {...("document" in entry ? { document: entry.document } : { sections: entry.sections })}
-      mediaById={mediaById}
+      document={entry.document}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.

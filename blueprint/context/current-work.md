@@ -151,7 +151,7 @@ shape is locked here.
   \"v[23]\"\|type: \"text\", data" e2e/` finds nothing in those files and the
   whole suite passes.
 
-- [ ] **Step 6 - Delete old content and remove Editor.js** - migration
+- [x] **Step 6 - Delete old content and remove Editor.js** - migration
   `0009_entries_v4_only.sql` (destructive; built with `migrate`): deletes
   every entry (settings' home page clears itself, `on delete set null`),
   resets the menu to empty (its page links are JSON, no foreign key), sets

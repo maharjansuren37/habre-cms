@@ -92,7 +92,7 @@ export async function entriesBy(
 export async function createDraftFor(
   email: string,
   title: string,
-  /** A v4 document (see `textDocument`), or a v2 post's blocks / a v3 page's sections. */
+  /** A v4 document (see `e2e/helpers/documents.ts`). */
   blocks: unknown,
   options: {
     status?: "draft" | "published";
@@ -100,9 +100,6 @@ export async function createDraftFor(
     /** Defaults to "post" - most callers are posts tests; item 6a's pages
      *  tests pass "page" to seed a page instead. */
     type?: "post" | "page";
-    /** Defaults to "v4", the TipTap document (item 14a1); "v2" and "v3" are
-     *  the Editor.js formats, seeded only until step 6 removes them. */
-    blocksFormat?: "v2" | "v3" | "v4";
   } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";
@@ -116,7 +113,7 @@ export async function createDraftFor(
     const [row] = await sql<{ id: string }[]>`
       insert into entries (type, title, slug, blocks, blocks_format, status, published_at, author_id)
       select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
-             ${sql.json(blocks as never)}, ${options.blocksFormat ?? "v4"}, ${status}, ${publishedAt}, id
+             ${sql.json(blocks as never)}, 'v4', ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id
     `;
