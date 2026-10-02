@@ -177,3 +177,18 @@ File: app/app.css (`:root` roles); build output
 
 ### F-150 [P3] unverified - The font face declares only `format("woff2-variations")`
 File: app/app.css:13-19
+
+### F-156 [P3] open - A link with mixed formatting renders as several adjacent links
+File: app/features/blocks/render.tsx:108-117 (`renderText`)
+
+### F-159 [P3] open - The contract's caps are copied into several files
+File: app/features/blocks/document.ts:28,34,47,52; inline-runs.ts:9; document-editor.client.tsx:26,28,623
+
+### F-161 [P3] open - Two test gaps: the placeholder is untested, and the caps timing test moves the caret without settling
+File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
+
+### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
+File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
+
+### F-165 [P3] open - The Text style select's label is visually hidden
+File: app/features/blocks/document-editor.client.tsx:520-522

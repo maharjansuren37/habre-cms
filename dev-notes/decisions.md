@@ -2499,3 +2499,84 @@ Beats: the kit's colour-only mark - rust and the muted grey are ~1.03:1
 apart in dark mode.
 Costs: one deliberate difference from the kit's `.nav__link`, recorded in
 `design.md`.
+
+## D191 - The editor canvas matches the published content width (2026-10-02)
+
+**Chose:** for a v4 entry the editor canvas gives the document the same width
+the public page does, so the 40rem container query stacks or places columns
+in the editor exactly as it will publish (owner, item 14a1).
+Beats: keeping the 42rem form (columns always stacked in the editor), and
+widening both to the prototype's 64rem (changes the public reading width too).
+Costs: the entry form is wider than the other admin forms.
+
+## D192 - Existing pages and posts are deleted, not converted (2026-10-02)
+
+**Chose:** migration `0009` deletes every entry and resets the menu; the check
+becomes `blocks_format = 'v4'` (owner: "this is a rebuild", item 14a1).
+Beats: keeping rows with emptied bodies (addresses nobody needs, pages that
+show only a title), and converting v2/v3 (D169 chose discard).
+Costs: the site starts empty at the v1 deploy; no release before 14a1 can read
+the database afterwards, so rollback by symlink is impossible.
+
+## D193 - Lists are flat in v1 (2026-10-02)
+
+**Chose:** a list item holds one paragraph; Tab does not nest; a nested list
+is refused by `parseDocument` (item 14a1).
+Beats: nesting - items 1-12 had none.
+Costs: nesting is a Level 2 widening of the schema (D165), with no migration.
+
+## D194 - The stored document is the schema's output (2026-10-02)
+
+**Chose:** `parseDocument` stores what the Zod schema returns: keys and attrs
+outside the contract (`orderedList.start`, `link.target` / `rel` / `class`)
+are dropped; a node or mark outside it is refused. A text node keeps one mark
+of each kind, the first (the renderer reads the first link), and an empty
+`content` or `marks` is stored as absent (F-155, F-162; item 14a1).
+Beats: storing the submitted JSON once validated (F-50) - a shape the editor's
+content check can refuse, locking the entry.
+Costs: mark order and adjacent same-mark text nodes are still stored as sent;
+ProseMirror normalises both on load.
+
+## D195 - No hard breaks and no node ids in v1 (2026-10-02)
+
+**Chose:** Shift+Enter starts a new paragraph; ProseMirror addresses nodes by
+position (item 14a1).
+Beats: D117's section ids, which existed for one editor per column.
+Costs: a later feature needing a stable block address adds ids to the schema.
+
+## D196 - Removing a section is immediate and undoable (2026-10-02)
+
+**Chose:** Remove section acts at once as one transaction, and Ctrl+Z restores
+it; the control is absent when one section is left (item 14a1). Supersedes
+D118's inline question, which existed because there was no undo. D118's "an
+empty section renders nothing publicly" holds.
+Beats: asking first.
+Costs: none known - undo covers it.
+
+## D197 - TipTap pinned at exactly 3.31.4, with `injectCSS: false` (2026-10-02)
+
+**Chose:** `@tiptap/core`, `pm`, `react`, `starter-kit` and `extensions` at
+3.31.4 exactly; TipTap's few required rules live in our stylesheet (item
+14a1).
+Beats: a caret range (the document format is ours to lock), and TipTap's
+injected `<style>`, which would keep the admin on `'unsafe-inline'`.
+Costs: five runtime packages replace Editor.js's three; upgrades are deliberate.
+
+## D198 - An editor that cannot read its document refuses to save (2026-10-02)
+
+**Chose:** the editor runs TipTap's content check; when a stored document
+fails it, the form refuses Save rather than overwriting the row with an empty
+document (F-154, item 14a1).
+Beats: opening empty and letting Save destroy the content.
+Costs: the editor still opens empty and editable, and the refusal comes only
+at Save (F-163, open).
+
+## D199 - A save over 1 MB is refused in the browser and by the action (2026-10-02)
+
+**Chose:** the browser checks the body size before submitting and shows "This
+is too long to save. Remove some text and save again." without submitting; the
+action answers an oversized body with the same banner (`data(..., 413)`), not a
+thrown error, so the editor stays mounted and the draft is kept (F-39, item
+14a1).
+Beats: a thrown error that unmounts the editor and loses the text.
+Costs: none known - browser and action share one check, `entry-body-size.ts`.

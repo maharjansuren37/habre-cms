@@ -21,10 +21,6 @@
 ### F-72 [P2] fixed - Item 4c's env-var rename breaks the proven symlink-only rollback for this specific release
 File: /etc/systemd/system/habre-cms.service on `ocwebserver`; deploy/habre-cms.service in the repo
 
-### F-29 [P2] closed - The writing area has no accessible name
-File: app/features/blocks/editor.client.tsx:68
-Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: the new editor's writing area has an accessible name (owner, 2026-10-02)
-
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
 
@@ -54,42 +50,3 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
-
-### F-153 [P2] closed - The Text style select moves focus into the writing area on every change
-File: app/features/blocks/document-editor.client.tsx:487-503 (`setTextStyle`, the select's onChange)
-
-### F-154 [P2] closed - A stored document the editor's schema cannot read opens empty, and Save overwrites it
-File: app/features/blocks/document-editor.client.tsx:190-207 (`useEditor`, no `enableContentCheck` / `onContentError`)
-
-### F-155 [P3] closed - Marks are not limited to one of each kind, so the stored shape is still not canonical
-File: app/features/blocks/document.ts:58-78 (`markSchema`, `marks`, paragraph `content`)
-
-### F-156 [P3] open - A link with mixed formatting renders as several adjacent links
-File: app/features/blocks/render.tsx:108-117 (`renderText`)
-
-### F-157 [P3] closed - The editor bundle loads Zod's core only to configure it
-File: app/features/content/entry-form.tsx:7 (`import "#app/lib/zod-jitless.client.ts"`)
-
-### F-158 [P3] closed - The editor's options are rebuilt on every render
-File: app/features/blocks/document-editor.client.tsx:190-207 (`extensionsFor(...)`, `editorProps`)
-
-### F-159 [P3] open - The contract's caps are copied into several files
-File: app/features/blocks/document.ts:28,34,47,52; inline-runs.ts:9; document-editor.client.tsx:26,28,623
-
-### F-160 [P3] closed - Comments still name code this item deleted
-File: app/features/settings/logo-picker.client.ts:5; logo-picker.module.css:1; settings.tsx:216; app/lib/content-security-policy.ts:11,28; content-security-policy.test.ts:34
-
-### F-161 [P3] open - Two test gaps: the placeholder is untested, and the caps timing test moves the caret without settling
-File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
-
-### F-162 [P2] closed - The F-154 repair locks the editor on documents the server stores: a text node with two marks of one kind
-File: app/features/blocks/document-editor.client.tsx:222-225; app/features/blocks/document.ts (`markSchema`, `marks`)
-
-### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
-File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
-
-### F-164 [P3] fixed - One more comment names the deleted editors
-File: app/features/blocks/document-editor.client.tsx:198
-
-### F-165 [P3] open - The Text style select's label is visually hidden
-File: app/features/blocks/document-editor.client.tsx:520-522
