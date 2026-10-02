@@ -34,3 +34,10 @@ export function isSafeHref(href: string): boolean {
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(compact)?.[1]?.toLowerCase();
   return scheme === "http" || scheme === "https" || scheme === "mailto";
 }
+
+/** What a person reads when a link address is refused - the link dialog's and the button's settings. */
+export const LINK_ERRORS = {
+  unsafe:
+    "This address cannot be used. Use a web address (https://…), an email link (mailto:…) or a page on this site (/…).",
+  tooLong: "This address is too long. A link address can be at most 2,048 characters.",
+} as const;

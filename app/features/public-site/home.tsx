@@ -1,6 +1,7 @@
 import { Link, useRouteLoaderData } from "react-router";
 import { findHomePage, hasPublishedPosts } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/home";
+import { resolveDocumentMedia } from "./document-media.server.ts";
 import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
@@ -17,13 +18,15 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 // unpublished or deleted home page never breaks the front door (D-2).
 export async function loader() {
   const page = await findHomePage();
-  if (page) return { kind: "page" as const, page };
+  if (page) {
+    return { kind: "page" as const, page, mediaById: await resolveDocumentMedia(page.document) };
+  }
   return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts() };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   if (loaderData.kind === "page") {
-    return <PageBody page={loaderData.page} />;
+    return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} />;
   }
   return <HomePlaceholder hasPosts={loaderData.hasPosts} />;
 }

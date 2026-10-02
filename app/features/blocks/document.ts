@@ -1,21 +1,36 @@
 import { z } from "zod";
-import { type Block, blocksOf, type Document, textNodes } from "./document-nodes.ts";
+import {
+  type Block,
+  blocksOf,
+  type Document,
+  MAX_DOCUMENT_BLOCKS,
+  textNodes,
+} from "./document-nodes.ts";
 import { isSafeHref, isStorableText } from "./inline-runs.ts";
 
 export type {
   Block,
   Blockquote,
+  Button,
   Column,
   Document,
   Heading,
+  HorizontalRule,
+  Image,
   List,
   ListItem,
   Mark,
   Paragraph,
   Section,
+  Space,
   TextNode,
 } from "./document-nodes.ts";
-export { findMainHeading, isEmptyBlock, isEmptySection } from "./document-nodes.ts";
+export {
+  findMainHeading,
+  isEmptyBlock,
+  isEmptySection,
+  isRenderedBlock,
+} from "./document-nodes.ts";
 
 /**
  * The stored shape of post and page content from `blocks_format` v4: one
@@ -28,11 +43,12 @@ export const BLOCKS_FORMAT_V4 = "v4";
 
 export const MAX_SECTIONS = 30;
 export const MAX_COLUMNS = 3;
-export const MAX_DOCUMENT_BLOCKS = 200;
+export { MAX_DOCUMENT_BLOCKS };
 export const MAX_BLOCK_TEXT_LENGTH = 20_000;
 export const MAX_BLOCK_TEXT_NODES = 2_000;
 export const MAX_LIST_ITEMS = 500;
 export const MAX_HREF_LENGTH = 2_048;
+export const MAX_BUTTON_LABEL_LENGTH = 80;
 
 const REFUSALS = {
   unreadable: "The editor sent content in a shape this version cannot read.",
@@ -52,6 +68,9 @@ const REFUSALS = {
     "A link address cannot be used. Use a web address, an email link or a page on this site.",
   longLink: "A link address can be at most 2,048 characters.",
   badText: "The text holds a character that cannot be saved.",
+  imageNeedsMedia: "An image needs a file from Media.",
+  buttonLabelLong: `A button's text can be at most ${MAX_BUTTON_LABEL_LENGTH} characters.`,
+  buttonStyle: "A button's style must be Filled or Outline.",
   badLevel: "A heading level must be from 1 to 6.",
   emptyList: "A list needs at least one item.",
   tooLongList: `A list can have at most ${MAX_LIST_ITEMS} items.`,
@@ -131,12 +150,40 @@ const blockquoteSchema = z.object({
   content: z.array(paragraphSchema).min(1, REFUSALS.unreadable),
 });
 
+/** Atoms hold no text. Keys outside the contract are dropped, `content` included. */
+const imageSchema = z.object({
+  type: z.literal("image"),
+  attrs: z.object({ mediaId: z.uuid(REFUSALS.imageNeedsMedia) }, REFUSALS.imageNeedsMedia),
+});
+
+const buttonSchema = z.object({
+  type: z.literal("button"),
+  attrs: z.object({
+    label: z
+      .string()
+      .max(MAX_BUTTON_LABEL_LENGTH, REFUSALS.buttonLabelLong)
+      .refine(isStorableText, REFUSALS.badText),
+    href: z
+      .string()
+      .max(MAX_HREF_LENGTH, REFUSALS.longLink)
+      .refine((href) => href === "" || isSafeHref(href), REFUSALS.badLink),
+    style: z.enum(["filled", "outline"], REFUSALS.buttonStyle).default("filled"),
+  }),
+});
+
+const horizontalRuleSchema = z.object({ type: z.literal("horizontalRule") });
+const spaceSchema = z.object({ type: z.literal("space") });
+
 const blockSchema = z.discriminatedUnion("type", [
   paragraphSchema,
   headingSchema,
   listSchema("bulletList"),
   listSchema("orderedList"),
   blockquoteSchema,
+  imageSchema,
+  buttonSchema,
+  horizontalRuleSchema,
+  spaceSchema,
 ]);
 
 const columnSchema = z.object({
@@ -176,6 +223,10 @@ const KNOWN_NODES = new Set([
   "orderedList",
   "listItem",
   "blockquote",
+  "image",
+  "button",
+  "horizontalRule",
+  "space",
   "text",
 ]);
 const KNOWN_MARKS = new Set(["bold", "italic", "link"]);

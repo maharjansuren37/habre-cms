@@ -118,7 +118,9 @@ not tidying; it is what keeps the open list true.
       the role/deactivate controls on your own account, plus the "Users" nav
       entry; from item 9, the settings screen's Home page select and its
       "Not published" hint; from item 14a1, the new editor's writing area,
-      format bar, link dialog, section chip and Add a section).
+      format bar, link dialog, section chip and Add a section; from item
+      14a2, the palette and its phone Add dialog, the settings panel for an
+      image, a button and a section, and the media picker in the editor).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -134,8 +136,8 @@ not tidying; it is what keeps the open list true.
       the home page, one post (including inline bold/italic/link formatting
       rendered as real elements), one page (item 6b, once built - same
       typography and block rendering as a post, minus the byline), the
-      header's navigation menu (item 7b), and the
-      404 page (item 4b). **Risk accepted by the owner, 2026-09-23: shipping
+      header's navigation menu (item 7b), the
+      404 page (item 4b), and a page with images and buttons (item 14a2). **Risk accepted by the owner, 2026-09-23: shipping
       items 5-8 to production without this; will do the accessibility pass
       after the MVP is live.** Blocks nothing now; `preflight` needs it before a
       real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
@@ -167,8 +169,8 @@ not tidying; it is what keeps the open list true.
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
       manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
       F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 138
-      passed, item 14a1). Nothing in `deploy` runs it. Blocks nothing now; needed before each
+      by `npm run test:e2e` on your machine with the real `.env` (expect 177
+      passed, item 14a2). Nothing in `deploy` runs it. Blocks nothing now; needed before each
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 

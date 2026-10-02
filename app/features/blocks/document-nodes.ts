@@ -5,6 +5,9 @@
  * `new Function` probe the public Content-Security-Policy reports.
  */
 
+/** The most blocks a document may hold; here, not in `document.ts`, so the editor can read it without Zod. */
+export const MAX_DOCUMENT_BLOCKS = 200;
+
 export type Mark =
   | { type: "bold" }
   | { type: "italic" }
@@ -15,7 +18,22 @@ export type Heading = { type: "heading"; attrs: { level: number }; content?: Tex
 export type ListItem = { type: "listItem"; content: [Paragraph] };
 export type List = { type: "bulletList" | "orderedList"; content: ListItem[] };
 export type Blockquote = { type: "blockquote"; content: Paragraph[] };
-export type Block = Paragraph | Heading | List | Blockquote;
+export type Image = { type: "image"; attrs: { mediaId: string } };
+export type Button = {
+  type: "button";
+  attrs: { label: string; href: string; style: "filled" | "outline" };
+};
+export type HorizontalRule = { type: "horizontalRule" };
+export type Space = { type: "space" };
+export type Block =
+  | Paragraph
+  | Heading
+  | List
+  | Blockquote
+  | Image
+  | Button
+  | HorizontalRule
+  | Space;
 export type Column = { type: "column"; content: Block[] };
 export type Section = {
   type: "section";
@@ -24,9 +42,29 @@ export type Section = {
 };
 export type Document = { type: "doc"; content: Section[] };
 
+/** What the renderer needs of one media row, resolved at render time and never
+ *  stored in the document (D55): where the file is, its alt text and its size. */
+export type DocumentMedia = { url: string; altText: string; width: number; height: number };
+
+/** A page a button can go to, as the editor's "Goes to" list needs it: no body. */
+export type LinkablePage = {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+};
+
 /** Every text node a block or list item holds, in reading order. */
 export function textNodes(node: Block | ListItem): TextNode[] {
   if (node.type === "paragraph" || node.type === "heading") return node.content ?? [];
+  if (
+    node.type === "image" ||
+    node.type === "button" ||
+    node.type === "horizontalRule" ||
+    node.type === "space"
+  ) {
+    return [];
+  }
   return (node.content as (Paragraph | ListItem)[]).flatMap((child) => textNodes(child));
 }
 
@@ -51,4 +89,27 @@ export function isEmptyBlock(block: Block): boolean {
 /** Whether every block in every column of a section is empty. */
 export function isEmptySection(section: Section): boolean {
   return section.content.every((column) => column.content.every(isEmptyBlock));
+}
+
+/**
+ * Whether a block draws anything on the public site: a space never does, an
+ * image only when its media exists, a button only with both text and an
+ * address, a line always, and a text block when it has visible text.
+ */
+export function isRenderedBlock(
+  block: Block,
+  mediaById: Readonly<Record<string, unknown>>,
+): boolean {
+  switch (block.type) {
+    case "space":
+      return false;
+    case "image":
+      return Object.hasOwn(mediaById, block.attrs.mediaId);
+    case "button":
+      return block.attrs.label.trim() !== "" && block.attrs.href !== "";
+    case "horizontalRule":
+      return true;
+    default:
+      return !isEmptyBlock(block);
+  }
 }

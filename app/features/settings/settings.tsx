@@ -8,8 +8,11 @@ import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
+import {
+  openMediaPickerDialog,
+  type PickedMedia,
+} from "#app/features/media/media-picker-dialog.client.ts";
 import type { Route } from "./+types/settings";
-import { openLogoPickerDialog, type PickedLogo } from "./logo-picker.client.ts";
 import {
   applyNavIntent,
   draftRowsToNavItems,
@@ -187,7 +190,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
     throw new Error("Settings: the admin-shell layout's data is missing - check its route id.");
   }
   const { settings } = layoutData;
-  const [logo, setLogo] = useState<PickedLogo | null>(
+  const [logo, setLogo] = useState<Pick<PickedMedia, "id" | "url" | "filename"> | null>(
     settings.logoMediaId && settings.logoUrl
       ? { id: settings.logoMediaId, url: settings.logoUrl, filename: "" }
       : null,
@@ -209,7 +212,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
 
-  // The picker's dialog closes before it hands back a pick (logo-picker.client.ts),
+  // The picker's dialog closes before it hands back a pick (media-picker-dialog.client.ts),
   // which restores focus to whatever opened it - but that element is the exact
   // one this re-render is about to remove (placeholder <-> preview swap the
   // button's own root element), so the browser's restored focus lands on a node
@@ -270,7 +273,11 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             <div className={styles.logoPreview}>
               <img src={logo.url} alt="" className={styles.logoImage} />
               <div className={styles.logoActions}>
-                <Button type="button" variant="quiet" onClick={() => openLogoPickerDialog(setLogo)}>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  onClick={() => openMediaPickerDialog("Choose a logo", setLogo)}
+                >
                   Change logo
                 </Button>
                 <Button type="button" variant="quiet" onClick={() => setLogo(null)}>
@@ -279,7 +286,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               </div>
             </div>
           ) : (
-            <Button type="button" onClick={() => openLogoPickerDialog(setLogo)}>
+            <Button type="button" onClick={() => openMediaPickerDialog("Choose a logo", setLogo)}>
               Choose logo
             </Button>
           )}

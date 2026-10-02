@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSubmit } from "react-router";
 import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
+import type { DocumentMedia, LinkablePage } from "#app/features/blocks/document-nodes.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { isReadableDocumentContent } from "./editor-content.ts";
@@ -34,6 +35,10 @@ type EntryFormProps = {
   slug: string;
   /** The post or page's one document (item 14a1); a new entry's is empty. */
   document: Document;
+  /** What the document's images need to draw (item 14a2): empty for a new entry. */
+  mediaById: Record<string, DocumentMedia>;
+  /** The pages a button can go to (item 14a2). */
+  pages: LinkablePage[];
   status: "draft" | "published";
   version: number;
   problem: SaveProblem;
@@ -44,6 +49,8 @@ export function EntryForm({
   title,
   slug,
   document: initialDocument,
+  mediaById,
+  pages,
   status,
   version,
   problem,
@@ -63,6 +70,9 @@ export function EntryForm({
   const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws its format bar: under the top bar.
   const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
+  const [paletteSlot, setPaletteSlot] = useState<HTMLDivElement | null>(null);
+  const [addSlot, setAddSlot] = useState<HTMLDivElement | null>(null);
+  const [settingsSlot, setSettingsSlot] = useState<HTMLDivElement | null>(null);
 
   // The editor reaches for the DOM as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
@@ -137,6 +147,7 @@ export function EntryForm({
             </span>
           </div>
           <div className={styles.topbarActions}>
+            <div ref={setAddSlot} className={styles.slot} />
             {/* Save appears only once the editor has mounted: a native submit
               carries no blocks field, which reads as an empty post and wipes
               the body (F-34). Publish/Unpublish wait on the post existing too
@@ -195,37 +206,47 @@ export function EntryForm({
 
       <input type="hidden" name="version" value={version} />
 
-      <div className={styles.canvas}>
-        <label className={styles.titleLabel} htmlFor="entry-title">
-          Title
-        </label>
-        <input
-          id="entry-title"
-          className={styles.title}
-          name="title"
-          defaultValue={title}
-          placeholder={copy.titlePlaceholder}
-          autoComplete="off"
-          onChange={() => setUnsavedChanges(true)}
-        />
-        <p className={styles.address}>
-          Web address:{" "}
-          <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
-        </p>
-
-        {isEditorReady ? (
-          <DocumentEditor
-            initialDocument={initialDocument}
-            entryType={entryType}
-            contentRef={readEditor}
+      <div className={styles.body}>
+        <div ref={setPaletteSlot} className={styles.paletteSlot} />
+        <div className={styles.canvas}>
+          <label className={styles.titleLabel} htmlFor="entry-title">
+            Title
+          </label>
+          <input
+            id="entry-title"
+            className={styles.title}
+            name="title"
+            defaultValue={title}
+            placeholder={copy.titlePlaceholder}
+            autoComplete="off"
             onChange={() => setUnsavedChanges(true)}
-            barSlot={formatBarSlot}
           />
-        ) : (
-          <p className={styles.needsJs}>
-            The editor needs JavaScript. Turn it on and reload to write your {entryType}.
+          <p className={styles.address}>
+            Web address:{" "}
+            <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
           </p>
-        )}
+
+          {isEditorReady ? (
+            <DocumentEditor
+              initialDocument={initialDocument}
+              mediaById={mediaById}
+              pages={pages}
+              entryType={entryType}
+              contentRef={readEditor}
+              onChange={() => setUnsavedChanges(true)}
+              barSlot={formatBarSlot}
+              paletteSlot={paletteSlot}
+              addSlot={addSlot}
+              settingsSlot={settingsSlot}
+            />
+          ) : (
+            <p className={styles.needsJs}>
+              The editor needs JavaScript. Turn it on and reload to write your {entryType}.
+            </p>
+          )}
+        </div>
+        {/* After the canvas, so the panel follows the writing area in tab order. */}
+        <div ref={setSettingsSlot} className={styles.settingsSlot} />
       </div>
     </Form>
   );

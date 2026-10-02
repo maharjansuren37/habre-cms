@@ -14,7 +14,7 @@ File: app/lib/security-log.server.ts:16; app/features/auth/require-role.server.t
 ### F-83 [P3] unverified - Item 6a's pages screens reproduce three pre-existing unverified/open posts accessibility findings
 File: app/features/content/page-list.tsx:69-98 (filter tabs, search form); app/features/admin-shell/layout.tsx:39-61 (nav)
 
-### F-79 [P3] deferred - A captioned image's alt text is announced twice in a row by a screen reader
+### F-79 [P3] closed - A captioned image's alt text is announced twice in a row by a screen reader
 File: app/features/blocks/render.tsx:38-52 (the `image` case)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: a captioned image is not announced twice (owner, 2026-10-02)
 
@@ -192,3 +192,24 @@ File: app/features/blocks/document-editor.client.tsx:212-235; app/features/conte
 
 ### F-165 [P3] open - The Text style select's label is visually hidden
 File: app/features/blocks/document-editor.client.tsx:520-522
+
+### F-171 [P3] open - "Enter did not submit the entry form" cannot fail
+File: e2e/document-editor.spec.ts:1544
+
+### F-172 [P3] open - Enter in Button text saves the page, and the panel's no-`name` comment is wrong
+File: app/features/blocks/settings-panel.client.tsx:193, :263, :327
+
+### F-173 [P3] open - The edit loaders run two independent queries in turn
+File: app/features/content/page-edit.tsx:43-44; post-edit.tsx:40-41; page-new.tsx; post-new.tsx
+
+### F-174 [P3] unverified - A malformed stored `mediaId` would answer 500 on public and edit routes
+File: app/features/public-site/document-media-ids.ts:6
+
+### F-175 [P3] open - Stale comment and R2 test counts
+File: app/features/media/media-picker-dialog.module.css:1-2; blueprint/context/needs-you.md:170; AGENTS.md (ci row)
+
+### F-178 [P3] open - After the gear, clicking the already-selected image keeps the section panel
+File: app/features/blocks/document-editor.client.tsx:698-707
+
+### F-180 [P3] open - Cut then paste of an image deletes it and pastes nothing
+File: app/features/blocks/document-editor.client.tsx (`ImageNode`, no `parseHTML` by design)

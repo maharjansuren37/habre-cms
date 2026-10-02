@@ -1,26 +1,42 @@
-import { mergeAttributes, Node } from "@tiptap/core";
+import { mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
-import { Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
-import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import { NodeSelection, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
+  createContext,
   type FormEvent,
   type RefObject,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
+import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
-import type { Document } from "./document-nodes.ts";
-import { isSafeHref } from "./inline-runs.ts";
+import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
+import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
+import { AddButton, AddDialog, Palette } from "./palette.client.tsx";
+import {
+  ButtonSettings,
+  ImageSettings,
+  SectionSettings,
+  SettingsPanel,
+} from "./settings-panel.client.tsx";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
 const MAX_HREF_LENGTH = 2_048;
@@ -107,6 +123,106 @@ const BlockquoteNode = Node.create({
   renderHTML: () => ["blockquote", 0],
 });
 
+/* ---- Image, button, line and space (item 14a2, step 3) ----------------------
+ * Four blocks that hold no text: atoms, selected by a click and removed with
+ * Backspace or Delete. They are drawn with the public site's own classes, so
+ * the canvas shows what publishes. None has a parse rule, so pasted HTML never
+ * creates one (an `<img>` pasted from a page is dropped, as in 14a1), and none
+ * has an input rule (`---` typed in text stays text). Nothing interactive sits
+ * inside the writing area (D169): a button is drawn as a `span`, never a link,
+ * and its controls come with the settings panel. */
+
+/** The media each image block draws, by id. Held in state by `DocumentEditor`
+ *  and read through context, so it never reaches the editor's options (F-158). */
+const MediaContext = createContext<Record<string, DocumentMedia>>({});
+
+function ImageView({ node }: NodeViewProps) {
+  const mediaById = useContext(MediaContext);
+  const mediaId = String(node.attrs.mediaId ?? "");
+  const media = Object.hasOwn(mediaById, mediaId) ? mediaById[mediaId] : undefined;
+  return (
+    <NodeViewWrapper>
+      {media ? (
+        <img
+          className={content.image}
+          src={media.url}
+          alt={media.altText}
+          width={media.width}
+          height={media.height}
+          draggable={false}
+        />
+      ) : (
+        <div className={styles.photo}>
+          {mediaId === "" ? "No image chosen" : "This image is no longer available."}
+        </div>
+      )}
+    </NodeViewWrapper>
+  );
+}
+
+const ImageNode = Node.create({
+  name: "image",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return { mediaId: { default: "" } };
+  },
+  // For the clipboard only: a copy or cut serialises the node, and with no
+  // `toDOM` ProseMirror throws. No `parseHTML`, so a paste still drops images (F-167).
+  renderHTML: () => ["div", { "data-node": "image" }],
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
+});
+
+const ButtonNode = Node.create({
+  name: "button",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return {
+      label: { default: "", rendered: false },
+      href: { default: "", rendered: false },
+      style: { default: "filled", rendered: false },
+    };
+  },
+  renderHTML: ({ node }) => {
+    const label = String(node.attrs.label ?? "");
+    const classes = [
+      content.button,
+      node.attrs.style === "outline" ? content.outline : content.filled,
+    ];
+    if (label === "") classes.push(styles.buttonEmpty);
+    return ["span", { class: classes.join(" "), "data-node": "button" }, label || "Button text"];
+  },
+});
+
+const LineNode = Node.create({
+  name: "horizontalRule",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  renderHTML: () => ["hr", { class: content.line }],
+});
+
+const SpaceNode = Node.create({
+  name: "space",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  // Drawn with hatching so an author can see and select the gap.
+  renderHTML: () => [
+    "div",
+    { class: [content.space, styles.spacer].join(" "), "data-node": "space" },
+  ],
+});
+
 const TEXT_STYLES = [
   { value: "paragraph", label: "Text" },
   { value: "2", label: "Heading" },
@@ -122,6 +238,10 @@ function extensionsFor(placeholder: string) {
     ColumnNode,
     ListItemNode,
     BlockquoteNode,
+    ImageNode,
+    ButtonNode,
+    LineNode,
+    SpaceNode,
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -192,6 +312,11 @@ export function DocumentEditor({
   contentRef,
   onChange,
   barSlot,
+  paletteSlot,
+  addSlot,
+  settingsSlot,
+  mediaById,
+  pages,
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
@@ -199,8 +324,21 @@ export function DocumentEditor({
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
   barSlot: HTMLElement | null;
+  /** Where the palette is drawn (before the canvas) and where the phone's Add button goes. */
+  paletteSlot: HTMLElement | null;
+  addSlot: HTMLElement | null;
+  /** Where the settings panel is drawn: after the canvas, so it follows the writing area in tab order. */
+  settingsSlot: HTMLElement | null;
+  /** What the document's images need to draw, by media id. */
+  mediaById: Record<string, DocumentMedia>;
+  /** The pages a button can go to. Read by the settings panel only - never by the editor's options (F-158). */
+  pages: LinkablePage[];
 }) {
   const { extensions, editorProps } = OPTIONS[entryType];
+  // In state so the media a person picks in the settings panel can be added.
+  const [media, setMedia] = useState(mediaById);
+  // The section whose settings were asked for with the chip's gear, or none.
+  const [settingsSection, setSettingsSection] = useState<number | null>(null);
   const latestOnChange = useRef(onChange);
   useEffect(() => {
     latestOnChange.current = onChange;
@@ -220,8 +358,10 @@ export function DocumentEditor({
     extensions,
     content: initialDocument,
     enableContentCheck: true,
-    onContentError: () => {
-      unreadable.current = true;
+    // Only while the stored document is being loaded: a later insert that
+    // fails the check must not lock Save over a document that did load (F-154).
+    onContentError: ({ editor: current }) => {
+      if (!current.isInitialized) unreadable.current = true;
     },
     editorProps,
     onUpdate: () => latestOnChange.current(),
@@ -239,17 +379,46 @@ export function DocumentEditor({
   }, [editor, contentRef]);
 
   const canvas = useRef<HTMLDivElement>(null);
+  const [isAddOpen, setAddOpen] = useState(false);
+
+  /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
+  function openSectionSettings(index: number) {
+    flushSync(() => setSettingsSection(index));
+    settingsSlot?.querySelector("select")?.focus();
+  }
 
   return (
     <>
+      {paletteSlot && editor ? createPortal(<Palette editor={editor} />, paletteSlot) : null}
+      {addSlot && editor
+        ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
+        : null}
+      {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
       {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
-        <EditorContent editor={editor} />
+        <MediaContext.Provider value={media}>
+          <EditorContent editor={editor} />
+        </MediaContext.Provider>
         {/* After the writing area, so Tab reaches it next; outside it, so no
             control sits inside the textbox (D169). */}
-        {editor ? <SectionChip editor={editor} canvas={canvas} /> : null}
+        {editor ? (
+          <SectionChip editor={editor} canvas={canvas} onOpenSettings={openSectionSettings} />
+        ) : null}
       </div>
       {editor ? <AddSection editor={editor} /> : null}
+      {settingsSlot && editor
+        ? createPortal(
+            <SettingsHost
+              editor={editor}
+              section={settingsSection}
+              setSection={setSettingsSection}
+              setMedia={setMedia}
+              mediaById={media}
+              pages={pages}
+            />,
+            settingsSlot,
+          )
+        : null}
     </>
   );
 }
@@ -365,24 +534,25 @@ function removeSection(editor: Editor, index: number) {
 /**
  * The section chip (design.md, *Section controls*): on the section holding the
  * cursor, drawn outside the writing area and placed over its section by this
- * code. 14a1 offers Columns and Remove section; Move section up and down and
- * Section settings come with 14a3 and the settings panel.
+ * code. It offers Section settings (Columns live in the panel) and Remove
+ * section; Move section up and down come with 14a3.
  */
 function SectionChip({
   editor,
   canvas,
+  onOpenSettings,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
+  onOpenSettings: (index: number) => void;
 }) {
   const chip = useRef<HTMLFieldSetElement>(null);
-  const columnsId = useId();
-  const { index, count, columns } = useEditorState({
+  const { index, count } = useEditorState({
     editor,
     selector: ({ editor: current }) => {
       const { doc, selection } = current.state;
       const index = Math.min(selection.$head.index(0), doc.childCount - 1);
-      return { index, count: doc.childCount, columns: doc.child(index).childCount };
+      return { index, count: doc.childCount };
     },
   });
 
@@ -412,19 +582,27 @@ function SectionChip({
   return (
     <fieldset ref={chip} className={styles.chip}>
       <legend className={styles.chipLegend}>{label}</legend>
-      <label className={styles.chipField} htmlFor={columnsId}>
-        Columns
-      </label>
-      <select
-        id={columnsId}
-        className={styles.chipSelect}
-        value={columns}
-        onChange={(event) => setColumns(editor, index, Number(event.currentTarget.value))}
+      <button
+        type="button"
+        className={styles.chipButton}
+        aria-label="Section settings"
+        title="Section settings"
+        onClick={() => {
+          onOpenSettings(index);
+        }}
       >
-        <option value={1}>1</option>
-        <option value={2}>2</option>
-        <option value={3}>3</option>
-      </select>
+        <svg
+          className={styles.chipIcon}
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+        </svg>
+      </button>
       {count > 1 ? (
         <button
           type="button"
@@ -447,6 +625,197 @@ function SectionChip({
       ) : null}
     </fieldset>
   );
+}
+
+/**
+ * Which block the settings panel is about, read from the selection: an image
+ * that is the selected block, or - after the chip's gear - the section holding
+ * the cursor. Text, a line and a space have none.
+ */
+const NO_BUTTON = { label: "", href: "", style: "filled" } as const;
+
+type SettingsTarget = {
+  kind: "text" | "image" | "button" | "atom";
+  /** Where the selected atom starts; -1 for text. */
+  pos: number;
+  mediaId: string;
+  /** A selected button's attrs. */
+  button: { label: string; href: string; style: "filled" | "outline" };
+  /** The section holding the selection, and its column count. */
+  section: number;
+  columns: number;
+};
+
+function SettingsHost({
+  editor,
+  section,
+  setSection,
+  setMedia,
+  mediaById,
+  pages,
+}: {
+  editor: Editor;
+  /** The section whose panel the gear asked for. */
+  section: number | null;
+  setSection: (update: (current: number | null) => number | null) => void;
+  setMedia: (
+    update: (current: Record<string, DocumentMedia>) => Record<string, DocumentMedia>,
+  ) => void;
+  mediaById: Record<string, DocumentMedia>;
+  pages: LinkablePage[];
+}) {
+  const target = useEditorState({
+    editor,
+    selector: ({ editor: current }): SettingsTarget => {
+      const { doc, selection } = current.state;
+      const index = Math.min(selection.$head.index(0), doc.childCount - 1);
+      const columns = doc.child(index).childCount;
+      if (selection instanceof NodeSelection && selection.node.isAtom) {
+        const { node } = selection;
+        const kind =
+          node.type.name === "image" ? "image" : node.type.name === "button" ? "button" : "atom";
+        return {
+          kind,
+          pos: selection.from,
+          mediaId: kind === "image" ? String(node.attrs.mediaId ?? "") : "",
+          button: {
+            label: kind === "button" ? String(node.attrs.label ?? "") : "",
+            href: kind === "button" ? String(node.attrs.href ?? "") : "",
+            style: node.attrs.style === "outline" ? "outline" : "filled",
+          },
+          section: index,
+          columns,
+        };
+      }
+      return { kind: "text", pos: -1, mediaId: "", button: NO_BUTTON, section: index, columns };
+    },
+  });
+  const [isAtomClosed, setAtomClosed] = useState(false);
+  // Set when the panel's own Columns change moved the selected block: the
+  // effect below must not read that as a new selection (F-177).
+  const ownColumnsChange = useRef(false);
+
+  // A new selection ends whatever a close or the gear decided about the last
+  // one: the image panel comes back for the next image, and the section panel
+  // stays until the selection moves to another section or onto another image
+  // or button. The gear does not move the selection, so pressing it with an
+  // atom selected leaves this effect idle and the section panel shows (F-166).
+  // The panel's own Columns change is not a new selection (F-177).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `target.pos` is a trigger - selecting another image reopens the panel.
+  useEffect(() => {
+    if (ownColumnsChange.current) {
+      ownColumnsChange.current = false;
+      return;
+    }
+    setAtomClosed(false);
+    setSection((current) =>
+      current !== null && (target.kind !== "text" || target.section !== current) ? null : current,
+    );
+  }, [target.kind, target.pos, target.section, setSection]);
+
+  // The flag marks one commit only. A moved text cursor changes none of the
+  // effect's deps (`target.pos` is -1 for text), so the effect above may not
+  // run; this one runs after it on every commit and clears what is left, so the
+  // flag never swallows a later, genuine selection change (F-179).
+  useEffect(() => {
+    ownColumnsChange.current = false;
+  });
+
+  const isSection = section !== null && section === target.section;
+  const isImage = target.kind === "image" && !isAtomClosed && !isSection;
+  const isButton = target.kind === "button" && !isAtomClosed && !isSection;
+
+  function close() {
+    if (isSection) {
+      setSection(() => null);
+      // Over a selected image or button the section panel must leave no panel behind (F-176).
+      setAtomClosed(true);
+    } else if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
+    editor.view.focus();
+  }
+
+  /** The pick joins the media map and the image takes its id in ONE transaction, so one Undo restores the old id. */
+  function choose() {
+    const { pos } = target;
+    openMediaPickerDialog("Choose an image", (pick) => {
+      setMedia((current) => ({
+        ...current,
+        [pick.id]: {
+          url: pick.url,
+          altText: pick.altText,
+          width: pick.width,
+          height: pick.height,
+        },
+      }));
+      const node = editor.state.doc.nodeAt(pos);
+      if (node?.type.name !== "image") return;
+      const tr = closeHistory(editor.state.tr).setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        mediaId: pick.id,
+      });
+      tr.setSelection(NodeSelection.create(tr.doc, pos));
+      editor.view.dispatch(tr);
+    });
+  }
+
+  if (isImage) {
+    const media = Object.hasOwn(mediaById, target.mediaId) ? mediaById[target.mediaId] : undefined;
+    return (
+      <SettingsPanel
+        key="image"
+        title="Image"
+        onClose={close}
+        keepVisible={() => editor.view.nodeDOM(target.pos) as Element | null}
+      >
+        <ImageSettings mediaId={target.mediaId} media={media} onChoose={choose} />
+      </SettingsPanel>
+    );
+  }
+  if (isButton) {
+    /** One transaction per change; ProseMirror's history groups rapid ones. */
+    const change = (attrs: Partial<SettingsTarget["button"]>) => {
+      const node = editor.state.doc.nodeAt(target.pos);
+      if (node?.type.name !== "button") return;
+      const tr = editor.state.tr.setNodeMarkup(target.pos, undefined, { ...node.attrs, ...attrs });
+      tr.setSelection(NodeSelection.create(tr.doc, target.pos));
+      editor.view.dispatch(tr);
+    };
+    return (
+      <SettingsPanel
+        key={`button-${target.pos}`}
+        title="Button"
+        onClose={close}
+        keepVisible={() => editor.view.nodeDOM(target.pos) as Element | null}
+      >
+        <ButtonSettings
+          label={target.button.label}
+          href={target.button.href}
+          style={target.button.style}
+          pages={pages}
+          onLabel={(label) => change({ label })}
+          onHref={(href) => change({ href })}
+          onStyle={(style) => change({ style })}
+        />
+      </SettingsPanel>
+    );
+  }
+  if (isSection) {
+    return (
+      <SettingsPanel key="section" title={`Section ${target.section + 1}`} onClose={close}>
+        <SectionSettings
+          columns={target.columns}
+          onColumns={(columns) => {
+            const before = editor.state.selection.from;
+            setColumns(editor, target.section, columns);
+            // Only a moved selection reaches the reset effect, which then skips once; the
+            // trailing effect clears the flag if that effect did not run (F-179).
+            ownColumnsChange.current = editor.state.selection.from !== before;
+          }}
+        />
+      </SettingsPanel>
+    );
+  }
+  return null;
 }
 
 /** Add a section, below the canvas: one section of one empty column, with the cursor in it. */
@@ -642,12 +1011,6 @@ function Tool({
     </Button>
   );
 }
-
-const LINK_ERRORS = {
-  unsafe:
-    "This address cannot be used. Use a web address (https://…), an email link (mailto:…) or a page on this site (/…).",
-  tooLong: "This address is too long. A link address can be at most 2,048 characters.",
-} as const;
 
 /**
  * The link dialog: the kit's native modal `<dialog>` with one field. The

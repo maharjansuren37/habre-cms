@@ -70,6 +70,51 @@
   font-size: var(--text-sm);
 }
 
+/* The palette (before the canvas, from 1024px) and the canvas side by side. The
+   canvas keeps its centred column in the space left of the palette. */
+.slot {
+  display: contents;
+}
+
+.body {
+  display: block;
+}
+
+.paletteSlot,
+.settingsSlot {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .body {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+    padding-left: var(--space-4);
+  }
+
+  .paletteSlot,
+  .settingsSlot {
+    display: block;
+    position: sticky;
+    top: 7rem;
+    margin-top: var(--space-5);
+  }
+
+  /* The settings panel's column exists only while the panel is open, so the
+     canvas keeps its place when nothing is selected. Below 1024px the panel
+     is a bottom sheet and needs no column. */
+  .settingsSlot:empty {
+    display: none;
+  }
+
+  .body:has(.settingsSlot:not(:empty)) {
+    grid-template-columns: 15rem minmax(0, 1fr) 17rem;
+    padding-right: var(--space-4);
+  }
+}
+
 /* The writing column gives the document the public page's width (item 14a1,
    step 6b): the site canvas inside it pads by --space-5 as the public article
    does, so its content box is the same --size-measure, resolved at the same
@@ -77,9 +122,11 @@
    page-body.module.css). Columns then stack or sit side by side in the
    editor exactly as they publish (design.md, *Page structure*). */
 .canvas {
+  width: 100%;
   max-width: calc(var(--size-measure) + var(--space-5) * 2 + var(--space-4) * 2);
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-7);
+  /* The settings sheet, on a phone, sits over the foot of the page: room for it. */
+  padding: var(--space-5) var(--space-4) calc(var(--space-7) + var(--settings-sheet, 0px));
   font-size: var(--text-lg);
 }
 

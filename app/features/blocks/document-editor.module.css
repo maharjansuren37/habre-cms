@@ -148,26 +148,6 @@
   padding: 0;
 }
 
-.chipField {
-  margin-left: var(--space-2);
-}
-
-.chipSelect {
-  min-height: var(--size-control-sm);
-  padding: 0 var(--space-2);
-  border: var(--border-width) solid currentColor;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-}
-
-/* The open list is drawn by the browser on its own background. */
-.chipSelect option {
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
 .chipButton {
   display: grid;
   place-items: center;
@@ -181,7 +161,6 @@
   cursor: pointer;
 }
 
-.chipSelect:focus-visible,
 .chipButton:focus-visible {
   outline: var(--focus-width) solid var(--color-on-selection);
   outline-offset: 1px;
@@ -328,4 +307,37 @@
 
 .removeLink {
   margin-right: auto;
+}
+
+/* ---- Image, button, line and space (item 14a2) ------------------------------
+   The blocks take content.module.css; only what the canvas adds is here. */
+
+/* Stand-in for an image with no file (prototypes/components.css `.photo`). */
+.photo {
+  display: grid;
+  place-items: center;
+  min-height: 10rem;
+  aspect-ratio: 4 / 3;
+  padding: var(--space-4);
+  text-align: center;
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+/* A space is drawn with hatching so it can be seen and selected. */
+.spacer {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--color-border) 6px 7px);
+}
+
+/* A button with no text yet reads "Button text", muted. */
+.buttonEmpty {
+  opacity: 0.6;
+}
+
+/* The selected atom: a rust ring (design.md, Editor decisions). */
+.prose :global(.ProseMirror-selectednode) {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 2px;
 }

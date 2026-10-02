@@ -57,3 +57,27 @@ export function inSection(...blocks: Block[]): Document {
 export function listItem(text: TextNode[]) {
   return { type: "listItem", content: [{ type: "paragraph", content: text }] };
 }
+
+/** Test-only: an image block pointing at a media row. */
+export function imageBlock(mediaId: string): Block {
+  return { type: "image", attrs: { mediaId } };
+}
+
+/** Test-only: a button block, filled unless said otherwise (as `parseDocument` stores it). */
+export function buttonBlock(
+  label: string,
+  href: string,
+  style: "filled" | "outline" = "filled",
+): Block {
+  return { type: "button", attrs: { label, href, style } };
+}
+
+/** Test-only: the Line block. */
+export function lineBlock(): Block {
+  return { type: "horizontalRule" };
+}
+
+/** Test-only: the Space block. */
+export function spaceBlock(): Block {
+  return { type: "space" };
+}
