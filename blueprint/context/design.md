@@ -274,7 +274,10 @@ ghost, icon, sm, lg), field, input, select, textarea, choice and switch,
 alert, badge, card, table, list, menu, dialog, tabs, topbar, nav, sidebar,
 mobile menu, site footer, empty state, error page, skeleton, spinner, toast,
 tooltip, avatar, breadcrumbs, pagination, skip link, visually hidden. Nothing in
-the kit's own rules was changed.
+the kit's own rules was changed, **except the current nav entry** (item 13b,
+F-143): it is also semibold with a 3px `--color-primary` bar on its start edge,
+because the rust and the muted grey are ~1.03:1 apart in dark mode and colour
+alone did not show which page was current (WCAG 1.4.1).
 
 **Added** (the "Habre additions" block at the end of `components.css`):
 

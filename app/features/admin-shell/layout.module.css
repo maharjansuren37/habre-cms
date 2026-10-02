@@ -71,10 +71,14 @@
 }
 
 /* NavLink sets aria-current on the active route - the mark is drawn from the
- * same attribute screen readers announce, so the two cannot disagree. */
+ * same attribute screen readers announce, so the two cannot disagree. Weight
+ * and a start bar, not colour alone: the rust and the muted grey are close in
+ * lightness, ~1.03:1 in dark mode (F-143, WCAG 1.4.1). */
 .nav a[aria-current="page"] {
   background: var(--color-primary-subtle);
+  box-shadow: inset 3px 0 var(--color-primary);
   color: var(--color-primary);
+  font-weight: var(--weight-semibold);
 }
 
 .nav svg {

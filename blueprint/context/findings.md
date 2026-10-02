@@ -49,7 +49,7 @@ File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no re
 ### F-131 [P2] fixed - Entry-point docs say nothing merged is undeployed and that item 12 is next
 File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md
 
-### F-143 [P2] open - The current admin nav entry is marked by hue alone
+### F-143 [P2] closed - The current admin nav entry is marked by hue alone
 File: app/features/admin-shell/layout.module.css:56-78
 
 ### F-144 [P3] open - The left edge of Log out's focus ring is clipped on wide screens

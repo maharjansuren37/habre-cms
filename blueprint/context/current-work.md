@@ -166,6 +166,8 @@ is themed once, not twice.
       new specs), and `npm run test:e2e` with `E2E_SKIP_R2=1` passes as CI
       runs it.
 
+- [x] Repair F-143 - The current admin nav entry is marked by hue alone
+
 ## Files and areas
 
 - `app/app.css` - tokens, `@font-face`, the site scope (steps 1-3).

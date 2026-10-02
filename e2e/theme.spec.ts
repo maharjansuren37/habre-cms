@@ -191,6 +191,17 @@ test.describe("the admin shell", () => {
     }
   });
 
+  test("the current admin nav entry is marked by weight, not colour alone", async ({ page }) => {
+    // F-143: active and inactive text differ by about 1.03:1 in dark mode, so
+    // the hue alone does not show which page this is.
+    await logIn(page, admin);
+    const nav = page.getByRole("navigation", { name: "Admin" });
+    const current = nav.locator('a[aria-current="page"]');
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveCSS("font-weight", "600");
+    await expect(nav.getByRole("link", { name: "Media" })).toHaveCSS("font-weight", "500");
+  });
+
   test("keyboard focus on a nav link and on a button shows a 2px solid ring", async ({ page }) => {
     await logIn(page, admin);
     await tabTo(page, "Media");
