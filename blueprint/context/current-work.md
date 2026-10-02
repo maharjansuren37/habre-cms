@@ -2,8 +2,8 @@
 
 **From build plan:** item 13b
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-02, 0ca7d8158192, 10 of 10 steps' done-whens proven (browser tests on the production build: 174 passed with real R2, 147 passed + 27 skipped as CI; screenshots at 390/1280, light/dark, opened and checked)
+**Reviewed:** 2026-10-02, 0ca7d8158192, current (22b623a..HEAD), every lens via the independent `reviewer` agent - 0 blocking (F-143 P2, F-144..F-148 P3 open; F-149..F-151 unverified)
 
 ## Goal
 
