@@ -18,7 +18,9 @@ export async function loader({ params }: Route.LoaderArgs) {
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
   const mediaById = await resolvePageMedia(page.sections);
-  return { page, mediaById };
+  // The view never reads these, so they stay off the wire (F-108).
+  const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
+  return { page: publicPage, mediaById };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {

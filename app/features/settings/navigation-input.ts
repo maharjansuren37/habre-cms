@@ -41,3 +41,18 @@ export const navItemSchema = z.union([pageItemSchema, urlItemSchema]);
 export const navigationSchema = z.array(navItemSchema).max(NAV_MAX_ITEMS, {
   message: `A menu can have up to ${NAV_MAX_ITEMS} items.`,
 });
+
+/**
+ * Reads the stored `navigation` column back. A malformed value (a writer bug,
+ * a manual edit) reads as an empty menu and logs once, rather than throwing:
+ * the settings screen is the one place that can repair it (F-96, D61).
+ */
+export function parseStoredNavigation(value: unknown): NavItem[] {
+  const result = navigationSchema.safeParse(value);
+  if (result.success) return result.data;
+  console.error(
+    "site_settings.navigation is malformed and reads as an empty menu:",
+    result.error.issues[0]?.message,
+  );
+  return [];
+}

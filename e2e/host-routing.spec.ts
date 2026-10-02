@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { HOST_SPLIT_PORT as PORT } from "./helpers/ports.ts";
 import { createAdmin, deleteTestUser } from "./helpers/users.ts";
 
 // Runs against the third web server (playwright.config.ts), started with
@@ -8,7 +9,6 @@ import { createAdmin, deleteTestUser } from "./helpers/users.ts";
 // redirect and refusal decisions, not anything rendered. Logging in is the
 // exception, because only a browser makes the client-side `.data` requests
 // that reach host routing with a path the framework has not cleaned up.
-const PORT = 3102;
 const PUBLIC = `http://127.0.0.1:${PORT}`;
 const ADMIN = `http://localhost:${PORT}`;
 

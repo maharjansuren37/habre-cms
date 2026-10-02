@@ -200,3 +200,38 @@ test("with a home page set, a post's All posts link still leads to the post list
   // Leave `/` as every other spec expects it; afterEach is only the backstop.
   await resetSiteSettings();
 });
+
+test("a save with no homePageId is refused with 400 and changes nothing (F-107)", async ({
+  page,
+}) => {
+  await logIn(page, admin);
+  await page.goto("/admin/settings");
+  await page.getByLabel("Home page").selectOption({ label: pageTitle });
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Settings updated.")).toBeVisible();
+  const titleBefore = await storedSiteTitle();
+
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post(`${origin}/admin/settings`, {
+    headers: { Origin: origin },
+    form: { siteTitle: "Should not be saved", logoMediaId: "" },
+  });
+  expect(response.status()).toBe(400);
+  expect(await response.text()).toContain(
+    "This form is out of date. Reload the page and try again.",
+  );
+  expect(await storedHomePageId()).toBe(pageId);
+  expect(await storedSiteTitle()).toBe(titleBefore);
+
+  await resetSiteSettings();
+});
+
+test("a settings save over 16 KB is refused with 413 (F-117)", async ({ page }) => {
+  await logIn(page, admin);
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post(`${origin}/admin/settings`, {
+    headers: { Origin: origin },
+    form: { siteTitle: "x".repeat(17 * 1024), logoMediaId: "", homePageId: "" },
+  });
+  expect(response.status()).toBe(413);
+});

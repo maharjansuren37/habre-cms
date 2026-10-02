@@ -14,7 +14,7 @@ import { userContext } from "./user-context.ts";
  * (item 6a); reusable as-is for item 8's admin-only routes.
  */
 export function requireRole(allowed: readonly Role[]): MiddlewareFunction<Response> {
-  return async ({ request, context }, next) => {
+  return async ({ request, url, context }, next) => {
     const user = context.get(userContext);
     if (!allowed.includes(user.role)) {
       // Logged the same way refuseCrossSiteRequests is (F-82): the refusal is
@@ -23,7 +23,7 @@ export function requireRole(allowed: readonly Role[]): MiddlewareFunction<Respon
       logSecurityEvent({
         event: "request_refused",
         reason: "role",
-        path: new URL(request.url).pathname,
+        path: url.pathname,
         role: user.role,
         ip: clientIp(request.headers),
       });

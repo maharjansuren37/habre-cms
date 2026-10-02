@@ -48,3 +48,6 @@ File: CHANGELOG.md (newest entry bded549); AGENTS.md (production row says "no re
 
 ### F-131 [P2] fixed - Entry-point docs say nothing merged is undeployed and that item 12 is next
 File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md
+
+### F-151 [P2] unverified - A percent-encoded admin path (`/%61dmin/...`) may route to an admin screen while host routing, the CSP and the site scope see a public path
+File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.ts; app/root.tsx

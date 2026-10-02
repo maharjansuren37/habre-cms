@@ -1,7 +1,7 @@
 /* Ported from prototypes/public-post.html's .article* rules (item 4b). */
 
 .article {
-  max-width: calc(var(--measure) + var(--space-5) * 2);
+  max-width: calc(var(--size-measure) + var(--space-5) * 2);
   margin: 0 auto;
   padding: var(--space-8) var(--space-5);
   font-size: var(--text-lg);
@@ -16,6 +16,7 @@
 
 .title {
   margin-bottom: var(--space-6);
+  font-family: var(--font-family-heading);
   font-size: var(--text-3xl);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
@@ -27,6 +28,7 @@
 
 .body h2,
 .body h3 {
+  font-family: var(--font-family-heading);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
 }

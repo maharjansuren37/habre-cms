@@ -6,10 +6,10 @@
 > and `architect` read it. Change a decision here in the same change that
 > changes the code.
 >
-> **The shipped app (items 1-12) still has the 2026-09-15 look** until the
-> re-theme build item ports this one. Until then, a screen built before v1 is
-> measured against the old record (`git show 1d58e42:blueprint/context/design.md`),
-> and anything built for v1 against this file.
+> **The app has this look** since item 13b ported it to every existing screen
+> (tokens in `app/app.css`, Inter self-hosted under `app/fonts/`, public pages
+> in the `data-surface="site"` scope). Every screen is measured against this
+> file.
 
 ## Product type and direction
 
@@ -34,7 +34,8 @@ Mockups (throwaway): `prototypes/signup.html`, `start.html` (onboarding step
 `editor.html` and `editor.html#heading` (two states), `site-home.html` (a
 published site), `components.html` (every component, both scopes). Tokens:
 `prototypes/theme.css`; components: `prototypes/components.css`. Checks:
-`prototypes/checks/contrast.mjs`, `shoot.mjs`.
+`prototypes/checks/contrast.mjs` (`shoot.mjs` removed with item 13b; the
+browser suite's 390px tests and `e2e/contrast.spec.ts` check the real app).
 
 ## Where the tokens land
 
@@ -47,7 +48,8 @@ published site), `components.html` (every component, both scopes). Tokens:
   `--color-focus-ring`, `--color-border-control` -> `--color-border-strong`,
   `--font-sans` -> `--font-family-sans`.
 - **Fonts are self-hosted** woff2 files with their SIL Open Font License
-  files (`prototypes/fonts/`): Inter for Habre's screens; a customer site loads
+  files: Inter for Habre's screens in `app/fonts/` (item 13b), the presets'
+  pairs still in `prototypes/fonts/` until item 18a; a customer site loads
   only its preset's pair. No third-party font request.
 - **A site's brand colour and preset** reach its public pages through a
   per-site stylesheet or a nonce, because the Content-Security-Policy is
@@ -92,6 +94,9 @@ From `node prototypes/checks/contrast.mjs`, 2026-10-02, after the last change.
 **Fails: none.** Columns: Habre's screens, a neutral site, a branded site (the
 `#2f6b5a` example), each with the device in light and dark. A light-only site
 under a dark device measures the same as light, which is the point.
+**Also proved on the real app** since item 13b by `e2e/contrast.spec.ts`
+(Habre light and dark, the site scope light and with the device dark), which
+fails on any pair below its bar - the selection pairs join it with item 14a.
 
 | Pair (min) | App L | App D | Site L | Site D (Pro dark on) | Brand L | Brand D (Pro dark on) |
 |---|---|---|---|---|---|---|
@@ -136,8 +141,12 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
   the preset's heading font and the brand colour.
 - **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
   a site looks the way its owner saw it in the editor, and a dark logo never
-  disappears on a dark page. This changes the public site's current behaviour,
-  which follows the device - see *Open* below.
+  disappears on a dark page.
+- **Light only, built (D168, item 13b).** Public pages, the public 404 and
+  the error page sit in the site scope (`data-surface="site"` on `<html>`,
+  chosen by path with the same rule as the Content-Security-Policy), which
+  sets `color-scheme: light`. Items 1-12 followed the device; Pro's dark mode
+  (item 20) turns it back on per site.
 
 ## Navigation map
 
@@ -267,7 +276,10 @@ ghost, icon, sm, lg), field, input, select, textarea, choice and switch,
 alert, badge, card, table, list, menu, dialog, tabs, topbar, nav, sidebar,
 mobile menu, site footer, empty state, error page, skeleton, spinner, toast,
 tooltip, avatar, breadcrumbs, pagination, skip link, visually hidden. Nothing in
-the kit's own rules was changed.
+the kit's own rules was changed, **except the current nav entry** (item 13b,
+F-143): it is also semibold with a 3px `--color-primary` bar on its start edge,
+because the rust and the muted grey are ~1.03:1 apart in dark mode and colour
+alone did not show which page was current (WCAG 1.4.1).
 
 **Added** (the "Habre additions" block at the end of `components.css`):
 
@@ -347,7 +359,4 @@ record (`git show 1d58e42:blueprint/context/design.md`).
 
 ## Open
 
-- **Public sites stop following the device into dark mode** in Simple (D168).
-  Items 1-12 built a public site that follows it; the re-theme item carries
-  the change out.
 - Preset names; the platform logo (placeholder "h" mark until then).

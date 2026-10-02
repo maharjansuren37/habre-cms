@@ -167,3 +167,31 @@ test("logging out ends the session, including any copy of its cookie", async ({
   await page.goto("/admin");
   await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin");
 });
+
+test("a client-side navigation to New post after the session is gone goes to login", async ({
+  page,
+}) => {
+  await page.goto("/admin/login");
+  await logIn(page);
+  await expect(page).toHaveURL("/admin/posts");
+
+  await page.context().clearCookies();
+  await page.getByRole("link", { name: "New post" }).first().click();
+
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("a client-side navigation to New page after the session is gone goes to login", async ({
+  page,
+}) => {
+  await page.goto("/admin/login");
+  await logIn(page);
+  await expect(page).toHaveURL("/admin/posts");
+  await page.goto("/admin/pages");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pages");
+
+  await page.context().clearCookies();
+  await page.getByRole("link", { name: "New page" }).first().click();
+
+  await expect(page).toHaveURL(/\/admin\/login/);
+});

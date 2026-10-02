@@ -147,7 +147,7 @@ test("the public site renders with nothing refused by the policy", async ({ page
   expect(violations).toEqual([]);
 });
 
-test("every admin screen, including the whole editor, works with nothing refused by the policy", async ({
+test("the post editor, posts list, media, settings and users screens work with nothing refused by the policy", async ({
   page,
 }) => {
   test.skip(skipWithoutStorage, STORAGE_REASON);

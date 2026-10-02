@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseEntryListQuery } from "./entry-list-query.ts";
+import { entryListHref, entryListSearch, parseEntryListQuery } from "./entry-list-query.ts";
 
 test("with no params, the query is everything, unsearched, page one", () => {
   assert.deepEqual(parseEntryListQuery(new URL("http://x/admin/posts")), {
@@ -43,4 +43,29 @@ test("a page far beyond the list's reach is clamped rather than reaching the dat
 
 test("an ordinary page number is kept", () => {
   assert.equal(parseEntryListQuery(new URL("http://x/admin/posts?page=3")).page, 3);
+});
+
+test("a list href with every default is the bare base path", () => {
+  assert.equal(entryListHref("/admin/posts", { status: "all", q: "", page: 1 }), "/admin/posts");
+  assert.equal(entryListHref("/admin/pages", {}), "/admin/pages");
+});
+
+test("a list href keeps only the params that differ from the default", () => {
+  assert.equal(
+    entryListHref("/admin/posts", { status: "draft", q: "hello", page: 3 }),
+    "/admin/posts?status=draft&q=hello&page=3",
+  );
+  assert.equal(
+    entryListHref("/admin/pages", { status: "published" }),
+    "/admin/pages?status=published",
+  );
+});
+
+test("a list href encodes the search term", () => {
+  assert.equal(entryListHref("/admin/posts", { q: "a&b c" }), "/admin/posts?q=a%26b+c");
+});
+
+test("a list's search string is empty for the defaults and starts with ? otherwise", () => {
+  assert.equal(entryListSearch({ status: "all", q: "", page: 1 }), "");
+  assert.equal(entryListSearch({ page: 2 }), "?page=2");
 });

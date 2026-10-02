@@ -20,11 +20,19 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A button in the form's grid keeps its own width, as in the kit's forms;
+ * only the fields run full width. */
+.form button {
+  justify-self: start;
 }
 
 .logoField {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
@@ -84,9 +92,11 @@
   background: var(--color-surface-sunken);
 }
 
+/* A fieldset is as wide as its widest content unless told otherwise. */
 .navRowFields {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
@@ -99,9 +109,10 @@
   color: var(--color-text-muted);
 }
 
+/* Side by side when there is room, stacked on a phone. */
 .navTargetFields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   gap: var(--space-3);
 }
 
@@ -115,14 +126,24 @@
   font-weight: var(--weight-medium);
 }
 
+/* The kit's select: the same box as its input. */
 .select {
-  min-height: var(--control-height);
+  width: 100%;
+  min-height: var(--size-control-md);
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-border-control);
+  border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+}
+
+.select:hover {
+  border-color: var(--color-text-muted);
+}
+
+.select:focus-visible {
+  border-color: var(--color-focus-ring);
 }
 
 .navHint {
@@ -131,7 +152,9 @@
   font-size: var(--text-sm);
 }
 
+/* Wraps on a phone: three 44px buttons do not fit beside each other there. */
 .navRowActions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }

@@ -42,7 +42,8 @@ export function meta({ error, matches }: Route.MetaArgs) {
 export async function loader() {
   const settings = await getSiteSettings(env.R2_PUBLIC_URL);
   const navLinks = await resolveNavigation(settings.navigation);
-  return { settings, navLinks };
+  // Only what the header and footer show (F-108); never the whole row.
+  return { settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl }, navLinks };
 }
 
 /**
@@ -56,7 +57,7 @@ function Chrome({
   navLinks,
   children,
 }: {
-  settings: SiteSettings;
+  settings: Pick<SiteSettings, "siteTitle" | "logoUrl">;
   navLinks: NavLink[];
   children: React.ReactNode;
 }) {
@@ -116,10 +117,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   // env.PUBLIC_URL and a primary-key read practically never does.
   const settings = loaderData?.settings ?? {
     siteTitle: FALLBACK_SITE_TITLE,
-    logoMediaId: null,
     logoUrl: null,
-    navigation: [],
-    homePageId: null,
   };
   const navLinks = loaderData?.navLinks ?? [];
   return (

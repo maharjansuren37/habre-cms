@@ -41,3 +41,15 @@ test("bannerRedirect points at whichever list it is given", () => {
   const response = bannerRedirect("deleted", "About", "/admin/pages");
   assert.equal(response.headers.get("Location"), "/admin/pages?deleted=About");
 });
+
+test("bannerRedirect keeps the list's status, search and page ahead of the banner", () => {
+  const response = bannerRedirect("deleted", "About", "/admin/pages", {
+    status: "draft",
+    q: "Ab",
+    page: 2,
+  });
+  assert.equal(
+    response.headers.get("Location"),
+    "/admin/pages?status=draft&q=Ab&page=2&deleted=About",
+  );
+});

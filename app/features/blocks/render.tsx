@@ -8,7 +8,7 @@ import type {
   Section,
 } from "./blocks.ts";
 import type { Run } from "./inline-runs.ts";
-import { isPlainSection, nonEmptySections } from "./sections.ts";
+import { nonEmptySections } from "./sections.ts";
 
 /**
  * Turns stored blocks into real elements for the public site - always JSX,

@@ -298,3 +298,83 @@ test("a stale-version publish is refused rather than overwriting a concurrent ed
   expect(response.status()).toBe(409);
   expect((await entryStatus(id)).status).toBe("draft");
 });
+
+test("a page number past the last page lands on the last page", async ({ page }) => {
+  await createDraftFor(author.email, "Only one", [], { status: "draft" });
+  await createDraftFor(author.email, "Only two", [], { status: "draft" });
+  await logIn(page, author);
+
+  await page.goto("/admin/posts?page=99");
+  await expect(page).toHaveURL(/\/admin\/posts$/);
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText([
+    "Only two",
+    "Only one",
+  ]);
+});
+
+test("the Search button submits the search", async ({ page }) => {
+  await createDraftFor(author.email, "Spring planting day", [], { status: "draft" });
+  await createDraftFor(author.email, "Zebra migration report", [], { status: "draft" });
+  await logIn(page, author);
+
+  await page.getByPlaceholder("Search posts").fill("Zebra");
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.waitForURL(/q=Zebra/);
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText([
+    "Zebra migration report",
+  ]);
+});
+
+test("deleting or canceling from a filtered, searched list returns to it", async ({ page }) => {
+  await createDraftFor(author.email, "Alpha keep", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Alpha remove", [], { status: "draft" });
+  await createDraftFor(author.email, "Alpha published", [], { status: "published" });
+  await logIn(page, author);
+  const listUrl = "/admin/posts?status=draft&q=Alpha";
+
+  await page.goto(listUrl);
+  await page.getByRole("link", { name: /^Delete Alpha remove/ }).click();
+  await page.waitForURL(new RegExp(`${id}/delete`));
+  await page.getByRole("link", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/admin\/posts\?status=draft&q=Alpha$/);
+  await expect(page.locator("table tbody tr")).toHaveCount(2);
+
+  await page.getByRole("link", { name: /^Delete Alpha remove/ }).click();
+  await page.waitForURL(new RegExp(`${id}/delete`));
+  await page.getByRole("button", { name: "Delete post" }).click();
+  await page.waitForURL(/deleted=/);
+  const url = new URL(page.url());
+  expect(url.pathname).toBe("/admin/posts");
+  expect(url.searchParams.get("status")).toBe("draft");
+  expect(url.searchParams.get("q")).toBe("Alpha");
+  await expect(page.getByText('"Alpha remove" was deleted.')).toBeVisible();
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText(["Alpha keep"]);
+});
+
+test("deleting the only row on the last page keeps the deleted banner (F-136)", async ({
+  page,
+}) => {
+  const tag = `Tidy${randomInt(1_000_000)}`;
+  for (let n = 1; n <= 21; n++) {
+    await createDraftFor(author.email, `${tag} ${String(n).padStart(2, "0")}`, [], {
+      status: "draft",
+    });
+  }
+  await logIn(page, author);
+
+  await page.goto(`/admin/posts?q=${tag}&page=2`);
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+  const title = await page.locator("table tbody tr td:first-child a").innerText();
+  await page.getByRole("link", { name: /^Delete / }).click();
+  await page.getByRole("button", { name: "Delete post" }).click();
+
+  // The delete redirects to page 2, which no longer exists; the clamp must
+  // carry the banner to page 1 rather than drop it.
+  await page.waitForURL(/deleted=/);
+  const url = new URL(page.url());
+  expect(url.pathname).toBe("/admin/posts");
+  expect(url.searchParams.get("q")).toBe(tag);
+  expect(url.searchParams.get("page")).toBeNull();
+  await expect(page.getByText(`"${title}" was deleted.`)).toBeVisible();
+  await expect(page.locator("table tbody tr")).toHaveCount(20);
+});

@@ -164,10 +164,10 @@ not tidying; it is what keeps the open list true.
       the first green `e2e` run. `open` (spec, F-17 fix, 2026-10-01)
 
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
-      manual verification; CI skips the 26 tests that upload to R2 (`E2E_SKIP_R2=1`,
+      manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
       F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 141
-      passed). Nothing in `deploy` runs it. Blocks nothing now; needed before each
+      by `npm run test:e2e` on your machine with the real `.env` (expect 174
+      passed, item 13b). Nothing in `deploy` runs it. Blocks nothing now; needed before each
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 
@@ -238,5 +238,21 @@ not tidying; it is what keeps the open list true.
       open) or MIT (anyone may close it). The repository is private, so nothing
       is published yet. Blocks nothing now; needed before the code is made
       public. `open` (rescope review, 2026-10-01)
+
+- [ ] **Harden the deploy path before the v1 deploy** - decision; when to
+      take it on, and a server change only you can approve. Today a release is
+      a manual procedure written only as prose (`dev-notes/status.md`, the
+      `deploy` skill), built on the laptop, and copied with
+      `rsync --rsync-path="sudo rsync"`, so the deploy login is effectively
+      root. In order: (1) a `deploy/release.sh` that builds from a clean
+      clone, verifies, rsyncs, migrates, switches `current`, checks
+      `/healthz` and rolls back on failure - a `spec` fix; (2) a dedicated
+      deploy user whose sudo runs one activate command, plus closing root SSH
+      login (F-20) - `host`, its own yes; (3) later, CI builds a tagged
+      release artifact and deploy ships that file; (4) the separate production
+      R2 token above. Not worth it: Docker, Kubernetes or a PaaS on this box
+      (D14). Blocks nothing now; (1) and (2) are wanted before the v1 deploy,
+      which carries item 14a's destructive migration. `open` (owner,
+      2026-10-02)
 
 ## Done

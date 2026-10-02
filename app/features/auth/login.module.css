@@ -1,53 +1,50 @@
+/* The kit's .auth layout (prototypes/signup.html): one centred column at the top
+ * of the page, heading and lede left-aligned, the form unframed, a muted foot
+ * line. The kit's brand mark and aside are signup's; the login has neither. */
 .page {
   display: grid;
-  place-items: center;
+  align-content: start;
+  justify-items: center;
   min-height: 100vh;
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-7);
 }
 
 .login {
   width: 100%;
-  max-width: calc(var(--sidebar-width) * 1.7);
+  max-width: 28rem;
 }
 
 .brand {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-2);
   margin-bottom: var(--space-5);
-  text-align: center;
 }
 
 .brand h1 {
-  margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-family-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
 }
 
 .brand p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
 }
 
 .card {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
-.submit {
+/* The kit's large button, full width. */
+.card .submit {
   width: 100%;
+  min-height: var(--size-control-lg);
+  font-size: var(--text-lg);
 }
 
 .help {
-  margin: var(--space-4) 0 0;
+  margin: var(--space-5) 0 0;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
-  text-align: center;
 }

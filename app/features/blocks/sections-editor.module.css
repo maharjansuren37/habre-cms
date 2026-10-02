@@ -8,7 +8,8 @@
   min-width: 0;
   padding: var(--space-3) var(--space-4) var(--space-4);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .sectionBar {
@@ -54,7 +55,7 @@
 }
 
 .layoutOption {
-  accent-color: var(--color-accent);
+  accent-color: var(--color-primary);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -131,14 +132,24 @@
   font-weight: var(--weight-medium);
 }
 
+/* The kit's input (app/lib/ui/field.module.css). */
 .heroInput {
-  min-height: var(--control-height);
+  width: 100%;
+  min-height: var(--size-control-md);
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-border-control);
+  border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+}
+
+.heroInput:hover {
+  border-color: var(--color-text-muted);
+}
+
+.heroInput:focus-visible {
+  border-color: var(--color-focus-ring);
 }
 
 /* Image and text (item 12c): the picture slot at the top of the form. */

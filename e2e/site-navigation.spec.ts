@@ -8,6 +8,7 @@ import {
   deleteEntriesBy,
   deleteTestUser,
   type TestUser,
+  withDatabase,
 } from "./helpers/users.ts";
 
 let admin: TestUser;
@@ -104,4 +105,22 @@ test("unpublishing a linked page drops it from the header with no error", async 
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("navigation", { name: "Site" })).toHaveCount(0);
+});
+
+test("a menu row whose page was deleted says so beside its select (F-95)", async ({ page }) => {
+  const goneId = await createDraftFor(admin.email, "Soon Gone", [], {
+    status: "published",
+    type: "page",
+  });
+  const items = [{ label: "Gone", pageId: goneId }];
+  await withDatabase(async (sql) => {
+    await sql`update site_settings set navigation = ${sql.json(items)} where id = 1`;
+    await sql`delete from entries where id = ${goneId}`;
+  });
+
+  await logIn(page, admin);
+  await page.goto("/admin/settings");
+  await expect(
+    page.getByText("This page no longer exists - choose another page or remove this item."),
+  ).toBeVisible();
 });

@@ -2354,3 +2354,148 @@ to start, EUR or GBP once selling there is worth the VAT registration - rather
 than Stripe converting automatically, which gives odd amounts, charges the
 customer a conversion fee and may not be offered to Australian accounts. Tax
 follows the customer's country whatever the currency (D149).
+
+## D176 - Migrations are forward only; a migration is reversed by restoring the backup taken before it (2026-10-02)
+
+**Chose:** no down migrations. A migration that must be undone is undone by
+restoring the database backup taken immediately before it ran (F-19).
+Beats: down paths, which nobody runs until the day they matter and so are
+never proven.
+Costs: every migration needs a fresh backup taken first, and a restore loses
+anything written after it. Item 14a's destructive migration is the first to
+rely on this, with its own yes.
+
+## D177 - A malformed stored menu reads as empty and logs an error (2026-10-02)
+
+**Chose:** `parseStoredNavigation` parses `site_settings.navigation` with
+`navigationSchema`; a value that fails reads as an empty menu and logs one
+error naming the column (F-96), matching D61's "degrade silently" for this
+table.
+Beats: failing loudly as `blocks_format` does, which would 500 the one screen
+that can repair it.
+Costs: a corrupted menu disappears from the public site until someone saves
+Settings again; only the log says why.
+
+## D178 - A settings save without `homePageId` is refused, not half-applied (2026-10-02)
+
+**Chose:** a Settings POST with no `homePageId` field answers 400 with "This
+form is out of date. Reload the page and try again." and changes nothing
+(F-107).
+Beats: leaving the home page unchanged, which needs a third state in the
+update and hides a stale form instead of telling the person.
+Costs: a stale tab loses its unsaved edits on reload. F-138 notes the field
+can still be cleared one save later.
+
+## D179 - Settings bodies are capped at 16 KB (2026-10-02)
+
+**Chose:** the Settings action checks `Content-Length` against 16 KB before
+reading the body and answers 413 above it, or when the length is missing or
+not a number (F-117). 20 menu rows and a title are well under it.
+Beats: reading an unbounded body into memory on a 954 MB server.
+Costs: menus with long non-Latin labels can approach the cap (F-139).
+
+## D180 - The posts and pages lists build every return URL from their parsed query (2026-10-02)
+
+**Chose:** one `entryListHref` / `entryListSearch` in `entry-list-query.ts`
+builds the list URL from the parsed query - `status`, `q`, `page` only,
+defaults omitted - for Cancel, the redirect after delete and the
+past-the-last-page redirect. The "deleted" banner rides through the clamp,
+read by `readBanner` and rebuilt by `bannerRedirect` (F-56, F-61, F-136).
+Beats: echoing the incoming query string into a redirect, which lets
+arbitrary values reach the URL.
+Costs: a new list filter must be added to the parser and the builder, or a
+delete drops it.
+
+## D181 - Colour roles are `light-dark()` pairs switched by `color-scheme` (2026-10-02)
+
+**Chose:** each role in `app/app.css` is one `light-dark(<light>, <dark>)`
+declaration; `:root` sets `color-scheme: light dark`, the public site scope
+sets `light`, and item 20 turns a site dark by setting `light dark` (item 13b).
+Beats: porting `theme.css`'s duplicated `@media` and `[data-theme]` blocks;
+the `data-theme` toggle was mockup-only.
+Costs: the production build polyfills `light-dark()`, so a `color-scheme`
+set outside the bundled CSS (an inline `<style>`, JavaScript) does not switch
+roles there (F-149) - items 18a and 20 must prove theirs on the built app.
+
+## D182 - The app keeps its own spacing and type scales (2026-10-02)
+
+**Chose:** `--space-1..8` and `--text-*` stay as they were; only the names
+`design.md` lists were renamed, plus `--control-height` -> `--size-control-md`
+and `--measure` -> `--size-measure`, whose values the redesign changes.
+`--font-mono` and `--duration-fast` keep their names beside the kit's
+`--motion-*` tokens (item 13b).
+Beats: adopting the kit's whole token set - its `--space-5` is 1.25rem, ours
+1.5rem, so the same name would silently change every gap.
+Costs: kit CSS cannot be pasted in; its spacing and type tokens are
+translated by value.
+
+## D183 - The public site scope sits on `<html>`, chosen by path (2026-10-02)
+
+**Chose:** the root `Layout` puts `data-surface="site"` on `<html>` for every
+path `areaForPath` calls public - the rule the Content-Security-Policy uses -
+read with `useLocation()`, so the 404 and error pages are in it too (item 13b).
+Beats: a wrapper `div` in the public layout, which leaves the body and
+scrollbars dark and misses the root error boundary.
+Costs: an admin screen reached by a path `areaForPath` reads differently
+from the router would be styled as public (F-151, unverified).
+
+## D184 - Fonts are bundled through CSS from `app/fonts/` (2026-10-02)
+
+**Chose:** Inter Variable (latin, 48 KB woff2) and its OFL licence live in
+`app/fonts/` and are loaded by an `@font-face` in `app.css`, so Vite hashes
+the file into `/assets/`, served `immutable` (item 13b).
+Beats: `public/fonts/`, cached for an hour under a fixed name.
+Costs: a preset's fonts (item 18a) are bundled the same way, in every build.
+
+## D185 - Colour contrast is proved by a browser test on the real app (2026-10-02)
+
+**Chose:** `e2e/contrast.spec.ts` resolves every role in the served app and
+asserts the design record's pairs at 4.5 or 3, in Habre light and dark, the
+site scope light and with the device dark; it runs in CI (item 13b).
+Beats: keeping `prototypes/checks/contrast.mjs`, which measures the mockups,
+not the shipped CSS.
+Costs: a new colour role or scope needs its pairs added there (item 14a adds
+the selection pairs).
+
+## D186 - A table wider than a phone scrolls inside its card (2026-10-02)
+
+**Chose:** the posts, pages and users tables sit in a positioned
+`overflow-x: auto` card, the kit's `.table-wrap`, so every column stays
+reachable and visually hidden cell text cannot widen the page (item 13b).
+Beats: hiding columns on a phone, which drops Delete.
+Costs: on a phone the last columns are reached by scrolling the table.
+
+## D187 - The narrow admin shell keeps its pre-13b arrangement (2026-10-02)
+
+**Chose:** below 48rem the site card and account share a row and the nav is
+a wrapping row beneath them; the rules target the `<nav>` element, which they
+had silently missed by targeting its list (item 13b). No Menu button until
+the new shell (items 15-19).
+Beats: restyling the broken arrangement as found.
+Costs: a phone shows the whole nav above every admin page.
+
+## D188 - Buttons in a form keep their own width (2026-10-02)
+
+**Chose:** a button in the settings or user form grid is
+`justify-self: start`; only fields run full width, as in the kit's forms
+(item 13b). The login button stays full width, as the sign-up layout has it.
+Beats: every button stretching to the form's width.
+Costs: none known.
+
+## D189 - The kit's quote, rule and spacer wait for item 14 (2026-10-02)
+
+**Chose:** only `.display` and `.lede` were ported, as the hero's heading and
+text; no block renders a quote, line or space until item 14's editor (item
+13b).
+Beats: styling elements nothing emits.
+Costs: item 14 ports them with its renderer.
+
+## D190 - The current admin nav entry is marked by weight and a bar, not colour alone (2026-10-02)
+
+**Chose:** `[aria-current="page"]` in the admin nav is semibold with a 3px
+`--color-primary` bar on its start edge, besides the kit's rust on its subtle
+fill (F-143, WCAG 1.4.1).
+Beats: the kit's colour-only mark - rust and the muted grey are ~1.03:1
+apart in dark mode.
+Costs: one deliberate difference from the kit's `.nav__link`, recorded in
+`design.md`.

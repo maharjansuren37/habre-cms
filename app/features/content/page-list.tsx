@@ -1,14 +1,21 @@
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
+import { Button } from "#app/lib/ui/button.tsx";
 import fieldStyles from "#app/lib/ui/field.module.css";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/page-list";
-import { readBanner } from "./banner.ts";
+import { bannerRedirect, readBanner } from "./banner.ts";
 import { type EntrySummary, listEntries } from "./entries.server.ts";
 import styles from "./entry-list.module.css";
-import { type EntryListQuery, type EntryStatus, parseEntryListQuery } from "./entry-list-query.ts";
+import {
+  type EntryListQuery,
+  type EntryStatus,
+  entryListHref,
+  entryListSearch,
+  parseEntryListQuery,
+} from "./entry-list-query.ts";
 
 // Editor and admin only (project-plan.md's routes table); an author never
 // reaches this loader, and the nav hides the link too (admin-shell/layout.tsx).
@@ -35,19 +42,23 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const query = parseEntryListQuery(url);
   const list = await listEntries("page", actor, query);
   // Read once: a successful delete, publish or unpublish redirects here with
-  // the title it acted on - the same `?deleted=` shape the posts list reads.
+  // the title it acted on - the same `?deleted=` shape the other list reads.
   const banner = readBanner(url.searchParams);
+  // A bookmarked or stale page past the real end would otherwise render a
+  // false "No pages match" with no way back (F-56) - redirect to the last real
+  // page instead, as media-list.tsx does. Deleting the only row on the last
+  // page lands here too, so the banner rides along, parsed (F-136).
+  if (query.page > list.totalPages && list.total > 0) {
+    const last = { ...query, page: list.totalPages };
+    throw banner
+      ? bannerRedirect(banner.verb, banner.title, "/admin/pages", last)
+      : redirect(entryListHref("/admin/pages", last));
+  }
   return { list, query, banner };
 }
 
-/** A tab or a page link's target - only the params that differ from the default. */
-function listHref(query: Partial<EntryListQuery>): string {
-  const params = new URLSearchParams();
-  if (query.status && query.status !== "all") params.set("status", query.status);
-  if (query.q) params.set("q", query.q);
-  if (query.page && query.page > 1) params.set("page", String(query.page));
-  const search = params.toString();
-  return search ? `/admin/pages?${search}` : "/admin/pages";
+function listHref(query: Parameters<typeof entryListHref>[1]): string {
+  return entryListHref("/admin/pages", query);
 }
 
 export default function PageList({ loaderData }: Route.ComponentProps) {
@@ -95,6 +106,7 @@ export default function PageList({ loaderData }: Route.ComponentProps) {
               placeholder="Search pages"
             />
           </label>
+          <Button type="submit">Search</Button>
         </form>
       </div>
       {list.counts.all === 0 ? (
@@ -103,7 +115,7 @@ export default function PageList({ loaderData }: Route.ComponentProps) {
         <p className={styles.noMatches}>No pages match this filter or search.</p>
       ) : (
         <>
-          <PageTable pages={list.entries} />
+          <PageTable pages={list.entries} query={query} />
           {totalPages > 1 && (
             <div className={styles.pagination}>
               <span>
@@ -125,7 +137,7 @@ export default function PageList({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function PageTable({ pages }: { pages: EntrySummary[] }) {
+function PageTable({ pages, query }: { pages: EntrySummary[]; query: EntryListQuery }) {
   return (
     <div className={styles.list}>
       <table>
@@ -167,7 +179,10 @@ function PageTable({ pages }: { pages: EntrySummary[] }) {
                 {formatUpdatedAt(page.updatedAt)}
               </td>
               <td className={styles.colDelete}>
-                <Link className={styles.deleteLink} to={`/admin/pages/${page.id}/delete`}>
+                <Link
+                  className={styles.deleteLink}
+                  to={`/admin/pages/${page.id}/delete${entryListSearch(query)}`}
+                >
                   Delete<span className="visually-hidden"> {page.title}</span>
                 </Link>
               </td>

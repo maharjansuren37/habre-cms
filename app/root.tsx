@@ -7,8 +7,10 @@ import {
   redirect,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
 import { resolveHostRouting } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
@@ -53,14 +55,14 @@ export const middleware: Route.MiddlewareFunction[] = [
       throw data("Not Found", { status: 404 });
     }
   },
-  function refuseCrossSiteRequests({ request }) {
+  function refuseCrossSiteRequests({ request, url }) {
     const adminOrigin = new URL(env.ADMIN_URL).origin;
     if (!isAllowedRequest(request.method, request.headers, adminOrigin)) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",
         method: request.method,
-        path: new URL(request.url).pathname,
+        path: url.pathname,
         ip: clientIp(request.headers),
       });
       throw data("Cross-site request refused", { status: 403 });
@@ -69,8 +71,10 @@ export const middleware: Route.MiddlewareFunction[] = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  // useLocation, not a loader: Layout also wraps the root ErrorBoundary.
+  const { pathname } = useLocation();
   return (
-    <html lang="en">
+    <html lang="en" data-surface={areaForPath(pathname) === "public" ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

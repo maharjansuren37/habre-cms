@@ -4,11 +4,17 @@
   min-height: 100vh;
 }
 
+/* The kit's sidebar: surface panel, site card on top, nav, account at the foot.
+ * Sticky and full height on wide screens only (see the narrow rules below). */
 .sidebar {
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-5) var(--space-3);
+  gap: var(--space-4);
+  height: 100vh;
+  overflow-y: auto;
+  padding: var(--space-4);
   border-right: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
 }
@@ -16,12 +22,16 @@
 .site {
   display: grid;
   gap: var(--space-1);
-  padding: 0 var(--space-2);
-  font-weight: var(--weight-semibold);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-size: var(--text-sm);
 }
 
 .siteName {
   display: flex;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   align-items: center;
   gap: var(--space-2);
 }
@@ -32,8 +42,6 @@
 }
 
 .site a {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-regular);
   color: var(--color-text-muted);
 }
 
@@ -48,24 +56,29 @@
 .nav a {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  min-height: var(--control-height);
+  gap: var(--space-2);
+  min-height: var(--size-control-md);
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
-  color: var(--color-text);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   font-weight: var(--weight-medium);
   text-decoration: none;
 }
 
 .nav a:hover {
   background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
-/* NavLink sets this on the active route - no extra class needed. */
+/* NavLink sets aria-current on the active route - the mark is drawn from the
+ * same attribute screen readers announce, so the two cannot disagree. Weight
+ * and a start bar, not colour alone: the rust and the muted grey are close in
+ * lightness, ~1.03:1 in dark mode (F-143, WCAG 1.4.1). */
 .nav a[aria-current="page"] {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  background: var(--color-primary-subtle);
+  box-shadow: inset 3px 0 var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
 }
 
 .nav svg {
@@ -78,7 +91,7 @@
   display: grid;
   gap: var(--space-2);
   margin-top: auto;
-  padding: var(--space-3) var(--space-2) 0;
+  padding: var(--space-3) 0 0;
   border-top: var(--border-width) solid var(--color-border);
   font-size: var(--text-sm);
 }
@@ -92,14 +105,17 @@
   font-size: var(--text-xs);
 }
 
-/* Two classes, so it wins over the button's own padding whatever the CSS order. */
+/* Two classes, so it wins over the button's own margin whatever the CSS order.
+ * The ghost button keeps its padding for its hover background; the negative
+ * margin lines its label up with the name above. */
 .user .logout {
   justify-self: start;
-  padding-inline: 0;
+  margin-left: calc(-1 * var(--space-4));
 }
 
 .main {
   width: 100%;
+  min-width: 0;
   max-width: var(--content-max);
   padding: var(--space-6) var(--space-6) var(--space-8);
 }
@@ -111,6 +127,9 @@
   }
 
   .sidebar {
+    position: static;
+    height: auto;
+    overflow-y: visible;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
@@ -121,9 +140,16 @@
     border-bottom: var(--border-width) solid var(--color-border);
   }
 
-  .nav {
+  /* The flex item is the <nav> around the list, so that is what moves to its
+   * own row under the site card and account; the list runs as a wrapping row. */
+  .sidebar > nav {
     order: 1;
     flex: 1 1 100%;
+  }
+
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .user {
@@ -133,6 +159,10 @@
     margin-top: 0;
     padding: 0;
     border-top: 0;
+  }
+
+  .user .logout {
+    margin-left: 0;
   }
 
   .main {

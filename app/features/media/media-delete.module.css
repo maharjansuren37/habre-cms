@@ -3,11 +3,12 @@
 .confirm {
   display: grid;
   gap: var(--space-4);
-  max-width: var(--measure);
+  max-width: var(--size-measure);
   padding: var(--space-6);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .title {
@@ -26,6 +27,7 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 

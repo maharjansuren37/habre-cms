@@ -5,6 +5,8 @@ import { z } from "zod";
 // and validates without compiling, the browser still reports a violation on
 // every page that loads Zod. `jitless` skips the probe; validation is the same.
 // Browser only (`.client`): the server has no policy and keeps the fast path.
-// Imported by every screen whose bundle includes Zod - the CSP browser test
-// (e2e/content-security-policy.spec.ts) fails if a new one forgets (F-100).
+// Imported by every screen whose bundle includes Zod. The CSP browser test
+// (e2e/content-security-policy.spec.ts) fails if a new one forgets, but only
+// for the screens it visits: the post editor, the posts list, media, settings
+// (with its logo picker) and the users list. Others are not checked (F-102).
 z.config({ jitless: true });

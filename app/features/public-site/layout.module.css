@@ -16,18 +16,20 @@
   padding: var(--space-4) var(--space-5);
 }
 
+/* The kit's site brand: the logo, or the name in the heading font. */
 .brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-family-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
   text-decoration: none;
 }
 
 .logo {
-  height: 1.5rem;
+  height: var(--size-control-sm);
   width: auto;
 }
 
@@ -43,7 +45,7 @@
 
 .navList a {
   color: var(--color-text);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   font-weight: var(--weight-medium);
   text-decoration: none;
 }
@@ -53,7 +55,7 @@
 }
 
 .navList a:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -65,7 +67,7 @@
 }
 
 .notFound {
-  max-width: var(--measure);
+  max-width: var(--size-measure);
   margin: 0 auto;
   padding: var(--space-8) var(--space-5);
   font-size: var(--text-lg);

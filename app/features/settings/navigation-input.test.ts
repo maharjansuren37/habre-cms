@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { NAV_MAX_ITEMS, navigationSchema } from "./navigation-input.ts";
+import { mock, test } from "node:test";
+import { NAV_MAX_ITEMS, navigationSchema, parseStoredNavigation } from "./navigation-input.ts";
 
 const PAGE_ID = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
@@ -52,4 +52,32 @@ test("accepts exactly 20 items", () => {
   }));
   const result = navigationSchema.safeParse(items);
   assert.equal(result.success, true);
+});
+
+test("a valid stored menu is returned as its items", () => {
+  const items = [
+    { label: "About", pageId: PAGE_ID },
+    { label: "Docs", url: "https://example.com" },
+  ];
+  assert.deepEqual(parseStoredNavigation(items), items);
+});
+
+for (const [name, value] of [
+  ["a jsonb string", "not a menu"],
+  ["an object", { label: "About", pageId: PAGE_ID }],
+  ["an item missing its label", [{ pageId: PAGE_ID }]],
+] as const) {
+  test(`${name} reads as an empty menu and logs one error naming the column`, (t) => {
+    const logged = t.mock.method(console, "error", () => {});
+    assert.deepEqual(parseStoredNavigation(value), []);
+    assert.equal(logged.mock.callCount(), 1);
+    assert.match(String(logged.mock.calls[0].arguments[0]), /site_settings\.navigation/);
+  });
+}
+
+test("a valid stored menu logs nothing", () => {
+  const logged = mock.method(console, "error", () => {});
+  parseStoredNavigation([]);
+  assert.equal(logged.mock.callCount(), 0);
+  logged.mock.restore();
 });
