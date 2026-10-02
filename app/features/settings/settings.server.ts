@@ -1,7 +1,7 @@
 import type postgres from "postgres";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { sql } from "#app/lib/db.server.ts";
-import type { NavItem } from "./navigation-input.ts";
+import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
 
 export type SiteSettings = {
   siteTitle: string;
@@ -18,8 +18,8 @@ export type SiteSettings = {
  * logo is set and when the referenced media row is gone - the foreign key
  * (`on delete set null`) means the second case cannot actually happen, but
  * the type still allows it rather than asserting a guarantee this function
- * does not itself enforce. `navigation` is returned as stored - item 7a
- * created and reserved the column, this item is the first to read it.
+ * does not itself enforce. `navigation` is parsed on the way out; a malformed
+ * value reads as an empty menu (F-96).
  */
 export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings> {
   const [row] = await sql<
@@ -27,7 +27,7 @@ export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings
       siteTitle: string;
       logoMediaId: string | null;
       storageKey: string | null;
-      navigation: NavItem[];
+      navigation: unknown;
       homePageId: string | null;
     }[]
   >`
@@ -41,7 +41,7 @@ export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings
     siteTitle: row.siteTitle,
     logoMediaId: row.logoMediaId,
     logoUrl: row.storageKey ? buildMediaUrl(r2PublicUrl, row.storageKey) : null,
-    navigation: row.navigation,
+    navigation: parseStoredNavigation(row.navigation),
     homePageId: row.homePageId,
   };
 }

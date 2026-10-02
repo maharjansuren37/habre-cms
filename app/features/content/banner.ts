@@ -1,4 +1,5 @@
 import { redirect } from "react-router";
+import { type EntryListQuery, entryListHref } from "./entry-list-query.ts";
 
 /**
  * What a redirect to an entry list is announcing. The `?deleted=` shape
@@ -37,7 +38,16 @@ export function readBanner(params: URLSearchParams): Banner {
  * needing to change together, which is exactly the case fundamentals.md's
  * "extract on the third" is for). `target` is the list this entry belongs to
  * (`/admin/posts` or `/admin/pages`), so the same builder serves both (item 6a).
+ * `listQuery`, when given, is the list's own parsed state (status, search,
+ * page) to land back on - ahead of the banner param, never a raw query string.
  */
-export function bannerRedirect(verb: BannerVerb, title: string, target: EntryListPath): Response {
-  return redirect(`${target}?${verb}=${encodeURIComponent(title)}`);
+export function bannerRedirect(
+  verb: BannerVerb,
+  title: string,
+  target: EntryListPath,
+  listQuery?: EntryListQuery,
+): Response {
+  const list = entryListHref(target, listQuery ?? {});
+  const separator = list.includes("?") ? "&" : "?";
+  return redirect(`${list}${separator}${verb}=${encodeURIComponent(title)}`);
 }

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { homePageIdSchema, logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
+import {
+  homePageIdSchema,
+  isSettingsFormBodyAllowed,
+  logoMediaIdSchema,
+  siteTitleSchema,
+} from "./settings-input.ts";
 
 test("site title rejects an empty string", () => {
   const result = siteTitleSchema.safeParse("");
@@ -46,4 +51,22 @@ test("home page id passes a real UUID through unchanged", () => {
 test("home page id rejects a malformed id", () => {
   const result = homePageIdSchema.safeParse("not-a-uuid");
   assert.equal(result.success, false);
+});
+
+const withLength = (value: string) => new Headers({ "Content-Length": value });
+
+test("settings body size accepts exactly 16 KB", () => {
+  assert.equal(isSettingsFormBodyAllowed(withLength("16384")), true);
+});
+
+test("settings body size refuses 16 KB plus one byte", () => {
+  assert.equal(isSettingsFormBodyAllowed(withLength("16385")), false);
+});
+
+test("settings body size refuses a missing Content-Length", () => {
+  assert.equal(isSettingsFormBodyAllowed(new Headers()), false);
+});
+
+test("settings body size refuses a non-numeric Content-Length", () => {
+  assert.equal(isSettingsFormBodyAllowed(withLength("lots")), false);
 });

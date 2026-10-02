@@ -20,7 +20,7 @@ test("a role outside the allowed list is refused with Not Found, not a forbidden
   await assert.rejects(
     async () => {
       await middleware(
-        { request, context: contextFor("author") } as never,
+        { request, url: new URL(request.url), context: contextFor("author") } as never,
         async () => new Response(),
       );
     },
@@ -40,7 +40,7 @@ test("a refusal is logged (F-82), with the path, the role, and the IP", async ()
   try {
     await assert.rejects(async () => {
       await middleware(
-        { request, context: contextFor("author") } as never,
+        { request, url: new URL(request.url), context: contextFor("author") } as never,
         async () => new Response(),
       );
     });
@@ -67,7 +67,7 @@ test("an allowed role passes through to the next handler, and logs nothing", asy
   try {
     for (const role of ["admin", "editor"] as const) {
       const result = await middleware(
-        { request, context: contextFor(role) } as never,
+        { request, url: new URL(request.url), context: contextFor(role) } as never,
         async () => response,
       );
       assert.equal(result, response);

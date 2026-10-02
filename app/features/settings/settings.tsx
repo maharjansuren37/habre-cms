@@ -20,7 +20,12 @@ import {
 import { NAV_MAX_ITEMS } from "./navigation-input.ts";
 import styles from "./settings.module.css";
 import { saveSiteSettings } from "./settings.server.ts";
-import { homePageIdSchema, logoMediaIdSchema, siteTitleSchema } from "./settings-input.ts";
+import {
+  homePageIdSchema,
+  isSettingsFormBodyAllowed,
+  logoMediaIdSchema,
+  siteTitleSchema,
+} from "./settings-input.ts";
 
 // Admin only (project-plan.md's routes table) - an editor or author gets the
 // same 404 an ownership refusal already gives (require-role.server.ts), and
@@ -51,10 +56,16 @@ type ActionResult = {
 };
 
 export async function action({ request }: Route.ActionArgs) {
+  if (!isSettingsFormBodyAllowed(request.headers)) {
+    throw data("Request too large", { status: 413 });
+  }
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "save");
   const submittedTitle = String(form.get("siteTitle") ?? "");
-  const submittedHomePageId = String(form.get("homePageId") ?? "");
+  // Absent is not the same as "" (No home page): a form from before the
+  // select existed, or a scripted post, must not clear the home page (F-107).
+  const rawHomePageId = form.get("homePageId");
+  const submittedHomePageId = String(rawHomePageId ?? "");
   const rows = parseDraftRows(form);
 
   // Add/remove/move only rearrange what is already on the page - no
@@ -67,6 +78,18 @@ export async function action({ request }: Route.ActionArgs) {
       siteTitle: submittedTitle,
       homePageId: submittedHomePageId,
     } satisfies ActionResult;
+  }
+
+  if (rawHomePageId === null) {
+    return data(
+      {
+        problem: "This form is out of date. Reload the page and try again.",
+        draftRows: rows,
+        siteTitle: submittedTitle,
+        homePageId: submittedHomePageId,
+      } satisfies ActionResult,
+      { status: 400 },
+    );
   }
 
   const title = siteTitleSchema.safeParse(submittedTitle);
@@ -156,17 +179,14 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
   const { updated, pages } = loaderData;
-  // The fallback is practically unreachable - this route only ever renders
-  // nested inside the layout that provides it (app/routes.ts) - but avoids a
-  // non-null assertion for a value the type system cannot itself guarantee.
-  const settings = useRouteLoaderData<typeof adminLayoutLoader>("features/admin-shell/layout")
-    ?.settings ?? {
-    siteTitle: "Habre CMS",
-    logoMediaId: null,
-    logoUrl: null,
-    navigation: [],
-    homePageId: null,
-  };
+  // This route only renders nested inside the layout that provides this data
+  // (app/routes.ts). If the id stops matching, fail loudly: a silent fallback
+  // to defaults would re-save them over the real settings (F-93).
+  const layoutData = useRouteLoaderData<typeof adminLayoutLoader>("features/admin-shell/layout");
+  if (!layoutData) {
+    throw new Error("Settings: the admin-shell layout's data is missing - check its route id.");
+  }
+  const { settings } = layoutData;
   const [logo, setLogo] = useState<PickedLogo | null>(
     settings.logoMediaId && settings.logoUrl
       ? { id: settings.logoMediaId, url: settings.logoUrl, filename: "" }
@@ -348,6 +368,11 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
                       </div>
                       {selectedPage && selectedPage.status !== "published" && (
                         <p className={styles.navHint}>Not published - hidden from visitors.</p>
+                      )}
+                      {row.pageId && !selectedPage && (
+                        <p className={styles.navHint}>
+                          This page no longer exists - choose another page or remove this item.
+                        </p>
                       )}
                     </fieldset>
                     <div className={styles.navRowActions}>

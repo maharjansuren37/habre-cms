@@ -33,8 +33,12 @@ test("/posts lists only published posts, newest first", async ({ page }) => {
   await createDraftFor(author.email, "A Draft", [], { status: "draft" });
 
   await page.goto("/posts");
-  await expect(page.locator("main a")).toHaveText(["Newer Published", "Older Published"]);
-  await expect(page.getByText("A Draft")).toHaveCount(0);
+  // Only this test's own titles: other specs publish posts of their own, and the
+  // list shows every author's (F-86).
+  await expect(page.getByRole("link", { name: "Older Published" })).toBeVisible();
+  const mine = ["Newer Published", "Older Published", "A Draft"];
+  const shown = (await page.locator("main a").allInnerTexts()).filter((t) => mine.includes(t));
+  expect(shown).toEqual(["Newer Published", "Older Published"]);
 });
 
 test("with nothing published, /posts says so instead of showing a blank page", async ({ page }) => {
@@ -55,6 +59,34 @@ test("with no home page chosen, / shows the placeholder under the site title, no
     "href",
     "/posts",
   );
+});
+
+test("a published page and post ship no entry id and no settings beyond title, logo and menu", async ({
+  request,
+}) => {
+  const postId = await createDraftFor(author.email, "Lean Data Post", [], {
+    status: "published",
+  });
+  const pageId = await createDraftFor(author.email, "Lean Data Page", [], {
+    status: "published",
+    type: "page",
+    blocksFormat: "v3",
+  });
+
+  for (const [path, id] of [
+    ["/posts/lean-data-post", postId],
+    ["/lean-data-page", pageId],
+  ] as const) {
+    const response = await request.get(path);
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html).not.toContain(id);
+    expect(html).not.toContain("homePageId");
+    // The key as serialized into the page's script: React Router escapes its
+    // quotes there, so match both forms - and not the bare word, which any
+    // visible label could contain (F-141).
+    expect(html).not.toMatch(/\\?"navigation\\?"/);
+  }
 });
 
 test("a published post renders its blocks and inline formatting as real elements", async ({

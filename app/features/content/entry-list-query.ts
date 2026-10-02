@@ -37,3 +37,22 @@ export function parseEntryListQuery(url: URL): EntryListQuery {
 
   return { status, q, page };
 }
+
+/**
+ * The query string for a list's state - only the params that differ from the
+ * default, empty when none do. Built from the parsed query, never from a raw
+ * one, so nothing but these three values can reach a URL.
+ */
+export function entryListSearch(query: Partial<EntryListQuery>): string {
+  const params = new URLSearchParams();
+  if (query.status && query.status !== "all") params.set("status", query.status);
+  if (query.q) params.set("q", query.q);
+  if (query.page && query.page > 1) params.set("page", String(query.page));
+  const search = params.toString();
+  return search ? `?${search}` : "";
+}
+
+/** A tab, page link or return target for the list at `base` (`/admin/posts`). */
+export function entryListHref(base: string, query: Partial<EntryListQuery>): string {
+  return `${base}${entryListSearch(query)}`;
+}

@@ -128,3 +128,93 @@ test("an author is refused on every pages route, and Pages is not in the nav", a
   expect(await entryExists(id)).toBe(true);
   expect((await entryStatus(id)).status).toBe("draft");
 });
+
+test("a page number past the last page lands on the last page", async ({ page }) => {
+  // A unique search keeps other specs' pages out of an editor's unscoped list (F-137).
+  const tag = `Past${randomInt(1_000_000)}`;
+  await createDraftFor(editor.email, `${tag} one`, [], { status: "draft", type: "page" });
+  await createDraftFor(editor.email, `${tag} two`, [], { status: "draft", type: "page" });
+  await logIn(page, editor);
+
+  await page.goto(`/admin/pages?q=${tag}&page=99`);
+  await expect(page).toHaveURL(new RegExp(`/admin/pages\\?q=${tag}$`));
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText([
+    `${tag} two`,
+    `${tag} one`,
+  ]);
+});
+
+test("the Search button submits the search", async ({ page }) => {
+  await createDraftFor(editor.email, "Spring planting day", [], { status: "draft", type: "page" });
+  await createDraftFor(editor.email, "Zebra migration report", [], {
+    status: "draft",
+    type: "page",
+  });
+  await logIn(page, editor);
+
+  await page.goto("/admin/pages");
+  await page.getByPlaceholder("Search pages").fill("Zebra");
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.waitForURL(/q=Zebra/);
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText([
+    "Zebra migration report",
+  ]);
+});
+
+test("deleting or canceling from a filtered, searched list returns to it", async ({ page }) => {
+  await createDraftFor(editor.email, "Alpha keep", [], { status: "draft", type: "page" });
+  const id = await createDraftFor(editor.email, "Alpha remove", [], {
+    status: "draft",
+    type: "page",
+  });
+  await createDraftFor(editor.email, "Alpha published", [], { status: "published", type: "page" });
+  await logIn(page, editor);
+  const listUrl = "/admin/pages?status=draft&q=Alpha";
+
+  await page.goto(listUrl);
+  await page.getByRole("link", { name: /^Delete Alpha remove/ }).click();
+  await page.waitForURL(new RegExp(`${id}/delete`));
+  await page.getByRole("link", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?status=draft&q=Alpha$/);
+  await expect(page.locator("table tbody tr")).toHaveCount(2);
+
+  await page.getByRole("link", { name: /^Delete Alpha remove/ }).click();
+  await page.waitForURL(new RegExp(`${id}/delete`));
+  await page.getByRole("button", { name: "Delete page" }).click();
+  await page.waitForURL(/deleted=/);
+  const url = new URL(page.url());
+  expect(url.pathname).toBe("/admin/pages");
+  expect(url.searchParams.get("status")).toBe("draft");
+  expect(url.searchParams.get("q")).toBe("Alpha");
+  await expect(page.getByText('"Alpha remove" was deleted.')).toBeVisible();
+  await expect(page.locator("table tbody tr td:first-child a")).toHaveText(["Alpha keep"]);
+});
+
+test("deleting the only row on the last page keeps the deleted banner (F-136)", async ({
+  page,
+}) => {
+  const tag = `Tidy${randomInt(1_000_000)}`;
+  for (let n = 1; n <= 21; n++) {
+    await createDraftFor(editor.email, `${tag} ${String(n).padStart(2, "0")}`, [], {
+      status: "draft",
+      type: "page",
+    });
+  }
+  await logIn(page, editor);
+
+  await page.goto(`/admin/pages?q=${tag}&page=2`);
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+  const title = await page.locator("table tbody tr td:first-child a").innerText();
+  await page.getByRole("link", { name: /^Delete / }).click();
+  await page.getByRole("button", { name: "Delete page" }).click();
+
+  // The delete redirects to page 2, which no longer exists; the clamp must
+  // carry the banner to page 1 rather than drop it.
+  await page.waitForURL(/deleted=/);
+  const url = new URL(page.url());
+  expect(url.pathname).toBe("/admin/pages");
+  expect(url.searchParams.get("q")).toBe(tag);
+  expect(url.searchParams.get("page")).toBeNull();
+  await expect(page.getByText(`"${title}" was deleted.`)).toBeVisible();
+  await expect(page.locator("table tbody tr")).toHaveCount(20);
+});

@@ -8,6 +8,12 @@ import { isEntryBodySizeAllowed, parseEntryForm } from "./entry-form-input.ts";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
+// The loader is what makes a client-side navigation call the server, so the
+// middleware checks the user on those too (React Router middleware docs).
+export async function loader(_: Route.LoaderArgs) {
+  return null;
+}
+
 export function meta(_: Route.MetaArgs) {
   return [{ title: "New post - Habre CMS" }];
 }

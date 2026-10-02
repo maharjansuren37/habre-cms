@@ -22,7 +22,7 @@ export type SecurityEvent =
       host: string;
       ip: string;
     }
-  | { event: "request_refused"; reason: "role"; path: string; role: string; ip: string }
+  | { event: "request_refused"; reason: "role"; path: string; role: Role; ip: string }
   | { event: "role_changed"; userId: string; fromRole: Role; toRole: Role; actorId: string }
   | { event: "user_deactivated"; userId: string; actorId: string }
   | { event: "user_reactivated"; userId: string; actorId: string }

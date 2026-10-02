@@ -53,14 +53,14 @@ export const middleware: Route.MiddlewareFunction[] = [
       throw data("Not Found", { status: 404 });
     }
   },
-  function refuseCrossSiteRequests({ request }) {
+  function refuseCrossSiteRequests({ request, url }) {
     const adminOrigin = new URL(env.ADMIN_URL).origin;
     if (!isAllowedRequest(request.method, request.headers, adminOrigin)) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",
         method: request.method,
-        path: new URL(request.url).pathname,
+        path: url.pathname,
         ip: clientIp(request.headers),
       });
       throw data("Cross-site request refused", { status: 403 });

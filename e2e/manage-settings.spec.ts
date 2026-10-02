@@ -124,7 +124,11 @@ test("a logo id for a media row that does not exist gets a friendly error, not a
   const origin = new URL(page.url()).origin;
   const response = await page.request.post(`${origin}/admin/settings`, {
     headers: { Origin: origin },
-    form: { siteTitle: "Doesn't matter", logoMediaId: "00000000-0000-0000-0000-000000000000" },
+    form: {
+      siteTitle: "Doesn't matter",
+      logoMediaId: "00000000-0000-0000-0000-000000000000",
+      homePageId: "",
+    },
   });
   expect(response.status()).toBe(400);
   expect(await response.text()).toContain("That logo could not be saved");

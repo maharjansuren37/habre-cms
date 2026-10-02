@@ -35,11 +35,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 /** Reuses the post list's and a page's existing styles rather than adding a
  *  look of its own (Step 8). */
 function HomePlaceholder({ hasPosts }: { hasPosts: boolean }) {
-  // The layout always renders around this route (app/routes.ts); the
-  // fallback only satisfies the type, as settings.tsx's does.
-  const siteTitle =
-    useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout")?.settings
-      .siteTitle ?? "Habre CMS";
+  // The layout always renders around this route (app/routes.ts); missing
+  // data is a bug, so fail loudly rather than show a made-up title (F-111).
+  const layoutData = useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout");
+  if (!layoutData) throw new Error("The public layout's data is missing.");
+  const siteTitle = layoutData.settings.siteTitle;
   return (
     <main className={listStyles.home}>
       <h1 className={pageStyles.title}>{siteTitle}</h1>

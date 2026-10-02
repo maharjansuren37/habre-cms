@@ -2354,3 +2354,54 @@ to start, EUR or GBP once selling there is worth the VAT registration - rather
 than Stripe converting automatically, which gives odd amounts, charges the
 customer a conversion fee and may not be offered to Australian accounts. Tax
 follows the customer's country whatever the currency (D149).
+
+## D176 - Migrations are forward only; a migration is reversed by restoring the backup taken before it (2026-10-02)
+
+**Chose:** no down migrations. A migration that must be undone is undone by
+restoring the database backup taken immediately before it ran (F-19).
+Beats: down paths, which nobody runs until the day they matter and so are
+never proven.
+Costs: every migration needs a fresh backup taken first, and a restore loses
+anything written after it. Item 14a's destructive migration is the first to
+rely on this, with its own yes.
+
+## D177 - A malformed stored menu reads as empty and logs an error (2026-10-02)
+
+**Chose:** `parseStoredNavigation` parses `site_settings.navigation` with
+`navigationSchema`; a value that fails reads as an empty menu and logs one
+error naming the column (F-96), matching D61's "degrade silently" for this
+table.
+Beats: failing loudly as `blocks_format` does, which would 500 the one screen
+that can repair it.
+Costs: a corrupted menu disappears from the public site until someone saves
+Settings again; only the log says why.
+
+## D178 - A settings save without `homePageId` is refused, not half-applied (2026-10-02)
+
+**Chose:** a Settings POST with no `homePageId` field answers 400 with "This
+form is out of date. Reload the page and try again." and changes nothing
+(F-107).
+Beats: leaving the home page unchanged, which needs a third state in the
+update and hides a stale form instead of telling the person.
+Costs: a stale tab loses its unsaved edits on reload. F-138 notes the field
+can still be cleared one save later.
+
+## D179 - Settings bodies are capped at 16 KB (2026-10-02)
+
+**Chose:** the Settings action checks `Content-Length` against 16 KB before
+reading the body and answers 413 above it, or when the length is missing or
+not a number (F-117). 20 menu rows and a title are well under it.
+Beats: reading an unbounded body into memory on a 954 MB server.
+Costs: menus with long non-Latin labels can approach the cap (F-139).
+
+## D180 - The posts and pages lists build every return URL from their parsed query (2026-10-02)
+
+**Chose:** one `entryListHref` / `entryListSearch` in `entry-list-query.ts`
+builds the list URL from the parsed query - `status`, `q`, `page` only,
+defaults omitted - for Cancel, the redirect after delete and the
+past-the-last-page redirect. The "deleted" banner rides through the clamp,
+read by `readBanner` and rebuilt by `bannerRedirect` (F-56, F-61, F-136).
+Beats: echoing the incoming query string into a redirect, which lets
+arbitrary values reach the URL.
+Costs: a new list filter must be added to the parser and the builder, or a
+delete drops it.

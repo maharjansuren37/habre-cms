@@ -8,6 +8,7 @@ import type { Route } from "./+types/page-delete";
 import { bannerRedirect } from "./banner.ts";
 import { deleteEntry, findEntryForUser } from "./entries.server.ts";
 import styles from "./entry-delete.module.css";
+import { entryListHref, parseEntryListQuery } from "./entry-list-query.ts";
 
 // Editor and admin only, same as the rest of /admin/pages*.
 export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin", "editor"])];
@@ -30,24 +31,32 @@ export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `Delete "${loaderData?.entry.title ?? "page"}" - Habre CMS` }];
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ request, params, context }: Route.LoaderArgs) {
   // findEntryForUser already returns null for a page that does not exist -
   // pages have no author-ownership restriction (only admin/editor reach this
   // route at all), but the same "not found, not forbidden" shape still applies.
   const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
   if (!entry) throw data("Not Found", { status: 404 });
-  return { entry };
+  // The list state the person came from, so Cancel returns to it. Read
+  // through the list's own parser: nothing but status, q and page gets through.
+  const listQuery = parseEntryListQuery(new URL(request.url));
+  return { entry, listHref: entryListHref("/admin/pages", listQuery) };
 }
 
-export async function action({ params, context }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePageId(params.id);
   const deleted = await deleteEntry("page", id, context.get(userContext));
   if (!deleted) throw data("Not Found", { status: 404 });
-  return bannerRedirect("deleted", deleted.title, "/admin/pages");
+  return bannerRedirect(
+    "deleted",
+    deleted.title,
+    "/admin/pages",
+    parseEntryListQuery(new URL(request.url)),
+  );
 }
 
 export default function DeletePage({ loaderData }: Route.ComponentProps) {
-  const { entry } = loaderData;
+  const { entry, listHref } = loaderData;
 
   return (
     <section className={styles.confirm}>
@@ -56,7 +65,7 @@ export default function DeletePage({ loaderData }: Route.ComponentProps) {
         <strong>{entry.title}</strong> will be removed. This cannot be undone.
       </p>
       <div className={styles.actions}>
-        <Link className={`${buttonStyles.button} ${buttonStyles.quiet}`} to="/admin/pages">
+        <Link className={`${buttonStyles.button} ${buttonStyles.quiet}`} to={listHref}>
           Cancel
         </Link>
         <Form method="post">

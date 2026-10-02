@@ -33,7 +33,9 @@ export async function loader({ params }: Route.LoaderArgs) {
       },
     ]),
   );
-  return { post, mediaById };
+  // The view never reads these, so they stay off the wire (F-108).
+  const { id: _id, isHomePage: _isHomePage, ...publicPost } = post;
+  return { post: publicPost, mediaById };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {
