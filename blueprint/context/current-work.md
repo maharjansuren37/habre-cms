@@ -97,7 +97,7 @@ is themed once, not twice.
       missing public URL (404) have `<html data-surface="site">`, computed
       `color-scheme` `light`, body background `rgb(255, 255, 255)`; an admin
       page under the same emulation keeps `rgb(24, 17, 13)`.
-- [ ] **Step 4 - Contrast proved on the real app** - `e2e/contrast.spec.ts`
+- [x] **Step 4 - Contrast proved on the real app** - `e2e/contrast.spec.ts`
       resolves each role on a probe element (computed `color`, so
       `light-dark()` is resolved by the browser) and asserts the pairs of
       `prototypes/checks/contrast.mjs` at their minimums (4.5 or 3), less the
