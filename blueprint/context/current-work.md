@@ -2,8 +2,8 @@
 
 **From build plan:** item 14a1
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-02 - every done-when proven by browser tests against the served app; full suite 135 passed, `npm run verify` green (243 unit)
+**Reviewed:** 2026-10-02, d95e1a83098a, current, every lens - 0 blocking
 
 ## Goal
 
