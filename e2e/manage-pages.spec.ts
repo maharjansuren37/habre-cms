@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -27,8 +28,7 @@ test.afterEach(async () => {
 });
 
 async function writeBody(page: Page, text: string) {
-  const canvas = page.locator("[contenteditable=true]").first();
-  await canvas.waitFor();
+  const canvas = page.getByRole("textbox", { name: "Page content" });
   await canvas.click();
   await page.keyboard.type(text);
 }
@@ -51,16 +51,9 @@ test("an editor can write, publish, edit and delete a page, entirely under /admi
   // A page is served at its own address off the site root, not under /posts/.
   await expect(page.getByText("/about", { exact: false })).toBeVisible();
 
-  // Edit its content: retyping into an already-loaded Editor.js block turned
-  // out to be unreliable in this harness (three different interaction
-  // techniques - click+End, click+Ctrl/Cmd+A, with and without confirming the
-  // DOM change first - each passed some runs and silently saved the old body
-  // on others, with no confirmed cause). Editing the title exercises the
-  // identical `saveEntry` round trip through a plain input instead, which is
-  // deterministic - matching this project's own precedent of not driving a
-  // flaky rich-text interaction when it is not worth what it adds
-  // ("Driving the floating menu proved too flaky", write-post.spec.ts).
-  await expect(page.locator("[contenteditable=true]").first()).toContainText("Who we are.");
+  // Edit it through the title: the same `saveEntry` round trip as a body edit,
+  // which document-editor.spec.ts covers.
+  await expect(page.getByRole("textbox", { name: "Page content" })).toContainText("Who we are.");
   await page.getByPlaceholder("Page title").fill("About us");
   // A second save never navigates (unlike the first, which redirects here
   // from /new) - waitForURL is a no-op against an already-matching URL, so
@@ -107,7 +100,7 @@ test("a page titled after a route address gets a non-colliding one instead", asy
 
 test("an author is refused on every pages route, and Pages is not in the nav", async ({ page }) => {
   await setRole(editor.email, "author");
-  const id = await createDraftFor(editor.email, "Author cannot reach this", [], {
+  const id = await createDraftFor(editor.email, "Author cannot reach this", textDocument(), {
     status: "draft",
     type: "page",
   });
@@ -132,8 +125,14 @@ test("an author is refused on every pages route, and Pages is not in the nav", a
 test("a page number past the last page lands on the last page", async ({ page }) => {
   // A unique search keeps other specs' pages out of an editor's unscoped list (F-137).
   const tag = `Past${randomInt(1_000_000)}`;
-  await createDraftFor(editor.email, `${tag} one`, [], { status: "draft", type: "page" });
-  await createDraftFor(editor.email, `${tag} two`, [], { status: "draft", type: "page" });
+  await createDraftFor(editor.email, `${tag} one`, textDocument(), {
+    status: "draft",
+    type: "page",
+  });
+  await createDraftFor(editor.email, `${tag} two`, textDocument(), {
+    status: "draft",
+    type: "page",
+  });
   await logIn(page, editor);
 
   await page.goto(`/admin/pages?q=${tag}&page=99`);
@@ -145,8 +144,11 @@ test("a page number past the last page lands on the last page", async ({ page })
 });
 
 test("the Search button submits the search", async ({ page }) => {
-  await createDraftFor(editor.email, "Spring planting day", [], { status: "draft", type: "page" });
-  await createDraftFor(editor.email, "Zebra migration report", [], {
+  await createDraftFor(editor.email, "Spring planting day", textDocument(), {
+    status: "draft",
+    type: "page",
+  });
+  await createDraftFor(editor.email, "Zebra migration report", textDocument(), {
     status: "draft",
     type: "page",
   });
@@ -162,12 +164,18 @@ test("the Search button submits the search", async ({ page }) => {
 });
 
 test("deleting or canceling from a filtered, searched list returns to it", async ({ page }) => {
-  await createDraftFor(editor.email, "Alpha keep", [], { status: "draft", type: "page" });
-  const id = await createDraftFor(editor.email, "Alpha remove", [], {
+  await createDraftFor(editor.email, "Alpha keep", textDocument(), {
     status: "draft",
     type: "page",
   });
-  await createDraftFor(editor.email, "Alpha published", [], { status: "published", type: "page" });
+  const id = await createDraftFor(editor.email, "Alpha remove", textDocument(), {
+    status: "draft",
+    type: "page",
+  });
+  await createDraftFor(editor.email, "Alpha published", textDocument(), {
+    status: "published",
+    type: "page",
+  });
   await logIn(page, editor);
   const listUrl = "/admin/pages?status=draft&q=Alpha";
 
@@ -195,7 +203,7 @@ test("deleting the only row on the last page keeps the deleted banner (F-136)", 
 }) => {
   const tag = `Tidy${randomInt(1_000_000)}`;
   for (let n = 1; n <= 21; n++) {
-    await createDraftFor(editor.email, `${tag} ${String(n).padStart(2, "0")}`, [], {
+    await createDraftFor(editor.email, `${tag} ${String(n).padStart(2, "0")}`, textDocument(), {
       status: "draft",
       type: "page",
     });

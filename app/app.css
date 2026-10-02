@@ -207,6 +207,10 @@
   --color-info-subtle: var(--blue-50);
   --color-focus-ring: var(--neutral-900);
   --color-overlay: #0a0a0a80;
+  /* The editor's chrome over the canvas (the section chip): Habre's rust at
+     the canvas's own light scheme, so it shows inside dark Habre too. */
+  --color-selection: var(--rust-700);
+  --color-on-selection: var(--neutral-0);
   --shadow-sm: 0 1px 2px #0a0a0a14;
   --shadow-md: 0 4px 12px #0a0a0a1f;
   --shadow-lg: 0 12px 32px #0a0a0a2e;

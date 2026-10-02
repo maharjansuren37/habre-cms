@@ -92,15 +92,14 @@ export async function entriesBy(
 export async function createDraftFor(
   email: string,
   title: string,
-  blocks: unknown[],
+  /** A v4 document (see `e2e/helpers/documents.ts`). */
+  blocks: unknown,
   options: {
     status?: "draft" | "published";
     publishedAt?: Date;
     /** Defaults to "post" - most callers are posts tests; item 6a's pages
      *  tests pass "page" to seed a page instead. */
     type?: "post" | "page";
-    /** Defaults to "v2" (the column default); a page of sections is "v3". */
-    blocksFormat?: "v2" | "v3";
   } = {},
 ): Promise<string> {
   const status = options.status ?? "draft";
@@ -114,7 +113,7 @@ export async function createDraftFor(
     const [row] = await sql<{ id: string }[]>`
       insert into entries (type, title, slug, blocks, blocks_format, status, published_at, author_id)
       select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
-             ${sql.json(blocks as never)}, ${options.blocksFormat ?? "v2"}, ${status}, ${publishedAt}, id
+             ${sql.json(blocks as never)}, 'v4', ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id
     `;
@@ -133,12 +132,14 @@ export async function entryExists(id: string): Promise<boolean> {
   return exists;
 }
 
-/** Test-only: the blocks and version stored for one entry, as the database holds them. */
-export async function storedEntry(id: string): Promise<{ blocks: unknown; version: number }> {
-  let entry = { blocks: null as unknown, version: 0 };
+/** Test-only: the blocks, their format and version stored for one entry, as the database holds them. */
+export async function storedEntry(
+  id: string,
+): Promise<{ blocks: unknown; blocksFormat: string; version: number }> {
+  let entry = { blocks: null as unknown, blocksFormat: "", version: 0 };
   await withDatabase(async (sql) => {
-    const [row] = await sql<{ blocks: unknown; version: number }[]>`
-      select blocks, version from entries where id = ${id}
+    const [row] = await sql<{ blocks: unknown; blocksFormat: string; version: number }[]>`
+      select blocks, blocks_format as "blocksFormat", version from entries where id = ${id}
     `;
     entry = row;
   });

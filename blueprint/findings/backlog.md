@@ -24,27 +24,27 @@ File: e2e/manage-posts.spec.ts:29-53 ("the list is scoped by role, and the tabs'
 ### F-71 [P3] fixed - A cookie comment now describes a reality the hostname split already removed
 File: app/features/auth/session-cookie.server.ts:9-12
 
-### F-50 [P3] deferred - The stored shape is less canonical than the contract says it is
+### F-50 [P3] closed - The stored shape is less canonical than the contract says it is
 File: app/features/blocks/inline-runs.ts:56-71 (`runsSchema`); blueprint/context/current-work.md *Data and contracts* and step 1
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-51 [P3] deferred - An empty list block refuses the whole save, with a raw Zod message
+### F-51 [P3] closed - An empty list block refuses the whole save, with a raw Zod message
 File: app/features/blocks/blocks.ts:38 (`items: z.array(runsSchema).min(1)`), with the empty item dropped at :166
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-52 [P3] deferred - F-43's "native Ctrl+B does nothing" rests on one manual observation, and the mechanism argues against it
+### F-52 [P3] closed - F-43's "native Ctrl+B does nothing" rests on one manual observation, and the mechanism argues against it
 File: app/features/blocks/editor.client.tsx:52-58; e2e/inline-formatting.spec.ts:115-140
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-38 [P3] deferred - Duplicate block ids are accepted, and ids are unconstrained
+### F-38 [P3] closed - Duplicate block ids are accepted, and ids are unconstrained
 File: app/features/blocks/blocks.ts:16, 45
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-39 [P3] deferred - The body cap and the block limits disagree, and the refusal destroys the draft
+### F-39 [P3] closed - The body cap and the block limits disagree, and the refusal destroys the draft
 File: app/features/content/post-form-input.ts:7, app/features/content/post-edit.tsx:37
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: a refused save never loses the draft (owner, 2026-10-02)
 
-### F-31 [P3] deferred - The editor placeholder may never appear
+### F-31 [P3] closed - The editor placeholder may never appear
 File: app/features/blocks/editor.client.tsx:42 (`placeholder: "Write your post…"`)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
@@ -114,7 +114,7 @@ File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
 ### F-102 [P3] fixed - The CSP browser test is described as covering more screens than it visits
 File: app/lib/zod-jitless.client.ts:8-9; e2e/content-security-policy.spec.ts:148
 
-### F-104 [P3] deferred - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
+### F-104 [P3] closed - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
 File: app/features/public-site/post.tsx:21-34
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
@@ -139,11 +139,11 @@ File: app/features/blocks/blocks.ts (`fromEditorJsSections`, `UNREADABLE_SHAPE`)
 ### F-121 [P3] fixed - The design record says focus lands on the next section after a remove; the code lands on the previous one when the last is removed
 File: blueprint/context/design.md (*Sections*); app/features/blocks/sections-editor.client.tsx (`remove`)
 
-### F-127 [P3] deferred - The hero parser's "character that cannot be saved" refusal has no test
+### F-127 [P3] closed - The hero parser's "character that cannot be saved" refusal has no test
 File: app/features/blocks/blocks.ts (`heroFromFields`, now `slotSectionFromFields`; applies to the call to action too)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-128 [P3] deferred - Hero-named identifiers now serve both ready-made kinds
+### F-128 [P3] closed - Hero-named identifiers now serve both ready-made kinds
 File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor.client.tsx (HERO_FIELDS, HeroForm); sections-editor.module.css (.hero*)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
@@ -177,3 +177,18 @@ File: app/app.css (`:root` roles); build output
 
 ### F-150 [P3] unverified - The font face declares only `format("woff2-variations")`
 File: app/app.css:13-19
+
+### F-156 [P3] open - A link with mixed formatting renders as several adjacent links
+File: app/features/blocks/render.tsx:108-117 (`renderText`)
+
+### F-159 [P3] open - The contract's caps are copied into several files
+File: app/features/blocks/document.ts:28,34,47,52; inline-runs.ts:9; document-editor.client.tsx:26,28,623
+
+### F-161 [P3] open - Two test gaps: the placeholder is untested, and the caps timing test moves the caret without settling
+File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
+
+### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
+File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
+
+### F-165 [P3] open - The Text style select's label is visually hidden
+File: app/features/blocks/document-editor.client.tsx:520-522

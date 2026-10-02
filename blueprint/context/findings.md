@@ -21,10 +21,6 @@
 ### F-72 [P2] fixed - Item 4c's env-var rename breaks the proven symlink-only rollback for this specific release
 File: /etc/systemd/system/habre-cms.service on `ocwebserver`; deploy/habre-cms.service in the repo
 
-### F-29 [P2] deferred - The writing area has no accessible name
-File: app/features/blocks/editor.client.tsx:68
-Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: the new editor's writing area has an accessible name (owner, 2026-10-02)
-
 ### F-25 [P2] open - Two people starting the same-titled post at once can get a 500
 File: app/features/content/entries.server.ts:44-66 (`createDraft`)
 
@@ -51,3 +47,6 @@ File: dev-notes/status.md (*Where this stands*); README.md:18; CHANGELOG.md
 
 ### F-151 [P2] unverified - A percent-encoded admin path (`/%61dmin/...`) may route to an admin screen while host routing, the CSP and the site scope see a public path
 File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.ts; app/root.tsx
+
+### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
+File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx

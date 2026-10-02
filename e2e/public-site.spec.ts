@@ -1,7 +1,5 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
-import { logIn } from "./helpers/auth.ts";
-import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
-import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
+import { inSection, listItem, textDocument } from "./helpers/documents.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -22,15 +20,15 @@ test.afterEach(async () => {
 });
 
 test("/posts lists only published posts, newest first", async ({ page }) => {
-  await createDraftFor(author.email, "Older Published", [], {
+  await createDraftFor(author.email, "Older Published", textDocument(), {
     status: "published",
     publishedAt: new Date("2026-01-01T00:00:00Z"),
   });
-  await createDraftFor(author.email, "Newer Published", [], {
+  await createDraftFor(author.email, "Newer Published", textDocument(), {
     status: "published",
     publishedAt: new Date("2026-02-01T00:00:00Z"),
   });
-  await createDraftFor(author.email, "A Draft", [], { status: "draft" });
+  await createDraftFor(author.email, "A Draft", textDocument(), { status: "draft" });
 
   await page.goto("/posts");
   // Only this test's own titles: other specs publish posts of their own, and the
@@ -49,7 +47,9 @@ test("with nothing published, /posts says so instead of showing a blank page", a
 test("with no home page chosen, / shows the placeholder under the site title, not the post list", async ({
   page,
 }) => {
-  await createDraftFor(author.email, "Placeholder Spec Post", [], { status: "published" });
+  await createDraftFor(author.email, "Placeholder Spec Post", textDocument(), {
+    status: "published",
+  });
 
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Habre CMS" })).toBeVisible();
@@ -64,13 +64,12 @@ test("with no home page chosen, / shows the placeholder under the site title, no
 test("a published page and post ship no entry id and no settings beyond title, logo and menu", async ({
   request,
 }) => {
-  const postId = await createDraftFor(author.email, "Lean Data Post", [], {
+  const postId = await createDraftFor(author.email, "Lean Data Post", textDocument(), {
     status: "published",
   });
-  const pageId = await createDraftFor(author.email, "Lean Data Page", [], {
+  const pageId = await createDraftFor(author.email, "Lean Data Page", textDocument(), {
     status: "published",
     type: "page",
-    blocksFormat: "v3",
   });
 
   for (const [path, id] of [
@@ -95,30 +94,34 @@ test("a published post renders its blocks and inline formatting as real elements
   await createDraftFor(
     author.email,
     "Rendered Post",
-    [
+    inSection(
       {
-        id: "b1",
-        type: "text",
-        data: {
-          text: [
-            { text: "Plain para with " },
-            { text: "bold", bold: true },
-            { text: " and " },
-            { text: "a link", href: "https://example.com" },
-            { text: "." },
-          ],
-        },
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Plain para with " },
+          { type: "text", text: "bold", marks: [{ type: "bold" }] },
+          { type: "text", text: " and " },
+          {
+            type: "text",
+            text: "a link",
+            marks: [{ type: "link", attrs: { href: "https://example.com" } }],
+          },
+          { type: "text", text: "." },
+        ],
       },
-      { id: "b2", type: "heading", data: { level: 2, text: [{ text: "A heading" }] } },
       {
-        id: "b3",
-        type: "list",
-        data: {
-          style: "bullet",
-          items: [[{ text: "item one" }], [{ text: "item two", italic: true }]],
-        },
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "A heading" }],
       },
-    ],
+      {
+        type: "bulletList",
+        content: [
+          listItem([{ type: "text", text: "item one" }]),
+          listItem([{ type: "text", text: "item two", marks: [{ type: "italic" }] }]),
+        ],
+      },
+    ),
     { status: "published" },
   );
 
@@ -132,40 +135,11 @@ test("a published post renders its blocks and inline formatting as real elements
   await expect(page.locator("main em")).toHaveText("item two");
 });
 
-test("a published image block shows a caption of the media's own alt text", async ({ page }) => {
-  test.skip(skipWithoutStorage, STORAGE_REASON);
-  // Uploading needs a logged-in session; viewing the published post afterward does not.
-  await logIn(page, author);
-  const origin = new URL(page.url()).origin;
-  const { id: mediaId } = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
-  try {
-    await createDraftFor(
-      author.email,
-      "Captioned Post",
-      [{ id: "b1", type: "image", data: { mediaId } }],
-      { status: "published" },
-    );
-
-    await page.goto("/posts/captioned-post");
-    const figure = page.locator("main figure");
-    await expect(figure.locator("img")).toHaveAttribute("alt", "A fixture pixel");
-    await expect(figure.locator("figcaption")).toHaveText("A fixture pixel");
-  } finally {
-    await deleteTestMedia(mediaId);
-  }
-});
-
 test("markup in a post's text renders as text on the public page, never runs", async ({ page }) => {
   await createDraftFor(
     author.email,
     "XSS Check",
-    [
-      {
-        id: "b1",
-        type: "text",
-        data: { text: [{ text: "use <img src=x onerror=\"document.title='XSS-FIRED'\"> here" }] },
-      },
-    ],
+    textDocument("use <img src=x onerror=\"document.title='XSS-FIRED'\"> here"),
     { status: "published" },
   );
 
@@ -180,7 +154,7 @@ test("markup in a post's text renders as text on the public page, never runs", a
 test("a draft's URL 404s inside the public chrome, not root's bare error page", async ({
   page,
 }) => {
-  await createDraftFor(author.email, "Hidden Draft", [], { status: "draft" });
+  await createDraftFor(author.email, "Hidden Draft", textDocument(), { status: "draft" });
 
   const draftResponse = await page.goto("/posts/hidden-draft");
   expect(draftResponse?.status()).toBe(404);
@@ -192,52 +166,38 @@ test("a draft's URL 404s inside the public chrome, not root's bare error page", 
   await expect(page.getByText("Page not found.")).toBeVisible();
 });
 
-test("a published page renders its blocks, including an image with caption, at its own address", async ({
-  page,
-}) => {
-  test.skip(skipWithoutStorage, STORAGE_REASON);
-  await logIn(page, author);
-  const origin = new URL(page.url()).origin;
-  const { id: mediaId } = await uploadTestMedia(page.request, origin, "1x1.jpg", "A fixture pixel");
-  try {
-    await createDraftFor(
-      author.email,
-      "Rendered Page",
-      [
-        { id: "b1", type: "heading", data: { level: 2, text: [{ text: "A heading" }] } },
-        {
-          id: "b2",
-          type: "list",
-          data: { style: "bullet", items: [[{ text: "item one" }], [{ text: "item two" }]] },
-        },
-        { id: "b3", type: "image", data: { mediaId } },
-      ],
-      { status: "published", type: "page" },
-    );
+test("a published page renders its blocks at its own address", async ({ page }) => {
+  await createDraftFor(
+    author.email,
+    "Rendered Page",
+    inSection(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "A heading" }],
+      },
+      {
+        type: "orderedList",
+        content: [
+          listItem([{ type: "text", text: "item one" }]),
+          listItem([{ type: "text", text: "item two" }]),
+        ],
+      },
+    ),
+    { status: "published", type: "page" },
+  );
 
-    await page.goto("/rendered-page");
-    await expect(page.getByRole("heading", { level: 1, name: "Rendered Page" })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2, name: "A heading" })).toBeVisible();
-    await expect(page.locator("main li")).toHaveText(["item one", "item two"]);
-    const figure = page.locator("main figure");
-    await expect(figure.locator("img")).toHaveAttribute("alt", "A fixture pixel");
-    await expect(figure.locator("figcaption")).toHaveText("A fixture pixel");
-  } finally {
-    await deleteTestMedia(mediaId);
-  }
+  await page.goto("/rendered-page");
+  await expect(page.getByRole("heading", { level: 1, name: "Rendered Page" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "A heading" })).toBeVisible();
+  await expect(page.locator("main li")).toHaveText(["item one", "item two"]);
 });
 
 test("markup in a page's text renders as text on the public page, never runs", async ({ page }) => {
   await createDraftFor(
     author.email,
     "Page XSS Check",
-    [
-      {
-        id: "b1",
-        type: "text",
-        data: { text: [{ text: "use <img src=x onerror=\"document.title='XSS-FIRED'\"> here" }] },
-      },
-    ],
+    textDocument("use <img src=x onerror=\"document.title='XSS-FIRED'\"> here"),
     { status: "published", type: "page" },
   );
 
@@ -250,7 +210,10 @@ test("markup in a page's text renders as text on the public page, never runs", a
 test("a draft page's URL 404s inside the public chrome, and so does an unclaimed slug", async ({
   page,
 }) => {
-  await createDraftFor(author.email, "Hidden Draft Page", [], { status: "draft", type: "page" });
+  await createDraftFor(author.email, "Hidden Draft Page", textDocument(), {
+    status: "draft",
+    type: "page",
+  });
 
   const draftResponse = await page.goto("/hidden-draft-page");
   expect(draftResponse?.status()).toBe(404);
@@ -276,8 +239,11 @@ async function measureP95(request: APIRequestContext, url: string, samples = 30)
 }
 
 test("public pages meet the quality bar's 500ms p95 (server-side)", async ({ request }) => {
-  await createDraftFor(author.email, "Timing Post", [], { status: "published" });
-  await createDraftFor(author.email, "Timing Page", [], { status: "published", type: "page" });
+  await createDraftFor(author.email, "Timing Post", textDocument(), { status: "published" });
+  await createDraftFor(author.email, "Timing Page", textDocument(), {
+    status: "published",
+    type: "page",
+  });
 
   const homeP95 = await measureP95(request, "/");
   const postP95 = await measureP95(request, "/posts/timing-post");

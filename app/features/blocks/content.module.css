@@ -1,0 +1,113 @@
+/* A v4 document's sections, columns and blocks (item 14a1, D169) - the one
+   stylesheet the public site and the editor's canvas share, so the canvas
+   shows exactly what will publish (design.md, *Editor decisions*). Ported from
+   prototypes/components.css *Sections and columns* and *Blocks*, in this
+   app's token names.
+
+   Columns stack when the space they are drawn in is narrower than 40rem - a
+   container query, not a media query, so the window on the site and the canvas
+   in the editor behave identically. */
+
+.document {
+  container-type: inline-size;
+}
+
+.section + .section {
+  margin-top: var(--space-7);
+}
+
+.section[data-background="band"] {
+  padding: var(--space-6) var(--space-5);
+  background: var(--color-surface-sunken);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 1), minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* The count is read from the columns themselves rather than from an
+   attribute or an inline style: the public Content-Security-Policy refuses
+   inline styles, and in the editor the columns change under a section that is
+   not redrawn. `~` rather than `+`, so anything ProseMirror draws between
+   columns (its gap cursor) does not break the count. */
+.columns:has(> .column ~ .column) {
+  --columns: 2;
+}
+
+.columns:has(> .column ~ .column ~ .column) {
+  --columns: 3;
+}
+
+.section[data-align="middle"] .columns {
+  align-items: center;
+}
+
+.column {
+  min-width: 0;
+}
+
+@container (width < 40rem) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A column whose blocks are all empty keeps its cell side by side, so the
+     next one does not slide into it; stacked, it is only a gap. */
+  .column:empty {
+    display: none;
+  }
+}
+
+/* Blocks, top to bottom in a column. */
+.column > * {
+  margin: 0;
+}
+
+.column > * + * {
+  margin-top: var(--space-5);
+}
+
+.column > * + :is(h2, h3, h4, h5, h6) {
+  margin-top: var(--space-6);
+}
+
+.column :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-family-heading);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.column h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+}
+
+.column h2 {
+  font-size: var(--text-xl);
+}
+
+.column :is(h3, h4, h5, h6) {
+  font-size: var(--text-lg);
+}
+
+.column :is(ul, ol) {
+  padding-left: var(--space-5);
+}
+
+.column li + li {
+  margin-top: var(--space-2);
+}
+
+.column blockquote {
+  padding-left: var(--space-5);
+  border-left: 3px solid var(--color-primary);
+  font-family: var(--font-family-heading);
+  font-size: var(--text-xl);
+}
+
+.column blockquote > p + p {
+  margin-top: var(--space-2);
+}

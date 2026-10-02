@@ -31,7 +31,7 @@ test("the public policy is the shared directives with styles and images from kno
   assert.deepEqual(directives(header), { ...SHARED, "style-src": "'self'" });
 });
 
-test("the admin policy also allows inline styles and data: images, for Editor.js", () => {
+test("the admin policy also allows inline styles and data: images", () => {
   const header = contentSecurityPolicy({ nonce: "abc123==", area: "admin", imageBaseUrl: R2 });
   assert.deepEqual(directives(header), {
     ...SHARED,

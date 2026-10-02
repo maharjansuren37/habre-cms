@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
 import {
   createAdmin,
@@ -22,7 +23,7 @@ test.beforeEach(async ({ page }) => {
   });
   admin = createAdmin("Home Page Admin");
   pageTitle = `Welcome ${randomInt(1_000_000)}`;
-  pageId = await createDraftFor(admin.email, pageTitle, [], { type: "page" });
+  pageId = await createDraftFor(admin.email, pageTitle, textDocument(), { type: "page" });
 });
 
 test.afterEach(async () => {
@@ -100,7 +101,11 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
 }) => {
   // D-6: the foreign key cannot tell a page from a post, and an unknown id
   // would reach the database as an unhandled 23503 (F-89's pattern).
-  const postId = await createDraftFor(admin.email, `Not a page ${randomInt(1_000_000)}`, []);
+  const postId = await createDraftFor(
+    admin.email,
+    `Not a page ${randomInt(1_000_000)}`,
+    textDocument(),
+  );
   const titleBefore = await storedSiteTitle();
   await logIn(page, admin);
   const origin = new URL(page.url()).origin;
@@ -121,7 +126,7 @@ test("/ shows the placeholder by default, never the posts, which are at /posts (
   page,
 }) => {
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
-  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+  await createDraftFor(admin.email, postTitle, textDocument(), { status: "published" });
 
   await page.goto("/");
   await expect(page.getByText("This site is being set up.")).toBeVisible();
@@ -136,15 +141,13 @@ test("a chosen page takes /, its own address lands on /, and unpublishing it bri
   page,
 }) => {
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
-  await createDraftFor(admin.email, postTitle, [], { status: "published" });
+  await createDraftFor(admin.email, postTitle, textDocument(), { status: "published" });
   const homeTitle = `Front Door ${randomInt(1_000_000)}`;
   const homeSlug = homeTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  await createDraftFor(
-    admin.email,
-    homeTitle,
-    [{ id: "welcome", type: "text", data: { text: [{ text: "Welcome to the front door." }] } }],
-    { status: "published", type: "page" },
-  );
+  await createDraftFor(admin.email, homeTitle, textDocument("Welcome to the front door."), {
+    status: "published",
+    type: "page",
+  });
 
   await logIn(page, admin);
   await page.goto("/admin/settings");
@@ -185,11 +188,16 @@ test("with a home page set, a post's All posts link still leads to the post list
 }) => {
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
   const postSlug = postTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  await createDraftFor(admin.email, postTitle, [], { status: "published" });
-  const homeId = await createDraftFor(admin.email, `Front Door ${randomInt(1_000_000)}`, [], {
-    status: "published",
-    type: "page",
-  });
+  await createDraftFor(admin.email, postTitle, textDocument(), { status: "published" });
+  const homeId = await createDraftFor(
+    admin.email,
+    `Front Door ${randomInt(1_000_000)}`,
+    textDocument(),
+    {
+      status: "published",
+      type: "page",
+    },
+  );
   await withDatabase((sql) => sql`update site_settings set home_page_id = ${homeId} where id = 1`);
 
   await page.goto(`/posts/${postSlug}`);

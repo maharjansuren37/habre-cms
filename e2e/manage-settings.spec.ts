@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
@@ -68,8 +69,11 @@ test("every public page's browser title names the site, not the CMS (F-116)", as
   const postTitle = `Title Spec Post ${randomInt(1_000_000)}`;
   const pageTitle = `Title Spec Page ${randomInt(1_000_000)}`;
   const slugOf = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  await createDraftFor(admin.email, postTitle, [], { status: "published" });
-  await createDraftFor(admin.email, pageTitle, [], { status: "published", type: "page" });
+  await createDraftFor(admin.email, postTitle, textDocument(), { status: "published" });
+  await createDraftFor(admin.email, pageTitle, textDocument(), {
+    status: "published",
+    type: "page",
+  });
 
   await logIn(page, admin);
   await page.goto("/admin/settings");

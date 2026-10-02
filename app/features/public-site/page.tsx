@@ -2,7 +2,6 @@ import { data, redirect } from "react-router";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/page";
 import { PageBody } from "./page-body.tsx";
-import { resolvePageMedia } from "./page-media.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -17,12 +16,11 @@ export async function loader({ params }: Route.LoaderArgs) {
   // One address per page (D-4): the home page lives at `/`. Temporary, since
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
-  const mediaById = await resolvePageMedia(page.sections);
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
-  return { page: publicPage, mediaById };
+  return { page: publicPage };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {
-  return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} />;
+  return <PageBody page={loaderData.page} />;
 }

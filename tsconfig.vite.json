@@ -19,14 +19,6 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "rootDirs": [".", "./.react-router/types"],
-    // Editor.js ships .ts type sources containing `enum`, which erasableSyntaxOnly
-    // forbids and skipLibCheck does not cover. app/types/editorjs.d.ts describes
-    // what we use; Vite still bundles the real packages.
-    "paths": {
-      "@editorjs/editorjs": ["./app/types/editorjs.d.ts"],
-      "@editorjs/header": ["./app/types/editorjs.d.ts"],
-      "@editorjs/list": ["./app/types/editorjs.d.ts"]
-    },
     "esModuleInterop": true,
     "resolveJsonModule": true
   }

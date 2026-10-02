@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -9,7 +10,6 @@ import {
   deleteEntriesBy,
   deleteTestUser,
   type TestUser,
-  withDatabase,
 } from "./helpers/users.ts";
 
 // Habre's tokens and self-hosted Inter, read from the real login page
@@ -128,10 +128,10 @@ test.describe("the admin shell", () => {
 
   test("the posts list does not scroll sideways at 390px", async ({ page }) => {
     // Rows with long titles and addresses: an empty list cannot overflow.
-    await createDraftFor(admin.email, "A published post about gardens", [], {
+    await createDraftFor(admin.email, "A published post about gardens", textDocument(), {
       status: "published",
     });
-    await createDraftFor(admin.email, "A draft still being written", []);
+    await createDraftFor(admin.email, "A draft still being written", textDocument());
     await page.setViewportSize({ width: 390, height: 844 });
     await logIn(page, admin);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -141,7 +141,7 @@ test.describe("the admin shell", () => {
   test("the users list and a delete confirmation do not scroll sideways at 390px", async ({
     page,
   }) => {
-    const id = await createDraftFor(admin.email, "A published post about gardens", [], {
+    const id = await createDraftFor(admin.email, "A published post about gardens", textDocument(), {
       status: "published",
     });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -232,40 +232,38 @@ test.describe("the public pages", () => {
     await deleteTestUser(author.email);
   });
 
-  test("the home page, a post and a page of ready-made sections do not scroll sideways at 390px", async ({
+  test("the home page, a post and a page of sections and columns do not scroll sideways at 390px", async ({
     page,
   }) => {
     const suffix = randomInt(1_000_000);
-    await createDraftFor(author.email, `A published post about gardens ${suffix}`, [], {
+    await createDraftFor(author.email, `A published post about gardens ${suffix}`, textDocument(), {
       status: "published",
     });
     const pageTitle = `Theme sections ${suffix}`;
-    const pageId = await createDraftFor(author.email, pageTitle, [], {
-      type: "page",
-      blocksFormat: "v3",
-      status: "published",
+    const column = (...texts: string[]) => ({
+      type: "column" as const,
+      content: texts.map((text) => ({
+        type: "paragraph" as const,
+        content: [{ type: "text" as const, text }],
+      })),
     });
-    const button = { label: "Read more", href: "/about" };
-    const sections = [
+    const section = (...columns: ReturnType<typeof column>[]) => ({
+      type: "section" as const,
+      attrs: { align: "top" as const, background: "none" as const },
+      content: columns,
+    });
+    await createDraftFor(
+      author.email,
+      pageTitle,
       {
-        id: "h",
-        type: "hero",
-        data: { heading: "Welcome to the garden", text: "A line about us.", button },
+        type: "doc",
+        content: [
+          section(column("Welcome to the garden", "A line about us.")),
+          section(column("Our beds"), column("Raised and sunny.")),
+          section(column("Join us"), column("Come and dig."), column("Bring a spade.")),
+        ],
       },
-      {
-        id: "i",
-        type: "image-text",
-        data: {
-          mediaId: crypto.randomUUID(),
-          heading: "Our beds",
-          text: "Raised and sunny.",
-          button,
-        },
-      },
-      { id: "c", type: "cta", data: { heading: "Join us", text: "Come and dig.", button } },
-    ];
-    await withDatabase(
-      (sql) => sql`update entries set blocks = ${sql.json(sections as never)} where id = ${pageId}`,
+      { type: "page", status: "published" },
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -279,7 +277,7 @@ test.describe("the public pages", () => {
       expect(await sidewaysOverflow(page), path).toEqual([]);
     }
     // The last path is the page itself, not a 404 that also has a heading.
-    await expect(page.getByRole("heading", { name: "Welcome to the garden" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Read more" })).toHaveCount(3);
+    await expect(page.getByText("Welcome to the garden")).toBeVisible();
+    await expect(page.getByText("Bring a spade.")).toBeVisible();
   });
 });

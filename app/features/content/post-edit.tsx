@@ -2,15 +2,12 @@ import { data } from "react-router";
 import { z } from "zod";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { collectImageMediaIds, type ImageMediaSummary } from "#app/features/blocks/blocks.ts";
-import { findMediaByIds } from "#app/features/media/media.server.ts";
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
-import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, saveEntry } from "./entries.server.ts";
+import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
-import { isEntryBodySizeAllowed, parseEntryForm, parseVersion } from "./entry-form-input.ts";
+import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
 
 export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
@@ -36,32 +33,23 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
-  // One query for every image block this entry has, so reopening it shows
-  // them immediately - no picker round trip, no per-image fetch.
-  const rows = await findMediaByIds(collectImageMediaIds(entry.blocks));
-  const mediaById: Record<string, ImageMediaSummary> = Object.fromEntries(
-    rows.map((row) => [
-      row.id,
-      {
-        url: buildMediaUrl(env.R2_PUBLIC_URL, row.storageKey),
-        altText: row.altText,
-        width: row.width,
-        height: row.height,
-      },
-    ]),
-  );
-  return { entry, mediaById };
+  return { entry };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
   if (!isEntryBodySizeAllowed(request.headers)) {
-    throw data("Request too large", { status: 413 });
+    // Returned, not thrown: a thrown 413 replaced the editor with the error
+    // page and lost the draft (F-39). The body is never read.
+    return data(
+      { problem: { kind: "invalid" as const, message: ENTRY_TOO_LONG_MESSAGE } },
+      { status: 413 },
+    );
   }
   const form = await request.formData();
   // A native submit with no JavaScript carries no `intent` at all - the
   // buttons that set it only render once the editor has mounted (F-34's same
-  // condition) - and that has to fall through to `parseEntryForm`'s own
+  // condition) - and that has to fall through to `parseDocumentForm`'s own
   // missing-blocks message below, not a new "action could not be read" one.
   const intent = intentSchema.safeParse(form.get("intent") ?? "save");
   if (!intent.success) {
@@ -70,7 +58,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  const parsed = parseEntryForm(form, "post");
+  const parsed = parseDocumentForm(form, "post");
   if (!parsed.ok) {
     return data(
       { problem: { kind: "invalid" as const, message: parsed.message } },
@@ -85,7 +73,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const result = await saveEntry(
     "post",
     id,
-    { title: parsed.title, blocks: parsed.blocks },
+    { title: parsed.title, document: parsed.document },
     version,
     context.get(userContext),
     intent.data === "save" ? undefined : intent.data,
@@ -105,14 +93,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditPost({ loaderData, actionData }: Route.ComponentProps) {
-  const { entry, mediaById } = loaderData;
+  const { entry } = loaderData;
   return (
     <EntryForm
       entryType="post"
       title={entry.title}
       slug={entry.slug}
-      blocks={entry.blocks}
-      mediaById={mediaById}
+      document={entry.document}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.

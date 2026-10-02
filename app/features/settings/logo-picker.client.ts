@@ -2,11 +2,9 @@ import buttonStyles from "#app/lib/ui/button.module.css";
 import styles from "./logo-picker.module.css";
 
 /**
- * The image block's own picker dialog (`blocks/image-tool.client.ts`),
- * duplicated rather than shared - this is its second use, not its third
- * (current-work.md's Decisions; `fundamentals.md`'s "copy the second time,
- * extract on the third"). Vanilla DOM, called from a plain `onClick` in
- * `settings.tsx` - no Editor.js involved here, just a single logo to pick.
+ * The media picker dialog for the logo. Item 14a1 removed the old image
+ * block's copy of it, so this is now its only use. Vanilla DOM, called from a
+ * plain `onClick` in `settings.tsx`.
  */
 
 const PICKER_ENDPOINT = "/admin/media/picker";

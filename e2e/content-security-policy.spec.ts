@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -32,7 +33,6 @@ type BrowserGlobals = {
   };
   reportCspViolation(violation: string): void;
 };
-type LoadedImage = { complete: boolean; naturalWidth: number };
 
 let admin: TestUser;
 let mediaId: string | undefined;
@@ -82,22 +82,6 @@ async function uploadPixel(page: Page): Promise<string> {
   return uploaded.filename;
 }
 
-/**
- * A blocked image is still "visible" as a broken box, so this waits for real
- * pixels - polled, because the public site's images are `loading="lazy"`.
- */
-async function expectImageLoaded(image: Locator) {
-  await image.scrollIntoViewIfNeeded();
-  await expect
-    .poll(() =>
-      image.evaluate((el) => {
-        const img = el as unknown as LoadedImage;
-        return img.complete && img.naturalWidth > 0;
-      }),
-    )
-    .toBe(true);
-}
-
 test("HTML pages carry the Content-Security-Policy, with inline styles allowed only in the admin", async ({
   page,
 }) => {
@@ -113,30 +97,29 @@ test("HTML pages carry the Content-Security-Policy, with inline styles allowed o
 });
 
 test("the public site renders with nothing refused by the policy", async ({ page }) => {
-  test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
-  await uploadPixel(page);
   await createDraftFor(
     admin.email,
-    "CSP Post With Image",
-    [
-      { id: "t1", type: "text", data: { text: [{ text: "Some " }, { text: "bold", bold: true }] } },
-      { id: "img1", type: "image", data: { mediaId } },
-    ],
+    "CSP Post",
+    inSection({
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Some " },
+        { type: "text", text: "bold", marks: [{ type: "bold" }] },
+      ],
+    }),
     { status: "published" },
   );
-  await createDraftFor(
-    admin.email,
-    "CSP Page",
-    [{ id: "t1", type: "text", data: { text: [{ text: "A page." }] } }],
-    { status: "published", type: "page" },
-  );
+  await createDraftFor(admin.email, "CSP Page", textDocument("A page."), {
+    status: "published",
+    type: "page",
+  });
 
   await page.goto("/posts");
-  await expect(page.getByRole("link", { name: "CSP Post With Image" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "CSP Post" })).toBeVisible();
 
-  await page.goto("/posts/csp-post-with-image");
-  await expectImageLoaded(page.getByRole("img", { name: "A CSP pixel" }));
+  await page.goto("/posts/csp-post");
+  await expect(page.getByText("Some bold")).toBeVisible();
 
   await page.goto("/csp-page");
   await expect(page.getByText("A page.")).toBeVisible();
@@ -154,31 +137,29 @@ test("the post editor, posts list, media, settings and users screens work with n
   await logIn(page, admin);
   const filename = await uploadPixel(page);
 
-  // The editor: text, both inline tools, the + toolbox, and an image from the picker.
+  // The editor: text, the format bar's Bold, and a link through its dialog.
+  // Image blocks return with item 14a2.
   await page.goto("/admin/posts/new");
   await page.getByRole("textbox", { name: "Title" }).fill("CSP Editor Post");
-  const paragraph = page.locator(".ce-paragraph").first();
-  await paragraph.click();
+  const writing = page.getByRole("textbox", { name: "Post content" });
+  await writing.click();
   await page.keyboard.type("Make this bold and linked");
+  // Let the editor settle after typing; a selection made while it is still
+  // catching up is sometimes lost (F-152).
+  await expect(writing).toHaveText("Make this bold and linked");
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
   await page.keyboard.press("Shift+Control+ArrowLeft");
-  await page.locator(".ce-inline-toolbar [data-item-name='bold']").click();
-  await expect(paragraph.locator("b")).toHaveText("linked");
-  await page.keyboard.press("Shift+Control+ArrowLeft");
-  await page.locator(".ce-inline-toolbar .ce-inline-tool--link").click();
-  await page.locator(".ce-inline-tool-input").fill("https://example.com/");
-  await page.keyboard.press("Enter");
-  await expect(paragraph.locator("a")).toHaveAttribute("href", "https://example.com/");
-
-  await page.keyboard.press("End");
-  await page.keyboard.press("Enter");
-  await page.locator(".ce-toolbar__plus").click();
-  await page.locator(".ce-popover-item__title", { hasText: "Image" }).click();
-  await page.getByRole("button", { name: "Choose image" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByText(filename).click();
-  // The editor's image is decorative (alt=""); its alt text shows as a caption.
-  await expect(page.getByText("A CSP pixel")).toBeVisible();
-  await expectImageLoaded(page.locator(".codex-editor img").first());
+  // ProseMirror reads a keyboard selection from `selectionchange`, a separate task.
+  await page.evaluate("new Promise((done) => requestAnimationFrame(() => setTimeout(done)))");
+  await page.getByRole("button", { name: "Bold" }).click();
+  await expect(writing.locator("strong")).toHaveText("linked");
+  await page.getByRole("button", { name: "Link" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a link" });
+  await dialog.getByLabel("Web address").fill("https://example.com/");
+  await dialog.getByRole("button", { name: "Add link" }).click();
+  await expect(writing.locator("a")).toHaveAttribute("href", "https://example.com/");
 
   await page.getByRole("button", { name: "Save draft" }).click();
   await page.waitForURL(/\/admin\/posts\/[0-9a-f-]{36}$/);

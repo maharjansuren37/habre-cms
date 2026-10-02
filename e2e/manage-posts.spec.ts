@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -30,9 +31,11 @@ test("the list is scoped by role, and the tabs' counts match", async ({ page }) 
   const other = createAdmin("Other List Author");
   await setRole(other.email, "author");
   try {
-    await createDraftFor(author.email, "My draft", [], { status: "draft" });
-    await createDraftFor(author.email, "My published post", [], { status: "published" });
-    await createDraftFor(other.email, "Someone else's post", [], { status: "draft" });
+    await createDraftFor(author.email, "My draft", textDocument(), { status: "draft" });
+    await createDraftFor(author.email, "My published post", textDocument(), {
+      status: "published",
+    });
+    await createDraftFor(other.email, "Someone else's post", textDocument(), { status: "draft" });
 
     await logIn(page, author);
     // Newest changed first - "My published post" was created after "My draft".
@@ -73,9 +76,11 @@ test("with no posts at all, the big empty state offers the first one", async ({ 
 });
 
 test("a search narrows the table within the active tab, and clears cleanly", async ({ page }) => {
-  await createDraftFor(author.email, "Spring planting day", [], { status: "draft" });
-  await createDraftFor(author.email, "Zebra migration report", [], { status: "draft" });
-  await createDraftFor(author.email, "Autumn harvest report", [], { status: "published" });
+  await createDraftFor(author.email, "Spring planting day", textDocument(), { status: "draft" });
+  await createDraftFor(author.email, "Zebra migration report", textDocument(), { status: "draft" });
+  await createDraftFor(author.email, "Autumn harvest report", textDocument(), {
+    status: "published",
+  });
   await logIn(page, author);
 
   await page
@@ -105,7 +110,7 @@ test("a search narrows the table within the active tab, and clears cleanly", asy
 });
 
 test("a search with no matches shows a line, not the empty-state panel", async ({ page }) => {
-  await createDraftFor(author.email, "A real post", [], { status: "draft" });
+  await createDraftFor(author.email, "A real post", textDocument(), { status: "draft" });
   await logIn(page, author);
 
   const search = page.getByPlaceholder("Search posts");
@@ -119,7 +124,7 @@ test("a search with no matches shows a line, not the empty-state panel", async (
 
 test("more than one page is paginated, and switching tabs resets to page one", async ({ page }) => {
   for (let n = 1; n <= 25; n++) {
-    await createDraftFor(author.email, `Post ${String(n).padStart(2, "0")}`, [], {
+    await createDraftFor(author.email, `Post ${String(n).padStart(2, "0")}`, textDocument(), {
       status: "draft",
     });
   }
@@ -142,7 +147,9 @@ test("more than one page is paginated, and switching tabs resets to page one", a
 });
 
 test("canceling a delete leaves the post exactly as it was", async ({ page }) => {
-  const id = await createDraftFor(author.email, "Keep this one", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Keep this one", textDocument(), {
+    status: "draft",
+  });
   await logIn(page, author);
 
   await page.getByRole("link", { name: /^Delete Keep this one/ }).click();
@@ -158,7 +165,9 @@ test("canceling a delete leaves the post exactly as it was", async ({ page }) =>
 test("confirming a delete removes the post and shows a success banner on the list", async ({
   page,
 }) => {
-  const id = await createDraftFor(author.email, "Remove this one", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Remove this one", textDocument(), {
+    status: "draft",
+  });
   await logIn(page, author);
 
   await page.getByRole("link", { name: /^Delete Remove this one/ }).click();
@@ -176,7 +185,7 @@ test("an author cannot reach or delete another author's post - a 404, not a hint
   const other = createAdmin("Protected List Author");
   await setRole(other.email, "author");
   try {
-    const id = await createDraftFor(other.email, "Not yours", [], { status: "draft" });
+    const id = await createDraftFor(other.email, "Not yours", textDocument(), { status: "draft" });
 
     await logIn(page, author);
     const getResponse = await page.goto(`/admin/posts/${id}/delete`);
@@ -199,7 +208,7 @@ test("an author cannot reach or delete another author's post - a 404, not a hint
 });
 
 test("publishing a draft shows it as Published, with a success banner", async ({ page }) => {
-  const id = await createDraftFor(author.email, "Ready To Go", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Ready To Go", textDocument(), { status: "draft" });
   await logIn(page, author);
   await page.goto(`/admin/posts/${id}`);
 
@@ -218,7 +227,9 @@ test("publishing a draft shows it as Published, with a success banner", async ({
 test("unpublishing a published post reverts it to Draft, with a success banner", async ({
   page,
 }) => {
-  const id = await createDraftFor(author.email, "Take It Down", [], { status: "published" });
+  const id = await createDraftFor(author.email, "Take It Down", textDocument(), {
+    status: "published",
+  });
   await logIn(page, author);
   await page.goto(`/admin/posts/${id}`);
 
@@ -231,7 +242,7 @@ test("unpublishing a published post reverts it to Draft, with a success banner",
 test("publishing, unpublishing, then publishing again keeps the original published_at", async ({
   page,
 }) => {
-  const id = await createDraftFor(author.email, "Round Trip", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Round Trip", textDocument(), { status: "draft" });
   await logIn(page, author);
 
   await page.goto(`/admin/posts/${id}`);
@@ -255,7 +266,9 @@ test("an author cannot publish or unpublish another author's post", async ({ pag
   const other = createAdmin("Protected Publish Author");
   await setRole(other.email, "author");
   try {
-    const id = await createDraftFor(other.email, "Not Yours To Publish", [], { status: "draft" });
+    const id = await createDraftFor(other.email, "Not Yours To Publish", textDocument(), {
+      status: "draft",
+    });
     await logIn(page, author);
 
     // Same-origin, so the same-origin check is not what answers (that would
@@ -268,7 +281,7 @@ test("an author cannot publish or unpublish another author's post", async ({ pag
         intent: "publish",
         title: "Not Yours To Publish",
         version: "1",
-        blocks: JSON.stringify({ blocks: [] }),
+        blocks: JSON.stringify(textDocument()),
       },
     });
     expect(response.status()).toBe(404);
@@ -282,7 +295,7 @@ test("an author cannot publish or unpublish another author's post", async ({ pag
 test("a stale-version publish is refused rather than overwriting a concurrent edit", async ({
   page,
 }) => {
-  const id = await createDraftFor(author.email, "Racing Save", [], { status: "draft" });
+  const id = await createDraftFor(author.email, "Racing Save", textDocument(), { status: "draft" });
   await logIn(page, author);
 
   const origin = new URL(page.url()).origin;
@@ -292,7 +305,7 @@ test("a stale-version publish is refused rather than overwriting a concurrent ed
       intent: "publish",
       title: "Racing Save",
       version: "999",
-      blocks: JSON.stringify({ blocks: [] }),
+      blocks: JSON.stringify(textDocument()),
     },
   });
   expect(response.status()).toBe(409);
@@ -300,8 +313,8 @@ test("a stale-version publish is refused rather than overwriting a concurrent ed
 });
 
 test("a page number past the last page lands on the last page", async ({ page }) => {
-  await createDraftFor(author.email, "Only one", [], { status: "draft" });
-  await createDraftFor(author.email, "Only two", [], { status: "draft" });
+  await createDraftFor(author.email, "Only one", textDocument(), { status: "draft" });
+  await createDraftFor(author.email, "Only two", textDocument(), { status: "draft" });
   await logIn(page, author);
 
   await page.goto("/admin/posts?page=99");
@@ -313,8 +326,8 @@ test("a page number past the last page lands on the last page", async ({ page })
 });
 
 test("the Search button submits the search", async ({ page }) => {
-  await createDraftFor(author.email, "Spring planting day", [], { status: "draft" });
-  await createDraftFor(author.email, "Zebra migration report", [], { status: "draft" });
+  await createDraftFor(author.email, "Spring planting day", textDocument(), { status: "draft" });
+  await createDraftFor(author.email, "Zebra migration report", textDocument(), { status: "draft" });
   await logIn(page, author);
 
   await page.getByPlaceholder("Search posts").fill("Zebra");
@@ -326,9 +339,11 @@ test("the Search button submits the search", async ({ page }) => {
 });
 
 test("deleting or canceling from a filtered, searched list returns to it", async ({ page }) => {
-  await createDraftFor(author.email, "Alpha keep", [], { status: "draft" });
-  const id = await createDraftFor(author.email, "Alpha remove", [], { status: "draft" });
-  await createDraftFor(author.email, "Alpha published", [], { status: "published" });
+  await createDraftFor(author.email, "Alpha keep", textDocument(), { status: "draft" });
+  const id = await createDraftFor(author.email, "Alpha remove", textDocument(), {
+    status: "draft",
+  });
+  await createDraftFor(author.email, "Alpha published", textDocument(), { status: "published" });
   await logIn(page, author);
   const listUrl = "/admin/posts?status=draft&q=Alpha";
 
@@ -356,7 +371,7 @@ test("deleting the only row on the last page keeps the deleted banner (F-136)", 
 }) => {
   const tag = `Tidy${randomInt(1_000_000)}`;
   for (let n = 1; n <= 21; n++) {
-    await createDraftFor(author.email, `${tag} ${String(n).padStart(2, "0")}`, [], {
+    await createDraftFor(author.email, `${tag} ${String(n).padStart(2, "0")}`, textDocument(), {
       status: "draft",
     });
   }
