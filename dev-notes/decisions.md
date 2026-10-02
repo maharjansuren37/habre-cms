@@ -2580,3 +2580,58 @@ thrown error, so the editor stays mounted and the draft is kept (F-39, item
 14a1).
 Beats: a thrown error that unmounts the editor and loses the text.
 Costs: none known - browser and action share one check, `entry-body-size.ts`.
+
+## D200 - No image caption in v1 (2026-10-03)
+
+**Chose:** an image renders as a plain `img` named by its media's alt text, no
+`figure` / `figcaption` (item 14a2; closes F-79).
+Beats: items 1-12's alt-text-as-caption (read twice by a screen reader), and a
+caption attr (a second text field per image, which D55 rejected).
+Costs: no visible captions until Level 2 adds an attr with a default - no
+migration needed.
+
+## D201 - The Space block has one height and no attrs (2026-10-03)
+
+**Chose:** `space` is a fixed-height spacer with no settings (item 14a2).
+Beats: sizes - the settings panel exists only for blocks that have settings,
+and a Simple user stacks two spaces for more room.
+Costs: no size control until Level 2 adds one with a default.
+
+## D202 - A button's page target is stored as `href` `/<slug>` (2026-10-03)
+
+**Chose:** a button pointing at a page stores `/<slug>`, like a link in text
+(item 14a2).
+Beats: storing a page id as the menu does - one link shape for every block
+keeps the renderer and the allowlist single.
+Costs: changing a page's address breaks buttons pointing at it, as text links
+today; item 17's redirects are where that gets fixed.
+
+## D203 - Button style is filled or outline, filled by default (2026-10-03)
+
+**Chose:** `style: "filled" | "outline"`, stored as `filled` when absent, in
+the v4 contract now (item 14a2).
+Beats: adding it later - templates (14c) and the AI draft (18b) can set it.
+Costs: none known; both variants use already-measured contrast pairs.
+
+## D204 - The palette inserts after the selected block, in its column (2026-10-03)
+
+**Chose:** a palette tile adds its block after the selected block or the block
+holding the cursor - the column's direct child - in the same column; an editor
+never focused adds after its first block (item 14a2).
+Beats: "at the end of the page", which lands out of sight on a long page.
+Costs: none known.
+
+## D205 - Columns move from the section chip to Section settings (2026-10-03)
+
+**Chose:** the Columns control lives in the settings panel, opened by the
+chip's "Section settings" button; the chip keeps its label and Remove section
+until 14a3 (item 14a2, design.md *Section controls*).
+Beats: keeping it on the chip, which the design moves off.
+Costs: one more press to change columns.
+
+## D206 - One media picker module, shared by the logo and the image block (2026-10-03)
+
+**Chose:** `app/features/media/media-picker-dialog.client.ts`, titled by its
+caller and returning `PickedMedia` (item 14a2).
+Beats: a second copy for the image block - the duplication F-104 removed once.
+Costs: none known.
