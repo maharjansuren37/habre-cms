@@ -147,8 +147,3 @@ Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D
 File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor.client.tsx (HERO_FIELDS, HeroForm); sections-editor.module.css (.hero*)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
 
-### F-129 [P3] open - `render.tsx` keeps an import this item made unused
-File: app/features/blocks/render.tsx:4
-
-### F-132 [P3] open - `render.tsx` has an unused import, so lint reports a warning
-File: app/features/blocks/render.tsx:11
