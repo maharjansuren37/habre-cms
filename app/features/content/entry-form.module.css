@@ -70,12 +70,17 @@
   font-size: var(--text-sm);
 }
 
-/* The writing column uses the reading measure, so what is typed looks like what
-   a visitor will read (design.md, Type). */
+/* The writing column gives the document the public page's width (item 14a1,
+   step 6b): the site canvas inside it pads by --space-5 as the public article
+   does, so its content box is the same --size-measure, resolved at the same
+   reading size (--text-lg) so `ch` measures alike (post.module.css,
+   page-body.module.css). Columns then stack or sit side by side in the
+   editor exactly as they publish (design.md, *Page structure*). */
 .canvas {
-  max-width: 42rem;
+  max-width: calc(var(--size-measure) + var(--space-5) * 2 + var(--space-4) * 2);
   margin: 0 auto;
   padding: var(--space-5) var(--space-4) var(--space-7);
+  font-size: var(--text-lg);
 }
 
 .titleLabel {
@@ -120,4 +125,5 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
+  font-size: var(--text-md);
 }

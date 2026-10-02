@@ -172,12 +172,12 @@ shape is locked here.
   editor and save; `grep -rn "editorjs\|EditorJS" app package.json` finds
   nothing; `npm run verify` and the whole browser suite pass.
 
-- [ ] **Step 6b - The canvas is as wide as the published content** -
+- [x] **Step 6b - The canvas is as wide as the published content** -
   for a v4 entry the editor canvas gives the document the same width the
   public page gives it, so the 40rem container query stacks or places columns
   in the editor exactly as it will publish (design.md, *Page structure*:
   "the canvas and the published site behave identically"). The entry form
-  widens for v4 entries only. *Done when:* the editor spec finds a 2-column
+  widens (every entry is v4 after step 6). *Done when:* the editor spec finds a 2-column
   section side by side in the canvas at 1280px and stacked at 390px, matching
   `document-render.spec.ts`; the whole suite passes. (Owner, 2026-10-02.)
 

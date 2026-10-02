@@ -582,6 +582,51 @@ test("a page saved with 2 sections of 2 columns renders them side by side on the
   }
 });
 
+// Step 6b: the canvas gives the document the width the public page gives it,
+// so the 40rem container query places columns in the editor as it publishes.
+test("a 2-column section sits side by side in the canvas at 1280px and stacks at 390px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Canvas Columns",
+    doc(section(["Left"], ["Right"])),
+  );
+  const left = textbox.getByText("Left", { exact: true });
+  const right = textbox.getByText("Right", { exact: true });
+
+  let [a, b] = [await left.boundingBox(), await right.boundingBox()];
+  expect(a && b && Math.abs(a.y - b.y) < 2 && b.x >= a.x + a.width).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  [a, b] = [await left.boundingBox(), await right.boundingBox()];
+  expect(a && b && b.y >= a.y + a.height && Math.abs(a.x - b.x) < 2).toBe(true);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+    true,
+  );
+});
+
+test("the canvas's content box is as wide as the public page's at 1280px", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const id = await createDraftFor(editor.email, "Same Width", doc(section(["Measure"])), {
+    type: "page",
+    status: "published",
+  });
+  await logIn(page, editor);
+  await page.goto(`/admin/pages/${id}`);
+  const textbox = page.getByRole("textbox", { name: "Page content" });
+  await expect(textbox).toBeVisible();
+  const inEditor = await textbox.locator('[data-node="section"]').boundingBox();
+
+  await page.goto("/same-width");
+  const published = await page.getByRole("main").locator("section").boundingBox();
+
+  expect(inEditor && published).toBeTruthy();
+  expect(Math.abs((inEditor?.width ?? 0) - (published?.width ?? 0))).toBeLessThanOrEqual(1);
+});
+
 // Journey 2 (design.md, *Edit and publish*), the part this item has: open a
 // page, change its text, Publish, and the public page shows it - once opening
 // the editor as a full page load, once through the admin's own links.

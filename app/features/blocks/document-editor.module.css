@@ -111,8 +111,9 @@
   border-top: var(--border-width) dashed var(--color-border-strong);
 }
 
-/* The canvas is narrower than 40rem, so columns stack in it; a dashed outline
-   shows where each column of a multi-column section starts and ends. */
+/* A dashed outline shows where each column of a multi-column section starts
+   and ends - side by side on a wide screen, stacked below 40rem, as on the
+   site. */
 .prose :global([data-node="column"] ~ [data-node="column"]),
 .prose :global([data-node="column"]:has(~ [data-node="column"])) {
   outline: var(--border-width) dashed var(--color-border);
@@ -198,8 +199,10 @@
 
 /* Add a section (prototypes/components.css, .add-section): Habre's chrome,
    below the canvas. */
+/* Admin size, not the canvas's reading size it would otherwise inherit. */
 .addSection {
   display: grid;
+  font-size: var(--text-md);
   justify-items: center;
   gap: var(--space-2);
   padding: var(--space-5) 0 0;
