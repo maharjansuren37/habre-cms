@@ -95,6 +95,11 @@ function renderDocumentBlock(block: Block, key: string, mainHeading: Heading | u
           )}
         </blockquote>
       );
+    case "image":
+    case "button":
+    case "horizontalRule":
+    case "space":
+      return null; // step 2 draws these
     default: {
       const exhaustive: never = block;
       throw new Error(`Unknown block type: ${JSON.stringify(exhaustive)}`);

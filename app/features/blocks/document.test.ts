@@ -5,7 +5,10 @@ import {
   findMainHeading,
   isEmptyBlock,
   isEmptySection,
+  isRenderedBlock,
   MAX_BLOCK_TEXT_LENGTH,
+  MAX_BUTTON_LABEL_LENGTH,
+  MAX_DOCUMENT_BLOCKS,
   parseDocument,
 } from "./document.ts";
 
@@ -93,7 +96,7 @@ test("section attrs default to top and none", () => {
 
 test("an unknown node is refused", () => {
   assert.equal(
-    refused(oneBlock({ type: "image", attrs: { mediaId: "x" } })),
+    refused(oneBlock({ type: "table" })),
     "The editor sent something it cannot save yet.",
   );
 });
@@ -374,4 +377,146 @@ test("empty content and empty marks are stored as absent", () => {
     type: "paragraph",
     content: [{ type: "text", text: "a" }],
   });
+});
+
+const MEDIA_ID = "0b0f6a52-3c1e-4f0e-9a43-6a8f3c1d2e55";
+const image = (attrs: unknown = { mediaId: MEDIA_ID }) => ({ type: "image", attrs });
+const button = (attrs: Record<string, unknown> = {}) => ({
+  type: "button",
+  attrs: { label: "Buy", href: "/shop", style: "outline", ...attrs },
+});
+
+function storedBlock(block: unknown) {
+  const result = parseDocument(oneBlock(block), "page");
+  assert.equal(result.ok, true);
+  return result.ok ? result.document.content[0]?.content[0]?.content[0] : undefined;
+}
+
+test("an image, a button, a line and a space are accepted and stored exactly", () => {
+  assert.deepEqual(storedBlock(image()), image());
+  assert.deepEqual(storedBlock(button()), button());
+  assert.deepEqual(storedBlock({ type: "horizontalRule" }), { type: "horizontalRule" });
+  assert.deepEqual(storedBlock({ type: "space" }), { type: "space" });
+});
+
+test("an image without a valid media id is refused", () => {
+  const sentence = "An image needs a file from Media.";
+  assert.equal(refused(oneBlock(image({}))), sentence);
+  assert.equal(refused(oneBlock(image({ mediaId: "not-a-uuid" }))), sentence);
+  assert.equal(refused(oneBlock({ type: "image" })), sentence);
+});
+
+test("a button label over 80 characters is refused", () => {
+  assert.equal(MAX_BUTTON_LABEL_LENGTH, 80);
+  assert.equal(storedBlock(button({ label: "a".repeat(80) })) !== undefined, true);
+  assert.equal(
+    refused(oneBlock(button({ label: "a".repeat(81) }))),
+    "A button's text can be at most 80 characters.",
+  );
+});
+
+test("a button label with an unstorable character is refused", () => {
+  assert.equal(
+    refused(oneBlock(button({ label: "a\u0000b" }))),
+    "The text holds a character that cannot be saved.",
+  );
+});
+
+test("a button address that is not safe is refused", () => {
+  assert.equal(
+    refused(oneBlock(button({ href: "javascript:alert(1)" }))),
+    "A link address cannot be used. Use a web address, an email link or a page on this site.",
+  );
+});
+
+test("a button address over 2,048 characters is refused", () => {
+  assert.equal(
+    refused(oneBlock(button({ href: `https://example.com/${"a".repeat(2_048)}` }))),
+    "A link address can be at most 2,048 characters.",
+  );
+});
+
+test("a button style other than filled or outline is refused", () => {
+  assert.equal(
+    refused(oneBlock(button({ style: "ghost" }))),
+    "A button's style must be Filled or Outline.",
+  );
+});
+
+test("a button may have an empty label and an empty address", () => {
+  const stored = storedBlock(button({ label: "", href: "" }));
+  assert.deepEqual(stored, button({ label: "", href: "" }));
+});
+
+test("a button without a style is stored as filled", () => {
+  const stored = storedBlock({ type: "button", attrs: { label: "Go", href: "#top" } });
+  assert.deepEqual(stored, {
+    type: "button",
+    attrs: { label: "Go", href: "#top", style: "filled" },
+  });
+});
+
+test("extra attrs and content on an image, button, line and space are dropped", () => {
+  assert.deepEqual(storedBlock(image({ mediaId: MEDIA_ID, src: "x" })), image());
+  assert.deepEqual(storedBlock(button({ extra: 1 })), button());
+  assert.deepEqual(storedBlock({ type: "horizontalRule", attrs: { x: 1 } }), {
+    type: "horizontalRule",
+  });
+  assert.deepEqual(storedBlock({ type: "space", attrs: {} }), { type: "space" });
+  assert.deepEqual(storedBlock({ ...image(), content: [text("x")], extra: 1 }), image());
+  assert.deepEqual(storedBlock({ type: "space", content: [text("x")] }), { type: "space" });
+});
+
+test("200 mixed blocks are accepted and 201 are refused", () => {
+  const kinds = [
+    () => paragraph("p"),
+    () => image(),
+    () => button(),
+    () => ({ type: "horizontalRule" }),
+    () => ({ type: "space" }),
+  ];
+  const blocks = (count: number) =>
+    Array.from({ length: count }, (_, index) => kinds[index % kinds.length]?.());
+  const inColumns = (count: number) => {
+    const all = blocks(count);
+    return doc(
+      section(column(...all.slice(0, 100))),
+      section(column(...all.slice(100, 200))),
+      ...(all.length > 200 ? [section(column(...all.slice(200)))] : []),
+    );
+  };
+  assert.equal(parseDocument(inColumns(MAX_DOCUMENT_BLOCKS), "page").ok, true);
+  assert.equal(
+    refused(inColumns(MAX_DOCUMENT_BLOCKS + 1)),
+    `You can have at most ${MAX_DOCUMENT_BLOCKS} blocks.`,
+  );
+});
+
+test("isRenderedBlock is false for what draws nothing", () => {
+  const media = { [MEDIA_ID]: {} };
+  assert.equal(isRenderedBlock({ type: "space" }, media), false);
+  assert.equal(isRenderedBlock({ type: "image", attrs: { mediaId: MEDIA_ID } }, {}), false);
+  assert.equal(
+    isRenderedBlock({ type: "button", attrs: { label: " ", href: "/a", style: "filled" } }, media),
+    false,
+  );
+  assert.equal(
+    isRenderedBlock({ type: "button", attrs: { label: "Go", href: "", style: "filled" } }, media),
+    false,
+  );
+  assert.equal(isRenderedBlock({ type: "paragraph" }, media), false);
+});
+
+test("isRenderedBlock is true for what draws something", () => {
+  const media = { [MEDIA_ID]: {} };
+  assert.equal(isRenderedBlock({ type: "horizontalRule" }, media), true);
+  assert.equal(isRenderedBlock({ type: "image", attrs: { mediaId: MEDIA_ID } }, media), true);
+  assert.equal(
+    isRenderedBlock({ type: "button", attrs: { label: "Go", href: "/a", style: "filled" } }, media),
+    true,
+  );
+  assert.equal(
+    isRenderedBlock({ type: "paragraph", content: [{ type: "text", text: "x" }] }, media),
+    true,
+  );
 });
