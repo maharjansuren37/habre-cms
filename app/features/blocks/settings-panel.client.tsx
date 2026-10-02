@@ -1,5 +1,8 @@
-import { type ReactNode, useId, useLayoutEffect, useRef } from "react";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "#app/lib/ui/button.tsx";
+import fieldStyles from "#app/lib/ui/field.module.css";
+import type { LinkablePage } from "./document-nodes.ts";
+import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
 import styles from "./settings-panel.module.css";
 
 /**
@@ -160,6 +163,175 @@ export function ImageSettings({
           <p className={styles.note}>Alt text is set when the image is uploaded.</p>
         </div>
       ) : null}
+    </>
+  );
+}
+
+const MAX_LABEL_LENGTH = 80;
+const MAX_HREF_LENGTH = 2_048;
+
+/** What "Goes to" shows: nothing yet, a page (its `/<slug>`), or one of the two typed kinds. */
+type Destination = "" | "web" | "email" | (string & {});
+
+/** Reads a stored address back into the select's choice and the typed field's text. */
+function readHref(href: string, pages: LinkablePage[]): { choice: Destination; address: string } {
+  if (href === "") return { choice: "", address: "" };
+  if (pages.some((page) => `/${page.slug}` === href)) return { choice: href, address: "" };
+  if (href.startsWith("mailto:")) return { choice: "email", address: href.slice("mailto:".length) };
+  return { choice: "web", address: href };
+}
+
+/**
+ * A button's settings: its text, where it goes and its style. A page is stored
+ * as `/<slug>`, an email address as `mailto:<address>`. A typed address is
+ * checked with the allowlist the server uses - when the person presses Enter or
+ * leaves the field, never on each keystroke - and a refused one is explained
+ * beside the field and is not applied.
+ *
+ * The panel never sits inside the writing area (D169), but it does sit inside
+ * the entry form, so Enter in the address field is handled here instead of
+ * submitting the entry. Its controls carry no `name` (the radios share one only
+ * to be a group), so nothing here reaches the saved form but the editor's own
+ * `blocks`.
+ */
+export function ButtonSettings({
+  label,
+  href,
+  style,
+  pages,
+  onLabel,
+  onHref,
+  onStyle,
+}: {
+  label: string;
+  href: string;
+  style: "filled" | "outline";
+  pages: LinkablePage[];
+  onLabel: (label: string) => void;
+  onHref: (href: string) => void;
+  onStyle: (style: "filled" | "outline") => void;
+}) {
+  const id = useId();
+  const stored = readHref(href, pages);
+  // The panel remounts for each button, so these start from what is stored.
+  const [choice, setChoice] = useState<Destination>(stored.choice);
+  const [address, setAddress] = useState(stored.address);
+  const [error, setError] = useState<string | undefined>();
+  const typedKind = choice === "web" || choice === "email" ? choice : null;
+
+  function choose(next: Destination) {
+    setChoice(next);
+    setError(undefined);
+    if (next === "web" || next === "email") {
+      // Reopening an address of the same kind shows it; switching kind starts empty.
+      setAddress(stored.choice === next ? stored.address : "");
+    } else {
+      setAddress("");
+      if (next !== "") onHref(next);
+    }
+  }
+
+  /** Applies the typed address if it passes the check; otherwise explains and leaves the stored one alone. */
+  function commit() {
+    const value = address.trim();
+    const candidate = typedKind === "email" ? `mailto:${value}` : value;
+    if (candidate.length > MAX_HREF_LENGTH) return setError(LINK_ERRORS.tooLong);
+    if (typedKind === "email" && (value === "" || !value.includes("@"))) {
+      return setError(LINK_ERRORS.unsafe);
+    }
+    if (!isSafeHref(candidate)) return setError(LINK_ERRORS.unsafe);
+    setError(undefined);
+    if (candidate !== href) onHref(candidate);
+  }
+
+  const labelId = `${id}-label`;
+  const errorId = `${id}-error`;
+  const addressText = typedKind === "email" ? "Email address" : "Web address";
+  return (
+    <>
+      <div className={fieldStyles.field}>
+        <label className={fieldStyles.label} htmlFor={labelId}>
+          Button text
+        </label>
+        <input
+          id={labelId}
+          className={fieldStyles.input}
+          type="text"
+          maxLength={MAX_LABEL_LENGTH}
+          autoComplete="off"
+          value={label}
+          onChange={(event) => onLabel(event.currentTarget.value)}
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor={`${id}-goes`}>
+          Goes to
+        </label>
+        <select
+          id={`${id}-goes`}
+          className={styles.select}
+          value={choice}
+          onChange={(event) => choose(event.currentTarget.value)}
+        >
+          {href === "" ? <option value="">Choose where it goes</option> : null}
+          {pages.map((page) => (
+            <option key={page.id} value={`/${page.slug}`}>
+              {page.status === "draft" ? `${page.title} (not published)` : page.title}
+            </option>
+          ))}
+          <option value="web">A web address…</option>
+          <option value="email">An email address…</option>
+        </select>
+      </div>
+      {typedKind ? (
+        <div className={fieldStyles.field}>
+          <label className={fieldStyles.label} htmlFor={`${id}-address`}>
+            {addressText}
+          </label>
+          <input
+            id={`${id}-address`}
+            className={fieldStyles.input}
+            type="text"
+            inputMode={typedKind === "email" ? "email" : "url"}
+            autoComplete="off"
+            value={address}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            onChange={(event) => {
+              setAddress(event.currentTarget.value);
+              setError(undefined);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              commit();
+            }}
+            onBlur={() => {
+              // Leaving an untouched field says nothing; a typed value is checked.
+              if (address !== stored.address || error) commit();
+            }}
+          />
+          {error ? (
+            <p className={fieldStyles.error} id={errorId}>
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <fieldset className={styles.group}>
+        <legend className={styles.label}>Style</legend>
+        {(["filled", "outline"] as const).map((value) => (
+          <label key={value} className={styles.choice}>
+            <input
+              type="radio"
+              name={`${id}-style`}
+              checked={style === value}
+              onChange={() => onStyle(value)}
+            />
+            {value === "filled" ? "Filled" : "Outline"}
+          </label>
+        ))}
+      </fieldset>
     </>
   );
 }

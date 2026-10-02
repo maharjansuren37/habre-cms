@@ -46,6 +46,14 @@ export type Document = { type: "doc"; content: Section[] };
  *  stored in the document (D55): where the file is, its alt text and its size. */
 export type DocumentMedia = { url: string; altText: string; width: number; height: number };
 
+/** A page a button can go to, as the editor's "Goes to" list needs it: no body. */
+export type LinkablePage = {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+};
+
 /** Every text node a block or list item holds, in reading order. */
 export function textNodes(node: Block | ListItem): TextNode[] {
   if (node.type === "paragraph" || node.type === "heading") return node.content ?? [];

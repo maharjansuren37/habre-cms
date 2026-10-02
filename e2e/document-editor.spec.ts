@@ -1260,9 +1260,10 @@ test("settings panel: selecting an image opens it headed Image; text, line and s
   await textbox.getByRole("img", { name: "A red door" }).click();
   await textbox.locator('[data-node="space"]').click();
   await expect(settingsPanel(page, "Image")).toHaveCount(0);
-  // 14a2 step 7 gives the button its own panel; until then it opens none.
+  // A button has its own panel (step 7), not the image's.
   await textbox.getByText("Book now", { exact: true }).click();
-  await expect(page.getByRole("complementary", { name: "Button" })).toHaveCount(0);
+  await expect(settingsPanel(page, "Button")).toBeVisible();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
 });
 
 test("settings panel: Choose image on an empty image draws the pick, and Save stores its id", async ({
@@ -1438,3 +1439,264 @@ test("settings panel: the writing area is still the only content textbox, and th
   await expect(textbox.getByRole("textbox")).toHaveCount(0);
   await expect(textbox.getByRole("button")).toHaveCount(0);
 });
+
+// ---- Item 14a2, step 7: the button's settings ---------------------------------
+
+function buttonPanel(page: Page) {
+  return settingsPanel(page, "Button");
+}
+
+/** A page to link to; its address is the slug the seed helper derives from the title. */
+async function seedTarget(status: "draft" | "published" = "published") {
+  const title = `Target ${randomInt(1_000_000)}`;
+  await createDraftFor(editor.email, title, startDocument, { type: "page", status });
+  return { title, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-") };
+}
+
+/** A page holding one button, opened in the editor with that button selected. */
+async function openWithButton(
+  page: Page,
+  attrs: { label?: string; href?: string; style?: "filled" | "outline" } = {},
+  status: "draft" | "published" = "draft",
+) {
+  const label = attrs.label ?? "Seeded";
+  const title = `Button Host ${randomInt(1_000_000)}`;
+  const id = await createDraftFor(
+    editor.email,
+    title,
+    inSection(buttonBlock(label, attrs.href ?? "", attrs.style ?? "filled")),
+    { type: "page", status },
+  );
+  await logIn(page, editor);
+  await page.goto(`/admin/pages/${id}`);
+  const textbox = page.getByRole("textbox", { name: "Page content" });
+  await expect(textbox).toBeVisible();
+  await textbox.locator('[data-node="button"]').click();
+  await expect(buttonPanel(page)).toBeVisible();
+  return { id, title, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"), textbox };
+}
+
+function storedButton(stored: unknown) {
+  return firstColumn(stored).find((node) => (node as { type: string }).type === "button") as {
+    attrs: { label: string; href: string; style: string };
+  };
+}
+
+const UNSAFE_MESSAGE = /This address cannot be used\./;
+
+test("button: add one from the palette, type its text, choose a page, Publish - the public page links to it", async ({
+  page,
+}) => {
+  const target = await seedTarget();
+  const { textbox } = await openSeeded(page, "page", "Button Journey Host");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Button").click();
+  await expect(buttonPanel(page)).toBeVisible();
+  await expect(buttonPanel(page).getByRole("heading", { level: 2 })).toHaveText("Button");
+  await expect(textbox.getByText("Button text", { exact: true })).toBeVisible();
+
+  // Key by key: each keystroke is a transaction, and the caret must stay at the end.
+  await buttonPanel(page).getByLabel("Button text").pressSequentially("Book now");
+  await expect(buttonPanel(page).getByLabel("Button text")).toHaveValue("Book now");
+  await expect(textbox.getByText("Book now", { exact: true })).toBeVisible();
+  const goesTo = buttonPanel(page).getByLabel("Goes to");
+  await expect(goesTo.locator("option:checked")).toHaveText("Choose where it goes");
+  await goesTo.selectOption({ label: target.title });
+
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?/);
+  await page.goto("/button-journey-host");
+  const link = page.getByRole("main").getByRole("link", { name: "Book now" });
+  await expect(link).toHaveAttribute("href", `/${target.slug}`);
+});
+
+test("button: a draft page is offered as 'Title (not published)'; a published one by its title", async ({
+  page,
+}) => {
+  const draft = await seedTarget("draft");
+  const published = await seedTarget("published");
+  await openWithButton(page);
+  const goesTo = buttonPanel(page).getByLabel("Goes to");
+  await expect(goesTo.getByRole("option", { name: `${draft.title} (not published)` })).toHaveCount(
+    1,
+  );
+  await expect(goesTo.getByRole("option", { name: published.title, exact: true })).toHaveCount(1);
+  await expect(goesTo.getByRole("option", { name: "A web address…" })).toHaveCount(1);
+  await expect(goesTo.getByRole("option", { name: "An email address…" })).toHaveCount(1);
+});
+
+test("button: an unsafe web address is refused beside its field and never stored", async ({
+  page,
+}) => {
+  const { id } = await openWithButton(page, { href: "/about" });
+  const panel = buttonPanel(page);
+  await panel.getByLabel("Goes to").selectOption({ label: "A web address…" });
+  const field = panel.getByLabel("Web address");
+  await field.fill("javascript:alert(1)");
+  // Not on each keystroke: nothing is said until Enter or leaving the field.
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toHaveCount(0);
+  await field.press("Enter");
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toBeVisible();
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  const describedBy = await field.getAttribute("aria-describedby");
+  await expect(page.locator(`[id="${describedBy}"]`)).toHaveText(UNSAFE_MESSAGE);
+  // Enter did not submit the entry form.
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+  // Typing again clears the message; leaving the field with a bad value shows it again.
+  await field.fill("data:text/html,x");
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toHaveCount(0);
+  await panel.getByLabel("Button text").focus();
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toBeVisible();
+
+  await save(page);
+  expect(storedButton((await storedEntry(id)).blocks).attrs.href).toBe("/about");
+});
+
+test("button: a safe web address is stored as typed", async ({ page }) => {
+  const { id } = await openWithButton(page);
+  const panel = buttonPanel(page);
+  await panel.getByLabel("Goes to").selectOption({ label: "A web address…" });
+  await panel.getByLabel("Web address").fill("https://example.com/book");
+  await panel.getByLabel("Web address").press("Enter");
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toHaveCount(0);
+  await save(page);
+  expect(storedButton((await storedEntry(id)).blocks).attrs.href).toBe("https://example.com/book");
+});
+
+test("button: an email address is stored as mailto:, and one without @ is refused", async ({
+  page,
+}) => {
+  const { id } = await openWithButton(page);
+  const panel = buttonPanel(page);
+  await panel.getByLabel("Goes to").selectOption({ label: "An email address…" });
+  const field = panel.getByLabel("Email address");
+  await field.fill("not an address");
+  await field.press("Enter");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(panel.getByText(UNSAFE_MESSAGE)).toBeVisible();
+  await field.fill("hello@example.com");
+  await field.press("Enter");
+  await expect(field).not.toHaveAttribute("aria-invalid", "true");
+  await save(page);
+  expect(storedButton((await storedEntry(id)).blocks).attrs.href).toBe("mailto:hello@example.com");
+});
+
+test("button: Outline draws the outline in the canvas and on the public page", async ({ page }) => {
+  const { slug, textbox } = await openWithButton(page, { href: "/about" }, "published");
+  const canvasButton = textbox.locator('[data-node="button"]');
+  const backgroundOf = (locator: Locator) =>
+    locator.evaluate(
+      (element) => element.ownerDocument.defaultView?.getComputedStyle(element).backgroundColor,
+    );
+  expect(await backgroundOf(canvasButton)).not.toBe("rgba(0, 0, 0, 0)");
+
+  const style = buttonPanel(page).getByRole("group", { name: "Style" });
+  await expect(style.getByRole("radio", { name: "Filled" })).toBeChecked();
+  await style.getByRole("radio", { name: "Outline" }).check();
+  await expect(style.getByRole("radio", { name: "Outline" })).toBeChecked();
+  expect(await backgroundOf(canvasButton)).toBe("rgba(0, 0, 0, 0)");
+
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.goto(`/${slug}`);
+  const link = page.getByRole("main").getByRole("link", { name: "Seeded" });
+  expect(await backgroundOf(link)).toBe("rgba(0, 0, 0, 0)");
+});
+
+test("button: reopening the panel shows the stored page, web address and email", async ({
+  page,
+}) => {
+  const target = await seedTarget();
+  const draft = await seedTarget("draft");
+  const buttons = [
+    buttonBlock("To page", `/${target.slug}`, "filled"),
+    buttonBlock("To draft", `/${draft.slug}`, "filled"),
+    buttonBlock("To web", "https://example.com/x", "outline"),
+    buttonBlock("To email", "mailto:a@example.com", "filled"),
+    buttonBlock("To nowhere", "", "filled"),
+  ];
+  const id = await createDraftFor(editor.email, "Reopen Host", inSection(...buttons), {
+    type: "page",
+  });
+  await logIn(page, editor);
+  await page.goto(`/admin/pages/${id}`);
+  const textbox = page.getByRole("textbox", { name: "Page content" });
+  await expect(textbox).toBeVisible();
+  const panel = buttonPanel(page);
+  const goesTo = panel.getByLabel("Goes to");
+  const chosen = goesTo.locator("option:checked");
+
+  async function open(label: string) {
+    // Selecting a button, then another, closes and reopens the panel.
+    await textbox.getByText(label, { exact: true }).click();
+    await expect(panel.getByLabel("Button text")).toHaveValue(label);
+  }
+
+  await open("To page");
+  await expect(chosen).toHaveText(target.title);
+  await open("To draft");
+  await expect(chosen).toHaveText(`${draft.title} (not published)`);
+  await open("To web");
+  await expect(chosen).toHaveText("A web address…");
+  await expect(panel.getByLabel("Web address")).toHaveValue("https://example.com/x");
+  await expect(panel.getByRole("radio", { name: "Outline" })).toBeChecked();
+  await open("To email");
+  await expect(chosen).toHaveText("An email address…");
+  await expect(panel.getByLabel("Email address")).toHaveValue("a@example.com");
+  await open("To nowhere");
+  await expect(chosen).toHaveText("Choose where it goes");
+  await expect(panel.getByLabel("Web address")).toHaveCount(0);
+  await expect(panel.getByLabel("Email address")).toHaveCount(0);
+
+  // Escape closes the panel.
+  await textbox.getByText("To page", { exact: true }).click();
+  await expect(panel.getByLabel("Button text")).toHaveValue("To page");
+  await panel.getByLabel("Button text").focus();
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+});
+
+// Journey 2 (design.md, *Edit and publish*), the button's part: Pages -> open a
+// page -> add a Button from the palette -> set it -> Publish -> the public page
+// links to it, and the link works. Opened once by a full page load, once by the
+// admin's own links; the public page is reached both ways too.
+for (const arrival of ["a full page load", "the admin's own links"] as const) {
+  test(`Journey 2: open a page by ${arrival}, add a Button, Publish, and the public page shows its link`, async ({
+    page,
+  }) => {
+    const target = await seedTarget();
+    const title = `Button Trip ${randomInt(1_000_000)}`;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const id = await createDraftFor(editor.email, title, startDocument, { type: "page" });
+    await logIn(page, editor);
+    if (arrival === "a full page load") {
+      await page.goto("/admin/pages");
+    } else {
+      await page.goto("/admin");
+      await page.getByRole("link", { name: "Pages", exact: true }).click();
+    }
+    await expect(page).toHaveURL(/\/admin\/pages$/);
+    await page.getByRole("link", { name: title, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await textbox.getByText("Start here.").click();
+    await settle(page);
+    await tile(page, "Button").click();
+    await buttonPanel(page).getByLabel("Button text").fill("Book now");
+    await buttonPanel(page).getByLabel("Goes to").selectOption({ label: target.title });
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\?/);
+
+    await page.goto(`/${slug}`);
+    const link = page.getByRole("main").getByRole("link", { name: "Book now" });
+    await expect(link).toHaveAttribute("href", `/${target.slug}`);
+    // And through the site's own link: it leads to the page it names.
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`/${target.slug}$`));
+    await expect(page.getByRole("main").getByText("Start here.")).toBeVisible();
+  });
+}

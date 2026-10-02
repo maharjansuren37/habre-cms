@@ -180,7 +180,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   at 390px the panel is a bottom sheet that leaves the selected block
   visible; the writing area is still the only `textbox` (D169: no control inside it).
 
-- [ ] **Step 7 - The button's settings** - Button text (a text input, max 80),
+- [x] **Step 7 - The button's settings** - Button text (a text input, max 80),
   Goes to (a select: every page by title, a draft marked "(not published)",
   then "A web address…" and "An email address…"), the address field for the
   last two, Style (Filled / Outline, a `fieldset` of radios). A page is

@@ -4,7 +4,7 @@ import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { emptyDocument } from "#app/features/blocks/document.ts";
 import type { Route } from "./+types/page-new";
-import { createDraft } from "./entries.server.ts";
+import { createDraft, listLinkablePages } from "./entries.server.ts";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm } from "./entry-form-input.ts";
@@ -21,8 +21,12 @@ export const middleware: Route.MiddlewareFunction[] = [
 // middleware checks the user on those too (React Router middleware docs).
 // It also hands over the empty document a new entry starts with, so the
 // schema module stays out of the browser bundle.
-export async function loader(_: Route.LoaderArgs) {
-  return { document: emptyDocument(), mediaById: {} };
+export async function loader({ context }: Route.LoaderArgs) {
+  return {
+    document: emptyDocument(),
+    mediaById: {},
+    pages: await listLinkablePages(context.get(userContext)),
+  };
 }
 
 export function meta(_: Route.MetaArgs) {
@@ -56,6 +60,7 @@ export default function NewPage({ loaderData, actionData }: Route.ComponentProps
       slug=""
       document={loaderData.document}
       mediaById={loaderData.mediaById}
+      pages={loaderData.pages}
       status="draft"
       version={1}
       problem={actionData?.problem ?? null}

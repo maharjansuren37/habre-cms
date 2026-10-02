@@ -5,7 +5,7 @@ import { userContext } from "#app/features/auth/user-context.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
 import type { Route } from "./+types/post-edit";
 import { bannerRedirect } from "./banner.ts";
-import { findEntryForUser, saveEntry } from "./entries.server.ts";
+import { findEntryForUser, listLinkablePages, saveEntry } from "./entries.server.ts";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
@@ -34,7 +34,12 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
-  return { entry, mediaById: await resolveDocumentMedia(entry.document) };
+  const actor = context.get(userContext);
+  return {
+    entry,
+    mediaById: await resolveDocumentMedia(entry.document),
+    pages: await listLinkablePages(actor),
+  };
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
@@ -102,6 +107,7 @@ export default function EditPost({ loaderData, actionData }: Route.ComponentProp
       slug={entry.slug}
       document={entry.document}
       mediaById={loaderData.mediaById}
+      pages={loaderData.pages}
       status={entry.status}
       // After a save the row moved on; the form carries the new version so the
       // next save is not refused as stale.

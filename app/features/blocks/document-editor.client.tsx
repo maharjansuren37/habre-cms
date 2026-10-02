@@ -28,10 +28,15 @@ import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
-import type { Document, DocumentMedia } from "./document-nodes.ts";
-import { isSafeHref } from "./inline-runs.ts";
+import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
+import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
 import { AddButton, AddDialog, Palette } from "./palette.client.tsx";
-import { ImageSettings, SectionSettings, SettingsPanel } from "./settings-panel.client.tsx";
+import {
+  ButtonSettings,
+  ImageSettings,
+  SectionSettings,
+  SettingsPanel,
+} from "./settings-panel.client.tsx";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
 const MAX_HREF_LENGTH = 2_048;
@@ -308,6 +313,7 @@ export function DocumentEditor({
   addSlot,
   settingsSlot,
   mediaById,
+  pages,
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
@@ -322,6 +328,8 @@ export function DocumentEditor({
   settingsSlot: HTMLElement | null;
   /** What the document's images need to draw, by media id. */
   mediaById: Record<string, DocumentMedia>;
+  /** The pages a button can go to. Read by the settings panel only - never by the editor's options (F-158). */
+  pages: LinkablePage[];
 }) {
   const { extensions, editorProps } = OPTIONS[entryType];
   // In state so the media a person picks in the settings panel can be added.
@@ -403,6 +411,7 @@ export function DocumentEditor({
               setSection={setSettingsSection}
               setMedia={setMedia}
               mediaById={media}
+              pages={pages}
             />,
             settingsSlot,
           )
@@ -626,14 +635,17 @@ function SectionChip({
 /**
  * Which block the settings panel is about, read from the selection: an image
  * that is the selected block, or - after the chip's gear - the section holding
- * the cursor. Text, a line and a space have none, and a button's comes with
- * step 7 (it is `kind: "atom"` here until then, so it opens nothing).
+ * the cursor. Text, a line and a space have none.
  */
+const NO_BUTTON = { label: "", href: "", style: "filled" } as const;
+
 type SettingsTarget = {
-  kind: "text" | "image" | "atom";
+  kind: "text" | "image" | "button" | "atom";
   /** Where the selected atom starts; -1 for text. */
   pos: number;
   mediaId: string;
+  /** A selected button's attrs. */
+  button: { label: string; href: string; style: "filled" | "outline" };
   /** The section holding the selection, and its column count. */
   section: number;
   columns: number;
@@ -645,6 +657,7 @@ function SettingsHost({
   setSection,
   setMedia,
   mediaById,
+  pages,
 }: {
   editor: Editor;
   /** The section whose panel the gear asked for. */
@@ -654,6 +667,7 @@ function SettingsHost({
     update: (current: Record<string, DocumentMedia>) => Record<string, DocumentMedia>,
   ) => void;
   mediaById: Record<string, DocumentMedia>;
+  pages: LinkablePage[];
 }) {
   const target = useEditorState({
     editor,
@@ -662,36 +676,44 @@ function SettingsHost({
       const index = Math.min(selection.$head.index(0), doc.childCount - 1);
       const columns = doc.child(index).childCount;
       if (selection instanceof NodeSelection && selection.node.isAtom) {
-        const isImage = selection.node.type.name === "image";
+        const { node } = selection;
+        const kind =
+          node.type.name === "image" ? "image" : node.type.name === "button" ? "button" : "atom";
         return {
-          kind: isImage ? "image" : "atom",
+          kind,
           pos: selection.from,
-          mediaId: isImage ? String(selection.node.attrs.mediaId ?? "") : "",
+          mediaId: kind === "image" ? String(node.attrs.mediaId ?? "") : "",
+          button: {
+            label: kind === "button" ? String(node.attrs.label ?? "") : "",
+            href: kind === "button" ? String(node.attrs.href ?? "") : "",
+            style: node.attrs.style === "outline" ? "outline" : "filled",
+          },
           section: index,
           columns,
         };
       }
-      return { kind: "text", pos: -1, mediaId: "", section: index, columns };
+      return { kind: "text", pos: -1, mediaId: "", button: NO_BUTTON, section: index, columns };
     },
   });
-  const [isImageClosed, setImageClosed] = useState(false);
+  const [isAtomClosed, setAtomClosed] = useState(false);
 
   // A new selection ends whatever a close or the gear decided about the last
   // one: the image panel comes back for the next image, and the section panel
   // stays only while the cursor stays in text of that section.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `target.pos` is a trigger - selecting another image reopens the panel.
   useEffect(() => {
-    setImageClosed(false);
+    setAtomClosed(false);
     setSection((current) =>
       current !== null && (target.kind !== "text" || target.section !== current) ? null : current,
     );
   }, [target.kind, target.pos, target.section, setSection]);
 
-  const isImage = target.kind === "image" && !isImageClosed;
+  const isImage = target.kind === "image" && !isAtomClosed;
+  const isButton = target.kind === "button" && !isAtomClosed;
   const isSection = target.kind === "text" && section !== null && section === target.section;
 
   function close() {
-    if (target.kind === "image") setImageClosed(true);
+    if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
     else setSection(() => null);
     editor.view.focus();
   }
@@ -730,6 +752,34 @@ function SettingsHost({
         keepVisible={() => editor.view.nodeDOM(target.pos) as Element | null}
       >
         <ImageSettings mediaId={target.mediaId} media={media} onChoose={choose} />
+      </SettingsPanel>
+    );
+  }
+  if (isButton) {
+    /** One transaction per change; ProseMirror's history groups rapid ones. */
+    const change = (attrs: Partial<SettingsTarget["button"]>) => {
+      const node = editor.state.doc.nodeAt(target.pos);
+      if (node?.type.name !== "button") return;
+      const tr = editor.state.tr.setNodeMarkup(target.pos, undefined, { ...node.attrs, ...attrs });
+      tr.setSelection(NodeSelection.create(tr.doc, target.pos));
+      editor.view.dispatch(tr);
+    };
+    return (
+      <SettingsPanel
+        key={`button-${target.pos}`}
+        title="Button"
+        onClose={close}
+        keepVisible={() => editor.view.nodeDOM(target.pos) as Element | null}
+      >
+        <ButtonSettings
+          label={target.button.label}
+          href={target.button.href}
+          style={target.button.style}
+          pages={pages}
+          onLabel={(label) => change({ label })}
+          onHref={(href) => change({ href })}
+          onStyle={(style) => change({ style })}
+        />
       </SettingsPanel>
     );
   }
@@ -939,12 +989,6 @@ function Tool({
     </Button>
   );
 }
-
-const LINK_ERRORS = {
-  unsafe:
-    "This address cannot be used. Use a web address (https://…), an email link (mailto:…) or a page on this site (/…).",
-  tooLong: "This address is too long. A link address can be at most 2,048 characters.",
-} as const;
 
 /**
  * The link dialog: the kit's native modal `<dialog>` with one field. The

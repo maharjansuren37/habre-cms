@@ -1,4 +1,5 @@
 import { BLOCKS_FORMAT_V4, type Document } from "#app/features/blocks/document.ts";
+import type { LinkablePage } from "#app/features/blocks/document-nodes.ts";
 import type { Role } from "#app/features/users/roles.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
@@ -296,6 +297,19 @@ export type NavPageOption = {
 export async function listPagesForNav(): Promise<NavPageOption[]> {
   return sql<NavPageOption[]>`
     select id, title, slug, status from entries where type = 'page' order by title
+  `;
+}
+
+/**
+ * The pages a button can link to, for the editor's "Goes to" list: the same
+ * ones the Pages list shows this person (`ownedBy` - an author's own, an
+ * editor's and an admin's all of them), drafts included, with no body.
+ */
+export async function listLinkablePages(actor: Actor): Promise<LinkablePage[]> {
+  return sql<LinkablePage[]>`
+    select e.id, e.title, e.slug, e.status from entries e
+    where e.type = 'page' ${ownedBy(actor)}
+    order by e.title
   `;
 }
 
