@@ -713,6 +713,14 @@ function SettingsHost({
     );
   }, [target.kind, target.pos, target.section, setSection]);
 
+  // The flag marks one commit only. A moved text cursor changes none of the
+  // effect's deps (`target.pos` is -1 for text), so the effect above may not
+  // run; this one runs after it on every commit and clears what is left, so the
+  // flag never swallows a later, genuine selection change (F-179).
+  useEffect(() => {
+    ownColumnsChange.current = false;
+  });
+
   const isSection = section !== null && section === target.section;
   const isImage = target.kind === "image" && !isAtomClosed && !isSection;
   const isButton = target.kind === "button" && !isAtomClosed && !isSection;
@@ -799,7 +807,8 @@ function SettingsHost({
           onColumns={(columns) => {
             const before = editor.state.selection.from;
             setColumns(editor, target.section, columns);
-            // Only a moved selection reaches the effect, which then skips once.
+            // Only a moved selection reaches the reset effect, which then skips once; the
+            // trailing effect clears the flag if that effect did not run (F-179).
             ownColumnsChange.current = editor.state.selection.from !== before;
           }}
         />

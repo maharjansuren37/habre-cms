@@ -1517,6 +1517,56 @@ test("settings panel: reducing Columns with the image in a removed column select
   ).toBeVisible();
 });
 
+test("settings panel: a text cursor moved by reducing Columns does not swallow the next selection - Close, then an image elsewhere (F-179)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A later gate");
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Cursor Moved Close Page",
+    doc(section(["Left words"], ["Right words"]), {
+      type: "section",
+      attrs: { align: "top", background: "none" },
+      content: [{ type: "column", content: [imageBlock(media)] }],
+    }),
+  );
+  await textbox.getByText("Right words").click();
+  const panel = await openSectionSettings(page, "Section 1");
+  await panel.getByLabel("Columns").selectOption("1");
+  await expect(settingsPanel(page, "Section 1").getByLabel("Columns")).toHaveValue("1");
+  await page.getByRole("button", { name: "Close settings" }).click();
+  await expect(settingsPanel(page, "Section 1")).toHaveCount(0);
+  await textbox.getByRole("img", { name: "A later gate" }).click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+});
+
+test("settings panel: a text cursor moved by reducing Columns does not swallow the next selection - an image in the same section (F-179)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A kept gate");
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Cursor Moved Same Section Page",
+    doc({
+      type: "section",
+      attrs: { align: "top", background: "none" },
+      content: [
+        { type: "column", content: [para("Left words"), imageBlock(media)] },
+        { type: "column", content: [para("Right words")] },
+      ],
+    }),
+  );
+  await textbox.getByText("Right words").click();
+  const panel = await openSectionSettings(page, "Section 1");
+  await panel.getByLabel("Columns").selectOption("1");
+  await expect(settingsPanel(page, "Section 1").getByLabel("Columns")).toHaveValue("1");
+  await textbox.getByRole("img", { name: "A kept gate" }).click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await expect(settingsPanel(page, "Section 1")).toHaveCount(0);
+});
+
 test("settings panel: Escape closes it with focus in the writing area, and Close settings does too", async ({
   page,
 }) => {

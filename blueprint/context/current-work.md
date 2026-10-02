@@ -242,6 +242,13 @@ templates (14c) and the AI draft (18b) will need except the contact form
   `afterEach`, its home-page test clears `home_page_id` in `finally`, and the
   whole suite passes.
 
+- [x] **Repair F-179 - A Columns reduce that moves a text cursor leaves the
+  F-177 ref set** - the ref never outlives the change it marks. *Done when:*
+  browser tests shaped like the review's probes A and B (cursor in a removed
+  column, Section settings, Columns 1, then - after Close, and without it -
+  selecting an image shows the Image panel) pass, and fail with the repair
+  reverted; the F-177 test still passes.
+
 ## Files and areas
 
 - `app/features/blocks/document.ts`, `document-nodes.ts` (+ `document.test.ts`)

@@ -90,7 +90,7 @@ File: app/features/blocks/document-editor.client.tsx:698-703 (reset effect), :49
 ### F-178 [P3] open - After the gear, clicking the already-selected image keeps the section panel
 File: app/features/blocks/document-editor.client.tsx:698-707
 
-### F-179 [P2] open - A Columns reduce that moves a text cursor leaves the F-177 ref set, so the next real selection change is ignored
+### F-179 [P2] closed - A Columns reduce that moves a text cursor leaves the F-177 ref set, so the next real selection change is ignored
 File: app/features/blocks/document-editor.client.tsx:799-804, :705-714
 
 ### F-180 [P3] open - Cut then paste of an image deletes it and pastes nothing
