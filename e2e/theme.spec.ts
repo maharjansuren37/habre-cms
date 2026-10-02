@@ -9,6 +9,7 @@ import {
   deleteEntriesBy,
   deleteTestUser,
   type TestUser,
+  withDatabase,
 } from "./helpers/users.ts";
 
 // Habre's tokens and self-hosted Inter, read from the real login page
@@ -157,7 +158,10 @@ test.describe("the admin shell", () => {
     await logIn(page, admin);
     await page.goto("/admin/settings");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    // A menu row puts its page and address fields side by side when there is room.
+    // Two menu rows, so each shows all of its Move up, Move down and Remove
+    // buttons - one row alone has nowhere to move. (A full run once failed here
+    // on rows another spec had saved.)
+    await page.getByRole("button", { name: "Add item" }).click();
     await page.getByRole("button", { name: "Add item" }).click();
     expect(await sidewaysOverflow(page)).toEqual([]);
   });
@@ -202,5 +206,69 @@ test.describe("the admin shell", () => {
     await expect(button).toBeFocused();
     await expect(button).toHaveCSS("outline-style", "solid");
     await expect(button).toHaveCSS("outline-width", "2px");
+  });
+});
+
+test.describe("the public pages", () => {
+  let author: TestUser;
+
+  test.beforeEach(() => {
+    author = createAdmin("Theme Author");
+  });
+
+  test.afterEach(async () => {
+    await deleteEntriesBy(author.email);
+    await deleteTestUser(author.email);
+  });
+
+  test("the home page, a post and a page of ready-made sections do not scroll sideways at 390px", async ({
+    page,
+  }) => {
+    const suffix = randomInt(1_000_000);
+    await createDraftFor(author.email, `A published post about gardens ${suffix}`, [], {
+      status: "published",
+    });
+    const pageTitle = `Theme sections ${suffix}`;
+    const pageId = await createDraftFor(author.email, pageTitle, [], {
+      type: "page",
+      blocksFormat: "v3",
+      status: "published",
+    });
+    const button = { label: "Read more", href: "/about" };
+    const sections = [
+      {
+        id: "h",
+        type: "hero",
+        data: { heading: "Welcome to the garden", text: "A line about us.", button },
+      },
+      {
+        id: "i",
+        type: "image-text",
+        data: {
+          mediaId: crypto.randomUUID(),
+          heading: "Our beds",
+          text: "Raised and sunny.",
+          button,
+        },
+      },
+      { id: "c", type: "cta", data: { heading: "Join us", text: "Come and dig.", button } },
+    ];
+    await withDatabase(
+      (sql) => sql`update entries set blocks = ${sql.json(sections as never)} where id = ${pageId}`,
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const path of [
+      "/",
+      `/posts/a-published-post-about-gardens-${suffix}`,
+      `/theme-sections-${suffix}`,
+    ]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+      expect(await sidewaysOverflow(page), path).toEqual([]);
+    }
+    // The last path is the page itself, not a 404 that also has a heading.
+    await expect(page.getByRole("heading", { name: "Welcome to the garden" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Read more" })).toHaveCount(3);
   });
 });

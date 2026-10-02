@@ -16,6 +16,7 @@
 
 .title {
   margin-bottom: var(--space-6);
+  font-family: var(--font-family-heading);
   font-size: var(--text-3xl);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
@@ -27,6 +28,7 @@
 
 .body h2,
 .body h3 {
+  font-family: var(--font-family-heading);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
 }

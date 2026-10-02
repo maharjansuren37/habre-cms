@@ -32,6 +32,7 @@
 .logoField {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
@@ -91,9 +92,11 @@
   background: var(--color-surface-sunken);
 }
 
+/* A fieldset is as wide as its widest content unless told otherwise. */
 .navRowFields {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
@@ -149,7 +152,9 @@
   font-size: var(--text-sm);
 }
 
+/* Wraps on a phone: three 44px buttons do not fit beside each other there. */
 .navRowActions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }

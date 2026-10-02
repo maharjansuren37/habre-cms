@@ -146,7 +146,7 @@ is themed once, not twice.
       shown at review; no horizontal scroll at 390px on the post editor (in
       `e2e/theme.spec.ts`); `inline-formatting.spec.ts`'s focus-outline
       assertions and the full browser suite pass.
-- [ ] **Step 9 - The public pages** - `public-site/layout`, `post-list`,
+- [x] **Step 9 - The public pages** - `public-site/layout`, `post-list`,
       `post`, `page-body` modules to `components.css`'s site header, footer,
       sections and columns at today's breakpoints (the 40rem container query
       comes with 14a's renderer, which replaces this one), `.display`,
