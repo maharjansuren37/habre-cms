@@ -117,7 +117,8 @@ not tidying; it is what keeps the open list true.
       deactivate/reactivate - including the self-guard note shown in place of
       the role/deactivate controls on your own account, plus the "Users" nav
       entry; from item 9, the settings screen's Home page select and its
-      "Not published" hint).
+      "Not published" hint; from item 14a1, the new editor's writing area,
+      format bar, link dialog, section chip and Add a section).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -254,5 +255,11 @@ not tidying; it is what keeps the open list true.
       (D14). Blocks nothing now; (1) and (2) are wanted before the v1 deploy,
       which carries item 14a's destructive migration. `open` (owner,
       2026-10-02)
+
+- [ ] **Approve deleting every page and post at the v1 deploy** - decision.
+      Item 14a1's migration `0009` deletes every entry and empties the menu,
+      and cannot be rolled back by symlink. The content is test data and
+      needs no backup (owner, 2026-10-02); this line is only the deploy's yes.
+      Blocks nothing now; needed by the v1 `deploy`. `open` (spec, 2026-10-02)
 
 ## Done
