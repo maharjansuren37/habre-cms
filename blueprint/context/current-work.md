@@ -213,6 +213,35 @@ templates (14c) and the AI draft (18b) will need except the contact form
   on a section holding only an image, presses Section settings and finds the
   panel named "Section N" with Columns; it fails with the repair reverted.
 
+- [x] **Repair F-176 - Close or Escape on a section panel opened over an image
+  shows the Image panel** - Close and Escape hide the section panel and leave
+  no panel. *Done when:* a browser test selects an image, presses Section
+  settings, then Close (and separately Escape) and finds no settings panel; it
+  fails with the repair reverted.
+- [x] **Repair F-177 - Reducing Columns with a moved image selected swaps the
+  panel** - the section panel stays, with focus on Columns. *Done when:* a
+  browser test on [paragraph | image] selects the image, opens Section
+  settings, sets Columns to 1 and still finds "Section 1" with focus on
+  Columns; it fails with the repair reverted.
+- [x] **Repair F-167 - Copy or cut of a selection holding an image throws** -
+  the image node serialises for the clipboard, still with no parse rule.
+  *Done when:* a test shows copying a selection that holds an image is
+  handled by the editor (no thrown error, the editor's clipboard data set);
+  it fails with the repair reverted.
+- [x] **Repair F-168 - A palette insert from a gap cursor lands in section 1** -
+  the block lands in the gap cursor's column. *Done when:* a unit test in
+  `palette-insert.test.ts` with a GapCursor at the end of section 2's column
+  inserts there; it fails with the repair reverted.
+
+- [x] **Repair F-169 - Two spec files seed a page with the same address** -
+  each seeded page gets a unique title. *Done when:* `grep -n '"Blocks Page"'
+  e2e/` finds nothing and both files pass run together.
+- [x] **Repair F-170 - The render spec resets the shared settings row after
+  every test** - only the home-page test restores what it changed. *Done
+  when:* `document-render.spec.ts` calls no `resetSiteSettings` in
+  `afterEach`, its home-page test clears `home_page_id` in `finally`, and the
+  whole suite passes.
+
 ## Files and areas
 
 - `app/features/blocks/document.ts`, `document-nodes.ts` (+ `document.test.ts`)

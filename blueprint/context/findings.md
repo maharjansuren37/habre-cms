@@ -54,16 +54,16 @@ File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-edit
 ### F-166 [P1] fixed - Section settings cannot be opened for a section whose first block is an image, button, line or space
 File: app/features/blocks/document-editor.client.tsx:587-597, :713
 
-### F-167 [P2] open - Copying or cutting a selection that holds an image throws, so the editor never handles it
+### F-167 [P2] closed - Copying or cutting a selection that holds an image throws, so the editor never handles it
 File: app/features/blocks/document-editor.client.tsx:163 (`ImageNode`, no `renderHTML`)
 
-### F-168 [P2] open - A palette insert from a gap cursor lands after section 1's first block, not in the cursor's column
+### F-168 [P2] closed - A palette insert from a gap cursor lands after section 1's first block, not in the cursor's column
 File: app/features/blocks/palette-insert.ts:76-80
 
-### F-169 [P2] open - Two spec files seed a page with the same address and can fail each other
+### F-169 [P2] fixed - Two spec files seed a page with the same address and can fail each other
 File: e2e/document-editor.spec.ts:976; e2e/document-render.spec.ts:229
 
-### F-170 [P2] open - `document-render.spec.ts` resets the shared settings row after every test, widening F-103
+### F-170 [P2] fixed - `document-render.spec.ts` resets the shared settings row after every test, widening F-103
 File: e2e/document-render.spec.ts:32
 
 ### F-171 [P3] open - "Enter did not submit the entry form" cannot fail
@@ -81,10 +81,10 @@ File: app/features/public-site/document-media-ids.ts:6
 ### F-175 [P3] open - Stale comment and R2 test counts
 File: app/features/media/media-picker-dialog.module.css:1-2; blueprint/context/needs-you.md:170; AGENTS.md (ci row)
 
-### F-176 [P2] open - Close or Escape on a section panel opened over an image or button shows that block's panel instead of hiding
+### F-176 [P2] closed - Close or Escape on a section panel opened over an image or button shows that block's panel instead of hiding
 File: app/features/blocks/document-editor.client.tsx:709-713 (`close`)
 
-### F-177 [P2] open - Reducing Columns while an image in a removed column is selected swaps the section panel for the Image panel and drops focus
+### F-177 [P2] closed - Reducing Columns while an image in a removed column is selected swaps the section panel for the Image panel and drops focus
 File: app/features/blocks/document-editor.client.tsx:698-703 (reset effect), :499-513 (`setColumns`)
 
 ### F-178 [P3] open - After the gear, clicking the already-selected image keeps the section panel

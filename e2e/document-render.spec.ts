@@ -2,7 +2,6 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { buttonBlock, imageBlock, lineBlock, spaceBlock } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
-import { resetSiteSettings } from "./helpers/site-settings.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -29,7 +28,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async () => {
-  await resetSiteSettings(); // the home page test points it at an entry
   await deleteEntriesBy(editor.email);
   for (const id of mediaIds) await deleteTestMedia(id);
   await deleteTestUser(editor.email);
@@ -226,8 +224,9 @@ async function blocksDocument() {
 test("a published page draws an image, a button and a line as an img, a link and a separator", async ({
   page,
 }) => {
-  await publish("page", "Blocks Page", await blocksDocument());
-  await page.goto("/blocks-page");
+  const title = `Blocks Page ${randomInt(1_000_000)}`;
+  await publish("page", title, await blocksDocument());
+  await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
   const main = page.getByRole("main");
 
   const harbour = main.getByRole("img", { name: "Harbour at dawn" });
@@ -318,17 +317,23 @@ test("the chosen home page draws an image the same way", async ({ page }) => {
     doc(section([imageBlock(id), lineBlock()])),
     { type: "page", status: "published" },
   );
-  await withDatabase(async (sql) => {
-    await sql`update site_settings set home_page_id = ${pageId} where id = 1`;
-  });
-  await page.goto("/");
-  const main = page.getByRole("main");
-  const image = main.getByRole("img", { name: "Home picture" });
+  try {
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set home_page_id = ${pageId} where id = 1`;
+    });
+    await page.goto("/");
+    const main = page.getByRole("main");
+    const image = main.getByRole("img", { name: "Home picture" });
 
-  await expect(image).toHaveAttribute("width", "90");
-  await expect(image).toHaveAttribute("height", "60");
-  await expect(image).toHaveAttribute("fetchpriority", "high");
-  await expect(main.getByRole("separator")).toHaveCount(1);
+    await expect(image).toHaveAttribute("width", "90");
+    await expect(image).toHaveAttribute("height", "60");
+    await expect(image).toHaveAttribute("fetchpriority", "high");
+    await expect(main.getByRole("separator")).toHaveCount(1);
+  } finally {
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set home_page_id = null where id = 1`;
+    });
+  }
 });
 
 test("a published page holding 30 images answers in under 500 ms", async ({ page }) => {

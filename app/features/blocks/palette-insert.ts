@@ -73,6 +73,8 @@ export function insertionPoint(doc: ProseMirrorNode, selection: Selection): numb
     return selection.to;
   }
   const $head = selection.$head;
+  // A gap cursor beside an atom has the column itself as its parent.
+  if ($head.parent.type.name === "column") return $head.pos;
   for (let depth = $head.depth; depth > 0; depth--) {
     if ($head.node(depth - 1).type.name === "column") return $head.after(depth);
   }

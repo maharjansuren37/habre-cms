@@ -169,6 +169,9 @@ const ImageNode = Node.create({
   addAttributes() {
     return { mediaId: { default: "" } };
   },
+  // For the clipboard only: a copy or cut serialises the node, and with no
+  // `toDOM` ProseMirror throws. No `parseHTML`, so a paste still drops images (F-167).
+  renderHTML: () => ["div", { "data-node": "image" }],
   addNodeView() {
     return ReactNodeViewRenderer(ImageView);
   },
@@ -688,14 +691,22 @@ function SettingsHost({
     },
   });
   const [isAtomClosed, setAtomClosed] = useState(false);
+  // Set when the panel's own Columns change moved the selected block: the
+  // effect below must not read that as a new selection (F-177).
+  const ownColumnsChange = useRef(false);
 
   // A new selection ends whatever a close or the gear decided about the last
   // one: the image panel comes back for the next image, and the section panel
   // stays until the selection moves to another section or onto another image
   // or button. The gear does not move the selection, so pressing it with an
   // atom selected leaves this effect idle and the section panel shows (F-166).
+  // The panel's own Columns change is not a new selection (F-177).
   // biome-ignore lint/correctness/useExhaustiveDependencies: `target.pos` is a trigger - selecting another image reopens the panel.
   useEffect(() => {
+    if (ownColumnsChange.current) {
+      ownColumnsChange.current = false;
+      return;
+    }
     setAtomClosed(false);
     setSection((current) =>
       current !== null && (target.kind !== "text" || target.section !== current) ? null : current,
@@ -707,8 +718,11 @@ function SettingsHost({
   const isButton = target.kind === "button" && !isAtomClosed && !isSection;
 
   function close() {
-    if (isSection) setSection(() => null);
-    else if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
+    if (isSection) {
+      setSection(() => null);
+      // Over a selected image or button the section panel must leave no panel behind (F-176).
+      setAtomClosed(true);
+    } else if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
     editor.view.focus();
   }
 
@@ -782,7 +796,12 @@ function SettingsHost({
       <SettingsPanel key="section" title={`Section ${target.section + 1}`} onClose={close}>
         <SectionSettings
           columns={target.columns}
-          onColumns={(columns) => setColumns(editor, target.section, columns)}
+          onColumns={(columns) => {
+            const before = editor.state.selection.from;
+            setColumns(editor, target.section, columns);
+            // Only a moved selection reaches the effect, which then skips once.
+            ownColumnsChange.current = editor.state.selection.from !== before;
+          }}
         />
       </SettingsPanel>
     );

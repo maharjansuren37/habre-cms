@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { GapCursor } from "@tiptap/pm/gapcursor";
 import { Schema } from "@tiptap/pm/model";
 import { EditorState, NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { countBlocks, insertBlock, insertionPoint } from "./palette-insert.ts";
@@ -109,4 +110,34 @@ test("blocks are counted as column children, a list as one", () => {
 
 test("nothing is inserted at the cap", () => {
   assert.equal(insertBlock(cursorIn("Alpha"), "text", 4), null);
+});
+
+test("a gap cursor at the end of a column inserts in that column, not in section 1 (F-168)", () => {
+  const twoSections = schema.nodes.doc.create(null, [
+    schema.nodes.section.create(null, [column(p("First"))]),
+    schema.nodes.section.create(null, [
+      column(p("Second"), schema.nodes.image.create({ mediaId: "m1" })),
+    ]),
+  ]);
+  // Doc > section 2 > column: the gap after the image is the column's end.
+  let columnEnd = 0;
+  twoSections.child(1).forEach((node, offset) => {
+    columnEnd = twoSections.child(0).nodeSize + 1 + offset + node.nodeSize - 1;
+  });
+  const gap = new GapCursor(twoSections.resolve(columnEnd));
+  assert.equal(gap.$head.parent.type.name, "column");
+  const state = EditorState.create({ doc: twoSections, selection: gap });
+  const next = state.apply(insertBlock(state, "line", 200) as never);
+  const names = (section: number) => {
+    const out: string[] = [];
+    next.doc
+      .child(section)
+      .child(0)
+      .forEach((b) => {
+        out.push(b.type.name);
+      });
+    return out;
+  };
+  assert.deepEqual(names(0), ["paragraph"]);
+  assert.deepEqual(names(1), ["paragraph", "image", "horizontalRule"]);
 });

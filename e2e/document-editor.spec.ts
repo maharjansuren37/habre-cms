@@ -366,6 +366,38 @@ test("in dark mode the canvas is the site's light background", async ({ page }) 
   expect(adminBackground).not.toBe(canvasBackground);
 });
 
+test("copying a selection that holds an image is handled by the editor and does not throw (F-167)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A copied gate");
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Copy Image Page",
+    inSection(
+      { type: "paragraph", content: [{ type: "text", text: "Before the gate" }] },
+      imageBlock(media),
+    ),
+  );
+  await textbox.getByText("Before the gate").click();
+  await page.keyboard.press("ControlOrMeta+A");
+  await settle(page);
+  // ProseMirror writes the clipboard from the event's clipboard data, so the
+  // test hands it one - written as source, since these tests' types have no DOM.
+  const copied = await page.evaluate(`(() => {
+    const element = document.querySelector('[role="textbox"]');
+    const data = new DataTransfer();
+    const event = new ClipboardEvent("copy", { clipboardData: data, bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+    return { prevented: event.defaultPrevented, html: data.getData("text/html"), text: data.getData("text/plain") };
+  })()`);
+  expect(errors).toEqual([]);
+  expect(copied).toMatchObject({ prevented: true });
+  expect((copied as { html: string }).html).toContain("Before the gate");
+});
+
 test("pasted HTML saves only contract nodes: image and table dropped, list flat, unsafe link gone", async ({
   page,
 }) => {
@@ -973,7 +1005,12 @@ async function openWithFourBlocks(page: Page) {
   ];
   const seeded = inSection(...blocks);
   const { id, textbox } = await (async () => {
-    const entryId = await createDraftFor(editor.email, "Blocks Page", seeded, { type: "page" });
+    const entryId = await createDraftFor(
+      editor.email,
+      `Blocks Page ${randomInt(1_000_000)}`,
+      seeded,
+      { type: "page" },
+    );
     await deleteTestMedia(gone);
     await logIn(page, editor);
     await page.goto(`/admin/pages/${entryId}`);
@@ -1406,6 +1443,78 @@ test("settings panel: Section settings opens the panel of a section holding only
   const panel = settingsPanel(page, "Section 1");
   await expect(panel).toBeVisible();
   await expect(panel.getByLabel("Columns")).toBeVisible();
+});
+
+test("settings panel: Close settings and Escape on a section panel opened over an image leave no panel (F-176)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A closed gate");
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Close Over Image Page",
+    doc(
+      {
+        type: "section",
+        attrs: { align: "top", background: "none" },
+        content: [{ type: "column", content: [imageBlock(media)] }],
+      },
+      section(["Elsewhere"]),
+    ),
+  );
+  const image = textbox.getByRole("img", { name: "A closed gate" });
+  const noPanel = async () => {
+    await expect(settingsPanel(page, "Image")).toHaveCount(0);
+    await expect(settingsPanel(page, "Section 1")).toHaveCount(0);
+  };
+
+  await image.click();
+  await openSectionSettings(page, "Section 1");
+  await page.getByRole("button", { name: "Close settings" }).click();
+  await noPanel();
+  await expect(textbox).toBeFocused();
+
+  // Selecting the image again brings its panel back; the gear, then Escape.
+  await textbox.getByText("Elsewhere").click();
+  await image.click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  const panel = await openSectionSettings(page, "Section 1");
+  await panel.getByLabel("Columns").focus();
+  await page.keyboard.press("Escape");
+  await noPanel();
+  await expect(textbox).toBeFocused();
+});
+
+test("settings panel: reducing Columns with the image in a removed column selected keeps the section panel and its focus (F-177)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A moved gate");
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Reduce Columns Image Page",
+    doc({
+      type: "section",
+      attrs: { align: "top", background: "none" },
+      content: [
+        { type: "column", content: [para("Left words")] },
+        { type: "column", content: [imageBlock(media)] },
+      ],
+    }),
+  );
+  await textbox.getByRole("img", { name: "A moved gate" }).click();
+  const panel = await openSectionSettings(page, "Section 1");
+  await panel.getByLabel("Columns").selectOption("1");
+  await expect(settingsPanel(page, "Section 1")).toBeVisible();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await expect(settingsPanel(page, "Section 1").getByLabel("Columns")).toBeFocused();
+  await expect(settingsPanel(page, "Section 1").getByLabel("Columns")).toHaveValue("1");
+  // Both blocks are now in the one column.
+  await expect(textbox.locator('[data-node="column"]')).toHaveCount(1);
+  await expect(textbox.locator('[data-node="column"]').getByText("Left words")).toBeVisible();
+  await expect(
+    textbox.locator('[data-node="column"]').getByRole("img", { name: "A moved gate" }),
+  ).toBeVisible();
 });
 
 test("settings panel: Escape closes it with focus in the writing area, and Close settings does too", async ({
