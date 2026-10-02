@@ -132,7 +132,7 @@ is themed once, not twice.
       (delete -> confirmation naming it -> back to the list with its filters)
       still passes in `manage-pages.spec.ts` ("deleting or canceling from a
       filtered, searched list returns to it"); the full browser suite passes.
-- [ ] **Step 7 - Admin forms** - `settings`, `logo-picker`, `user-form`
+- [x] **Step 7 - Admin forms** - `settings`, `logo-picker`, `user-form`
       modules: the kit's fields, select, choice and dialog. *Done when:*
       screenshots of the settings form with the logo picker open and the
       edit-user screen, at 390px and 1280px, light and dark, are shown at

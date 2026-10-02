@@ -20,6 +20,13 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A button in the form's grid keeps its own width, as in the kit's forms;
+ * only the fields run full width. */
+.form button {
+  justify-self: start;
 }
 
 .readOnly {

@@ -152,6 +152,16 @@ test.describe("the admin shell", () => {
     }
   });
 
+  test("the settings form does not scroll sideways at 390px", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await logIn(page, admin);
+    await page.goto("/admin/settings");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // A menu row puts its page and address fields side by side when there is room.
+    await page.getByRole("button", { name: "Add item" }).click();
+    expect(await sidewaysOverflow(page)).toEqual([]);
+  });
+
   test("the media grid does not scroll sideways at 390px", async ({ page }) => {
     test.skip(skipWithoutStorage, STORAGE_REASON);
     await page.setViewportSize({ width: 390, height: 844 });
