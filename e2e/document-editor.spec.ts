@@ -1361,6 +1361,53 @@ test("settings panel: the chip's Section settings opens Section 2, and the chip 
   await expect(page.getByRole("complementary", { name: /^Section/ })).toHaveCount(0);
 });
 
+test("settings panel: Section settings opens the section's panel when its first block is a selected image (F-166)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A green gate");
+  const imageFirst = {
+    type: "section",
+    attrs: { align: "top", background: "none" },
+    content: [{ type: "column", content: [imageBlock(media), para("After the gate")] }],
+  };
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Image First Section Page",
+    doc(section(["One"]), imageFirst),
+  );
+  await textbox.getByRole("img", { name: "A green gate" }).click();
+  await expect(settingsPanel(page, "Image")).toBeVisible();
+  await chip(page, "Section 2 of 2").getByRole("button", { name: "Section settings" }).click();
+  const panel = settingsPanel(page, "Section 2");
+  await expect(panel).toBeVisible();
+  await expect(settingsPanel(page, "Image")).toHaveCount(0);
+  await expect(panel.getByLabel("Columns")).toBeVisible();
+  await panel.getByLabel("Columns").selectOption("2");
+  await expect(settingsPanel(page, "Section 2").getByLabel("Columns")).toHaveValue("2");
+});
+
+test("settings panel: Section settings opens the panel of a section holding only an image (F-166)", async ({
+  page,
+}) => {
+  const media = await seedMedia("A lone gate");
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Image Only Section Page",
+    doc({
+      type: "section",
+      attrs: { align: "top", background: "none" },
+      content: [{ type: "column", content: [imageBlock(media)] }],
+    }),
+  );
+  await textbox.getByRole("img", { name: "A lone gate" }).click();
+  await chip(page, "Section 1 of 1").getByRole("button", { name: "Section settings" }).click();
+  const panel = settingsPanel(page, "Section 1");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByLabel("Columns")).toBeVisible();
+});
+
 test("settings panel: Escape closes it with focus in the writing area, and Close settings does too", async ({
   page,
 }) => {

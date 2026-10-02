@@ -51,7 +51,7 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
 
-### F-166 [P1] open - Section settings cannot be opened for a section whose first block is an image, button, line or space
+### F-166 [P1] fixed - Section settings cannot be opened for a section whose first block is an image, button, line or space
 File: app/features/blocks/document-editor.client.tsx:587-597, :713
 
 ### F-167 [P2] open - Copying or cutting a selection that holds an image throws, so the editor never handles it

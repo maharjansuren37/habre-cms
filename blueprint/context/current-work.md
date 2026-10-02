@@ -206,7 +206,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   browser suite pass (`npm run test:e2e` locally with R2; CI's `e2e` with
   `E2E_SKIP_R2=1`).
 
-- [ ] **Repair F-166 - Section settings cannot be opened for a section whose
+- [x] **Repair F-166 - Section settings cannot be opened for a section whose
   first block is an image, button, line or space** - the chip's Section
   settings opens that section's panel whatever the selection holds. *Done
   when:* a browser test on a section whose first block is an image, and one

@@ -585,14 +585,6 @@ function SectionChip({
         aria-label="Section settings"
         title="Section settings"
         onClick={() => {
-          // A selected block with no settings of its own would hand the panel
-          // back to the block, so the cursor moves into the section first.
-          if (editor.state.selection instanceof NodeSelection) {
-            const start = sectionStart(editor.state.doc, index);
-            editor.view.dispatch(
-              editor.state.tr.setSelection(Selection.near(editor.state.doc.resolve(start + 1), 1)),
-            );
-          }
           onOpenSettings(index);
         }}
       >
@@ -699,7 +691,9 @@ function SettingsHost({
 
   // A new selection ends whatever a close or the gear decided about the last
   // one: the image panel comes back for the next image, and the section panel
-  // stays only while the cursor stays in text of that section.
+  // stays until the selection moves to another section or onto another image
+  // or button. The gear does not move the selection, so pressing it with an
+  // atom selected leaves this effect idle and the section panel shows (F-166).
   // biome-ignore lint/correctness/useExhaustiveDependencies: `target.pos` is a trigger - selecting another image reopens the panel.
   useEffect(() => {
     setAtomClosed(false);
@@ -708,13 +702,13 @@ function SettingsHost({
     );
   }, [target.kind, target.pos, target.section, setSection]);
 
-  const isImage = target.kind === "image" && !isAtomClosed;
-  const isButton = target.kind === "button" && !isAtomClosed;
-  const isSection = target.kind === "text" && section !== null && section === target.section;
+  const isSection = section !== null && section === target.section;
+  const isImage = target.kind === "image" && !isAtomClosed && !isSection;
+  const isButton = target.kind === "button" && !isAtomClosed && !isSection;
 
   function close() {
-    if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
-    else setSection(() => null);
+    if (isSection) setSection(() => null);
+    else if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
     editor.view.focus();
   }
 
