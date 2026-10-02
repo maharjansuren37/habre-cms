@@ -239,4 +239,20 @@ not tidying; it is what keeps the open list true.
       is published yet. Blocks nothing now; needed before the code is made
       public. `open` (rescope review, 2026-10-01)
 
+- [ ] **Harden the deploy path before the v1 deploy** - decision; when to
+      take it on, and a server change only you can approve. Today a release is
+      a manual procedure written only as prose (`dev-notes/status.md`, the
+      `deploy` skill), built on the laptop, and copied with
+      `rsync --rsync-path="sudo rsync"`, so the deploy login is effectively
+      root. In order: (1) a `deploy/release.sh` that builds from a clean
+      clone, verifies, rsyncs, migrates, switches `current`, checks
+      `/healthz` and rolls back on failure - a `spec` fix; (2) a dedicated
+      deploy user whose sudo runs one activate command, plus closing root SSH
+      login (F-20) - `host`, its own yes; (3) later, CI builds a tagged
+      release artifact and deploy ships that file; (4) the separate production
+      R2 token above. Not worth it: Docker, Kubernetes or a PaaS on this box
+      (D14). Blocks nothing now; (1) and (2) are wanted before the v1 deploy,
+      which carries item 14a's destructive migration. `open` (owner,
+      2026-10-02)
+
 ## Done

@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-02, `feature/upgrade-react-router` after `366115e`.
+Generated 2026-10-02, `main` after `d3c2c81`.
 
 ## What this is
 
@@ -128,6 +128,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 ## Current state
 
 - **Plan:** items 1-13 done; 10 queued (13b, 14, 15, 16, 17, 17b, 18-21);
-  nothing in flight. 14, 15 and 18 split when spec'd.
-- **Next:** `spec` item 13b.
+  nothing in flight. 14, 15 and 18 split when spec'd. Last shipped: the
+  findings-backlog tidy (`blueprint/history/fixes/`).
+- **Next:** `spec` item 13b (draft parked in `blueprint/drafts/`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
