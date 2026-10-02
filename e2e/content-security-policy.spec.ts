@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { inSection, textDocument } from "./helpers/documents.ts";
+import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -126,6 +126,27 @@ test("the public site renders with nothing refused by the policy", async ({ page
 
   const missing = await page.goto("/no-such-page-for-csp");
   expect(missing?.status()).toBe(404);
+
+  expect(violations).toEqual([]);
+});
+
+test("a published page's image loads under the public policy with nothing refused", async ({
+  page,
+}) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
+  await logIn(page, admin);
+  await uploadPixel(page);
+  await createDraftFor(admin.email, "CSP Image Page", inSection(imageBlock(mediaId as string)), {
+    status: "published",
+    type: "page",
+  });
+
+  await page.goto("/csp-image-page");
+  const image = page.getByRole("main").getByRole("img", { name: "A CSP pixel" });
+  await expect(image).toBeVisible();
+  await expect
+    .poll(() => image.evaluate((element) => (element as { naturalWidth: number }).naturalWidth))
+    .toBeGreaterThan(0);
 
   expect(violations).toEqual([]);
 });

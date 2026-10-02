@@ -39,6 +39,10 @@ export type Section = {
 };
 export type Document = { type: "doc"; content: Section[] };
 
+/** What the renderer needs of one media row, resolved at render time and never
+ *  stored in the document (D55): where the file is, its alt text and its size. */
+export type DocumentMedia = { url: string; altText: string; width: number; height: number };
+
 /** Every text node a block or list item holds, in reading order. */
 export function textNodes(node: Block | ListItem): TextNode[] {
   if (node.type === "paragraph" || node.type === "heading") return node.content ?? [];

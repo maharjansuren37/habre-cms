@@ -58,3 +58,30 @@ export function deleteTestMedia(id: string): Promise<void> {
     await sql`delete from media where id = ${id}`;
   });
 }
+
+/**
+ * Test-only: a media row with no R2 object behind it, so tests that only need
+ * the row (its alt text, size and URL on a rendered page) run in CI, which
+ * holds no storage credentials. An `img` keeps its role and name when its file
+ * 404s. `uploadedBy` is a test user's email; delete the row with
+ * `deleteTestMedia` before deleting that user.
+ */
+export function insertTestMediaRow(options: {
+  uploadedBy: string;
+  altText?: string;
+  width?: number;
+  height?: number;
+}): Promise<string> {
+  const { uploadedBy, altText = "A test image", width = 640, height = 480 } = options;
+  const key = `e2e-test/${randomUUID()}.jpg`;
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      insert into media (storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
+      select ${key}, ${`${key.slice(9)}`}, 'image/jpeg', 1, ${width}, ${height}, ${altText}, id
+      from users where email = ${uploadedBy}
+      returning id
+    `;
+    if (!row) throw new Error(`no user ${uploadedBy} to own the test media row`);
+    return row.id;
+  });
+}

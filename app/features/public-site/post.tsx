@@ -2,6 +2,7 @@ import { data, Link } from "react-router";
 import { renderDocument } from "#app/features/blocks/render.tsx";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/post";
+import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
 import { publicTitle } from "./public-title.ts";
 
@@ -17,11 +18,11 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!post) throw data("Not Found", { status: 404 });
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPost } = post;
-  return { post: publicPost };
+  return { post: publicPost, mediaById: await resolveDocumentMedia(post.document) };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {
-  const { post } = loaderData;
+  const { post, mediaById } = loaderData;
   return (
     <main className={styles.article}>
       <p className={styles.meta}>
@@ -32,7 +33,7 @@ export default function Post({ loaderData }: Route.ComponentProps) {
         {post.authorName}
       </p>
       <h1 className={styles.title}>{post.title}</h1>
-      {renderDocument(post.document, "post")}
+      {renderDocument(post.document, "post", mediaById)}
       <Link className={styles.back} to="/posts">
         ← All posts
       </Link>

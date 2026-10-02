@@ -1,6 +1,7 @@
 import { data, redirect } from "react-router";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/page";
+import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
 import { publicTitle } from "./public-title.ts";
 
@@ -18,9 +19,9 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (page.isHomePage) throw redirect("/");
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
-  return { page: publicPage };
+  return { page: publicPage, mediaById: await resolveDocumentMedia(page.document) };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {
-  return <PageBody page={loaderData.page} />;
+  return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} />;
 }

@@ -96,7 +96,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   button missing its label or its `href`, and true for a line - and
   `npm run verify` is green.
 
-- [ ] **Step 2 - The public render** - `renderDocument(document, type,
+- [x] **Step 2 - The public render** - `renderDocument(document, type,
   mediaById)` draws the four blocks (Notes, *Rendering*); a section renders
   nothing when no block in it `isRenderedBlock`. A new
   `resolveDocumentMedia(document)` in `app/features/public-site/` collects the
