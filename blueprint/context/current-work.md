@@ -87,7 +87,7 @@ is themed once, not twice.
       Variable"')` true after `document.fonts.ready`; the font response's URL
       is on the app's own origin under `/assets/`; no request leaves the
       origin for a font. `npm run verify` and `npm run test:e2e` pass.
-- [ ] **Step 3 - Public sites in the site scope, light only** -
+- [x] **Step 3 - Public sites in the site scope, light only** -
       `[data-surface="site"]` in `app.css` sets every role from the neutral
       greys, `color-scheme: light`, and Modern's font and radii. The root
       `Layout` puts `data-surface="site"` on `<html>` for every path that is

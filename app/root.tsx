@@ -7,8 +7,10 @@ import {
   redirect,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
 import { resolveHostRouting } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
@@ -69,8 +71,10 @@ export const middleware: Route.MiddlewareFunction[] = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  // useLocation, not a loader: Layout also wraps the root ErrorBoundary.
+  const { pathname } = useLocation();
   return (
-    <html lang="en">
+    <html lang="en" data-surface={areaForPath(pathname) === "public" ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

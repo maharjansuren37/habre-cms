@@ -178,6 +178,49 @@
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Customer sites: neutral greys, ink buttons, no brand hue, light only (a Pro
+ * setting turns dark on later, item 20). Sets every role rather than inheriting
+ * Habre's, which follows the device. Modern's font and radii are merged in
+ * until style presets arrive (item 18a). --color-selection belongs to the
+ * editor (item 14a). */
+[data-surface="site"] {
+  color-scheme: light;
+  --color-bg: var(--neutral-0);
+  --color-surface: var(--neutral-50);
+  --color-surface-sunken: var(--neutral-100);
+  --color-surface-hover: var(--neutral-100);
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-600);
+  --color-border: var(--neutral-200);
+  --color-border-strong: var(--neutral-500);
+  --color-primary: var(--neutral-900);
+  --color-primary-hover: var(--neutral-700);
+  --color-on-primary: var(--neutral-0);
+  --color-primary-subtle: var(--neutral-100);
+  --color-danger: var(--crimson-700);
+  --color-danger-subtle: var(--crimson-50);
+  --color-success: var(--green-700);
+  --color-success-subtle: var(--green-50);
+  --color-warning: var(--ochre-700);
+  --color-warning-subtle: var(--ochre-50);
+  --color-info: var(--blue-700);
+  --color-info-subtle: var(--blue-50);
+  --color-focus-ring: var(--neutral-900);
+  --color-overlay: #0a0a0a80;
+  --shadow-sm: 0 1px 2px #0a0a0a14;
+  --shadow-md: 0 4px 12px #0a0a0a1f;
+  --shadow-lg: 0 12px 32px #0a0a0a2e;
+  --font-family-heading:
+    "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-sans:
+    "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0ms;
