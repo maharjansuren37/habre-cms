@@ -2,7 +2,7 @@
 
 **From build plan:** item 14a2
 **Type:** Feature
-**Verified:** not yet
+**Verified:** 2026-10-02, 468c6242df98, 8 of 8 proven - every done-when by browser tests against the served build (`npm run test:e2e` 177 passed, `npm run verify` 267 unit); 30-image page 5-14 ms; layout seen in screenshots at 1280 and 390 (palette, image and button panels, bottom sheet, Add dialog, public page). Screen-reader output not heard - in needs-you
 **Reviewed:** not yet
 
 ## Goal
@@ -205,6 +205,13 @@ templates (14c) and the AI draft (18b) will need except the contact form
   when:* both files carry those lines and `npm run verify` and the whole
   browser suite pass (`npm run test:e2e` locally with R2; CI's `e2e` with
   `E2E_SKIP_R2=1`).
+
+- [ ] **Repair F-166 - Section settings cannot be opened for a section whose
+  first block is an image, button, line or space** - the chip's Section
+  settings opens that section's panel whatever the selection holds. *Done
+  when:* a browser test on a section whose first block is an image, and one
+  on a section holding only an image, presses Section settings and finds the
+  panel named "Section N" with Columns; it fails with the repair reverted.
 
 ## Files and areas
 

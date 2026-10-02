@@ -50,3 +50,33 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
+
+### F-166 [P1] open - Section settings cannot be opened for a section whose first block is an image, button, line or space
+File: app/features/blocks/document-editor.client.tsx:587-597, :713
+
+### F-167 [P2] open - Copying or cutting a selection that holds an image throws, so the editor never handles it
+File: app/features/blocks/document-editor.client.tsx:163 (`ImageNode`, no `renderHTML`)
+
+### F-168 [P2] open - A palette insert from a gap cursor lands after section 1's first block, not in the cursor's column
+File: app/features/blocks/palette-insert.ts:76-80
+
+### F-169 [P2] open - Two spec files seed a page with the same address and can fail each other
+File: e2e/document-editor.spec.ts:976; e2e/document-render.spec.ts:229
+
+### F-170 [P2] open - `document-render.spec.ts` resets the shared settings row after every test, widening F-103
+File: e2e/document-render.spec.ts:32
+
+### F-171 [P3] open - "Enter did not submit the entry form" cannot fail
+File: e2e/document-editor.spec.ts:1544
+
+### F-172 [P3] open - Enter in Button text saves the page, and the panel's no-`name` comment is wrong
+File: app/features/blocks/settings-panel.client.tsx:193, :263, :327
+
+### F-173 [P3] open - The edit loaders run two independent queries in turn
+File: app/features/content/page-edit.tsx:43-44; post-edit.tsx:40-41; page-new.tsx; post-new.tsx
+
+### F-174 [P3] unverified - A malformed stored `mediaId` would answer 500 on public and edit routes
+File: app/features/public-site/document-media-ids.ts:6
+
+### F-175 [P3] open - Stale comment and R2 test counts
+File: app/features/media/media-picker-dialog.module.css:1-2; blueprint/context/needs-you.md:170; AGENTS.md (ci row)

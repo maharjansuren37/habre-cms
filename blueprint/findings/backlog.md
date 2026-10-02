@@ -14,7 +14,7 @@ File: app/lib/security-log.server.ts:16; app/features/auth/require-role.server.t
 ### F-83 [P3] unverified - Item 6a's pages screens reproduce three pre-existing unverified/open posts accessibility findings
 File: app/features/content/page-list.tsx:69-98 (filter tabs, search form); app/features/admin-shell/layout.tsx:39-61 (nav)
 
-### F-79 [P3] deferred - A captioned image's alt text is announced twice in a row by a screen reader
+### F-79 [P3] closed - A captioned image's alt text is announced twice in a row by a screen reader
 File: app/features/blocks/render.tsx:38-52 (the `image` case)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone. 14a's spec carries the requirement: a captioned image is not announced twice (owner, 2026-10-02)
 
