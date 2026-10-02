@@ -29,6 +29,7 @@ import content from "./content.module.css";
 import styles from "./document-editor.module.css";
 import type { Document, DocumentMedia } from "./document-nodes.ts";
 import { isSafeHref } from "./inline-runs.ts";
+import { AddButton, AddDialog, Palette } from "./palette.client.tsx";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
 const MAX_HREF_LENGTH = 2_048;
@@ -301,6 +302,8 @@ export function DocumentEditor({
   contentRef,
   onChange,
   barSlot,
+  paletteSlot,
+  addSlot,
   mediaById,
 }: {
   initialDocument: Document;
@@ -309,6 +312,9 @@ export function DocumentEditor({
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
   barSlot: HTMLElement | null;
+  /** Where the palette is drawn (before the canvas) and where the phone's Add button goes. */
+  paletteSlot: HTMLElement | null;
+  addSlot: HTMLElement | null;
   /** What the document's images need to draw, by media id. */
   mediaById: Record<string, DocumentMedia>;
 }) {
@@ -355,9 +361,15 @@ export function DocumentEditor({
   }, [editor, contentRef]);
 
   const canvas = useRef<HTMLDivElement>(null);
+  const [isAddOpen, setAddOpen] = useState(false);
 
   return (
     <>
+      {paletteSlot && editor ? createPortal(<Palette editor={editor} />, paletteSlot) : null}
+      {addSlot && editor
+        ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
+        : null}
+      {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
       {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>

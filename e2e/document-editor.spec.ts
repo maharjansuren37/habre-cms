@@ -198,7 +198,10 @@ test("text styles, both lists and a quote survive Save and a reload, stored as v
   await page.keyboard.press("Enter");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Quoted words");
-  await page.getByRole("button", { name: "Quote" }).click();
+  await page
+    .getByRole("toolbar", { name: "Formatting" })
+    .getByRole("button", { name: "Quote" })
+    .click();
 
   await save(page);
   await page.reload();
@@ -1024,4 +1027,177 @@ test("an insert the editor refuses after it has loaded does not lock Save (F-154
   await save(page);
   await expect(page.getByText("The editor's content could not be read.")).toHaveCount(0);
   expect((await storedEntry(id)).version).toBe(2);
+});
+
+// ---- Item 14a2, step 4: the palette and its keyboard path ---------------------
+
+function palette(page: Page) {
+  return page.getByRole("complementary", { name: "Add to the page" });
+}
+
+function tile(page: Page, name: string) {
+  return palette(page).getByRole("button", { name, exact: true });
+}
+
+/** The column blocks' types, in order, of the section's column `index`, as stored. */
+function columnTypes(stored: unknown, columnIndex: number): string[] {
+  const column = (stored as { content: { content: { content: { type: string }[] }[] }[] })
+    .content[0].content[columnIndex];
+  return column.content.map((block) => block.type);
+}
+
+test("keyboard only: Tab to the Line tile, Enter - the line lands after the cursor's block, in column 2", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Palette Keyboard",
+    doc(section(["Alpha"], ["Beta", "Gamma"])),
+  );
+  await textbox.getByText("Gamma").click();
+  await settle(page);
+
+  // Shift+Tab walks back out of the writing area: the title, then the palette's
+  // tiles from the last (Space) to Line.
+  const line = tile(page, "Line");
+  for (let presses = 0; presses < 3; presses++) await page.keyboard.press("Shift+Tab");
+  await expect(line).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(textbox.getByRole("separator")).toBeVisible();
+  await expect(textbox).toBeFocused();
+  await save(page);
+  const stored = (await storedEntry(id)).blocks;
+  expect(columnTypes(stored, 0)).toEqual(["paragraph"]);
+  expect(columnTypes(stored, 1)).toEqual(["paragraph", "paragraph", "horizontalRule"]);
+});
+
+test("Enter on the Text tile leaves the cursor in a new paragraph where typing lands", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Palette Text");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Text").focus();
+  await page.keyboard.press("Enter");
+  await expect(textbox).toBeFocused();
+  await page.keyboard.type("Typed after");
+  await save(page);
+  const stored = (await storedEntry(id)).blocks;
+  expect(firstColumn(stored)).toEqual([para("Start here."), para("Typed after")]);
+});
+
+test("each tile adds its block after the one just added", async ({ page }) => {
+  const { id, textbox } = await openSeeded(page, "page", "Palette Tiles");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  for (const name of ["Text", "Heading", "List", "Button", "Quote", "Line", "Space"]) {
+    await tile(page, name).click();
+  }
+  await save(page);
+  const stored = (await storedEntry(id)).blocks;
+  expect(contractViolations(stored)).toEqual([]);
+  expect(columnTypes(stored, 0)).toEqual([
+    "paragraph",
+    "paragraph",
+    "heading",
+    "bulletList",
+    "button",
+    "blockquote",
+    "horizontalRule",
+    "space",
+  ]);
+  expect((firstColumn(stored)[2] as { attrs: { level: number } }).attrs.level).toBe(2);
+});
+
+test("the Image tile adds an image with no file chosen, selected", async ({ page }) => {
+  const { textbox } = await openSeeded(page, "page", "Palette Image");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Image").click();
+  await expect(textbox.getByText("No image chosen")).toBeVisible();
+  await expect(textbox).toBeFocused();
+  // An atom becomes the selected node: Backspace removes it.
+  await page.keyboard.press("Backspace");
+  await expect(textbox.getByText("No image chosen")).toHaveCount(0);
+});
+
+test("one Ctrl+Z removes an added block", async ({ page }) => {
+  const { textbox } = await openSeeded(page, "page", "Palette Undo");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Line").click();
+  await expect(textbox.getByRole("separator")).toBeVisible();
+  await page.keyboard.press("Control+z");
+  await expect(textbox.getByRole("separator")).toHaveCount(0);
+  await expect(textbox.getByText("Start here.")).toBeVisible();
+});
+
+test("inserting from inside a list item lands the block after the whole list", async ({ page }) => {
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Palette List",
+    inSection(
+      {
+        type: "bulletList",
+        content: [
+          { type: "listItem", content: [para("One")] },
+          { type: "listItem", content: [para("Two")] },
+        ],
+      },
+      para("After"),
+    ),
+  );
+  await textbox.getByText("One").click();
+  await settle(page);
+  await tile(page, "Line").click();
+  await save(page);
+  expect(columnTypes((await storedEntry(id)).blocks, 0)).toEqual([
+    "bulletList",
+    "horizontalRule",
+    "paragraph",
+  ]);
+});
+
+test("at 390px the palette is hidden, Add opens it in a dialog, a tile adds its block and closes it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { id, textbox } = await openSeeded(page, "page", "Palette Phone");
+  await expect(palette(page)).toBeHidden();
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Blocks" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Line", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(textbox.getByRole("separator")).toBeVisible();
+  await expect(textbox).toBeFocused();
+  await save(page);
+  expect(columnTypes((await storedEntry(id)).blocks, 0)).toEqual(["paragraph", "horizontalRule"]);
+});
+
+test("at 1280px there is no Add button", async ({ page }) => {
+  await openSeeded(page, "page", "Palette Desktop");
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeHidden();
+  await expect(palette(page)).toBeVisible();
+});
+
+test("a document of 200 blocks disables every tile and says why", async ({ page }) => {
+  const { textbox } = await openSeeded(
+    page,
+    "page",
+    "Palette Full",
+    textDocument(...Array.from({ length: 200 }, (_, n) => `Block ${n + 1}`)),
+  );
+  await expect(textbox).toBeVisible();
+  await expect(palette(page).getByText("You can have at most 200 blocks.")).toBeVisible();
+  for (const name of ["Text", "Heading", "List", "Image", "Button", "Quote", "Line", "Space"]) {
+    await expect(tile(page, name)).toBeDisabled();
+  }
 });

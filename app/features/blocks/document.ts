@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { type Block, blocksOf, type Document, textNodes } from "./document-nodes.ts";
+import {
+  type Block,
+  blocksOf,
+  type Document,
+  MAX_DOCUMENT_BLOCKS,
+  textNodes,
+} from "./document-nodes.ts";
 import { isSafeHref, isStorableText } from "./inline-runs.ts";
 
 export type {
@@ -37,7 +43,7 @@ export const BLOCKS_FORMAT_V4 = "v4";
 
 export const MAX_SECTIONS = 30;
 export const MAX_COLUMNS = 3;
-export const MAX_DOCUMENT_BLOCKS = 200;
+export { MAX_DOCUMENT_BLOCKS };
 export const MAX_BLOCK_TEXT_LENGTH = 20_000;
 export const MAX_BLOCK_TEXT_NODES = 2_000;
 export const MAX_LIST_ITEMS = 500;

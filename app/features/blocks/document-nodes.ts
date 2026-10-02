@@ -5,6 +5,9 @@
  * `new Function` probe the public Content-Security-Policy reports.
  */
 
+/** The most blocks a document may hold; here, not in `document.ts`, so the editor can read it without Zod. */
+export const MAX_DOCUMENT_BLOCKS = 200;
+
 export type Mark =
   | { type: "bold" }
   | { type: "italic" }

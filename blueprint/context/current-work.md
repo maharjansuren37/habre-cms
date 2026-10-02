@@ -136,7 +136,7 @@ templates (14c) and the AI draft (18b) will need except the contact form
   contract; a seeded unknown node is still refused at Save (F-154 test
   passes unchanged).
 
-- [ ] **Step 4 - The palette and its keyboard path** - `aside` "Add to the
+- [x] **Step 4 - The palette and its keyboard path** - `aside` "Add to the
   page" before the canvas, heading "Blocks", eight tiles as `button`s (icon
   plus visible name). Activating a tile inserts its block (Text = paragraph,
   Heading = level 2, List = bulleted, Quote, Image with no media, Button with

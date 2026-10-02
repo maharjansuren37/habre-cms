@@ -67,6 +67,8 @@ export function EntryForm({
   const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws its format bar: under the top bar.
   const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
+  const [paletteSlot, setPaletteSlot] = useState<HTMLDivElement | null>(null);
+  const [addSlot, setAddSlot] = useState<HTMLDivElement | null>(null);
 
   // The editor reaches for the DOM as it is constructed, so it mounts only
   // after the first client render. On the server this renders the notice below.
@@ -141,6 +143,7 @@ export function EntryForm({
             </span>
           </div>
           <div className={styles.topbarActions}>
+            <div ref={setAddSlot} className={styles.slot} />
             {/* Save appears only once the editor has mounted: a native submit
               carries no blocks field, which reads as an empty post and wipes
               the body (F-34). Publish/Unpublish wait on the post existing too
@@ -199,38 +202,43 @@ export function EntryForm({
 
       <input type="hidden" name="version" value={version} />
 
-      <div className={styles.canvas}>
-        <label className={styles.titleLabel} htmlFor="entry-title">
-          Title
-        </label>
-        <input
-          id="entry-title"
-          className={styles.title}
-          name="title"
-          defaultValue={title}
-          placeholder={copy.titlePlaceholder}
-          autoComplete="off"
-          onChange={() => setUnsavedChanges(true)}
-        />
-        <p className={styles.address}>
-          Web address:{" "}
-          <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
-        </p>
-
-        {isEditorReady ? (
-          <DocumentEditor
-            initialDocument={initialDocument}
-            mediaById={mediaById}
-            entryType={entryType}
-            contentRef={readEditor}
+      <div className={styles.body}>
+        <div ref={setPaletteSlot} className={styles.paletteSlot} />
+        <div className={styles.canvas}>
+          <label className={styles.titleLabel} htmlFor="entry-title">
+            Title
+          </label>
+          <input
+            id="entry-title"
+            className={styles.title}
+            name="title"
+            defaultValue={title}
+            placeholder={copy.titlePlaceholder}
+            autoComplete="off"
             onChange={() => setUnsavedChanges(true)}
-            barSlot={formatBarSlot}
           />
-        ) : (
-          <p className={styles.needsJs}>
-            The editor needs JavaScript. Turn it on and reload to write your {entryType}.
+          <p className={styles.address}>
+            Web address:{" "}
+            <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
           </p>
-        )}
+
+          {isEditorReady ? (
+            <DocumentEditor
+              initialDocument={initialDocument}
+              mediaById={mediaById}
+              entryType={entryType}
+              contentRef={readEditor}
+              onChange={() => setUnsavedChanges(true)}
+              barSlot={formatBarSlot}
+              paletteSlot={paletteSlot}
+              addSlot={addSlot}
+            />
+          ) : (
+            <p className={styles.needsJs}>
+              The editor needs JavaScript. Turn it on and reload to write your {entryType}.
+            </p>
+          )}
+        </div>
       </div>
     </Form>
   );
