@@ -3,7 +3,7 @@
 **From build plan:** item 14a2
 **Type:** Feature
 **Verified:** 2026-10-02, 468c6242df98, 8 of 8 proven - every done-when by browser tests against the served build (`npm run test:e2e` 177 passed, `npm run verify` 267 unit); 30-image page 5-14 ms; layout seen in screenshots at 1280 and 390 (palette, image and button panels, bottom sheet, Add dialog, public page). Screen-reader output not heard - in needs-you
-**Reviewed:** 2026-10-03, , 9d151e2~1..HEAD (the repairs), every lens, independent `reviewer`; earlier main..9d151e2 every lens - 0 blocking (F-166 closed; F-179 [P2] open)
+**Reviewed:** 2026-10-03, 5dd41b9ebcdd, 9d151e2~1..HEAD (the repairs), every lens, independent `reviewer`; earlier main..9d151e2 every lens - 0 blocking (F-166 closed; F-179 [P2] open)
 
 ## Goal
 
