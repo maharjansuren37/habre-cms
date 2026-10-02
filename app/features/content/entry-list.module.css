@@ -79,8 +79,12 @@
   gap: var(--space-4);
 }
 
+/* The kit's .table-wrap: a table wider than a phone scrolls inside its card,
+ * so every column stays reachable. Positioned, so the visually hidden text in
+ * the cells is clipped here too instead of widening the page. */
 .list {
-  overflow: hidden;
+  position: relative;
+  overflow-x: auto;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);

@@ -2,8 +2,8 @@ import type { ComponentProps } from "react";
 import styles from "./button.module.css";
 
 type ButtonProps = ComponentProps<"button"> & {
-  /** primary: the one main action in a view; default: secondary; quiet: inline. */
-  variant?: "primary" | "default" | "quiet";
+  /** primary: the one main action in a view; default: secondary; quiet: ghost; danger: destructive. */
+  variant?: "primary" | "default" | "quiet" | "danger";
   /** Set while the action runs; the caller also changes the label ("Saving…"). */
   isPending?: boolean;
 };

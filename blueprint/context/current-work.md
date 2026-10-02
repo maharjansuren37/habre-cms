@@ -106,7 +106,7 @@ is themed once, not twice.
       dark, the site scope in light, and the site scope with the device dark.
       *Done when:* the spec passes and prints the measured table; changing
       `--stone-600` to a lighter grey makes it fail (seen once, reverted).
-- [ ] **Step 5 - Shared controls, login and the admin shell** -
+- [ ] **Step 5 - Shared controls, login and the admin shell** _(partly built, stopped: at 390px /admin/posts with posts scrolls sideways (537px) though the new no-scroll test passes - it runs without posts; narrow-screen shell arrangement broken vs before. Implementer hit its usage limit before fixing)_ -
       `app/lib/ui/button`, `field`, `message` modules to the kit's button
       (primary, secondary, ghost, danger; 44px), field and alert; the admin
       shell to the kit's sidebar, the current page's entry marked in rust,

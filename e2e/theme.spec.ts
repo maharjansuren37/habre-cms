@@ -1,4 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { randomInt } from "node:crypto";
+import { expect, type Page, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
+import {
+  createAdmin,
+  createDraftFor,
+  deleteEntriesBy,
+  deleteTestUser,
+  type TestUser,
+} from "./helpers/users.ts";
 
 // Habre's tokens and self-hosted Inter, read from the real login page
 // (needs no sign-in). Colours are computed by the browser, so the
@@ -65,4 +74,81 @@ test("an admin page is outside the site scope and stays dark", async ({ page }) 
   await page.goto("/admin/login");
   await expect(page.locator("html")).not.toHaveAttribute("data-surface", /.*/);
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(24, 17, 13)");
+});
+
+// Shared controls, login and the admin shell (13b step 5).
+
+// The page's sideways overflow: empty when nothing scrolls sideways, otherwise
+// the elements whose right edge passes the viewport, so a failure names them.
+async function sidewaysOverflow(page: Page): Promise<string[]> {
+  // A string, because e2e/ is type-checked without the DOM lib.
+  return page.evaluate(`(() => {
+    const root = document.documentElement;
+    if (root.scrollWidth <= root.clientWidth) return [];
+    return [...document.body.querySelectorAll("*")]
+      .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 0.5)
+      .map((el) => el.tagName.toLowerCase() + (el.className ? "." + String(el.className).split(" ")[0] : ""));
+  })()`) as Promise<string[]>;
+}
+
+/** Tabs forward until the focused element has this accessible-ish text, or gives up. */
+async function tabTo(page: Page, text: string): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press("Tab");
+    const focused = await page.evaluate("document.activeElement?.textContent?.trim() ?? ''");
+    if (focused === text) return;
+  }
+  throw new Error(`Tab never reached "${text}"`);
+}
+
+test("the login page does not scroll sideways at 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin/login");
+  await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
+  expect(await sidewaysOverflow(page)).toEqual([]);
+});
+
+test.describe("the admin shell", () => {
+  let admin: TestUser;
+
+  test.beforeEach(async ({ page }) => {
+    await page.setExtraHTTPHeaders({
+      "X-Forwarded-For": `10.${randomInt(256)}.${randomInt(256)}.16`,
+    });
+    admin = createAdmin("Theme Admin");
+  });
+
+  test.afterEach(async () => {
+    await deleteEntriesBy(admin.email);
+    await deleteTestUser(admin.email);
+  });
+
+  test("the posts list does not scroll sideways at 390px", async ({ page }) => {
+    // Rows with long titles and addresses: an empty list cannot overflow.
+    await createDraftFor(admin.email, "A published post about gardens", [], {
+      status: "published",
+    });
+    await createDraftFor(admin.email, "A draft still being written", []);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await logIn(page, admin);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await sidewaysOverflow(page)).toEqual([]);
+  });
+
+  test("keyboard focus on a nav link and on a button shows a 2px solid ring", async ({ page }) => {
+    await logIn(page, admin);
+    await tabTo(page, "Media");
+    const link = page.getByRole("navigation", { name: "Admin" }).getByRole("link", {
+      name: "Media",
+    });
+    await expect(link).toBeFocused();
+    await expect(link).toHaveCSS("outline-style", "solid");
+    await expect(link).toHaveCSS("outline-width", "2px");
+
+    await tabTo(page, "Log out");
+    const button = page.getByRole("button", { name: "Log out" });
+    await expect(button).toBeFocused();
+    await expect(button).toHaveCSS("outline-style", "solid");
+    await expect(button).toHaveCSS("outline-width", "2px");
+  });
 });
