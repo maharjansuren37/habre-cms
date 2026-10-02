@@ -157,7 +157,7 @@ is themed once, not twice.
       1280px with the device light and dark (both must look the same), are
       shown at review; no horizontal scroll at 390px; the full browser suite
       passes.
-- [ ] **Step 10 - The record** - `design.md`: the header note says the
+- [x] **Step 10 - The record** - `design.md`: the header note says the
       shipped app has this look (drop the "measured against the old record"
       rule), *Open*'s D168 line moves into *Customer sites* as done, the
       measured table notes it is now also proved by `e2e/contrast.spec.ts`.
@@ -227,6 +227,18 @@ layer onto.
   `--motion-*` tokens sit beside them and the reduced-motion override zeroes
   both. Added roles `--color-info`, `--color-info-subtle`, `--color-overlay`.
   One `--shadow-*` value for both schemes, as theme.css has. (Step 2)
+
+- **A wide admin table scrolls inside its card** (the kit's `.table-wrap`),
+  and the card is positioned so visually hidden cell text cannot widen the
+  page. Beat: hiding columns on a phone, which drops Delete. (Step 5)
+- **The narrow admin shell keeps its pre-13b arrangement** - site card and
+  account on a row, the nav as a wrapping row below - which its rules had
+  silently lost by targeting the list instead of its `<nav>`. (Step 5)
+- **Buttons in a form grid keep their own width**; only fields run full
+  width, as in the kit's forms. (Step 7)
+- **The kit's `.quote`, `.rule` and `.spacer` are not ported**: no block
+  renders them until item 14. `.display` and `.lede` are the hero's heading
+  and text. (Step 9)
 
 ## Production needs
 

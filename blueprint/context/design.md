@@ -6,10 +6,10 @@
 > and `architect` read it. Change a decision here in the same change that
 > changes the code.
 >
-> **The shipped app (items 1-12) still has the 2026-09-15 look** until the
-> re-theme build item ports this one. Until then, a screen built before v1 is
-> measured against the old record (`git show 1d58e42:blueprint/context/design.md`),
-> and anything built for v1 against this file.
+> **The app has this look** since item 13b ported it to every existing screen
+> (tokens in `app/app.css`, Inter self-hosted under `app/fonts/`, public pages
+> in the `data-surface="site"` scope). Every screen is measured against this
+> file.
 
 ## Product type and direction
 
@@ -92,6 +92,9 @@ From `node prototypes/checks/contrast.mjs`, 2026-10-02, after the last change.
 **Fails: none.** Columns: Habre's screens, a neutral site, a branded site (the
 `#2f6b5a` example), each with the device in light and dark. A light-only site
 under a dark device measures the same as light, which is the point.
+**Also proved on the real app** since item 13b by `e2e/contrast.spec.ts`
+(Habre light and dark, the site scope light and with the device dark), which
+fails on any pair below its bar - the selection pairs join it with item 14a.
 
 | Pair (min) | App L | App D | Site L | Site D (Pro dark on) | Brand L | Brand D (Pro dark on) |
 |---|---|---|---|---|---|---|
@@ -136,8 +139,12 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
   the preset's heading font and the brand colour.
 - **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
   a site looks the way its owner saw it in the editor, and a dark logo never
-  disappears on a dark page. This changes the public site's current behaviour,
-  which follows the device - see *Open* below.
+  disappears on a dark page.
+- **Light only, built (D168, item 13b).** Public pages, the public 404 and
+  the error page sit in the site scope (`data-surface="site"` on `<html>`,
+  chosen by path with the same rule as the Content-Security-Policy), which
+  sets `color-scheme: light`. Items 1-12 followed the device; Pro's dark mode
+  (item 20) turns it back on per site.
 
 ## Navigation map
 
@@ -347,7 +354,4 @@ record (`git show 1d58e42:blueprint/context/design.md`).
 
 ## Open
 
-- **Public sites stop following the device into dark mode** in Simple (D168).
-  Items 1-12 built a public site that follows it; the re-theme item carries
-  the change out.
 - Preset names; the platform logo (placeholder "h" mark until then).
