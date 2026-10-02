@@ -53,7 +53,7 @@
 }
 
 .navList a:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -65,7 +65,7 @@
 }
 
 .notFound {
-  max-width: var(--measure);
+  max-width: var(--size-measure);
   margin: 0 auto;
   padding: var(--space-8) var(--space-5);
   font-size: var(--text-lg);

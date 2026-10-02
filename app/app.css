@@ -14,16 +14,16 @@
   --color-surface-sunken: light-dark(#eef1f4, #0c0f12);
   --color-surface-hover: light-dark(#f1f3f6, #1e232a);
   --color-border: light-dark(#dfe3e8, #2a3038);
-  --color-border-control: light-dark(#848e9b, #6b7582);
+  --color-border-strong: light-dark(#848e9b, #6b7582);
   --color-text: light-dark(#1a1e23, #e5e8ec);
   --color-text-muted: light-dark(#566170, #a0a9b4);
 
   /* Accent - primary actions, links, focus */
-  --color-accent: light-dark(#2d56c6, #8eabff);
-  --color-accent-hover: light-dark(#2449ad, #a9c0ff);
-  --color-accent-subtle: light-dark(#e8eefc, #1a2340);
-  --color-on-accent: light-dark(#ffffff, #0b1220);
-  --color-focus: light-dark(#2d56c6, #8eabff);
+  --color-primary: light-dark(#2d56c6, #8eabff);
+  --color-primary-hover: light-dark(#2449ad, #a9c0ff);
+  --color-primary-subtle: light-dark(#e8eefc, #1a2340);
+  --color-on-primary: light-dark(#ffffff, #0b1220);
+  --color-focus-ring: light-dark(#2d56c6, #8eabff);
 
   /* Status */
   --color-success: light-dark(#1b7043, #6fd39b);
@@ -34,7 +34,7 @@
   --color-danger-subtle: light-dark(#fbe8e6, #33191a);
 
   /* Type - system fonts only, no web font to download */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --text-xs: 0.8125rem; /* 13px - badges, meta */
@@ -66,10 +66,10 @@
   --space-8: 4rem;
 
   /* Sizes */
-  --measure: 42rem; /* reading column: ~70 characters at --text-lg */
+  --size-measure: 42rem; /* reading column: ~70 characters at --text-lg */
   --content-max: 64rem; /* admin content width */
   --sidebar-width: 15rem;
-  --control-height: 2.5rem; /* 40px - above the 24px WCAG 2.2 target minimum */
+  --size-control-md: 2.5rem; /* 40px - above the 24px WCAG 2.2 target minimum */
   --icon-size: 1.25rem;
   --logo-size: 2rem;
 
@@ -100,7 +100,7 @@
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-family-sans);
   font-size: var(--text-md);
   line-height: var(--leading-normal);
   color: var(--color-text);
@@ -108,12 +108,12 @@ body {
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-underline-offset: 0.2em;
 }
 
 :focus-visible {
-  outline: var(--focus-width) solid var(--color-focus);
+  outline: var(--focus-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-offset);
 }
 

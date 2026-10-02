@@ -1,7 +1,7 @@
 /* The latest-posts list at `/posts` (item 9). */
 
 .home {
-  max-width: var(--measure);
+  max-width: var(--size-measure);
   margin: 0 auto;
   padding: var(--space-8) var(--space-5);
 }

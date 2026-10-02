@@ -4,7 +4,7 @@
    third. */
 
 .article {
-  max-width: calc(var(--measure) + var(--space-5) * 2);
+  max-width: calc(var(--size-measure) + var(--space-5) * 2);
   margin: 0 auto;
   padding: var(--space-8) var(--space-5);
   font-size: var(--text-lg);
@@ -112,7 +112,7 @@
 }
 
 /* Hero (item 12a): a centred banner built from the page's own tokens. Its
-   button is the primary button's pair (--color-on-accent on --color-accent). */
+   button is the primary button's pair (--color-on-primary on --color-primary). */
 .body section[data-kind="hero"] {
   text-align: center;
 }
@@ -128,11 +128,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--control-height);
+  min-height: var(--size-control-md);
   padding: 0 var(--space-5);
   border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
   text-decoration: none;
@@ -141,7 +141,7 @@
 .body section[data-kind="hero"] [data-hero-button]:hover,
 .body section[data-kind="image-text"] [data-hero-button]:hover,
 .body section[data-kind="cta"] [data-cta-button]:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-primary-hover);
 }
 
 /* Call to action (item 12b): the hero's centred text in a bordered panel, so it

@@ -90,7 +90,7 @@
   border: none;
   background: none;
   color: var(--color-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-family-sans);
   font-size: var(--text-xl);
   font-weight: 700;
   padding: 0;
@@ -128,7 +128,7 @@
    border is carried in through an alias set outside it. */
 .canvas {
   --editor-border: var(--color-border);
-  --editor-border-control: var(--color-border-control);
+  --editor-border-control: var(--color-border-strong);
 }
 
 .canvas :global(.ce-popover),
@@ -138,8 +138,8 @@
   --color-border-icon: var(--editor-border);
   --color-text-primary: var(--color-text);
   --color-text-secondary: var(--color-text-muted);
-  --color-text-icon-active: var(--color-accent);
-  --color-background-icon-active: var(--color-accent-subtle);
+  --color-text-icon-active: var(--color-primary);
+  --color-background-icon-active: var(--color-primary-subtle);
   --color-background-item-hover: var(--color-surface-hover);
   --color-background-item-focus: var(--color-surface-hover);
   color: var(--color-text);
@@ -151,8 +151,8 @@
    so it wins without depending on the order Editor.js injects its stylesheet.
    The accent pair is already measured in both schemes (design.md). */
 .canvas :global(.codex-editor) ::selection {
-  background-color: var(--color-accent);
-  color: var(--color-on-accent);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 /* Editor.js hardcodes a near-white hover here, which hides the icon in dark mode. */
@@ -177,7 +177,7 @@
 /* Editor.js removes the field's outline; focus stays visible (design.md). Inset,
    because the popover clips anything drawn outside it. */
 .canvas :global(.ce-inline-tool-input:focus-visible) {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
 
@@ -190,6 +190,6 @@
    and Editor.js moves `--focused` along the items, so `:focus-visible` never
    fires and this is the only selector that works. */
 .canvas :global(.ce-popover-item--focused) {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }

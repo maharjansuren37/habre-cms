@@ -127,7 +127,7 @@
 }
 
 .entryTitle:hover {
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
@@ -199,7 +199,7 @@
   justify-items: center;
   gap: var(--space-3);
   padding: var(--space-8) var(--space-5);
-  border: var(--border-width) dashed var(--color-border-control);
+  border: var(--border-width) dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   text-align: center;
@@ -218,7 +218,7 @@
 }
 
 .emptyText {
-  max-width: var(--measure);
+  max-width: var(--size-measure);
   margin-bottom: var(--space-3);
   color: var(--color-text-muted);
 }
