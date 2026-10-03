@@ -214,3 +214,78 @@ test("a saved page with an added hero (images unchosen) saves", async ({ page })
   const stored = (await storedEntry(id)).blocks as TestNode;
   expect(stored.content).toHaveLength(3);
 });
+
+/** The browser's own function; the e2e project has no DOM types. */
+declare function getComputedStyle(element: unknown, pseudo: string): { content: string };
+
+/** What the canvas draws before an element, from its `::before` (quotes stripped). */
+async function drawnHint(locator: ReturnType<Page["locator"]>): Promise<string> {
+  return locator.evaluate((element) => {
+    const content = getComputedStyle(element, "::before").content;
+    return content === "none" || content === "normal" ? "" : content.replace(/^"|"$/g, "");
+  });
+}
+
+test("a fresh hero's empty heading and text show their hints once the cursor is elsewhere, and typing removes one", async ({
+  page,
+}) => {
+  const { textbox } = await openEntry(page, TWO_SECTIONS);
+  await select(page, textbox.getByText("Welcome"));
+  await page.getByRole("button", { name: "Hero", exact: true }).click();
+  await select(page, textbox.getByText("Welcome"));
+  const added = textbox.locator('[data-node="section"]').nth(1);
+  const heading = added.locator("h1");
+  const text = added.locator('[data-node="column"]').first().locator("> p").first();
+  await expect(heading).toHaveAttribute("data-placeholder", "Main heading");
+  await expect(text).toHaveAttribute("data-placeholder", "Text");
+  expect(await drawnHint(heading)).toBe("Main heading");
+  expect(await drawnHint(text)).toBe("Text");
+
+  await heading.click();
+  await settle(page);
+  await page.keyboard.type("Hi");
+  await expect(heading).toHaveText("Hi");
+  await expect(heading).not.toHaveAttribute("data-placeholder", /./);
+  await expect(text).toHaveAttribute("data-placeholder", "Text");
+});
+
+test("an untouched one-column section shows only the page's placeholder, and only with the cursor in it", async ({
+  page,
+}) => {
+  const { textbox } = await openEntry(page, {
+    type: "doc",
+    content: [section(paragraph("Words")), section({ type: "paragraph" })],
+  });
+  const empty = textbox.locator('[data-node="section"]').nth(1).locator("p");
+  await select(page, textbox.getByText("Words"));
+  expect(await drawnHint(empty)).toBe("");
+  await select(page, empty);
+  await expect(empty).toHaveAttribute("data-placeholder", "Write your page…");
+  expect(await drawnHint(empty)).toBe("Write your page…");
+});
+
+test("an untouched column of a two-column section shows only the empty-column hint", async ({
+  page,
+}) => {
+  const { textbox } = await openEntry(page, {
+    type: "doc",
+    content: [
+      {
+        type: "section",
+        attrs: { align: "top", background: "none" },
+        content: [
+          { type: "column", content: [paragraph("Left")] },
+          { type: "column", content: [{ type: "paragraph" }] },
+        ],
+      },
+    ],
+  });
+  await select(page, textbox.getByText("Left"));
+  const empty = textbox.locator("[data-hint]");
+  await expect(empty).toHaveCount(1);
+  expect(await drawnHint(empty)).toMatch(/^Empty column/);
+  await expect(
+    empty.locator("xpath=..").locator("[data-placeholder]:not([data-placeholder=''])"),
+  ).toHaveCount(0);
+  await expect(empty).not.toHaveAttribute("data-placeholder", /./);
+});

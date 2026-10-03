@@ -122,7 +122,7 @@ the template shape item 18b's AI expands its section kinds with.
   shows it), and a second hero's is a Heading; on a post it is a Heading; at
   390px, Add -> Hero closes the dialog and adds it; a document of 30 sections
   shows every section tile disabled with the sentence.
-- [ ] **Step 4 - Hints for empty text** - a pure `emptyTextHint(node, parent,
+- [x] **Step 4 - Hints for empty text** - a pure `emptyTextHint(node, parent,
   hasAnchor, entryType)` in a `.ts` file (unit-tested first), wired as the
   `Placeholder` option's function with `showOnlyCurrent: false`, and the muted
   style for an empty heading. *Done when:* unit tests cover each rule in *In
@@ -210,6 +210,15 @@ Load-bearing, locked here for 14c2 and 18b:
   refusing the save (14a2's contract, which made every hero block its page's
   save) and dropping the block on save (the person's layout would silently
   change). D170 already says such an image shows only in the editor.
+- **Empty-text hints are the editor's own decorations, not TipTap's
+  `Placeholder`** (found building step 4) - `Placeholder` computes its hint
+  while the editor still holds the previous document, so a hint that depends
+  on the parent (the "Text" rule) went wrong once typing shifted positions.
+  `blockDecorations` builds them from the new state. `Placeholder` is no
+  longer used; `@tiptap/extensions` stays in `package.json` (StarterKit
+  depends on it at the same pinned version). Side effect: "Write your page…"
+  now draws in any empty one-column section holding the cursor, not only in
+  an empty document.
 - **Templates are JSON, not ProseMirror nodes** - beat building them with the
   editor's schema, which the server (18b) cannot import.
 
