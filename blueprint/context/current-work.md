@@ -150,7 +150,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   published page has no hint text; a one-column empty section shows "Write
   your page…", not the hint.
 
-- [ ] **Step 3 - The Text style menu** - in the toolbar of text and
+- [x] **Step 3 - The Text style menu** - in the toolbar of text and
   headings: a menu button showing the current style; Enter, Space or Down
   opens it with focus on the checked item, arrows move, Enter chooses and
   returns focus to the writing area, Escape closes back to the button; items

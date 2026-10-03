@@ -274,14 +274,6 @@ const BlockDecorations = Extension.create({
   },
 });
 
-const TEXT_STYLES = [
-  { value: "paragraph", label: "Text" },
-  { value: "2", label: "Heading" },
-  { value: "3", label: "Subheading" },
-  { value: "4", label: "Small heading" },
-] as const;
-type TextStyle = (typeof TEXT_STYLES)[number]["value"];
-
 function extensionsFor(placeholder: string) {
   return [
     DocumentNode,
@@ -915,20 +907,14 @@ function AddSection({ editor }: { editor: Editor }) {
 }
 
 /**
- * The interim format bar (current-work.md, Design reference): a native select
- * for the text style and the kit's small ghost icon buttons. 14a3 moves these
- * controls into the selected block's toolbar.
+ * The interim format bar: the kit's small ghost icon buttons. The text style
+ * moved to the block toolbar's menu (14a3 step 3); the rest follows in step 4.
  */
 function FormatBar({ editor }: { editor: Editor }) {
-  const selectId = useId();
   const [isLinkOpen, setLinkOpen] = useState(false);
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
-      textStyle:
-        (["2", "3", "4"] as const).find((level) =>
-          current.isActive("heading", { level: Number(level) }),
-        ) ?? ("paragraph" as TextStyle),
       bold: current.isActive("bold"),
       italic: current.isActive("italic"),
       link: current.isActive("link"),
@@ -940,32 +926,8 @@ function FormatBar({ editor }: { editor: Editor }) {
     }),
   });
 
-  function setTextStyle(value: TextStyle) {
-    // No .focus(): the select keeps it, so arrow keys can step through the
-    // styles (F-153, WCAG 3.2.2). The command acts on the saved selection.
-    const chain = editor.chain();
-    if (value === "paragraph") chain.setParagraph().run();
-    else chain.setHeading({ level: Number(value) as 2 | 3 | 4 }).run();
-  }
-
   return (
     <div className={styles.bar} role="toolbar" aria-label="Formatting">
-      <label className="visually-hidden" htmlFor={selectId}>
-        Text style
-      </label>
-      <select
-        id={selectId}
-        className={styles.select}
-        value={state.textStyle}
-        onChange={(event) => setTextStyle(event.currentTarget.value as TextStyle)}
-      >
-        {TEXT_STYLES.map((style) => (
-          <option key={style.value} value={style.value}>
-            {style.label}
-          </option>
-        ))}
-      </select>
-      <span className={styles.separator} aria-hidden="true" />
       <Tool
         label="Bulleted list"
         pressed={state.bulletList}

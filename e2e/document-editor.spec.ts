@@ -103,6 +103,12 @@ async function newParagraphAfter(page: Page, textbox: Locator, text = "Start her
   await page.keyboard.press("Enter");
 }
 
+/** Chooses a text style from the selected block's Text style menu (14a3). */
+async function setTextStyle(page: Page, label: string) {
+  await page.getByRole("button", { name: /^Text style:/ }).click();
+  await page.getByRole("menuitemradio", { name: label, exact: true }).click();
+}
+
 async function save(page: Page) {
   const saved = page.waitForResponse((response) => response.request().method() === "POST");
   await page.getByRole("button", { name: "Save draft" }).click();
@@ -168,21 +174,20 @@ test("text styles, both lists and a quote survive Save and a reload, stored as v
   page,
 }) => {
   const { id, textbox } = await openSeeded(page, "page", "Styled Page");
-  const textStyle = page.getByLabel("Text style");
 
   await newParagraphAfter(page, textbox);
   await page.keyboard.type("Big idea");
-  await textStyle.selectOption({ label: "Heading" });
+  await setTextStyle(page, "Heading");
   await newParagraphAfter(page, textbox, "Big idea");
   await page.keyboard.type("Smaller");
-  await textStyle.selectOption({ label: "Subheading" });
+  await setTextStyle(page, "Subheading");
   await newParagraphAfter(page, textbox, "Smaller");
   await page.keyboard.type("Smallest");
-  await textStyle.selectOption({ label: "Small heading" });
+  await setTextStyle(page, "Small heading");
   await newParagraphAfter(page, textbox, "Smallest");
   await page.keyboard.type("Plain again");
-  await textStyle.selectOption({ label: "Heading" });
-  await textStyle.selectOption({ label: "Text" });
+  await setTextStyle(page, "Heading");
+  await setTextStyle(page, "Text");
   await newParagraphAfter(page, textbox, "Plain again");
 
   await page.keyboard.type("One");
@@ -918,24 +923,6 @@ test("a document at the caps saves in under 1 s and its published page answers i
   console.log(`At the caps: save ${saveMs} ms; published page ${timings.join(", ")} ms`);
   expect(saveMs).toBeLessThan(1000);
   expect(Math.max(...timings)).toBeLessThan(500);
-});
-
-test("the Text style select keeps focus while arrow keys step through its styles (F-153)", async ({
-  page,
-}) => {
-  const { textbox } = await openSeeded(page, "page", "Keyboard Style Page");
-  const textStyle = page.getByLabel("Text style");
-
-  await textbox.getByText("Start here.").click();
-  await settle(page);
-  await textStyle.focus();
-
-  // With the select closed, Chromium fires `change` on each arrow key.
-  for (const level of [2, 3, 4]) {
-    await page.keyboard.press("ArrowDown");
-    await expect(textStyle).toBeFocused();
-    await expect(textbox.getByRole("heading", { level, name: "Start here." })).toBeVisible();
-  }
 });
 
 test("content the editor cannot read is not saved over (F-154)", async ({ page }) => {

@@ -1,7 +1,8 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { lineBlock, type TestNode } from "./helpers/documents.ts";
+import { imageBlock, lineBlock, type TestNode } from "./helpers/documents.ts";
+import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -244,4 +245,82 @@ test("a one-column empty section shows the page's placeholder, not the hint", as
     "data-placeholder",
     "Write your page…",
   );
+});
+
+test("keyboard only: the Text style menu turns text into a Subheading and back, and arrows alone change nothing", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(page, "Style Page", doc(section(["Words"])));
+  await textbox.getByText("Words", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  const toolbar = page.getByRole("toolbar", { name: "Text" });
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  const styleButton = toolbar.getByRole("button", { name: "Text style: Text" });
+  await expect(styleButton).toBeFocused();
+  await expect(styleButton).toHaveAttribute("aria-haspopup", "menu");
+
+  // Down opens the menu on the checked item.
+  await page.keyboard.press("ArrowDown");
+  const menu = page.getByRole("menu", { name: "Text style" });
+  await expect(menu.getByRole("menuitemradio", { name: "Text", exact: true })).toBeFocused();
+  await expect(menu.getByRole("menuitemradio", { checked: true })).toHaveText("Text");
+  // F-153's concern, kept: moving through the styles changes nothing until one is chosen.
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(menu.getByRole("menuitemradio", { name: "Subheading" })).toBeFocused();
+  await expect(textbox.getByRole("heading")).toHaveCount(0);
+  await page.keyboard.press("Enter");
+  await expect(menu).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+  await expect(textbox.getByRole("heading", { level: 3, name: "Words" })).toBeVisible();
+
+  // Back again: Tab to the toolbar, which remembers the menu button.
+  await page.keyboard.press("Tab");
+  const subheadingButton = page
+    .getByRole("toolbar", { name: "Subheading" })
+    .getByRole("button", { name: "Text style: Subheading" });
+  await expect(subheadingButton).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(menu.getByRole("menuitemradio", { checked: true })).toHaveText("Subheading");
+  // Escape closes back to the button.
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(subheadingButton).toBeFocused();
+  await page.keyboard.press(" ");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Enter");
+  await expect(textbox.getByRole("heading")).toHaveCount(0);
+
+  await page.keyboard.press("Tab");
+  await expect(toolbar.getByRole("button", { name: "Text style: Text" })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(menu.getByRole("menuitemradio", { name: "Text", exact: true })).toBeFocused();
+  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(
+      section([
+        { type: "heading", attrs: { level: 3 }, content: [{ type: "text", text: "Words" }] },
+      ]),
+    ),
+  );
+});
+
+test("an image's toolbar has Move and Delete but no Text style", async ({ page }) => {
+  const mediaId = await insertTestMediaRow({ uploadedBy: editor.email, altText: "A pier" });
+  const { textbox } = await openPage(
+    page,
+    "Image Page",
+    doc(section(["Above", imageBlock(mediaId)])),
+  );
+  await textbox.getByRole("img", { name: "A pier" }).click();
+  const toolbar = page.getByRole("toolbar", { name: "Image" });
+  await expect(toolbar.getByRole("button", { name: "Delete image" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: /^Text style/ })).toHaveCount(0);
+  await deleteEntriesBy(editor.email);
+  await deleteTestMedia(mediaId);
 });

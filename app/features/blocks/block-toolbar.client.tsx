@@ -1,6 +1,14 @@
 import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
-import { type KeyboardEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type Direction,
   deleteAnnouncement,
@@ -41,6 +49,7 @@ export function BlockToolbar({
       if (!selected) return null;
       return {
         pos: selected.pos,
+        kind: selected.kind,
         name: kindName(selected.node),
         // The document's ends, not the cap: at the cap the button still works
         // and says why nothing moved.
@@ -50,6 +59,7 @@ export function BlockToolbar({
     },
   });
   const [active, setActive] = useState(0);
+  const [isStyleOpen, setStyleOpen] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `block?.pos` is a trigger - the toolbar mounts after the transaction that selected its block, so it places itself again once drawn.
   useLayoutEffect(() => {
@@ -104,23 +114,29 @@ export function BlockToolbar({
     editor.view.focus();
   }
 
-  const tools = [
+  const hasStyle = block.kind === "text" || block.kind === "heading";
+  const tools: Tool[] = [
     {
+      key: "up",
       label: "Move up",
       disabled: !block.canUp,
       run: () => move("up"),
       icon: <path d="M12 19V5M5 12l7-7 7 7" />,
     },
     {
+      key: "down",
       label: "Move down",
       disabled: !block.canDown,
       run: () => move("down"),
       icon: <path d="M12 5v14M19 12l-7 7-7-7" />,
       separatorAfter: true,
     },
+    ...(hasStyle
+      ? [{ key: "style", label: block.name, menu: true as const, separatorAfter: true }]
+      : []),
     {
+      key: "delete",
       label: `Delete ${block.name.toLowerCase()}`,
-      disabled: false,
       run: remove,
       icon: (
         <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
@@ -131,9 +147,10 @@ export function BlockToolbar({
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const buttons = Array.from(
-      toolbar.current?.querySelectorAll<HTMLButtonElement>("button") ?? [],
+      toolbar.current?.querySelectorAll<HTMLButtonElement>("[data-tool]") ?? [],
     );
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (at < 0) return;
     let next = -1;
     if (event.key === "ArrowRight") next = (at + 1) % buttons.length;
     else if (event.key === "ArrowLeft") next = (at - 1 + buttons.length) % buttons.length;
@@ -159,38 +176,209 @@ export function BlockToolbar({
       onKeyDown={onKeyDown}
     >
       {tools.map((tool, index) => (
-        <span
-          key={tool.label.startsWith("Delete") ? "delete" : tool.label}
-          className={styles.group}
-        >
-          <button
-            type="button"
-            className={styles.button}
-            aria-label={tool.label}
-            title={tool.label}
-            aria-disabled={tool.disabled ? "true" : undefined}
-            tabIndex={index === current ? 0 : -1}
-            // A pointer press leaves focus and the caret in the writing area.
-            onMouseDown={(event) => event.preventDefault()}
-            onFocus={() => setActive(index)}
-            onClick={() => {
-              if (!tool.disabled) tool.run();
-            }}
-          >
-            <svg
-              className={styles.icon}
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              aria-hidden="true"
-              focusable="false"
+        <span key={tool.key} className={styles.group}>
+          {"menu" in tool ? (
+            <TextStyleButton
+              editor={editor}
+              current={tool.label}
+              isOpen={isStyleOpen}
+              setOpen={setStyleOpen}
+              tabIndex={index === current ? 0 : -1}
+              onFocus={() => setActive(index)}
+            />
+          ) : (
+            <button
+              type="button"
+              data-tool=""
+              className={styles.button}
+              aria-label={tool.label}
+              title={tool.label}
+              aria-disabled={tool.disabled ? "true" : undefined}
+              aria-pressed={tool.pressed}
+              tabIndex={index === current ? 0 : -1}
+              // A pointer press leaves focus and the caret in the writing area.
+              onMouseDown={(event) => event.preventDefault()}
+              onFocus={() => setActive(index)}
+              onClick={() => {
+                if (!tool.disabled) tool.run();
+              }}
             >
-              {tool.icon}
-            </svg>
-          </button>
+              <Icon>{tool.icon}</Icon>
+            </button>
+          )}
           {tool.separatorAfter ? <span className={styles.separator} aria-hidden="true" /> : null}
         </span>
       ))}
     </div>
+  );
+}
+
+type Tool =
+  | {
+      key: string;
+      label: string;
+      disabled?: boolean;
+      pressed?: boolean;
+      run: () => void;
+      icon: ReactNode;
+      separatorAfter?: boolean;
+    }
+  | { key: string; label: string; menu: true; separatorAfter?: boolean };
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      className={styles.icon}
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** The Text style menu's choices, each drawn at its own size (design.md, Editor decisions). */
+const STYLES = [
+  { label: "Text", level: 0, className: styles.styleText },
+  { label: "Heading", level: 2, className: styles.styleHeading },
+  { label: "Subheading", level: 3, className: styles.styleSubheading },
+  { label: "Small heading", level: 4, className: styles.styleSmall },
+] as const;
+
+/**
+ * The Text style menu button and its menu (the ARIA menu button pattern): the
+ * button shows the current style; Enter, Space or Down opens the menu with
+ * focus on the checked item, arrows, Home and End move, Enter chooses and
+ * returns to the writing area, Escape closes back to the button.
+ */
+function TextStyleButton({
+  editor,
+  current,
+  isOpen,
+  setOpen,
+  tabIndex,
+  onFocus,
+}: {
+  editor: Editor;
+  current: string;
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
+  tabIndex: number;
+  onFocus: () => void;
+}) {
+  const menuId = useId();
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+
+  // Opening puts focus on the checked item, before the next key arrives.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    menu.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+  }, [isOpen]);
+
+  function close(focusButton: boolean) {
+    setOpen(false);
+    if (focusButton) button.current?.focus();
+  }
+
+  function choose(level: number) {
+    setOpen(false);
+    if (level === 0) editor.commands.setParagraph();
+    else editor.commands.setHeading({ level: level as 2 | 3 | 4 });
+    // Now, not TipTap's `focus()`, which waits a frame and can take focus back
+    // from wherever a quick Tab has already moved it.
+    editor.view.focus();
+  }
+
+  function onMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(
+      menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [],
+    );
+    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    let next = -1;
+    if (event.key === "ArrowDown") next = (at + 1) % items.length;
+    else if (event.key === "ArrowUp") next = (at - 1 + items.length) % items.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = items.length - 1;
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+      return;
+    } else if (event.key === "Tab") {
+      setOpen(false);
+      return;
+    }
+    // Every other key stays out of the toolbar's own arrow handling.
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") event.stopPropagation();
+    if (next < 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    items[next]?.focus();
+  }
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        data-tool=""
+        className={`${styles.button} ${styles.styleButton}`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
+        tabIndex={tabIndex}
+        onFocus={onFocus}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setOpen(!isOpen)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        <span className="visually-hidden">Text style: </span>
+        {current}
+        <Icon>
+          <path d="m6 9 6 6 6-6" />
+        </Icon>
+      </button>
+      {isOpen ? (
+        <div
+          ref={menu}
+          id={menuId}
+          className={styles.menu}
+          role="menu"
+          aria-label="Text style"
+          tabIndex={-1}
+          onKeyDown={onMenuKeyDown}
+          onBlur={(event) => {
+            if (!menu.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+          }}
+        >
+          {STYLES.map((style) => (
+            <button
+              key={style.label}
+              type="button"
+              role="menuitemradio"
+              aria-checked={style.label === current}
+              tabIndex={-1}
+              className={styles.menuItem}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => choose(style.level)}
+            >
+              <span className={style.className}>{style.label}</span>
+              <Icon>
+                <path d="M5 12l5 5L20 7" />
+              </Icon>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -212,26 +212,6 @@
   background: var(--color-surface);
 }
 
-/* The kit's select, at the small control size. */
-.select {
-  min-height: var(--size-control-sm);
-  padding: 0 var(--space-3);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
-}
-
-.select:hover {
-  border-color: var(--color-text-muted);
-}
-
-.select:focus-visible {
-  border-color: var(--color-focus-ring);
-}
-
 /* The kit's sm ghost icon button (.btn--ghost.btn--sm.btn--icon). Doubled
    class so it outranks the Button component's own padding and height,
    whichever stylesheet loads first. */
