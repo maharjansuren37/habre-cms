@@ -14,10 +14,10 @@ import {
 import { createPortal } from "react-dom";
 import styles from "./block-drag.module.css";
 import {
+  type BlockSource,
   CAP_SENTENCE,
   DRAG_CANCELLED,
   type DropSlot,
-  type DropSource,
   dragName,
   drop,
   dropAnnouncement,
@@ -202,7 +202,7 @@ function swallowClick(pointerStillDown: boolean) {
 }
 
 /** What a tile or the grip calls on `pointerdown`: the one entry point for every drag. */
-export type StartDrag = (source: DropSource, event: ReactPointerEvent<HTMLElement>) => void;
+export type StartDrag = (source: BlockSource, event: ReactPointerEvent<HTMLElement>) => void;
 
 /**
  * The drag controller, owned by the document editor (not the toolbar, which
