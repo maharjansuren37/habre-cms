@@ -239,7 +239,7 @@ File: app/features/blocks/block-toolbar.client.tsx (tools by kind)
 File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module.css (.toolbar z-index)
 
 ### F-193 [P3] open - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
-File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152
+File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152; app/features/blocks/block-drag.client.tsx:186,458 (`sectionSlotUnder`, 14c2)
 
 ### F-194 [P3] open - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
 File: app/features/blocks/block-drops.ts:68 (`if (!target) return "full"`), :88 (`target.node.child(i)` unbounded)

@@ -2,8 +2,8 @@
 
 **From build plan:** item 14c2
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-03, b407fd99907f, 4 of 4 steps' done-whens proven - step 1 by unit tests (pure functions), steps 2-4 by Playwright against the production build (`section-drag.spec.ts` 11, CSP 4; full `npm run test:e2e` 255 passed, real R2); gap, ghost and dashed tile seen in a 1280px screenshot mid-drag; not provable here: a screen reader (needs-you.md)
+**Reviewed:** 2026-10-03, b407fd99907f, current (88d4df2..HEAD), every lens, reviewer subagent - 0 blocking; 2 new P3 (F-206, F-207); F-193 and F-197 widened to section drags
 
 ## Goal
 

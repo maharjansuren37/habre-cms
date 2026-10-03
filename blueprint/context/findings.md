@@ -53,3 +53,9 @@ File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-edit
 
 ### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
 File: app/features/blocks/document-editor.module.css:49, :323
+
+### F-206 [P3] open - The top-level insertion position is computed twice, and `insertSection` throws for an index past the section count
+File: app/features/blocks/palette-insert.ts:131-135 (`topLevelPosition`); app/features/blocks/block-drag.client.tsx:92-96 (`sectionPos`)
+
+### F-207 [P3] open - The section and block drag paths share `startDrag` through casts the compiler cannot check
+File: app/features/blocks/block-drag.client.tsx:326-327,361,365,370,399,406,474
