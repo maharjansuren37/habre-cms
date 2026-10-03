@@ -155,7 +155,7 @@ every later per-site feature build on. It adds no screen and no signup.
   - A site-1 page and a site-2 page can share the slug `about`.
   - The public `/about` shows site 1's page.
   - Every existing content and public-site browser spec passes.
-- [ ] **Step 6 - Media and settings scoped** - every function in `media.server.ts`, `settings.server.ts` and `document-media.server.ts` takes `siteId` first, runs inside `inSite` and filters on `site_id`. Specifically:
+- [x] **Step 6 - Media and settings scoped** - every function in `media.server.ts`, `settings.server.ts` and `document-media.server.ts` takes `siteId` first, runs inside `inSite` and filters on `site_id`. Specifically:
   - `insertMedia` inserts `site_id`;
   - `saveSiteSettings` keeps its one transaction, now `inSite`'s;
   - `getSiteSettings` reads by `site_id`.

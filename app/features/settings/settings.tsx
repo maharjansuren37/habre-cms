@@ -114,7 +114,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   // picker's own fetch and this save, or a crafted request. The column has a
   // real foreign key (unlike a block's JSON image reference), so an unchecked
   // id would otherwise reach the database as an unhandled 23503 (F-89).
-  if (!logoId.success || (logoId.data && (await findMediaByIds([logoId.data])).length === 0)) {
+  if (
+    !logoId.success ||
+    (logoId.data &&
+      (await findMediaByIds(context.get(userContext).siteId, [logoId.data])).length === 0)
+  ) {
     return data(
       {
         problem: "That logo could not be saved. Choose it again.",
@@ -156,7 +160,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     );
   }
 
-  const saved = await saveSiteSettings({
+  const saved = await saveSiteSettings(context.get(userContext).siteId, {
     siteTitle: title.data,
     logoMediaId: logoId.data,
     homePageId: homePage.data,

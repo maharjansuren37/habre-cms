@@ -45,7 +45,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   return {
     entry,
-    mediaById: await resolveDocumentMedia(entry.document),
+    mediaById: await resolveDocumentMedia(actor.siteId, entry.document),
     pages: await listLinkablePages(actor.siteId, actor),
   };
 }

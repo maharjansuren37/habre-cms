@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 import { buildMediaUrl } from "#app/features/media/media-url.ts";
-import { sql } from "#app/lib/db.server.ts";
+import { inSite } from "#app/lib/db.server.ts";
 import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
 
 export type SiteSettings = {
@@ -21,22 +21,26 @@ export type SiteSettings = {
  * does not itself enforce. `navigation` is parsed on the way out; a malformed
  * value reads as an empty menu (F-96).
  */
-export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings> {
-  const [row] = await sql<
-    {
-      siteTitle: string;
-      logoMediaId: string | null;
-      storageKey: string | null;
-      navigation: unknown;
-      homePageId: string | null;
-    }[]
-  >`
+export async function getSiteSettings(siteId: string, r2PublicUrl: string): Promise<SiteSettings> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<
+      {
+        siteTitle: string;
+        logoMediaId: string | null;
+        storageKey: string | null;
+        navigation: unknown;
+        homePageId: string | null;
+      }[]
+    >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", s.navigation as "navigation",
       s.home_page_id as "homePageId"
-    from site_settings s left join media m on m.id = s.logo_media_id
-    where s.id = 1
-  `;
+    from site_settings s
+    left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
+    where s.site_id = ${siteId}
+  `,
+  );
   return {
     siteTitle: row.siteTitle,
     logoMediaId: row.logoMediaId,
@@ -55,12 +59,13 @@ export async function getSiteSettings(r2PublicUrl: string): Promise<SiteSettings
  */
 async function updateSiteIdentity(
   tx: postgres.TransactionSql,
+  siteId: string,
   input: { siteTitle: string; logoMediaId: string | null },
 ): Promise<void> {
   await tx`
     update site_settings
     set site_title = ${input.siteTitle}, logo_media_id = ${input.logoMediaId}, updated_at = now()
-    where id = 1
+    where site_id = ${siteId}
   `;
 }
 
@@ -69,15 +74,27 @@ async function updateSiteIdentity(
  * (F-40's split, restated in this item's own notes) - each function still
  * touches only the column it owns.
  */
-async function updateNavigation(tx: postgres.TransactionSql, items: NavItem[]): Promise<void> {
+async function updateNavigation(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  items: NavItem[],
+): Promise<void> {
   await tx`
-    update site_settings set navigation = ${tx.json(items)}, updated_at = now() where id = 1
+    update site_settings set navigation = ${tx.json(items)}, updated_at = now()
+    where site_id = ${siteId}
   `;
 }
 
 /** Another F-40 sibling: only `home_page_id`. `null` means no home page (item 9's D-1). */
-async function updateHomePage(tx: postgres.TransactionSql, pageId: string | null): Promise<void> {
-  await tx`update site_settings set home_page_id = ${pageId}, updated_at = now() where id = 1`;
+async function updateHomePage(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  pageId: string | null,
+): Promise<void> {
+  await tx`
+    update site_settings set home_page_id = ${pageId}, updated_at = now()
+    where site_id = ${siteId}
+  `;
 }
 
 export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
@@ -89,17 +106,20 @@ export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
  * save rolls back, and the caller gets which one went instead of a 500 over a
  * half-saved row (F-106, F-110).
  */
-export async function saveSiteSettings(input: {
-  siteTitle: string;
-  logoMediaId: string | null;
-  homePageId: string | null;
-  navigation: NavItem[];
-}): Promise<SaveSettingsResult> {
+export async function saveSiteSettings(
+  siteId: string,
+  input: {
+    siteTitle: string;
+    logoMediaId: string | null;
+    homePageId: string | null;
+    navigation: NavItem[];
+  },
+): Promise<SaveSettingsResult> {
   try {
-    await sql.begin(async (tx) => {
-      await updateSiteIdentity(tx, input);
-      await updateHomePage(tx, input.homePageId);
-      await updateNavigation(tx, input.navigation);
+    await inSite(siteId, async (tx) => {
+      await updateSiteIdentity(tx, siteId, input);
+      await updateHomePage(tx, siteId, input.homePageId);
+      await updateNavigation(tx, siteId, input.navigation);
     });
     return "saved";
   } catch (error) {

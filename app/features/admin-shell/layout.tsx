@@ -15,10 +15,11 @@ export async function loader({ context }: Route.LoaderArgs) {
   // "/" on this host redirects to /admin (D22), so the link has to be
   // absolute on the public host rather than the site-relative "/" it used
   // to be - env is server-only, so it crosses the loader boundary like `user`.
+  const user = context.get(userContext);
   return {
-    user: context.get(userContext),
+    user,
     publicUrl: env.PUBLIC_URL,
-    settings: await getSiteSettings(env.R2_PUBLIC_URL),
+    settings: await getSiteSettings(user.siteId, env.R2_PUBLIC_URL),
   };
 }
 

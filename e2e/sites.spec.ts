@@ -1,7 +1,10 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { textDocument } from "./helpers/documents.ts";
+import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
+import { deleteTestMedia, insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
+import { resetSiteSettings } from "./helpers/site-settings.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -267,5 +270,137 @@ test.describe("content belongs to one site", () => {
     // The page's title is its document title; the body is "One" or "Two".
     await expect(page).toHaveTitle(new RegExp(siteOneTitle));
     await expect(page.getByText("Two")).toHaveCount(0);
+  });
+});
+
+test.describe("media and settings belong to one site", () => {
+  let siteId: string;
+  let siteAdmin: TestUser;
+  let siteOneAuthor: TestUser;
+  let mediaId: string;
+  let siteTwoTitle: string;
+  const extraMedia: string[] = [];
+
+  const siteOneTitle = () =>
+    withDatabase(async (sql) => {
+      const [row] = await sql<{ title: string }[]>`
+        select s.site_title as title from site_settings s
+        join sites t on t.id = s.site_id order by t.created_at, t.id limit 1
+      `;
+      return row.title;
+    });
+
+  test.beforeEach(async () => {
+    siteId = await createSite("media");
+    siteTwoTitle = await withDatabase(async (sql) => {
+      const [row] = await sql<{ title: string }[]>`
+        select site_title as title from site_settings where site_id = ${siteId}
+      `;
+      return row.title;
+    });
+    siteAdmin = await createSiteAdmin(siteId);
+    siteOneAuthor = createAdmin("Site One Uploader");
+    mediaId = await insertTestMediaRow({ uploadedBy: siteOneAuthor.email, altText: "Site one" });
+  });
+
+  test.afterEach(async () => {
+    await deleteTestMedia(mediaId);
+    for (const id of extraMedia.splice(0)) await deleteTestMedia(id);
+    await resetSiteSettings();
+    await deleteEntriesBy(siteOneAuthor.email);
+    await deleteTestUser(siteOneAuthor.email);
+    await deleteSite(siteId);
+  });
+
+  test("a site-2 admin's media library and picker show none of another site's images", async ({
+    page,
+  }) => {
+    await signIn(page, siteAdmin);
+    await page.goto("/admin/media");
+    await expect(page.getByText("No images uploaded yet.")).toBeVisible();
+
+    const picker = await page.request.get("/admin/media/picker");
+    const body = (await picker.json()) as { media: unknown[] };
+    expect(body.media).toEqual([]);
+  });
+
+  test("a site-2 admin opening another site's image to delete it gets Not Found", async ({
+    page,
+  }) => {
+    await signIn(page, siteAdmin);
+    expect((await page.goto(`/admin/media/${mediaId}/delete`))?.status()).toBe(404);
+
+    const origin = new URL(page.url()).origin;
+    const response = await page.request.post(`${origin}/admin/media/${mediaId}/delete`, {
+      headers: { Origin: origin },
+    });
+    expect(response.status()).toBe(404);
+    const rows = await withDatabase((sql) => sql`select id from media where id = ${mediaId}`);
+    expect(rows).toHaveLength(1);
+  });
+
+  test("a site-2 admin's Settings shows their own title, not another site's", async ({ page }) => {
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set site_title = 'Site one only title' where site_id = (
+        select id from sites order by created_at, id limit 1)`;
+    });
+    await signIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+
+    await expect(page.getByLabel("Site title")).toHaveValue(siteTwoTitle);
+    await expect(page.getByText("Site one only title")).toHaveCount(0);
+  });
+
+  test("saving a site-2 admin's Settings leaves another site's title unchanged", async ({
+    page,
+  }) => {
+    const before = await siteOneTitle();
+    await signIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    await page.getByLabel("Site title").fill("Renamed second site");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Settings updated.")).toBeVisible();
+
+    expect(await siteOneTitle()).toBe(before);
+    const own = await withDatabase(async (sql) => {
+      const [row] = await sql<{ title: string }[]>`
+        select site_title as title from site_settings where site_id = ${siteId}
+      `;
+      return row.title;
+    });
+    expect(own).toBe("Renamed second site");
+  });
+
+  test("a new upload is stored under its site's prefix and renders on a published page", async ({
+    page,
+  }) => {
+    test.skip(skipWithoutStorage, STORAGE_REASON);
+    await signIn(page, siteOneAuthor);
+    const origin = new URL(page.url()).origin;
+    const uploaded = await uploadTestMedia(page.request, origin, "1x1.png", "Prefixed image");
+    extraMedia.push(uploaded.id);
+
+    const stored = await withDatabase(async (sql) => {
+      const [row] = await sql<{ storageKey: string; siteId: string }[]>`
+        select storage_key as "storageKey", site_id as "siteId" from media where id = ${uploaded.id}
+      `;
+      return row;
+    });
+    expect(stored.storageKey.startsWith(`sites/${stored.siteId}/`)).toBe(true);
+
+    const title = `Image page ${randomInt(1e9)}`;
+    await createDraftFor(siteOneAuthor.email, title, inSection(imageBlock(uploaded.id)), {
+      type: "page",
+      status: "published",
+    });
+    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    const image = page.getByRole("img", { name: "Prefixed image" });
+    await expect(image).toBeVisible();
+    await expect(image).toHaveAttribute("src", new RegExp(`/sites/${stored.siteId}/`));
+    await expect
+      .poll(() =>
+        image.evaluate((img) => (img as unknown as { naturalWidth: number }).naturalWidth),
+      )
+      .toBeGreaterThan(0);
   });
 });

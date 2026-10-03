@@ -21,7 +21,11 @@ export async function loader() {
   const siteId = await findPublicSiteId();
   const page = await findHomePage(siteId);
   if (page) {
-    return { kind: "page" as const, page, mediaById: await resolveDocumentMedia(page.document) };
+    return {
+      kind: "page" as const,
+      page,
+      mediaById: await resolveDocumentMedia(siteId, page.document),
+    };
   }
   return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts(siteId) };
 }

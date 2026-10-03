@@ -44,8 +44,9 @@ export function meta({ error, matches }: Route.MetaArgs) {
 }
 
 export async function loader() {
-  const settings = await getSiteSettings(env.R2_PUBLIC_URL);
-  const navLinks = await resolveNavigation(await findPublicSiteId(), settings.navigation);
+  const siteId = await findPublicSiteId();
+  const settings = await getSiteSettings(siteId, env.R2_PUBLIC_URL);
+  const navLinks = await resolveNavigation(siteId, settings.navigation);
   // Only what the header and footer show (F-108); never the whole row.
   return { settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl }, navLinks };
 }

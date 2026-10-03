@@ -11,7 +11,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const page = await findPublishedEntry(await findPublicSiteId(), "page", params.slug);
+  const siteId = await findPublicSiteId();
+  const page = await findPublishedEntry(siteId, "page", params.slug);
   // A draft and a missing slug get the same answer - matches post.tsx's own
   // rule (item 4b's D-5), so a page's existence is never leaked by its status.
   if (!page) throw data("Not Found", { status: 404 });
@@ -20,7 +21,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (page.isHomePage) throw redirect("/");
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
-  return { page: publicPage, mediaById: await resolveDocumentMedia(page.document) };
+  return { page: publicPage, mediaById: await resolveDocumentMedia(siteId, page.document) };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {

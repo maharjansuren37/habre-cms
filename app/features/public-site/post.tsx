@@ -12,14 +12,15 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const post = await findPublishedEntry(await findPublicSiteId(), "post", params.slug);
+  const siteId = await findPublicSiteId();
+  const post = await findPublishedEntry(siteId, "post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
   // never leaked by its status (item 4b's D-5; matches findEntryForUser's
   // own rule for ownership on the admin side).
   if (!post) throw data("Not Found", { status: 404 });
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPost } = post;
-  return { post: publicPost, mediaById: await resolveDocumentMedia(post.document) };
+  return { post: publicPost, mediaById: await resolveDocumentMedia(siteId, post.document) };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {

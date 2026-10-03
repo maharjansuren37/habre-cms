@@ -10,9 +10,10 @@ import { documentMediaIds } from "./document-media-ids.ts";
  * deleted is simply absent - the renderer then draws nothing for it.
  */
 export async function resolveDocumentMedia(
+  siteId: string,
   document: Document,
 ): Promise<Record<string, DocumentMedia>> {
-  const rows = await findMediaByIds(documentMediaIds(document));
+  const rows = await findMediaByIds(siteId, documentMediaIds(document));
   return Object.fromEntries(
     rows.map((row) => [
       row.id,

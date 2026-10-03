@@ -1,5 +1,5 @@
 import type { Role } from "#app/features/users/roles.ts";
-import { sql } from "#app/lib/db.server.ts";
+import { inSite, sql } from "#app/lib/db.server.ts";
 
 // A grid page. Comfortably below the quality bar's scale (a few thousand
 // media files -> a few hundred pages).
@@ -43,9 +43,16 @@ export type NewMedia = {
  * The caller redirects to the list on success, which re-queries `listMedia`
  * for the full joined row - so this returns only the id.
  */
-export async function insertMedia(input: NewMedia, uploadedBy: string): Promise<{ id: string }> {
-  const [row] = await sql<{ id: string }[]>`
-    insert into media ${sql({
+export async function insertMedia(
+  siteId: string,
+  input: NewMedia,
+  uploadedBy: string,
+): Promise<{ id: string }> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ id: string }[]>`
+    insert into media ${tx({
+      site_id: siteId,
       storage_key: input.storageKey,
       filename: input.filename,
       mime_type: input.mimeType,
@@ -56,7 +63,8 @@ export async function insertMedia(input: NewMedia, uploadedBy: string): Promise<
       uploaded_by: uploadedBy,
     })}
     returning id
-  `;
+  `,
+  );
   return row;
 }
 
@@ -67,16 +75,21 @@ export type MediaList = { media: Media[]; total: number; totalPages: number };
  * requires seeing what other people uploaded, not just your own (spec's
  * Decisions). Only deletion is ownership-scoped (deleteMedia).
  */
-export async function listMedia(page: number): Promise<MediaList> {
-  const [rows, totalRows] = await Promise.all([
-    sql<Media[]>`
+export async function listMedia(siteId: string, page: number): Promise<MediaList> {
+  // `Promise.all` inside `inSite` runs on one connection: the two queries are
+  // queued, not concurrent, which is fine at this scale.
+  const [rows, totalRows] = await inSite(siteId, (tx) =>
+    Promise.all([
+      tx<Media[]>`
       select ${mediaColumns}
       from media m join users u on u.id = m.uploaded_by
+      where m.site_id = ${siteId}
       order by m.created_at desc
       limit ${MEDIA_PAGE_SIZE} offset ${(page - 1) * MEDIA_PAGE_SIZE}
     `,
-    sql<{ total: number }[]>`select count(*)::int as total from media`,
-  ]);
+      tx<{ total: number }[]>`select count(*)::int as total from media where site_id = ${siteId}`,
+    ]),
+  );
   const total = totalRows[0]?.total ?? 0;
   return {
     media: rows,
@@ -100,13 +113,16 @@ export type MediaSummaryRow = {
  * simply absent from the result; the caller (the loader) treats that as
  * "no longer available" rather than an error.
  */
-export async function findMediaByIds(ids: string[]): Promise<MediaSummaryRow[]> {
+export async function findMediaByIds(siteId: string, ids: string[]): Promise<MediaSummaryRow[]> {
   if (ids.length === 0) return [];
-  return sql<MediaSummaryRow[]>`
+  return inSite(
+    siteId,
+    (tx) => tx<MediaSummaryRow[]>`
     select id, storage_key as "storageKey", alt_text as "altText", width, height
     from media
-    where id = any(${ids})
-  `;
+    where site_id = ${siteId} and id = any(${ids})
+  `,
+  );
 }
 
 /**
@@ -116,12 +132,19 @@ export async function findMediaByIds(ids: string[]): Promise<MediaSummaryRow[]> 
  * it). Everyone can still see the file in `listMedia`'s shared grid; only the
  * confirm-then-delete path is ownership-scoped.
  */
-export async function findMediaForUser(id: string, actor: Actor): Promise<Media | null> {
-  const [row] = await sql<Media[]>`
+export async function findMediaForUser(
+  siteId: string,
+  id: string,
+  actor: Actor,
+): Promise<Media | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<Media[]>`
     select ${mediaColumns}
     from media m join users u on u.id = m.uploaded_by
-    where m.id = ${id} ${ownedBy(actor)}
-  `;
+    where m.site_id = ${siteId} and m.id = ${id} ${ownedBy(actor)}
+  `,
+  );
   return row ?? null;
 }
 
@@ -137,12 +160,16 @@ function ownedBy(actor: Actor) {
  * (not found, or not theirs).
  */
 export async function deleteMedia(
+  siteId: string,
   id: string,
   actor: Actor,
 ): Promise<{ storageKey: string; filename: string } | null> {
-  const [row] = await sql<{ storageKey: string; filename: string }[]>`
-    delete from media m where m.id = ${id} ${ownedBy(actor)}
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ storageKey: string; filename: string }[]>`
+    delete from media m where m.site_id = ${siteId} and m.id = ${id} ${ownedBy(actor)}
     returning m.storage_key as "storageKey", m.filename
-  `;
+  `,
+  );
   return row ?? null;
 }

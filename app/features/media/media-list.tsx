@@ -33,7 +33,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   const url = new URL(request.url);
   const page = parseMediaListPage(url);
-  const list = await listMedia(page);
+  const list = await listMedia(actor.siteId, page);
   // A bookmarked or stale page past the real end would otherwise render a
   // false "No images uploaded yet." with no way back (F-75, the same shape
   // F-56 found for posts) - redirect to the last real page instead.
@@ -97,11 +97,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data({ problem: "This file is not a JPEG, PNG, WebP or GIF image." }, { status: 400 });
   }
 
-  const storageKey = generateStorageKey(detected.extension);
+  const storageKey = generateStorageKey(actor.siteId, detected.extension);
   // R2 object first, then the row (the plan's data rule) - a failure between
   // leaves a harmless orphaned object.
   await uploadObject(storageKey, buffer, detected.mimeType);
   await insertMedia(
+    actor.siteId,
     {
       storageKey,
       filename: filename.data,
