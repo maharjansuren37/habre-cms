@@ -186,13 +186,15 @@ every later per-site feature build on. It adds no screen and no signup.
   - As the owner, every row is visible (backups and migrations).
   - The two-site browser tests from steps 3-6 and the full `npm run test:e2e` pass.
   - `npm run verify` passes.
-- [ ] **Step 9 - Prove the bar, and the docs** - time the public pages: 200 requests each to `/`, one published post and one published page against `npm start` on the dev machine, with server-side time from a `curl -w '%{time_starttransfer}'` loop, which is close enough for a single box. Then update the docs:
+- [x] **Step 9 - Prove the bar, and the docs** - time the public pages: 200 requests each to `/`, one published post and one published page against `npm start` on the dev machine, with server-side time from a `curl -w '%{time_starttransfer}'` loop, which is close enough for a single box. Then update the docs:
   - `dev-notes/status.md`'s release procedure: migrate uses `DATABASE_OWNER_URL`, and run `db/roles.sql` once before 0010;
   - `coding-standards.md`'s note on data modules: every site-owned query goes through `inSite` and names `site_id`.
 
   *Done when:*
   - The p95 of each route is under 500 ms (quality bar), recorded in the step's notes with the command.
   - `AGENTS.md`, `.env.example`, `status.md` and `coding-standards.md` name both database URLs and the `inSite` rule.
+
+    *Evidence:* 2026-10-04, dev machine, production build (`npm run build`, then `PORT=3200 npm start`), site 1 with one published post and two published pages (one set as the home page), seeded then removed. Per route, 200 sequential requests: `curl -s -o /dev/null -H 'Host: <PUBLIC_URL host>' -w '%{http_code} %{time_starttransfer}\n' http://127.0.0.1:3200<path>`; p50/p95 = 100th/190th sorted value. All 600 responses were 200. `/`: p50 2.8 ms, p95 4.0 ms. `/posts/perf-post`: p50 2.8 ms, p95 3.2 ms. `/perf-page2`: p50 2.5 ms, p95 3.1 ms. Bar: p95 < 500 ms.
 
 ## Files and areas
 
