@@ -161,6 +161,12 @@
   cursor: pointer;
 }
 
+/* At the first or last section: still focusable, so focus stays on it. */
+.chipButton[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .chipButton:focus-visible {
   outline: var(--focus-width) solid var(--color-on-selection);
   outline-offset: 1px;

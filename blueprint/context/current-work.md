@@ -186,7 +186,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   succeeds; a post's menu has no Main heading and typing `# ` never makes
   level 1.
 
-- [ ] **Step 6 - Section moves** - the chip gains Move section up / Move
+- [x] **Step 6 - Section moves** - the chip gains Move section up / Move
   section down (`aria-disabled` at the ends), using step 1's `moveSection`,
   announced; focus stays on the pressed button; the chip follows its section.
   *Done when:* on a three-section page, the chip's Move section down on
@@ -322,6 +322,8 @@ Locked here for 14b, which reuses them:
 - **The block cap refuses only a move that adds a block** (step 1) - a move
   out of a one-block column, which leaves a placeholder, when the document is
   at 200. A pure reorder is never refused.
+- **A one-section page's chip offers no Move section up / down** (step 6),
+  as it offers no Remove section: both would only ever be disabled.
 
 ## Production needs
 

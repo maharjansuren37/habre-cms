@@ -506,3 +506,42 @@ test("a post's menu has no Main heading, and typing # never makes a level-1 head
   await save(page);
   expect(JSON.stringify((await storedEntry(id)).blocks)).not.toContain('"level":1');
 });
+
+test("keyboard only: the chip's Move section down makes section 1 the second, announced, and one Ctrl+Z restores it", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Three Sections",
+    doc(section(["One"]), section(["Two"]), section(["Three"])),
+  );
+  await textbox.getByText("One", { exact: true }).click();
+  await settle(page);
+  // The writing area, then the block toolbar (one stop), then the chip.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  const first = page.getByRole("group", { name: "Section 1 of 3", exact: true });
+  const up = first.getByRole("button", { name: "Move section up" });
+  await expect(up).toBeFocused();
+  await expect(up).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Enter");
+  expect(await canvasShape(page)).toEqual([[["One"]], [["Two"]], [["Three"]]]);
+
+  await page.keyboard.press("Tab");
+  const down = page.getByRole("button", { name: "Move section down" });
+  await expect(down).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Section moved down: now section 2 of 3.");
+  await expect(page.getByRole("group", { name: "Section 2 of 3", exact: true })).toBeVisible();
+  await expect(down).toBeFocused();
+  expect(await canvasShape(page)).toEqual([[["Two"]], [["One"]], [["Three"]]]);
+
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section(["Two"]), section(["One"]), section(["Three"])),
+  );
+
+  await textbox.focus();
+  await page.keyboard.press("ControlOrMeta+z");
+  expect(await canvasShape(page)).toEqual([[["One"]], [["Two"]], [["Three"]]]);
+});

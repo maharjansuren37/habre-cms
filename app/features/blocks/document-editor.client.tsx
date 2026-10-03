@@ -34,7 +34,13 @@ import { createPortal, flushSync } from "react-dom";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
-import { keepOneMainHeading, selectedBlock } from "./block-moves.ts";
+import {
+  type Direction,
+  keepOneMainHeading,
+  moveSection,
+  sectionMoveAnnouncement,
+  selectedBlock,
+} from "./block-moves.ts";
 import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
@@ -488,7 +494,12 @@ export function DocumentEditor({
           />
         ) : null}
         {editor ? (
-          <SectionChip editor={editor} canvas={canvas} onOpenSettings={openSectionSettings} />
+          <SectionChip
+            editor={editor}
+            canvas={canvas}
+            onOpenSettings={openSectionSettings}
+            announce={announce}
+          />
         ) : null}
       </div>
       <p className="visually-hidden" role="status">
@@ -626,17 +637,20 @@ function removeSection(editor: Editor, index: number) {
 /**
  * The section chip (design.md, *Section controls*): on the section holding the
  * cursor, drawn outside the writing area and placed over its section by this
- * code. It offers Section settings (Columns live in the panel) and Remove
- * section; Move section up and down come with 14a3.
+ * code. Its label, Move section up and down (14a3, announced; at the ends
+ * `aria-disabled`, so focus stays), Section settings (Columns live in the
+ * panel) and Remove section.
  */
 function SectionChip({
   editor,
   canvas,
   onOpenSettings,
+  announce,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
   onOpenSettings: (index: number) => void;
+  announce: (message: string) => void;
 }) {
   const chip = useRef<HTMLFieldSetElement>(null);
   const { index, count } = useEditorState({
@@ -670,10 +684,60 @@ function SectionChip({
     };
   }, [editor, canvas, index]);
 
+  /** One section move, one undo step; the selection, and so the chip, go with it. */
+  function move(direction: Direction) {
+    const tr = moveSection(editor.state, index, direction);
+    if (!tr) return;
+    editor.view.dispatch(tr);
+    announce(sectionMoveAnnouncement(direction, index + (direction === "down" ? 1 : -1), count));
+  }
+
   const label = `Section ${index + 1} of ${count}`;
   return (
     <fieldset ref={chip} className={styles.chip}>
       <legend className={styles.chipLegend}>{label}</legend>
+      {count > 1 ? (
+        <>
+          <button
+            type="button"
+            className={styles.chipButton}
+            aria-label="Move section up"
+            title="Move section up"
+            aria-disabled={index === 0 ? "true" : undefined}
+            onClick={() => move("up")}
+          >
+            <svg
+              className={styles.chipIcon}
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.chipButton}
+            aria-label="Move section down"
+            title="Move section down"
+            aria-disabled={index === count - 1 ? "true" : undefined}
+            onClick={() => move("down")}
+          >
+            <svg
+              className={styles.chipIcon}
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+          </button>
+        </>
+      ) : null}
       <button
         type="button"
         className={styles.chipButton}
