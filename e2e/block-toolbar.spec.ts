@@ -545,3 +545,110 @@ test("keyboard only: the chip's Move section down makes section 1 the second, an
   await page.keyboard.press("ControlOrMeta+z");
   expect(await canvasShape(page)).toEqual([[["One"]], [["Two"]], [["Three"]]]);
 });
+
+// ---- Step 7: the phone, and journeys 2 and 3 --------------------------------
+
+test("at 390px a selected heading's toolbar is inside the viewport, with no horizontal scroll", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { textbox } = await openPage(
+    page,
+    "Phone Heading",
+    doc(section(["Intro", heading(2, "A heading long enough to fill the line on a phone")])),
+  );
+  await textbox.getByText("A heading long enough", { exact: false }).click();
+  const toolbar = page.getByRole("toolbar", { name: "Heading" });
+  await expect(toolbar).toBeVisible();
+  const box = await toolbar.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.x).toBeGreaterThanOrEqual(0);
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+  expect(box?.y).toBeGreaterThanOrEqual(0);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+    true,
+  );
+});
+
+test("at 390px the settings bottom sheet does not cover a selected image's toolbar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const mediaId = await insertTestMediaRow({ uploadedBy: editor.email, altText: "A harbour" });
+  const { textbox } = await openPage(
+    page,
+    "Phone Image",
+    doc(section(["One", "Two", "Three", "Four", "Five", imageBlock(mediaId)])),
+  );
+  await textbox.getByRole("img", { name: "A harbour" }).click();
+  const sheet = page.getByRole("complementary", { name: "Image", exact: true });
+  await expect(sheet).toBeVisible();
+  const toolbar = page.getByRole("toolbar", { name: "Image" });
+  await expect(toolbar).toBeVisible();
+  // Let the sheet's own scroll settle before measuring.
+  await settle(page);
+  const bar = await toolbar.boundingBox();
+  const panel = await sheet.boundingBox();
+  expect(bar && panel).toBeTruthy();
+  expect((bar?.y ?? 0) + (bar?.height ?? 0)).toBeLessThanOrEqual(panel?.y ?? 0);
+  expect(bar?.y).toBeGreaterThanOrEqual(0);
+  await deleteEntriesBy(editor.email);
+  await deleteTestMedia(mediaId);
+});
+
+test("journey 3, keyboard only: Move up is announced, then a palette tile adds its block after the selected one", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(page, "Journey Three", doc(section(["A", "B"])));
+  await textbox.getByText("B", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("toolbar", { name: "Text" }).getByRole("button", { name: "Move up" }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Text moved up: block 1 of 2 in section 1.");
+
+  await page
+    .getByRole("complementary", { name: "Add to the page" })
+    .getByRole("button", { name: "Line", exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(doc(section(["B", lineBlock(), "A"])));
+});
+
+// Journey 2 as far as this item reaches: open a page, move a block, Publish,
+// and the public page shows the new order - by a full page load and through
+// the admin's own links.
+for (const arrival of ["a full page load", "the admin's own links"] as const) {
+  test(`journey 2: open a page by ${arrival}, move a block, Publish, and the public page shows the new order`, async ({
+    page,
+  }) => {
+    const title = `Moved Journey ${randomInt(1_000_000)}`;
+    const id = await createDraftFor(editor.email, title, doc(section(["First", "Second"])), {
+      type: "page",
+    });
+    await logIn(page, editor);
+    if (arrival === "a full page load") {
+      await page.goto(`/admin/pages/${id}`);
+    } else {
+      await page.goto("/admin");
+      await page.getByRole("link", { name: "Pages", exact: true }).click();
+      await page.getByRole("link", { name: title, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+    }
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await textbox.getByText("Second", { exact: true }).click();
+    await page
+      .getByRole("toolbar", { name: "Text" })
+      .getByRole("button", { name: "Move up" })
+      .click();
+    expect(await canvasShape(page)).toEqual([[["Second", "First"]]]);
+
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\?/);
+    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await expect(page.getByRole("main").getByRole("paragraph")).toHaveText(["Second", "First"]);
+  });
+}

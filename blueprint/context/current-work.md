@@ -195,7 +195,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   "Section 2 of 3", focus is on Move section down; one Ctrl+Z restores the
   order; Section settings and Remove section still work (14a2's tests pass).
 
-- [ ] **Step 7 - Phone and the journeys** - the toolbar wraps below its
+- [x] **Step 7 - Phone and the journeys** - the toolbar wraps below its
   block at narrow widths, and sits clear of the settings bottom sheet.
   *Done when:* at 390px a selected heading's toolbar is fully inside the
   viewport with no horizontal scroll, and with an image selected the bottom
