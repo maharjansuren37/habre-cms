@@ -184,7 +184,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   tile and a block with no violation (the policy is unchanged: no
   `'unsafe-inline'`, no `data:`).
 
-- [ ] **Step 6 - Narrow widths and touch** - the grip drags at every width;
+- [x] **Step 6 - Narrow widths and touch** - the grip drags at every width;
   the gap and ghost fit a 390px canvas; the phone's Add dialog is unchanged.
   *Done when:* at 390px with `hasTouch`, pointer events of `pointerType:
   "touch"` dispatched on the grip move a block to another section (stored),

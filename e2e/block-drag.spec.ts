@@ -499,3 +499,65 @@ test("Ctrl+Z while dragging undoes the typing, cancels the drag, and the release
   await page.mouse.up();
   expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
 });
+
+// ---- Step 6: a phone, by touch ------------------------------------------------
+
+test.describe("at 390px by touch", () => {
+  test.use({ viewport: { width: 390, height: 800 }, hasTouch: true });
+
+  test("a touch drag on the grip moves a block to another section, without scrolling the page or overflowing it", async ({
+    page,
+  }) => {
+    const { id, textbox } = await openPage(page, "Touch Drag", SEEDED());
+    await textbox.getByText("A", { exact: true }).tap();
+    const grip = page.getByRole("button", { name: GRIP });
+    await expect(grip).toBeVisible();
+    await expect(grip).toHaveCSS("touch-action", "none");
+    const scrollY = await page.evaluate("window.scrollY");
+
+    // Real touch input through the browser, so its own panning would show.
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: "touchStart" | "touchMove" | "touchEnd", x: number, y: number) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: type === "touchEnd" ? [] : [{ x, y }],
+      });
+    const from = await centre(grip);
+    await touch("touchStart", from.x, from.y);
+    // D's top: the gap opens above D and pushes it down, under a still finger.
+    const target = await centre(textbox.getByText("D", { exact: true }));
+    const goal = { x: target.box.x + target.box.width / 2, y: target.box.y + 3 };
+    for (let i = 1; i <= 12; i++) {
+      await touch(
+        "touchMove",
+        from.x + ((goal.x - from.x) * i) / 12,
+        from.y + ((goal.y - from.y) * i) / 12,
+      );
+    }
+    // A gap opened on the way moves D: aim at its top again, as a finger would.
+    for (let i = 0; i < 2; i++) {
+      await page.evaluate(
+        "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+      );
+      const again = await centre(textbox.getByText("D", { exact: true }));
+      await touch("touchMove", again.x, again.box.y + 3);
+    }
+    await expect(page.getByRole("status")).toHaveText("Text: drop at block 1 of 2 in section 2.");
+    await expect(page.locator("[data-drag-ghost]")).toHaveText("Text");
+    const gap = await page.locator("[data-drop-zone]").boundingBox();
+    const canvas = await textbox.boundingBox();
+    if (!gap || !canvas) throw new Error("not drawn");
+    expect(gap.x).toBeGreaterThanOrEqual(canvas.x);
+    expect(gap.x + gap.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
+    expect(await page.evaluate("window.scrollY")).toBe(scrollY);
+    await touch("touchEnd", 0, 0);
+
+    await expect(page.getByRole("status")).toHaveText("Text moved: block 1 of 2 in section 2.");
+    await expectClean(page, textbox);
+    await save(page);
+    expect((await storedEntry(id)).blocks).toEqual(doc(section(["B"], ["C"]), section(["A", "D"])));
+  });
+});
