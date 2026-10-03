@@ -2,8 +2,8 @@
 
 **From build plan:** item 14c1
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-03, 938e4a12b0f8, every behavioural done-when proven by Playwright against the production build during build (steps 3-5, `e2e/section-templates.spec.ts`, 16 tests; full `npm run test:e2e` 244 passed, real R2); steps 1-2 by unit tests (pure functions); not provable here: a screen reader (needs-you.md)
+**Reviewed:** 2026-10-03, a24357d7f429, current (8b39d6c..938e4a1), every lens, reviewer subagent - 0 blocking; 5 new P3 (F-199-F-203), 2 unverified (F-204, F-205)
 
 ## Goal
 
