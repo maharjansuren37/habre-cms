@@ -213,6 +213,15 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
     writing.locator("p").last(),
   );
   await expect(page.getByRole("status")).toHaveText("Line moved: block 3 of 3 in section 1.");
+  // A section tile (14c2): the same gap and ghost, between sections.
+  await drag(
+    page,
+    page
+      .getByRole("complementary", { name: "Add to the page" })
+      .getByRole("button", { name: "Blank section", exact: true }),
+    writing.locator("p").last(),
+  );
+  await expect(page.getByRole("status")).toHaveText("Blank section added: now section 2 of 2.");
 
   await page
     .getByRole("complementary", { name: "Add to the page" })

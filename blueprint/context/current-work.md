@@ -119,7 +119,7 @@ click, Enter or the phone's Add stay the non-drag path (WCAG 2.5.7).
   still adds it after the selection's section (14c1's tests pass); the
   writing area is still the only `textbox`; Save stores no gap.
 
-- [ ] **Step 3 - Long pages, the policy, the journey** - no new product code
+- [x] **Step 3 - Long pages, the policy, the journey** - no new product code
   expected. *Done when:* `section-drag.spec.ts` - on a seeded page of 12
   sections taller than the viewport, dragging the Blank section tile to the
   window's bottom edge scrolls until the last section is reachable, and the

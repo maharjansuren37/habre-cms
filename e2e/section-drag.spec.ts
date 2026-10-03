@@ -266,3 +266,116 @@ test("a click on the Hero tile without moving still adds it after the selection'
   expect(await sectionTexts(page)).toEqual(["A", "", "B", "C"]);
   await expectClean(page, textbox);
 });
+
+// ---- Step 3: long pages, a change mid-drag, the cap, the journey -------------
+
+async function save(page: Page) {
+  const saved = page.waitForResponse((response) => response.request().method() === "POST");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  expect((await saved).ok()).toBe(true);
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+}
+
+test("on a page taller than the window, holding the Blank tile at the bottom edge scrolls until the last section is reachable, and it drops below it as section 13", async ({
+  page,
+}) => {
+  const sections = Array.from({ length: 12 }, (_, i) => section(`S${i + 1}`));
+  const { id, textbox } = await openPage(page, "Long Section Drag", {
+    type: "doc",
+    content: sections,
+  });
+  expect(
+    await page.evaluate("document.documentElement.scrollHeight > window.innerHeight * 1.5"),
+  ).toBe(true);
+  await pickUp(page, tile(page, "Blank section"));
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+  await page.mouse.move(viewport.width / 2, viewport.height - 6, { steps: 8 });
+  await expect(textbox.getByText("S12", { exact: true })).toBeInViewport({ timeout: 15_000 });
+  await hover(page, sectionOf(textbox, 11), "bottom");
+  await expect(page.getByRole("status")).toHaveText("Blank section: drop as section 13 of 13.");
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Blank section added: now section 13 of 13.");
+  await save(page);
+  const stored = (await storedEntry(id)).blocks as TestNode;
+  expect(stored.content).toHaveLength(13);
+  expect(stored.content?.[11]).toEqual(section("S12"));
+  const last = stored.content?.[12];
+  expect(last?.type).toBe("section");
+  expect(last?.content).toHaveLength(1);
+  expect(last?.content?.[0]?.content).toEqual([{ type: "paragraph" }]);
+});
+
+test("Ctrl+Z while dragging a section tile undoes the typing, cancels the drag, and the release stores nothing more", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Section Undo Mid Drag", THREE());
+  await textbox.getByText("A", { exact: true }).click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" typed");
+  await expect(textbox.getByText("A typed", { exact: true })).toBeVisible();
+  await pickUp(page, tile(page, "Hero"));
+  await hover(page, sectionOf(textbox, 1), "top");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(1);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await sectionTexts(page)).toEqual(["A", "B", "C"]);
+  await expectClean(page, textbox);
+  await page.mouse.up();
+  expect(await sectionTexts(page)).toEqual(["A", "B", "C"]);
+});
+
+test("at 30 sections every section tile is disabled, and pressing and moving on one shows no ghost and no gap", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Thirty Sections", {
+    type: "doc",
+    content: Array.from({ length: 30 }, (_, i) => section(`S${i}`)),
+  });
+  const names = ["Blank section", "Hero", "Image and text", "Call to action"];
+  for (const name of names) await expect(tile(page, name)).toBeDisabled();
+  for (const name of names) {
+    await pickUp(page, tile(page, name));
+    await hover(page, sectionOf(textbox, 1), "top");
+    await expect(page.locator("[data-drag-ghost]")).toHaveCount(0);
+    await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+    await page.mouse.up();
+  }
+  await expect(textbox.locator('[data-node="section"]')).toHaveCount(30);
+});
+
+// Journey 2 (design.md, *Edit and publish*), the section drag's part.
+for (const arrival of ["a full page load", "the admin's own links"] as const) {
+  test(`journey 2: open a page by ${arrival}, drag a Call to action below the last section, type its heading, Publish, and the public page shows it last`, async ({
+    page,
+  }) => {
+    const title = `Section Journey ${randomInt(1_000_000)}`;
+    const id = await createDraftFor(editor.email, title, THREE(), { type: "page" });
+    await logIn(page, editor);
+    if (arrival === "a full page load") {
+      await page.goto(`/admin/pages/${id}`);
+    } else {
+      await page.goto("/admin");
+      await page.getByRole("link", { name: "Pages", exact: true }).click();
+      await page.getByRole("link", { name: title, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+    }
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await expect(textbox).toBeVisible();
+    await pickUp(page, tile(page, "Call to action"));
+    await hover(page, sectionOf(textbox, 2), "bottom");
+    await expect(page.getByRole("status")).toHaveText("Call to action: drop as section 4 of 4.");
+    await page.mouse.up();
+    await expect(textbox).toBeFocused();
+    await page.keyboard.type("Join us");
+    await expect(sectionOf(textbox, 3).getByRole("heading")).toHaveText("Join us");
+
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\?/);
+    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    const sections = page.getByRole("main").locator("section");
+    await expect(sections).toHaveCount(4);
+    await expect(sections.last()).toHaveAttribute("data-background", "band");
+    await expect(sections.last()).toContainText("Join us");
+  });
+}
