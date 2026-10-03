@@ -52,6 +52,7 @@ export function revokeSessions(email: string): Promise<void> {
 /** Test cleanup only - the product deactivates users, never deletes them. */
 export function deleteTestUser(email: string): Promise<void> {
   return withDatabase(async (sql) => {
+    await deleteMemberRows(sql, email);
     await sql`
       delete from site_members where user_id in (select id from users where email = ${email})
     `;
@@ -72,10 +73,18 @@ export function setRole(email: string, role: "admin" | "editor" | "author"): Pro
 /** Test-only: removes the membership, leaving a user who belongs to no site. */
 export function removeMembership(email: string): Promise<void> {
   return withDatabase(async (sql) => {
+    await deleteMemberRows(sql, email);
     await sql`
       delete from site_members where user_id in (select id from users where email = ${email})
     `;
   });
+}
+
+/** Entries and media reference their author's membership (0011, on delete restrict),
+ *  so a membership can go only after the rows made under it. */
+async function deleteMemberRows(sql: postgres.Sql, email: string): Promise<void> {
+  await sql`delete from entries where author_id in (select id from users where email = ${email})`;
+  await sql`delete from media where uploaded_by in (select id from users where email = ${email})`;
 }
 
 /** Test cleanup: entries reference their author, so they go first. */
