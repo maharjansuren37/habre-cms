@@ -146,7 +146,7 @@ F-147, F-175, F-188, F-190 (stale text).
   - **Tap on a tile:** `tap()` on the Line tile adds one line after the
     selected block.
 
-- [ ] **Step 5 - Settled announcements while auto-scrolling (F-197)**
+- [x] **Step 5 - Settled announcements while auto-scrolling (F-197)**
   - While `scrollSpeed` is not 0, a hover announcement is held until its
     place has stayed the same for 300 ms. This applies to block places and
     section places.

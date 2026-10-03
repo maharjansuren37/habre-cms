@@ -256,7 +256,7 @@ File: app/features/blocks/block-drag.client.tsx:192-202 (`swallowClick`)
 ### F-196 [P3] fixed - Dragging a palette tile by touch is likely cancelled by the browser's own panning
 File: app/features/blocks/palette.client.tsx:117; palette.module.css (`.tile`, no `touch-action`)
 
-### F-197 [P3] open - During auto-scroll the status region is rewritten several times a second
+### F-197 [P3] fixed - During auto-scroll the status region is rewritten several times a second
 File: app/features/blocks/block-drag.client.tsx:289-304 (`update`)
 
 ### F-198 [P3] open - Step 4's Image-tile test checks the canvas, not what is stored

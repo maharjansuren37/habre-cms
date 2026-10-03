@@ -257,6 +257,8 @@ function measure(editor: Editor): MeasuredColumn[] {
 const SCROLL_ZONE = 48;
 /** The fastest auto-scroll, in pixels a frame, at the very edge. */
 const SCROLL_MAX = 24;
+/** How long a place must stay the same, while the window auto-scrolls, before it is announced. */
+const SETTLE_MS = 300;
 
 /**
  * Pixels to scroll this frame for a pointer at `y`: down near the window's
@@ -359,11 +361,30 @@ export function useBlockDrag(
       let shownSection: SectionSlot | null = null;
       let frame = 0;
       let said = "";
+      let settle: ReturnType<typeof setTimeout> | undefined;
+      let settling = "";
 
       function say(message: string) {
         if (message === said) return;
         said = message;
         latestAnnounce.current(message);
+      }
+
+      /** A hover place: said at once, or while auto-scrolling only once it has held for SETTLE_MS. */
+      function hold(message: string, scrolling: boolean) {
+        if (!scrolling || message === said) {
+          clearTimeout(settle);
+          settling = "";
+          say(message);
+          return;
+        }
+        if (message === settling) return;
+        clearTimeout(settle);
+        settling = message;
+        settle = setTimeout(() => {
+          settling = "";
+          say(message);
+        }, SETTLE_MS);
       }
 
       function placeGhost() {
@@ -424,7 +445,7 @@ export function useBlockDrag(
             shownSection = at;
             setGap(current, { ...(gapKey.getState(current.state) ?? NO_GAP), section: at });
           }
-          say(sectionHoverAnnouncement(template, at, current.state.doc.childCount));
+          hold(sectionHoverAnnouncement(template, at, current.state.doc.childCount), speed !== 0);
           return;
         }
         const next = blockSlotUnder(current, point.current.x, point.current.y);
@@ -437,12 +458,13 @@ export function useBlockDrag(
           const gap = gapKey.getState(current.state) ?? NO_GAP;
           setGap(current, { ...gap, slot: visible });
         }
-        say(hoverAnnouncement(current.state, source, next));
+        hold(hoverAnnouncement(current.state, source, next), speed !== 0);
       }
 
       function finish(clearGap: boolean) {
         if (frame) cancelAnimationFrame(frame);
         frame = 0;
+        clearTimeout(settle);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
