@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { CAP_SENTENCE, duplicateAnnouncement, duplicateBlock } from "./block-drops.ts";
 import {
   type Direction,
   deleteAnnouncement,
@@ -24,9 +25,7 @@ import {
 } from "./block-moves.ts";
 import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-
-/** What the palette says at the cap, so a refused move reads the same. */
-const CAP_SENTENCE = `You can have at most ${MAX_DOCUMENT_BLOCKS} blocks.`;
+import { countBlocks } from "./palette-insert.ts";
 
 /**
  * The selected block's toolbar (current-work.md, 14a3): drawn outside the
@@ -65,6 +64,7 @@ export function BlockToolbar({
         // and says why nothing moved.
         canUp: moveBlock(state, "up", Number.POSITIVE_INFINITY) !== null,
         canDown: moveBlock(state, "down", Number.POSITIVE_INFINITY) !== null,
+        full: countBlocks(state.doc) >= MAX_DOCUMENT_BLOCKS,
         // Main heading is for one block, never a range.
         isRange: !state.selection.$from.sameParent(state.selection.$to),
         main: mainHeading(state.doc)?.textContent ?? null,
@@ -120,6 +120,15 @@ export function BlockToolbar({
     editor.view.dispatch(tr);
     const landed = selectedBlock(editor.state);
     if (landed) announce(moveAnnouncement(selected.node, direction, editor.state.doc, landed.pos));
+  }
+
+  function duplicate() {
+    const { state } = editor;
+    const selected = selectedBlock(state);
+    const result = duplicateBlock(state);
+    if (!selected || !result) return;
+    editor.view.dispatch(result.tr);
+    announce(duplicateAnnouncement(selected.node, editor.state.doc, result.pos));
   }
 
   function remove() {
@@ -218,6 +227,19 @@ export function BlockToolbar({
     ...lists,
     ...marks,
     {
+      key: "duplicate",
+      label: `Duplicate ${block.name.toLowerCase()}`,
+      disabled: block.full,
+      run: duplicate,
+      refused: () => announce(CAP_SENTENCE),
+      icon: (
+        <>
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+        </>
+      ),
+    },
+    {
       key: "delete",
       label: `Delete ${block.name.toLowerCase()}`,
       run: remove,
@@ -292,6 +314,7 @@ export function BlockToolbar({
               onFocus={() => setActive(index)}
               onClick={() => {
                 if (!tool.disabled) tool.run();
+                else tool.refused?.();
               }}
             >
               <Icon>{tool.icon}</Icon>
@@ -311,6 +334,8 @@ type Tool =
       disabled?: boolean;
       pressed?: boolean;
       run: () => void;
+      /** Pressed while disabled: says why nothing happened. */
+      refused?: () => void;
       icon: ReactNode;
       separatorAfter?: boolean;
     }

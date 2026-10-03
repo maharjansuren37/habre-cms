@@ -116,7 +116,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   (null); each announcement's wording with one and with three columns - and
   `npm run verify` is green.
 
-- [ ] **Step 2 - Duplicate** - a Duplicate button before Delete in every
+- [x] **Step 2 - Duplicate** - a Duplicate button before Delete in every
   kind's toolbar, named for the kind, using step 1; announced; at 200 it is
   `aria-disabled` and pressing it announces the palette's sentence. *Done
   when:* `e2e/block-toolbar.spec.ts`, keyboard only: on a page `[A, B]`,

@@ -343,7 +343,7 @@ test("Duplicate puts a copy just after the block and selects it", () => {
   assert.deepEqual(shape(next.doc), [[["A", "A", "B"], ["C"]], [["D"]]]);
   assert.equal(
     result.pos,
-    posOf(state.doc, "A") + state.doc.nodeAt(posOf(state.doc, "A"))!.nodeSize,
+    posOf(state.doc, "A") + (state.doc.nodeAt(posOf(state.doc, "A")) as ProseMirrorNode).nodeSize,
   );
   assert.ok(next.selection instanceof TextSelection);
   assert.equal(next.selection.from, result.pos + 1);

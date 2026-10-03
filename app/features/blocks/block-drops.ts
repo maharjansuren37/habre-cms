@@ -1,12 +1,6 @@
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import {
-  type EditorState,
-  NodeSelection,
-  Selection,
-  TextSelection,
-  type Transaction,
-} from "@tiptap/pm/state";
+import { type EditorState, NodeSelection, Selection, type Transaction } from "@tiptap/pm/state";
 import {
   columnsOf,
   describePosition,

@@ -717,3 +717,107 @@ test("F-182: pressing the Text style button while its menu is open closes it and
   await expect(menu).toHaveCount(0);
   await expect(button).toBeFocused();
 });
+
+/** Which of its column's blocks holds the browser's caret, counted from 0. */
+async function caretBlockIndex(page: Page) {
+  return page.evaluate(`(() => {
+    let node = window.getSelection().anchorNode;
+    while (node && !(node.parentElement && node.parentElement.dataset.node === "column")) node = node.parentNode;
+    return node ? [...node.parentElement.children].indexOf(node) : -1;
+  })()`);
+}
+
+test("keyboard only: Duplicate text puts a selected copy after it, announced, and one Ctrl+Z removes it", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(page, "Duplicate Page", doc(section(["A", "B"])));
+  await textbox.getByText("A", { exact: true }).click();
+  await settle(page);
+
+  await page.keyboard.press("Tab");
+  const toolbar = page.getByRole("toolbar", { name: "Text" });
+  await expect(toolbar.getByRole("button", { name: "Move up" })).toBeFocused();
+  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowLeft");
+  const duplicate = toolbar.getByRole("button", { name: "Duplicate text" });
+  await expect(duplicate).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("status")).toHaveText("Text duplicated: block 2 of 3 in section 1.");
+  expect(await canvasShape(page)).toEqual([[["A", "A", "B"]]]);
+  await page.keyboard.press("Escape");
+  await expect(textbox).toBeFocused();
+  expect(await caretBlockIndex(page)).toBe(1);
+
+  await page.keyboard.press("ControlOrMeta+z");
+  expect(await canvasShape(page)).toEqual([[["A", "B"]]]);
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(doc(section(["A", "A", "B"])));
+});
+
+test("duplicating a page's main heading stores one level-1 heading and one level-2 copy", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Duplicate Heading",
+    doc(section([heading(1, "Welcome"), "Intro"])),
+  );
+  await textbox.getByText("Welcome", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowLeft");
+  const duplicate = page
+    .getByRole("toolbar", { name: "Main heading" })
+    .getByRole("button", { name: "Duplicate main heading" });
+  await expect(duplicate).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText(
+    "Main heading duplicated: block 2 of 3 in section 1.",
+  );
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveText(["Welcome"]);
+  await expect(textbox.getByRole("heading", { level: 2 })).toHaveText(["Welcome"]);
+
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section([heading(1, "Welcome"), heading(2, "Welcome"), "Intro"])),
+  );
+});
+
+test("duplicating a line selects the copy, which shows its ring", async ({ page }) => {
+  const { textbox } = await openPage(
+    page,
+    "Duplicate Line",
+    doc(section(["Before", lineBlock(), "After"])),
+  );
+  await textbox.locator("hr").click();
+  await page
+    .getByRole("toolbar", { name: "Line" })
+    .getByRole("button", { name: "Duplicate line" })
+    .click();
+  await expect(page.getByRole("status")).toHaveText("Line duplicated: block 3 of 4 in section 1.");
+  const lines = textbox.locator("hr");
+  await expect(lines).toHaveCount(2);
+  await expect(lines.nth(1)).toHaveCSS("outline-width", "2px");
+  await expect(lines.nth(0)).not.toHaveCSS("outline-width", "2px");
+});
+
+test("at 200 blocks Duplicate is unavailable and says why, adding nothing", async ({ page }) => {
+  const blocks = Array.from({ length: 200 }, (_, i) => `Block ${i + 1}`);
+  const { textbox } = await openPage(page, "Full Page", doc(section(blocks)));
+  await textbox.getByText("Block 1", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowLeft");
+  const duplicate = page
+    .getByRole("toolbar", { name: "Text" })
+    .getByRole("button", { name: "Duplicate text" });
+  await expect(duplicate).toBeFocused();
+  await expect(duplicate).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("You can have at most 200 blocks.");
+  await expect(textbox.getByText("Block 1", { exact: true })).toHaveCount(1);
+});
