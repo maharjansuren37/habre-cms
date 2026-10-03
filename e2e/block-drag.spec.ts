@@ -404,6 +404,27 @@ test("a click on the Line tile still adds one line after the selected block, and
   await expect(textbox.locator("hr")).toHaveCount(1);
 });
 
+// F-195: a drag cancelled by Escape waits for its gesture to end. A gesture
+// that ends in pointercancel, not pointerup, must not leave the click blocker
+// behind to eat the next click.
+test("after a drag is cancelled by Escape and its gesture ends in pointercancel, the next click adds a line", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Cancel Click", doc(section(["First", "Last"])));
+  await select(textbox, "First");
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  await page.evaluate(
+    'window.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 1, bubbles: true }))',
+  );
+  // Within the blocker's one-second fallback, so that cannot be what removed it.
+  await tile(page, "Line").dispatchEvent("click");
+  await expect(textbox.locator("hr")).toHaveCount(1);
+  expect(await canvasShape(page)).toEqual([[["First", "", "Last"]]]);
+  await page.mouse.up();
+});
+
 // Journey 2 (design.md, *Edit and publish*), the drag's part: open a page,
 // drag a Text tile into section 1, type, Publish, and the public page shows
 // it where it was dropped. ("Home" and "View site" arrive with items 15-19.)
@@ -638,5 +659,40 @@ test.describe("at 390px by touch", () => {
     await page.mouse.up();
     await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
     expect(await canvasShape(page)).toEqual(shape);
+  });
+});
+
+// F-196: on a landscape tablet the side panel shows. A touch on a tile is a
+// tap, never a drag; touch drags by the grip only.
+test.describe("a touch on a palette tile at 1280px", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: true });
+
+  test("moving 20px never starts a drag", async ({ page }) => {
+    const { textbox } = await openPage(page, "Touch Tile", SEEDED());
+    await select(textbox, "A");
+    const from = await centre(tile(page, "Text"));
+    const fire = (type: string, dy: number) =>
+      page.evaluate(
+        `document.elementFromPoint(${from.x}, ${from.y}).dispatchEvent(new PointerEvent("${type}", { pointerId: 7, pointerType: "touch", isPrimary: true, bubbles: true, clientX: ${from.x}, clientY: ${from.y + dy} }))`,
+      );
+    await fire("pointerdown", 0);
+    for (const dy of [4, 8, 14, 20]) {
+      await fire("pointermove", dy);
+      await page.evaluate(
+        "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+      );
+    }
+    await expect(page.locator("[data-drag-ghost]")).toHaveCount(0);
+    await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+    await fire("pointerup", 20);
+    await expect(page.locator("[data-drag-ghost]")).toHaveCount(0);
+  });
+
+  test("a tap on the Line tile adds one line after the selected block", async ({ page }) => {
+    const { textbox } = await openPage(page, "Tap Tile", doc(section(["First", "Last"])));
+    await select(textbox, "First");
+    await tile(page, "Line").tap();
+    await expect(textbox.locator("hr")).toHaveCount(1);
+    expect(await canvasShape(page)).toEqual([[["First", "", "Last"]]]);
   });
 });

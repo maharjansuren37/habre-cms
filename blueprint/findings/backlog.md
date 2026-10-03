@@ -250,10 +250,10 @@ File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`)
 ### F-194 [P3] closed - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
 File: app/features/blocks/block-drops.ts:68 (`if (!target) return "full"`), :88 (`target.node.child(i)` unbounded)
 
-### F-195 [P3] unverified - The click blocker can outlive a cancelled drag and swallow the next unrelated click
+### F-195 [P3] fixed - The click blocker can outlive a cancelled drag and swallow the next unrelated click
 File: app/features/blocks/block-drag.client.tsx:192-202 (`swallowClick`)
 
-### F-196 [P3] unverified - Dragging a palette tile by touch is likely cancelled by the browser's own panning
+### F-196 [P3] fixed - Dragging a palette tile by touch is likely cancelled by the browser's own panning
 File: app/features/blocks/palette.client.tsx:117; palette.module.css (`.tile`, no `touch-action`)
 
 ### F-197 [P3] open - During auto-scroll the status region is rewritten several times a second

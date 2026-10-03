@@ -275,7 +275,9 @@ function scrollSpeed(y: number): number {
 /**
  * Swallows the click a drag's release would send to the element it started
  * on (the grip announcing itself, a tile adding its block). With the pointer
- * still down, it waits for the release.
+ * still down, it waits for the gesture to end: a release, a cancel (a touch
+ * the browser took for a pan), or one second, whichever comes first. Each call
+ * removes only its own blocker.
  */
 function swallowClick(pointerStillDown: boolean) {
   const block = (event: MouseEvent) => {
@@ -283,10 +285,25 @@ function swallowClick(pointerStillDown: boolean) {
     event.preventDefault();
   };
   window.addEventListener("click", block, true);
-  const release = () => setTimeout(() => window.removeEventListener("click", block, true), 0);
-  if (pointerStillDown)
-    window.addEventListener("pointerup", release, { capture: true, once: true });
-  else release();
+  if (!pointerStillDown) {
+    setTimeout(() => window.removeEventListener("click", block, true), 0);
+    return;
+  }
+  let timer = 0;
+  const end = (afterClick: boolean) => {
+    window.removeEventListener("pointerup", onUp, true);
+    window.removeEventListener("pointercancel", onCancel, true);
+    clearTimeout(timer);
+    // A release is followed at once by its click, which is still swallowed;
+    // a cancel and the fallback have no click coming.
+    if (afterClick) setTimeout(() => window.removeEventListener("click", block, true), 0);
+    else window.removeEventListener("click", block, true);
+  };
+  const onUp = () => end(true);
+  const onCancel = () => end(false);
+  window.addEventListener("pointerup", onUp, true);
+  window.addEventListener("pointercancel", onCancel, true);
+  timer = window.setTimeout(() => end(false), 1000);
 }
 
 /** What a tile or the grip calls on `pointerdown`: the one entry point for every drag. */

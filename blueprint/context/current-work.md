@@ -126,7 +126,7 @@ F-147, F-175, F-188, F-190 (stale text).
     status shows "Drag cancelled." and nothing moves.
   - The existing drag tests still pass.
 
-- [ ] **Step 4 - The click blocker ends with the gesture; a touch on a tile is a tap (F-195, F-196)**
+- [x] **Step 4 - The click blocker ends with the gesture; a touch on a tile is a tap (F-195, F-196)**
   - `swallowClick` also removes itself on a one-time `pointercancel`, and in
     any case after 1 second.
   - The palette's block and section tiles start a drag only for

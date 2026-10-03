@@ -204,7 +204,8 @@ function SectionTiles({
             onPointerDown={
               startDrag
                 ? (event) => {
-                    if (fits(tile.kind)) startDrag({ template: tile.kind }, event);
+                    if (event.pointerType !== "touch" && fits(tile.kind))
+                      startDrag({ template: tile.kind }, event);
                   }
                 : undefined
             }
@@ -262,7 +263,14 @@ function Tiles({
             disabled={isFull}
             // A pointer press leaves the writing area's selection where it is.
             onMouseDown={(event) => event.preventDefault()}
-            onPointerDown={startDrag ? (event) => startDrag({ kind: tile.kind }, event) : undefined}
+            // A touch on a tile is a tap; touch drags by the grip only (F-196).
+            onPointerDown={
+              startDrag
+                ? (event) => {
+                    if (event.pointerType !== "touch") startDrag({ kind: tile.kind }, event);
+                  }
+                : undefined
+            }
             onClick={() => {
               if (onAdded) onAdded();
               addBlock(editor, tile.kind);

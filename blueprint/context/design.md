@@ -334,8 +334,10 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     wider) or **the selected block by its grip** drags to any place in any
     column; a drag starts after 6px of movement, and a shorter press is a
     click (a tile adds its block after the selected one, the grip announces
-    itself). No dragging from the phone's Add dialog. Section tiles drag
-    between sections (14c2); existing sections move from their chip.
+    itself). Touch drags by the grip only: a touch on a palette tile is a
+    tap that adds its block. No dragging from the phone's Add dialog.
+    Section tiles drag between sections (14c2); existing sections move from
+    their chip.
   - **The grip** is a `button` named "Drag to move, or use Move up and Move
     down", first in the toolbar, **pointer-only and out of the arrow order**
     (`tabindex="-1"`), so the toolbar's one tab stop still lands on Move up.
