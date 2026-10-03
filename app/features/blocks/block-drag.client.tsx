@@ -165,6 +165,25 @@ function measure(editor: Editor): MeasuredColumn[] {
   return measured;
 }
 
+/** How near the window's bottom, or the sticky top bar's lower edge, auto-scroll starts. */
+const SCROLL_ZONE = 48;
+/** The fastest auto-scroll, in pixels a frame, at the very edge. */
+const SCROLL_MAX = 24;
+
+/**
+ * Pixels to scroll this frame for a pointer at `y`: down near the window's
+ * bottom, up near the sticky top bar's lower edge, faster nearer the edge.
+ */
+function scrollSpeed(y: number): number {
+  const top = document.querySelector("[data-sticky-bar]")?.getBoundingClientRect().bottom ?? 0;
+  const bottom = window.innerHeight;
+  const ramp = (distance: number) =>
+    Math.ceil(SCROLL_MAX * Math.min(1, (SCROLL_ZONE - Math.max(0, distance)) / SCROLL_ZONE));
+  if (y > bottom - SCROLL_ZONE) return ramp(bottom - y);
+  if (y < top + SCROLL_ZONE) return -ramp(y - top);
+  return 0;
+}
+
 /**
  * Swallows the click a drag's release would send to the element it started
  * on (the grip announcing itself, a tile adding its block). With the pointer
@@ -265,6 +284,13 @@ export function useBlockDrag(
         frame = 0;
         if (!dragging) return;
         placeGhost();
+        // Near an edge the window scrolls every frame, the pointer still or
+        // not, and the slot is measured again after it.
+        const speed = scrollSpeed(point.current.y);
+        if (speed !== 0) {
+          window.scrollBy(0, speed);
+          frame = requestAnimationFrame(update);
+        }
         const next = slotAt(measure(current), point.current.x, point.current.y);
         if (sameSlot(next, slot) && said) return;
         slot = next;

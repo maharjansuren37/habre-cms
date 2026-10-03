@@ -434,3 +434,68 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     ]);
   });
 }
+
+// ---- Step 5: long pages, and a change mid-drag ------------------------------
+
+test("on a page taller than the window, holding a block at the window's bottom edge scrolls until section 12 is reachable, and it drops there", async ({
+  page,
+}) => {
+  const sections = Array.from({ length: 12 }, (_, i) =>
+    section([`S${i + 1} first`, `S${i + 1} second`]),
+  );
+  const { id, textbox } = await openPage(page, "Long Drag", doc(...sections));
+  expect(
+    await page.evaluate("document.documentElement.scrollHeight > window.innerHeight * 2"),
+  ).toBe(true);
+  await select(textbox, "S1 first");
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+  // Held still, near the bottom edge: the window scrolls on its own.
+  await page.mouse.move(viewport.width / 2, viewport.height - 6, { steps: 8 });
+  await expect(textbox.getByText("S12 second", { exact: true })).toBeInViewport({
+    timeout: 15_000,
+  });
+  await hover(page, textbox.getByText("S12 second", { exact: true }), "bottom");
+  await expect(page.getByRole("status")).toHaveText("Text: drop at block 3 of 3 in section 12.");
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Text moved: block 3 of 3 in section 12.");
+  await save(page);
+  const stored = (await storedEntry(id)).blocks as { content: TestNode[] };
+  expect(stored.content[0]).toEqual(section(["S1 second"]));
+  expect(stored.content[11]).toEqual(section(["S12 first", "S12 second", "S1 first"]));
+});
+
+test("near the sticky top bar the window scrolls back up", async ({ page }) => {
+  const sections = Array.from({ length: 12 }, (_, i) => section([`S${i + 1} only`]));
+  const { textbox } = await openPage(page, "Scroll Up", doc(...sections));
+  await select(textbox, "S12 only");
+  await expect(textbox.getByText("S1 only", { exact: true })).not.toBeInViewport();
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  const bar = await page.getByRole("button", { name: "Save draft" }).boundingBox();
+  if (!bar) throw new Error("no top bar");
+  await page.mouse.move(bar.x, bar.y + bar.height + 20, { steps: 8 });
+  await expect(textbox.getByText("S1 only", { exact: true })).toBeInViewport({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+});
+
+test("Ctrl+Z while dragging undoes the typing, cancels the drag, and the release stores nothing more", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Undo Mid Drag", SEEDED());
+  await textbox.getByText("A", { exact: true }).click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" typed");
+  await expect(textbox.getByText("A typed", { exact: true })).toBeVisible();
+  await select(textbox, "B");
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  await hover(page, textbox.getByText("D", { exact: true }), "bottom");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(1);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+  await expectClean(page, textbox);
+  await page.mouse.up();
+  expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+});

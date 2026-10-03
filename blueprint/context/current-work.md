@@ -171,7 +171,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   shows "Dragged in" where it was dropped. (The record's "Home" and "View
   site" arrive with items 15-19; there is no View link yet.)
 
-- [ ] **Step 5 - Long pages and the policy** - auto-scroll: within 48px of
+- [x] **Step 5 - Long pages and the policy** - auto-scroll: within 48px of
   the window's bottom, or of the sticky top bar's lower edge, the window
   scrolls each animation frame, faster nearer the edge, and the slot is
   re-measured after it; a document change mid-drag cancels. The admin CSP
