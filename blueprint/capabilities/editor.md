@@ -24,3 +24,7 @@
 - **editor.22** - a hero's heading is the page's Main heading when the page has none, otherwise a Heading; on a post always a Heading *Since:* features/14c1-ready-made-sections
 - **editor.23** - in the editor, an empty heading shows its style's name and an empty paragraph beside other blocks shows "Text" *Since:* features/14c1-ready-made-sections
 - **editor.24** - a palette section tile can be dragged to before, between or after sections, with a gap labelled "Drop <name> here" where it will land, the place announced, the section added there and one Undo removing it *Since:* features/14c2-dragging-a-section-tile
+- **editor.25** - a drag released over anything drawn over the writing area - the sticky top bar, or the settings sheet below 1024px - cancels, announced "Drag cancelled.", and changes nothing *Since:* fixes/drag-backlog-tidy
+- **editor.26** - a touch on a palette tile never starts a drag; a tap on it adds its block after the selected one *Since:* fixes/drag-backlog-tidy
+- **editor.27** - after a drag is cancelled, the next click anywhere acts normally, even when the gesture ended in pointercancel *Since:* fixes/drag-backlog-tidy
+- **editor.28** - while the window auto-scrolls under a drag, a place is announced only once it has held for 300 ms, so no two announcements come under 300 ms apart *Since:* fixes/drag-backlog-tidy
