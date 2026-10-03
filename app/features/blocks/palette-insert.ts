@@ -127,8 +127,12 @@ export function sectionInsertionPoint(doc: ProseMirrorNode, selection: Selection
   return $head.after(1);
 }
 
-/** The position before top-level child `index`; the end of the document at the child count. */
-function topLevelPosition(doc: ProseMirrorNode, index: number): number {
+/**
+ * The position before top-level child `index`; the end of the document at the
+ * child count. Null when `index` is outside 0 to the child count.
+ */
+export function topLevelPosition(doc: ProseMirrorNode, index: number): number | null {
+  if (index < 0 || index > doc.childCount) return null;
   let pos = 0;
   for (let i = 0; i < index; i++) pos += doc.child(i).nodeSize;
   return pos;
@@ -148,8 +152,8 @@ export function sectionFits(
  * The transaction that adds a ready-made section as its own undo step, with
  * the cursor in its first text block. It goes before top-level child `index`
  * (0 to the child count) when given, else after the selection's section. Null
- * when the document is at the section cap or the template's blocks would pass
- * the block cap.
+ * when `index` is outside that range, the document is at the section cap, or
+ * the template's blocks would pass the block cap.
  */
 export function insertSection(
   state: EditorState,
@@ -157,15 +161,16 @@ export function insertSection(
   options: { allowMainHeading: boolean; maxSections: number; maxBlocks: number; index?: number },
 ): Transaction | null {
   if (!sectionFits(state.doc, kind, options.maxSections, options.maxBlocks)) return null;
+  const at =
+    options.index === undefined
+      ? sectionInsertionPoint(state.doc, state.selection)
+      : topLevelPosition(state.doc, options.index);
+  if (at === null) return null;
   const json = sectionTemplate(kind, {
     mainHeading: options.allowMainHeading && mainHeading(state.doc) === null,
   });
   const section = state.schema.nodeFromJSON(json);
   const tr = closeHistory(state.tr);
-  const at =
-    options.index === undefined
-      ? sectionInsertionPoint(state.doc, state.selection)
-      : topLevelPosition(state.doc, options.index);
   tr.insert(at, section);
   let cursor = -1;
   section.descendants((node, pos) => {

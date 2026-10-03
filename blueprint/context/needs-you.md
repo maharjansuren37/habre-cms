@@ -142,9 +142,12 @@ not tidying; it is what keeps the open list true.
       Chrome) - hardware and manual verification; the browser tests dispatch
       touch pointer events in Chromium, which is not a finger on glass. Check
       that the page does not scroll under the drag, that auto-scroll reaches
-      the last section, and that the gap and ghost fit the screen. Blocks
+      the last section, and that the gap and ghost fit the screen. Also, on
+      a landscape tablet (side panel showing), that a tap on a palette tile
+      adds its block and never starts a drag (F-196). Blocks
       nothing now; `verify` of item 14b names it as not proven, and
-      `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03)
+      `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03;
+      widened, drag tidy fix, 2026-10-04)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these

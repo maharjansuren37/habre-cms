@@ -5,7 +5,7 @@
 > `blueprint/findings/<ID>.md`; `review` still closes them here, and `spec`
 > offers a tidy item at five or more.
 
-### F-206 [P3] open - The top-level insertion position is computed twice, and `insertSection` throws for an index past the section count
+### F-206 [P3] closed - The top-level insertion position is computed twice, and `insertSection` throws for an index past the section count
 File: app/features/blocks/palette-insert.ts:131-135 (`topLevelPosition`); app/features/blocks/block-drag.client.tsx:92-96 (`sectionPos`)
 
 ### F-207 [P3] open - The section and block drag paths share `startDrag` through casts the compiler cannot check
@@ -247,7 +247,7 @@ File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module
 ### F-193 [P3] open - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
 File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152; app/features/blocks/block-drag.client.tsx:186,458 (`sectionSlotUnder`, 14c2)
 
-### F-194 [P3] open - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
+### F-194 [P3] closed - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
 File: app/features/blocks/block-drops.ts:68 (`if (!target) return "full"`), :88 (`target.node.child(i)` unbounded)
 
 ### F-195 [P3] unverified - The click blocker can outlive a cancelled drag and swallow the next unrelated click

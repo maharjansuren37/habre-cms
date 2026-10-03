@@ -45,6 +45,7 @@ import {
   type PaletteKind,
   SECTION_TEMPLATE_NAMES,
   sectionAddedAnnouncement,
+  topLevelPosition,
 } from "./palette-insert.ts";
 import type { SectionTemplate } from "./section-templates.ts";
 
@@ -81,17 +82,11 @@ const gapKey = new PluginKey<Gap>("dropGap");
 function slotPos(doc: ProseMirrorNode, slot: DropSlot): number | null {
   const column = columnsOf(doc).find((c) => c.section === slot.section && c.column === slot.column);
   if (!column) return null;
+  if (slot.index < 0 || slot.index > column.node.childCount) return null;
   let pos = column.pos + 1;
-  for (let i = 0; i < Math.min(slot.index, column.node.childCount); i++) {
+  for (let i = 0; i < slot.index; i++) {
     pos += column.node.child(i).nodeSize;
   }
-  return pos;
-}
-
-/** The top-level position before section `index` (the document's end for the count). */
-function sectionPos(doc: ProseMirrorNode, slot: SectionSlot): number {
-  let pos = 0;
-  for (let i = 0; i < Math.min(slot.index, doc.childCount); i++) pos += doc.child(i).nodeSize;
   return pos;
 }
 
@@ -123,7 +118,7 @@ function gapDecorations(state: EditorState): DecorationSet | null {
   }
   let at: number | null = null;
   if (gap.slot) at = slotPos(state.doc, gap.slot);
-  else if (gap.section) at = sectionPos(state.doc, gap.section);
+  else if (gap.section) at = topLevelPosition(state.doc, gap.section.index);
   if (at !== null) {
     const { label } = gap;
     decorations.push(
@@ -197,6 +192,10 @@ function dropSection(
   options: SectionDropOptions,
   announce: (message: string) => void,
 ) {
+  if (topLevelPosition(editor.state.doc, at.index) === null) {
+    announce(DRAG_CANCELLED);
+    return;
+  }
   const tr = insertSection(editor.state, template, {
     allowMainHeading: options.entryType === "page",
     maxSections: options.maxSections,
@@ -473,6 +472,10 @@ export function useBlockDrag(
         const before = current.state;
         const source = block as BlockSource;
         const result = drop(before, source, final);
+        if (result === "invalid") {
+          latestAnnounce.current(DRAG_CANCELLED);
+          return;
+        }
         if (result === "in-place") return;
         if (result === "full") {
           latestAnnounce.current(CAP_SENTENCE);
