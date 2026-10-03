@@ -120,7 +120,9 @@ not tidying; it is what keeps the open list true.
       "Not published" hint; from item 14a1, the new editor's writing area,
       format bar, link dialog, section chip and Add a section; from item
       14a2, the palette and its phone Add dialog, the settings panel for an
-      image, a button and a section, and the media picker in the editor).
+      image, a button and a section, and the media picker in the editor; from
+      item 14a3, the block toolbar, the Text style menu, the move and delete
+      announcements and the chip's section moves).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -128,7 +130,7 @@ not tidying; it is what keeps the open list true.
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
-      widened, item 9)
+      widened, item 9; widened, item 14a3)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these
@@ -169,8 +171,8 @@ not tidying; it is what keeps the open list true.
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
       manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
       F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 177
-      passed, item 14a2). Nothing in `deploy` runs it. Blocks nothing now; needed before each
+      by `npm run test:e2e` on your machine with the real `.env` (expect 202
+      passed, item 14a3). Nothing in `deploy` runs it. Blocks nothing now; needed before each
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 

@@ -70,7 +70,8 @@
     <span class="editor__title">Home</span>
     <span class="badge only-desktop">Draft</span>
     <span class="text-muted only-desktop"><small>Saved just now</small></span>
-    <div class="cluster only-desktop" style="gap: var(--space-1)">
+    <!-- Undo and Redo at every width (14a3): a phone has no keyboard undo. -->
+    <div class="cluster" style="gap: var(--space-1)">
       <button class="btn btn--ghost btn--icon" type="button" aria-label="Undo"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-undo"/></svg></button>
       <button class="btn btn--ghost btn--icon" type="button" aria-label="Redo" disabled><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-redo"/></svg></button>
     </div>

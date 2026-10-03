@@ -218,7 +218,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   style attribute), stop and report it - the step becomes a recorded
   decision, not a workaround.
 
-- [ ] **Step 9 - The record** - `design.md` *Editor decisions* gains the
+- [x] **Step 9 - The record** - `design.md` *Editor decisions* gains the
   "decided here" lines and the toolbar is marked built; the mockup's
   Undo / Redo line is corrected; `needs-you.md`'s admin screen-reader line
   adds the block toolbar, the Text style menu, the move and delete
