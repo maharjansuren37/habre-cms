@@ -172,7 +172,7 @@ File: e2e/theme.spec.ts:62-73; e2e/contrast.spec.ts:103-111
 ### F-146 [P3] open - Two theme tests reuse the fixed slug `a-published-post-about-gardens`
 File: e2e/theme.spec.ts:131,144
 
-### F-147 [P3] open - Stale contrast figures and test counts in comments and docs
+### F-147 [P3] fixed - Stale contrast figures and test counts in comments and docs
 File: app/features/content/entry-list.module.css:218,224; app/features/users/user-list.module.css:86; app/features/content/entry-delete.module.css:28; app/features/media/media-delete.module.css:35; app/app.css:4-5; AGENTS.md:267; blueprint/context/needs-you.md:171
 
 ### F-148 [P3] open - The heading font is applied rule by rule, with no global rule
@@ -208,7 +208,7 @@ File: app/features/content/page-edit.tsx:43-44; post-edit.tsx:40-41; page-new.ts
 ### F-174 [P3] unverified - A malformed stored `mediaId` would answer 500 on public and edit routes
 File: app/features/public-site/document-media-ids.ts:6
 
-### F-175 [P3] open - Stale comment and R2 test counts
+### F-175 [P3] fixed - Stale comment and R2 test counts
 File: app/features/media/media-picker-dialog.module.css:1-2; blueprint/context/needs-you.md:170; AGENTS.md (ci row)
 
 ### F-178 [P3] open - After the gear, clicking the already-selected image keeps the section panel
@@ -229,13 +229,13 @@ File: e2e/content-security-policy.spec.ts:160
 ### F-187 [P3] unverified - A repeated announcement is probably not re-read by a screen reader
 File: app/features/blocks/document-editor.client.tsx:460-465
 
-### F-188 [P3] open - Comments still describe the removed format bar
+### F-188 [P3] fixed - Comments still describe the removed format bar
 File: app/features/content/entry-form.tsx:71; app/features/content/entry-form.module.css:20-21; app/features/blocks/document-editor.module.css:4
 
 ### F-189 [P3] open - "Main heading does nothing for a list, quote or atom" asserts only the atom
 File: app/features/blocks/block-moves.test.ts (last test)
 
-### F-190 [P3] open - needs-you.md and AGENTS.md give stale counts of the R2-only browser tests
+### F-190 [P3] fixed - needs-you.md and AGENTS.md give stale counts of the R2-only browser tests
 File: blueprint/context/needs-you.md:172,176; AGENTS.md (ci row)
 
 ### F-191 [P3] open - No control converts existing text into a list or quote, or a quote back to text

@@ -83,7 +83,7 @@
   white-space: nowrap;
 }
 
-/* Success green, measured 5.3:1 light / 8.4:1 dark (design.md). */
+/* Success green; its measured contrast is in design.md's table. */
 .active {
   background: var(--color-success-subtle);
   color: var(--color-success);

@@ -173,7 +173,7 @@ F-147, F-175, F-188, F-190 (stale text).
   - The test passes.
   - Changing the asserted column to 1 makes it fail.
 
-- [ ] **Step 7 - Stale comments and counts (F-147, F-175, F-188, F-190)**
+- [x] **Step 7 - Stale comments and counts (F-147, F-175, F-188, F-190)**
   - Reword the comments at the files listed in those findings:
     - F-147: point the contrast comments at `design.md`'s table, and fix
       `app.css`'s header (public pages are light only, D168).

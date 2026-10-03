@@ -1,8 +1,8 @@
 /* The v4 document editor (item 14a1). The canvas is the customer's site: it
    sits in the site scope (`data-surface="site"`, light even inside dark Habre)
    and its sections, columns and blocks take content.module.css, the public
-   site's own stylesheet. Only the chrome around it - the format bar and the
-   link dialog - is Habre's. */
+   site's own stylesheet. Only the chrome around it - the block toolbar, the
+   section chip and the link dialog - is Habre's. */
 
 /* ---- Canvas ---------------------------------------------------------------- */
 

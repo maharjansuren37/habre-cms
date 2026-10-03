@@ -53,8 +53,9 @@ jobs:
       CI_DB_PASSWORD: ci-app-password
       DATABASE_URL: postgres://habre_cms:ci-app-password@127.0.0.1:5432/habre_cms
       # The app refuses to start without all five R2 values. These cannot
-      # authenticate anywhere, and the 26 tests that upload skip themselves
-      # (F-17: CI holds no storage credentials on purpose).
+      # authenticate anywhere, and the tests that upload skip themselves with
+      # `test.skip(skipWithoutStorage)` (F-17: CI holds no storage credentials
+      # on purpose).
       R2_ACCOUNT_ID: ci
       R2_ACCESS_KEY_ID: ci
       R2_SECRET_ACCESS_KEY: ci

@@ -68,7 +68,7 @@ export function EntryForm({
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
-  // Where the document editor draws its format bar: under the top bar.
+  // Where the document editor draws Undo and Redo (in the top bar) and its palette.
   const [undoSlot, setUndoSlot] = useState<HTMLDivElement | null>(null);
   const [paletteSlot, setPaletteSlot] = useState<HTMLDivElement | null>(null);
   const [addSlot, setAddSlot] = useState<HTMLDivElement | null>(null);
