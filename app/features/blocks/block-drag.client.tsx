@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import styles from "./block-drag.module.css";
 import {
+  type BlockSource,
   CAP_SENTENCE,
   DRAG_CANCELLED,
   type DropSlot,
@@ -25,11 +26,27 @@ import {
   hoverAnnouncement,
   type MeasuredColumn,
   type Rect,
+  type SectionSlot,
+  sectionDropZoneLabel,
+  sectionHoverAnnouncement,
+  sectionSlotAt,
   slotAt,
 } from "./block-drops.ts";
 import { blockKind, columnsOf } from "./block-moves.ts";
-import { KIND_ICONS } from "./palette.client.tsx";
-import type { PaletteKind } from "./palette-insert.ts";
+import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
+import {
+  type DraggingTile,
+  KIND_ICONS,
+  SECTION_ICONS,
+  SECTIONS_FULL_NOTE,
+} from "./palette.client.tsx";
+import {
+  insertSection,
+  type PaletteKind,
+  SECTION_TEMPLATE_NAMES,
+  sectionAddedAnnouncement,
+} from "./palette-insert.ts";
+import type { SectionTemplate } from "./section-templates.ts";
 
 type Editor = NonNullable<ReturnType<typeof useEditor>>;
 
@@ -50,8 +67,14 @@ const GHOST_OFFSET = 12;
  * block. Neither is content: not stored, not focusable, hidden from assistive
  * technology (the status region says where the block will land). */
 
-type Gap = { slot: DropSlot | null; label: string; dragged: number | null };
-const NO_GAP: Gap = { slot: null, label: "", dragged: null };
+type Gap = {
+  slot: DropSlot | null;
+  /** Where a dragged section lands: a gap between top-level sections. */
+  section: SectionSlot | null;
+  label: string;
+  dragged: number | null;
+};
+const NO_GAP: Gap = { slot: null, section: null, label: "", dragged: null };
 const gapKey = new PluginKey<Gap>("dropGap");
 
 /** The document position of a slot: before the column's child `index`, or its end. */
@@ -62,6 +85,13 @@ function slotPos(doc: ProseMirrorNode, slot: DropSlot): number | null {
   for (let i = 0; i < Math.min(slot.index, column.node.childCount); i++) {
     pos += column.node.child(i).nodeSize;
   }
+  return pos;
+}
+
+/** The top-level position before section `index` (the document's end for the count). */
+function sectionPos(doc: ProseMirrorNode, slot: SectionSlot): number {
+  let pos = 0;
+  for (let i = 0; i < Math.min(slot.index, doc.childCount); i++) pos += doc.child(i).nodeSize;
   return pos;
 }
 
@@ -80,7 +110,7 @@ function dropZone(label: string): HTMLElement {
 
 function gapDecorations(state: EditorState): DecorationSet | null {
   const gap = gapKey.getState(state);
-  if (!gap || (gap.slot === null && gap.dragged === null)) return null;
+  if (!gap || (gap.slot === null && gap.section === null && gap.dragged === null)) return null;
   const decorations: Decoration[] = [];
   const dragged = gap.dragged === null ? null : state.doc.nodeAt(gap.dragged);
   if (gap.dragged !== null && dragged) {
@@ -91,7 +121,9 @@ function gapDecorations(state: EditorState): DecorationSet | null {
       }),
     );
   }
-  const at = gap.slot ? slotPos(state.doc, gap.slot) : null;
+  let at: number | null = null;
+  if (gap.slot) at = slotPos(state.doc, gap.slot);
+  else if (gap.section) at = sectionPos(state.doc, gap.section);
   if (at !== null) {
     const { label } = gap;
     decorations.push(
@@ -137,6 +169,49 @@ function sameSlot(a: DropSlot | null, b: DropSlot | null): boolean {
     a === b ||
     (!!a && !!b && a.section === b.section && a.column === b.column && a.index === b.index)
   );
+}
+
+function sameSectionSlot(a: SectionSlot | null, b: SectionSlot | null): boolean {
+  return a === b || (!!a && !!b && a.index === b.index);
+}
+
+/** The section slot under the point: the top-level sections' rects against the writing area's. */
+function sectionSlotUnder(editor: Editor, x: number, y: number): SectionSlot | null {
+  const { view, state } = editor;
+  const rects: Rect[] = [];
+  state.doc.forEach((_, offset) => {
+    const dom = view.nodeDOM(offset);
+    if (dom instanceof HTMLElement) rects.push(dom.getBoundingClientRect());
+  });
+  return sectionSlotAt(rects, view.dom.getBoundingClientRect(), x, y);
+}
+
+/** What a section drop needs beyond the editor: the entry's type and the section cap. */
+export type SectionDropOptions = { entryType: "post" | "page"; maxSections: number };
+
+/** Adds the template at `at` as one undo step, focuses the writing area and announces; says why when there is no room. */
+function dropSection(
+  editor: Editor,
+  template: SectionTemplate,
+  at: SectionSlot,
+  options: SectionDropOptions,
+  announce: (message: string) => void,
+) {
+  const tr = insertSection(editor.state, template, {
+    allowMainHeading: options.entryType === "page",
+    maxSections: options.maxSections,
+    maxBlocks: MAX_DOCUMENT_BLOCKS,
+    index: at.index,
+  });
+  if (!tr) {
+    announce(
+      editor.state.doc.childCount >= options.maxSections ? SECTIONS_FULL_NOTE : CAP_SENTENCE,
+    );
+    return;
+  }
+  editor.view.dispatch(tr);
+  editor.view.focus();
+  announce(sectionAddedAnnouncement(template, at.index, editor.state.doc.childCount));
 }
 
 /** Every column's rect, its section's rect, and its blocks' rects (the gap is not a block). */
@@ -213,9 +288,11 @@ export type StartDrag = (source: DropSource, event: ReactPointerEvent<HTMLElemen
 export function useBlockDrag(
   editor: Editor | null,
   announce: (message: string) => void,
-): { startDrag: StartDrag; ghost: ReactNode; draggingTile: PaletteKind | null } {
+  { entryType, maxSections }: SectionDropOptions,
+): { startDrag: StartDrag; ghost: ReactNode; draggingTile: DraggingTile } {
   const [ghost, setGhost] = useState<{
-    kind: PaletteKind;
+    kind: NonNullable<DraggingTile>;
+    icon: ReactNode;
     name: string;
     fromTile: boolean;
   } | null>(null);
@@ -245,8 +322,12 @@ export function useBlockDrag(
         // Not every element can capture (a detached one); the window still hears the pointer.
       }
       let dragging = false;
+      // A section template lands between sections; a block source in a column.
+      const template = "template" in source ? source.template : null;
+      const block = "template" in source ? null : source;
       let slot: DropSlot | null = null;
       let shown: DropSlot | null = null;
+      let shownSection: SectionSlot | null = null;
       let frame = 0;
       let said = "";
 
@@ -266,16 +347,28 @@ export function useBlockDrag(
       function begin() {
         dragging = true;
         document.documentElement.dataset.blockDragging = "";
-        const node = "pos" in source ? current.state.doc.nodeAt(source.pos) : null;
+        if (template) {
+          setGhost({
+            kind: template,
+            icon: SECTION_ICONS[template],
+            name: SECTION_TEMPLATE_NAMES[template],
+            fromTile: true,
+          });
+          setGap(current, { ...NO_GAP, label: sectionDropZoneLabel(template) });
+          return;
+        }
+        const node = block && "pos" in block ? current.state.doc.nodeAt(block.pos) : null;
+        const kind = node ? blockKind(node) : (block as { kind: PaletteKind }).kind;
         setGhost({
-          kind: node ? blockKind(node) : (source as { kind: PaletteKind }).kind,
-          name: dragName(current.state, source),
-          fromTile: !("pos" in source),
+          kind,
+          icon: KIND_ICONS[kind],
+          name: dragName(current.state, block as BlockSource),
+          fromTile: !(block && "pos" in block),
         });
         setGap(current, {
-          slot: null,
-          label: dropZoneLabel(current.state, source),
-          dragged: "pos" in source ? source.pos : null,
+          ...NO_GAP,
+          label: dropZoneLabel(current.state, block as BlockSource),
+          dragged: block && "pos" in block ? block.pos : null,
         });
       }
 
@@ -291,17 +384,26 @@ export function useBlockDrag(
           window.scrollBy(0, speed);
           frame = requestAnimationFrame(update);
         }
+        if (template) {
+          const at = sectionSlotUnder(current, point.current.x, point.current.y);
+          if (!sameSectionSlot(at, shownSection)) {
+            shownSection = at;
+            setGap(current, { ...(gapKey.getState(current.state) ?? NO_GAP), section: at });
+          }
+          say(sectionHoverAnnouncement(template, at, current.state.doc.childCount));
+          return;
+        }
         const next = slotAt(measure(current), point.current.x, point.current.y);
         if (sameSlot(next, slot) && said) return;
         slot = next;
-        const result = next ? drop(current.state, source, next) : null;
+        const result = next ? drop(current.state, block as BlockSource, next) : null;
         const visible = result && typeof result === "object" ? next : null;
         if (!sameSlot(visible, shown)) {
           shown = visible;
           const gap = gapKey.getState(current.state) ?? NO_GAP;
           setGap(current, { ...gap, slot: visible });
         }
-        say(hoverAnnouncement(current.state, source, next));
+        say(hoverAnnouncement(current.state, block as BlockSource, next));
       }
 
       function finish(clearGap: boolean) {
@@ -353,15 +455,23 @@ export function useBlockDrag(
           return;
         }
         point.current = { x: released.clientX, y: released.clientY };
-        const final = slotAt(measure(current), point.current.x, point.current.y);
+        const at = template && sectionSlotUnder(current, point.current.x, point.current.y);
+        const final = template ? null : slotAt(measure(current), point.current.x, point.current.y);
         finish(true);
         dragging = false;
         swallowClick(false);
+        if (template) {
+          if (at)
+            dropSection(current, template, at, { entryType, maxSections }, latestAnnounce.current);
+          else latestAnnounce.current(DRAG_CANCELLED);
+          return;
+        }
         if (!final) {
           latestAnnounce.current(DRAG_CANCELLED);
           return;
         }
         const before = current.state;
+        const source = block as BlockSource;
         const result = drop(before, source, final);
         if (result === "in-place") return;
         if (result === "full") {
@@ -399,7 +509,7 @@ export function useBlockDrag(
       current.on("transaction", onTransaction);
       stop.current = () => finish(true);
     },
-    [editor],
+    [editor, entryType, maxSections],
   );
 
   const ghostNode = ghost
@@ -423,7 +533,7 @@ export function useBlockDrag(
             aria-hidden="true"
             focusable="false"
           >
-            {KIND_ICONS[ghost.kind]}
+            {ghost.icon}
           </svg>
           {ghost.name}
         </div>,

@@ -23,3 +23,4 @@
 - **editor.21** - the palette's Sections - Blank section, Hero, Image and text, Call to action - each add an ordinary section of blocks directly after the section being edited, by click, Enter or the phone's Add, announced and undone in one step *Since:* features/14c1-ready-made-sections
 - **editor.22** - a hero's heading is the page's Main heading when the page has none, otherwise a Heading; on a post always a Heading *Since:* features/14c1-ready-made-sections
 - **editor.23** - in the editor, an empty heading shows its style's name and an empty paragraph beside other blocks shows "Text" *Since:* features/14c1-ready-made-sections
+- **editor.24** - a palette section tile can be dragged to before, between or after sections, with a gap labelled "Drop <name> here" where it will land, the place announced, the section added there and one Undo removing it *Since:* features/14c2-dragging-a-section-tile

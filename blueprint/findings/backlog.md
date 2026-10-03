@@ -5,6 +5,12 @@
 > `blueprint/findings/<ID>.md`; `review` still closes them here, and `spec`
 > offers a tidy item at five or more.
 
+### F-206 [P3] open - The top-level insertion position is computed twice, and `insertSection` throws for an index past the section count
+File: app/features/blocks/palette-insert.ts:131-135 (`topLevelPosition`); app/features/blocks/block-drag.client.tsx:92-96 (`sectionPos`)
+
+### F-207 [P3] open - The section and block drag paths share `startDrag` through casts the compiler cannot check
+File: app/features/blocks/block-drag.client.tsx:326-327,361,365,370,399,406,474
+
 ### F-86 [P3] fixed - `public-site.spec.ts`'s home-page "newest first" test is a second instance of F-78's race, on a different query
 File: e2e/public-site.spec.ts:23-37 ("the home page lists only published posts, newest first")
 
@@ -239,7 +245,7 @@ File: app/features/blocks/block-toolbar.client.tsx (tools by kind)
 File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module.css (.toolbar z-index)
 
 ### F-193 [P3] open - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
-File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152
+File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152; app/features/blocks/block-drag.client.tsx:186,458 (`sectionSlotUnder`, 14c2)
 
 ### F-194 [P3] open - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
 File: app/features/blocks/block-drops.ts:68 (`if (!target) return "full"`), :88 (`target.node.child(i)` unbounded)

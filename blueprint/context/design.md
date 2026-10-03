@@ -243,8 +243,8 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
   Button, Quote, Line, Space**, and **Contact form** from item 19; sections
   **Blank section, Hero, Image and text, Call to action**. Drag a tile into a
   column, or focus it and press Enter to add it after the selected block (a
-  section tile adds its section after the selection's section; dragging one
-  is 14c2). It collapses to a rail of icons whose names stay as accessible names.
+  section tile adds its section after the selection's section, and dragging
+  one drops it between sections). It collapses to a rail of icons whose names stay as accessible names.
 - **Page structure:** sections of one to three columns; columns hold blocks
   top to bottom. A heading across three columns is a one-column section above
   them. **Columns stack when their container is narrower than 40rem** - a
@@ -334,8 +334,8 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     wider) or **the selected block by its grip** drags to any place in any
     column; a drag starts after 6px of movement, and a shorter press is a
     click (a tile adds its block after the selected one, the grip announces
-    itself). No dragging from the phone's Add dialog; sections do not drag
-    (14c2).
+    itself). No dragging from the phone's Add dialog. Section tiles drag
+    between sections (14c2); existing sections move from their chip.
   - **The grip** is a `button` named "Drag to move, or use Move up and Move
     down", first in the toolbar, **pointer-only and out of the arrow order**
     (`tabindex="-1"`), so the toolbar's one tab stop still lands on Move up.
@@ -373,8 +373,8 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     first text block, announced "Hero added: now section 3 of 5." A tile is
     disabled when its template would not fit (30 sections, or 200 blocks
     counting the template's), with "Thirty sections is the most there can be."
-    or "You can have at most 200 blocks." under the group's heading. Section tiles do
-    not drag yet (14c2).
+    or "You can have at most 200 blocks." under the group's heading. Section
+    tiles also drag (14c2, below).
   - **The templates, all empty - no starter text.** Hero: two columns,
     middle-aligned; heading (the Main heading on a page with none), text,
     space, button | image. Image and text: image | heading, text. Call to
@@ -389,6 +389,27 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     hint. Editor only, never saved.
   - **Tab order unchanged**, except the four section tiles follow the block
     tiles in the palette.
+- **Built in item 14c2** (decided there; no mockup draws a section tile
+  mid-drag):
+  - **A section tile drags** (side panel, 1024px and wider) to a place
+    between sections: before the first, between two, or after the last. A
+    press without movement still adds it after the selection's section; a
+    tile that does not fit starts no drag.
+  - **Where it lands is the midpoint rule over whole sections**, anywhere
+    over the writing area - above a section's vertical middle is before it,
+    below is after. Outside the writing area (the title, the palette, the
+    settings panel, Add a section) is no place. A dropped section never
+    replaces an untouched one.
+  - **The gap** is the block gap's look and size, between two sections,
+    labelled with the template's name in lower case ("Drop hero here",
+    "Drop call to action here"); the dashed line between sections is not
+    drawn beside it. The ghost shows the tile's icon and name; the tile is
+    dashed while it drags.
+  - **Dropping** adds the template as one undo step with the cursor in its
+    first text block - the same template and main-heading rule as a click.
+  - **Announcements:** "Hero: drop as section 2 of 4.", "Hero: release to
+    cancel.", "Hero added: now section 2 of 4.", "Drag cancelled.", and the
+    palette's sentence should there be no room.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

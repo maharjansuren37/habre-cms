@@ -5,11 +5,11 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Schema } from "@tiptap/pm/model";
 import { EditorState, NodeSelection, TextSelection } from "@tiptap/pm/state";
 import {
+  type BlockSource,
   CAP_SENTENCE,
   DRAG_CANCELLED,
   type DropResult,
   type DropSlot,
-  type DropSource,
   dragName,
   drop,
   dropAnnouncement,
@@ -20,6 +20,9 @@ import {
   hoverAnnouncement,
   type MeasuredColumn,
   type Rect,
+  sectionDropZoneLabel,
+  sectionHoverAnnouncement,
+  sectionSlotAt,
   slotAt,
 } from "./block-drops.ts";
 import { keepOneMainHeading, selectedBlock } from "./block-moves.ts";
@@ -131,7 +134,7 @@ function landed(result: DropResult) {
 }
 
 /** Applies a drop and returns the new state and where the block landed. */
-function dropAndApply(state: EditorState, source: DropSource, at: DropSlot, max?: number) {
+function dropAndApply(state: EditorState, source: BlockSource, at: DropSlot, max?: number) {
   const result = landed(drop(state, source, at, max));
   return { next: state.apply(result.tr), pos: result.pos, result };
 }
@@ -578,4 +581,63 @@ test("Duplicate says the copy's place, with one and three columns", () => {
 test("the fixed sentences read as specified", () => {
   assert.equal(DRAG_CANCELLED, "Drag cancelled.");
   assert.equal(GRIP_HINT, "Drag to move, or use Move up and Move down.");
+});
+
+const sectionRects: Rect[] = [
+  { left: 0, top: 0, right: 800, bottom: 180 },
+  { left: 0, top: 200, right: 800, bottom: 380 },
+  { left: 0, top: 400, right: 800, bottom: 580 },
+];
+const writingArea: Rect = { left: 0, top: 0, right: 800, bottom: 600 };
+const slotIndex = (x: number, y: number) => sectionSlotAt(sectionRects, writingArea, x, y)?.index;
+
+test("a section slot is before a section above its middle and after it below", () => {
+  assert.equal(slotIndex(400, 89), 0);
+  assert.equal(slotIndex(400, 91), 1);
+  assert.equal(slotIndex(400, 289), 1);
+  assert.equal(slotIndex(400, 291), 2);
+  assert.equal(slotIndex(400, 489), 2);
+  assert.equal(slotIndex(400, 491), 3);
+});
+
+test("a point inside a section near its top is before it and near its bottom after it", () => {
+  assert.equal(slotIndex(100, 210), 1);
+  assert.equal(slotIndex(100, 370), 2);
+});
+
+test("the space between two sections is the slot between them", () => {
+  assert.equal(slotIndex(400, 190), 1);
+  assert.equal(slotIndex(400, 390), 2);
+});
+
+test("above the first section inside the area is slot 0 and below the last is the count", () => {
+  const roomy: Rect = { ...writingArea, top: -50, bottom: 650 };
+  assert.equal(sectionSlotAt(sectionRects, roomy, 400, -20)?.index, 0);
+  assert.equal(sectionSlotAt(sectionRects, roomy, 400, 620)?.index, 3);
+  assert.equal(slotIndex(400, 590), 3);
+});
+
+test("a point outside the writing area has no section slot", () => {
+  assert.equal(sectionSlotAt(sectionRects, writingArea, -1, 300), null);
+  assert.equal(sectionSlotAt(sectionRects, writingArea, 801, 300), null);
+  assert.equal(sectionSlotAt(sectionRects, writingArea, 400, -1), null);
+  assert.equal(sectionSlotAt(sectionRects, writingArea, 400, 601), null);
+  assert.equal(slotIndex(0, 0), 0);
+  assert.equal(slotIndex(800, 600), 3);
+});
+
+test("a section tile's gap reads Drop <name> here", () => {
+  assert.equal(sectionDropZoneLabel("hero"), "Drop hero here");
+  assert.equal(sectionDropZoneLabel("blank"), "Drop blank section here");
+  assert.equal(sectionDropZoneLabel("image-text"), "Drop image and text here");
+  assert.equal(sectionDropZoneLabel("cta"), "Drop call to action here");
+});
+
+test("a section tile's status names the place or says release to cancel", () => {
+  assert.equal(sectionHoverAnnouncement("hero", null, 3), "Hero: release to cancel.");
+  assert.equal(sectionHoverAnnouncement("hero", { index: 1 }, 3), "Hero: drop as section 2 of 4.");
+  assert.equal(
+    sectionHoverAnnouncement("cta", { index: 3 }, 3),
+    "Call to action: drop as section 4 of 4.",
+  );
 });

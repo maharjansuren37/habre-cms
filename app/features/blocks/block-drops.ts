@@ -10,7 +10,8 @@ import {
 } from "./block-moves.ts";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
 import { countBlocks } from "./document-queries.ts";
-import { newBlock, type PaletteKind } from "./palette-insert.ts";
+import { newBlock, type PaletteKind, SECTION_TEMPLATE_NAMES } from "./palette-insert.ts";
+import type { SectionTemplate } from "./section-templates.ts";
 
 /**
  * Drops, duplicates and drop-target geometry for drag and drop (item 14b).
@@ -19,8 +20,15 @@ import { newBlock, type PaletteKind } from "./palette-insert.ts";
 
 /** An insertion point: before the column's child `index` (0 to its child count). All from 0. */
 export type DropSlot = { section: number; column: number; index: number };
-/** What is dragged: a new block from the palette, or the existing block starting at `pos`. */
-export type DropSource = { kind: PaletteKind } | { pos: number };
+/**
+ * An insertion point between top-level sections: before section `index`, from
+ * 0 to the section count (the end). Used when a section tile is dragged.
+ */
+export type SectionSlot = { index: number };
+/** What is dragged as a block: a new block from the palette, or the existing block starting at `pos`. */
+export type BlockSource = { kind: PaletteKind } | { pos: number };
+/** What is dragged: a block source, or a ready-made section template. */
+export type DropSource = BlockSource | { template: SectionTemplate };
 export type DropResult = { tr: Transaction; pos: number } | "in-place" | "full";
 
 export type Rect = { left: number; top: number; right: number; bottom: number };
@@ -59,7 +67,7 @@ function selectLanded(tr: Transaction, pos: number): void {
  */
 export function drop(
   state: EditorState,
-  source: DropSource,
+  source: BlockSource,
   slot: DropSlot,
   maxBlocks: number = MAX_DOCUMENT_BLOCKS,
 ): DropResult {
@@ -163,7 +171,7 @@ export function slotAt(columns: readonly MeasuredColumn[], x: number, y: number)
 }
 
 /** The dragged block's announced name: "Image", "Main heading". */
-export function dragName(state: EditorState, source: DropSource): string {
+export function dragName(state: EditorState, source: BlockSource): string {
   const node =
     "pos" in source
       ? (state.doc.nodeAt(source.pos) as ProseMirrorNode)
@@ -172,14 +180,14 @@ export function dragName(state: EditorState, source: DropSource): string {
 }
 
 /** The gap's label: "Drop image here". */
-export function dropZoneLabel(state: EditorState, source: DropSource): string {
+export function dropZoneLabel(state: EditorState, source: BlockSource): string {
   return `Drop ${dragName(state, source).toLowerCase()} here`;
 }
 
 /** What the status says while the pointer is over `slot` (null: over no column). */
 export function hoverAnnouncement(
   state: EditorState,
-  source: DropSource,
+  source: BlockSource,
   slot: DropSlot | null,
   maxBlocks: number = MAX_DOCUMENT_BLOCKS,
 ): string {
@@ -194,7 +202,7 @@ export function hoverAnnouncement(
 /** "Image added: block 1 of 2 in column 2 of section 1." - `doc` is after the drop. */
 export function dropAnnouncement(
   state: EditorState,
-  source: DropSource,
+  source: BlockSource,
   doc: ProseMirrorNode,
   pos: number,
 ): string {
@@ -209,4 +217,35 @@ export function duplicateAnnouncement(
   pos: number,
 ): string {
   return `${kindName(node)} duplicated: ${describePosition(doc, pos)}.`;
+}
+
+/**
+ * The section slot under the point, from the top-level sections' measured
+ * rects in document order: null outside `area`, else the number of sections
+ * whose vertical middle is above the point.
+ */
+export function sectionSlotAt(
+  sections: readonly Rect[],
+  area: Rect,
+  x: number,
+  y: number,
+): SectionSlot | null {
+  if (x < area.left || x > area.right || y < area.top || y > area.bottom) return null;
+  return { index: sections.filter((s) => (s.top + s.bottom) / 2 < y).length };
+}
+
+/** The gap's label while a section tile is dragged: "Drop hero here". */
+export function sectionDropZoneLabel(kind: SectionTemplate): string {
+  return `Drop ${SECTION_TEMPLATE_NAMES[kind].toLowerCase()} here`;
+}
+
+/** What the status says while a section tile is over `slot`; `total` counts sections before the drop. */
+export function sectionHoverAnnouncement(
+  kind: SectionTemplate,
+  slot: SectionSlot | null,
+  total: number,
+): string {
+  const name = SECTION_TEMPLATE_NAMES[kind];
+  if (!slot) return `${name}: release to cancel.`;
+  return `${name}: drop as section ${slot.index + 1} of ${total + 1}.`;
 }

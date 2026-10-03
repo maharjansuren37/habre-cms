@@ -336,3 +336,63 @@ test("each template reports how many blocks it adds", () => {
 test("the announcement names the template and the place", () => {
   assert.equal(sectionAddedAnnouncement("hero", 2, 5), "Hero added: now section 3 of 5.");
 });
+
+function insertedAt(index: number, d: typeof three = three, options = OPTIONS) {
+  const state = EditorState.create({
+    doc: d,
+    selection: TextSelection.create(d, textPos(d, "One")),
+    plugins: [history()],
+  });
+  const tr = insertSection(state, "hero", { ...options, index });
+  assert.ok(tr);
+  return { state, next: state.apply(tr) };
+}
+
+for (const [index, label] of [
+  [0, "the start"],
+  [1, "a middle index"],
+  [3, "the end"],
+] as const) {
+  test(`a section with index ${index} lands at ${label}, with the cursor in its heading`, () => {
+    const { next } = insertedAt(index);
+    assert.equal(next.doc.childCount, 4);
+    assert.equal(next.doc.child(index).childCount, 2);
+    assert.deepEqual(
+      [0, 1, 2, 3].filter((i) => i !== index).map((i) => next.doc.child(i).textContent),
+      ["One", "Two", "Three"],
+    );
+    const { $head } = next.selection;
+    assert.equal($head.index(0), index);
+    assert.equal($head.parent.type.name, "heading");
+  });
+
+  test(`a section with index ${index} is one undo step that restores the document`, () => {
+    const { state, next } = insertedAt(index);
+    let after = next;
+    undo(next, (tr) => {
+      after = next.apply(tr);
+    });
+    assert.equal(after.doc.eq(state.doc), true);
+  });
+}
+
+test("a section with an index keeps the main heading rule", () => {
+  assert.equal(insertedAt(1).next.selection.$head.parent.attrs.level, 1);
+  const noMain = insertedAt(1, three, { ...OPTIONS, allowMainHeading: false });
+  assert.equal(noMain.next.selection.$head.parent.attrs.level, 2);
+  const withH1 = schema.nodes.doc.create(null, [
+    schema.nodes.section.create(
+      null,
+      column(schema.nodes.heading.create({ level: 1 }, schema.text("One"))),
+    ),
+  ]);
+  assert.equal(insertedAt(0, withH1 as typeof three).next.selection.$head.parent.attrs.level, 2);
+});
+
+test("a section with an index is refused at the section cap and past the block cap", () => {
+  const state = EditorState.create({ doc: three, selection: TextSelection.create(three, 2) });
+  assert.equal(insertSection(state, "blank", { ...OPTIONS, maxSections: 3, index: 1 }), null);
+  const tight = { ...OPTIONS, maxBlocks: countBlocks(three) + 2, index: 1 };
+  assert.equal(insertSection(state, "hero", tight), null);
+  assert.notEqual(insertSection(state, "blank", tight), null);
+});
