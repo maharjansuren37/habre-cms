@@ -192,7 +192,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   horizontal scroll with the gap open; journey 3 (14a3's tests) and the Add
   dialog's tests pass unchanged.
 
-- [ ] **Step 7 - The record** - `design.md` *Editor decisions*: a "Built in
+- [x] **Step 7 - The record** - `design.md` *Editor decisions*: a "Built in
   item 14b" block with the "decided here" lines and the announcement wording;
   the toolbar line's "The drag handle and Duplicate come with 14b" replaced;
   plan section 6's drop-gap line as approved at this gate. *Done when:* both
