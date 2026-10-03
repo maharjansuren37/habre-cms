@@ -2635,3 +2635,90 @@ Costs: one more press to change columns.
 caller and returning `PickedMedia` (item 14a2).
 Beats: a second copy for the image block - the duplication F-104 removed once.
 Costs: none known.
+
+## D207 - Move crosses columns and sections in reading order (2026-10-03)
+
+**Chose:** Move down from a column's last block goes to the top of the next
+column, then the next section; Move up mirrors it (item 14a3).
+Beats: stopping at the column's edge - Move is dragging's single-pointer
+alternative (WCAG 2.5.7), so it must reach every place a drag can.
+Costs: a block crosses into a neighbouring column with one press, which a user
+may not expect; the announcement names the new column.
+
+## D208 - A column never empties (2026-10-03)
+
+**Chose:** removing a column's last block leaves an empty paragraph, and a
+block arriving in an untouched column replaces it; an untouched column of a
+two- or three-column section shows "Empty column - add a block or change
+Columns in Section settings." in the editor only (item 14a3).
+Beats: removing the column (changes the layout behind the user's back) and
+refusing the move (a block could never leave a one-block column).
+Costs: blank columns can be published; the hint is the only cue.
+
+## D209 - One main heading, kept by the editor, by node identity (2026-10-03)
+
+**Chose:** an `appendTransaction` guard demotes a second level-1 heading from a
+paste or `# ` to level 2, keeping the heading that is the same node object as
+one in the old document; with none, the first in reading order. The Text style
+menu's Main heading demotes the old one itself, announced (item 14a3).
+Beats: leaving it to `parseDocument`, which refuses only at Save; and "first
+in reading order" alone, which lets a paste above displace the main heading.
+Costs: one transaction that both changes the old main heading and adds
+another falls back to reading order.
+
+## D210 - A list's toolbar has Bulleted / Numbered; a quote's has no style (2026-10-03)
+
+**Chose:** lists switch type from their toolbar; quotes have no style control
+(item 14a3).
+Beats: dropping them with the format bar (numbered lists unreachable but by
+typing `1. `) and putting lists in the Text style menu (not a text style;
+multi-paragraph quotes would convert ambiguously).
+Costs: no control converts text to a list or quote, or back (F-191).
+
+## D211 - Undo and Redo in the editor's top bar at every width (2026-10-03)
+
+**Chose:** Undo / Redo always visible in the top bar (item 14a3).
+Beats: the mockup's desktop-only buttons - a phone has no keyboard undo.
+Costs: two more buttons in a crowded phone top bar (it wraps).
+
+## D212 - The block toolbar is one tab stop with arrow keys (2026-10-03)
+
+**Chose:** the ARIA toolbar pattern - one tab stop, arrows, Home and End move
+within, Escape returns to the writing area with the selection kept; the
+remembered stop resets to Move up when focus leaves or the block changes
+(item 14a3, F-183).
+Beats: a tab stop per button, the format bar's way - eight more Tab presses on
+every pass between the writing area and the chip.
+Costs: the pattern must be known; screen readers announce it as a toolbar.
+
+## D213 - End-of-range moves use `aria-disabled` (2026-10-03)
+
+**Chose:** Move up / down and Move section up / down at the first or last
+position are `aria-disabled`, not `disabled`; pressing does nothing (item 14a3).
+Beats: `disabled`, which drops focus to the page body when the button becomes
+disabled under it.
+Costs: the button stays focusable and must ignore presses itself.
+
+## D214 - The section chip is label, Move section up / down, Section settings, Remove section (2026-10-03)
+
+**Chose:** that chip; a one-section page offers no Move section up / down, as it
+offers no Remove section (item 14a3).
+Beats: the mockup, which had no Remove section - nothing else removes one.
+Costs: a wider chip.
+
+## D215 - The admin CSP drops `'unsafe-inline'` styles and `data:` images (2026-10-03)
+
+**Chose:** admin `style-src 'self'` and no `data:` in `img-src`; the toolbar and
+chip are placed with CSSOM, never a `style` attribute (item 14a3).
+Beats: keeping them for 14b - Editor.js, which needed them, is gone, and the
+CSP test now keeps 14b from bringing them back unnoticed.
+Costs: any future library writing inline style attributes in the admin is
+refused and needs a recorded decision.
+
+## D216 - The block cap refuses only a move that adds a block (2026-10-03)
+
+**Chose:** at 200 blocks, a move out of a one-block column (which leaves a
+placeholder) is refused with the palette's 200-block sentence; a pure reorder
+never is (item 14a3).
+Beats: refusing every move at the cap, which would freeze a full page.
+Costs: none known.
