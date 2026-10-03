@@ -82,7 +82,7 @@ async function uploadPixel(page: Page): Promise<string> {
   return uploaded.filename;
 }
 
-test("HTML pages carry the Content-Security-Policy, with inline styles allowed only in the admin", async ({
+test("HTML pages carry the Content-Security-Policy, and neither area allows inline styles or data: images", async ({
   page,
 }) => {
   const publicPage = await page.goto("/");
@@ -93,7 +93,10 @@ test("HTML pages carry the Content-Security-Policy, with inline styles allowed o
   const adminPage = await page.goto("/admin/login");
   const adminPolicy = adminPage?.headers()["content-security-policy"] ?? "";
   expect(adminPolicy).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);
-  expect(adminPolicy).toContain("style-src 'self' 'unsafe-inline';");
+  expect(adminPolicy).toContain("style-src 'self';");
+  // Dropped in 14a3, once nothing in the editor needed them.
+  expect(adminPolicy).not.toContain("unsafe-inline");
+  expect(adminPolicy).not.toContain("data:");
 });
 
 test("the public site renders with nothing refused by the policy", async ({ page }) => {
@@ -151,15 +154,15 @@ test("a published page's image loads under the public policy with nothing refuse
   expect(violations).toEqual([]);
 });
 
-test("the post editor, posts list, media, settings and users screens work with nothing refused by the policy", async ({
+test("the editor's toolbar, menu, link dialog, picker and panel, then posts, media, settings and users, work with nothing refused by the policy", async ({
   page,
 }) => {
   test.skip(skipWithoutStorage, STORAGE_REASON);
   await logIn(page, admin);
   const filename = await uploadPixel(page);
 
-  // The editor: text, the format bar's Bold, and a link through its dialog.
-  // Image blocks return with item 14a2.
+  // The editor: text, the block toolbar's Bold, a link through its dialog, a
+  // move, the Text style menu, and an image block's panel and media picker.
   await page.goto("/admin/posts/new");
   await page.getByRole("textbox", { name: "Title" }).fill("CSP Editor Post");
   const writing = page.getByRole("textbox", { name: "Post content" });
@@ -181,6 +184,30 @@ test("the post editor, posts list, media, settings and users screens work with n
   await dialog.getByLabel("Web address").fill("https://example.com/");
   await dialog.getByRole("button", { name: "Add link" }).click();
   await expect(writing.locator("a")).toHaveAttribute("href", "https://example.com/");
+
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Moved up");
+  await page
+    .getByRole("toolbar", { name: "Text" })
+    .getByRole("button", { name: "Move up" })
+    .click();
+  await expect(page.getByRole("status")).toHaveText("Text moved up: block 1 of 2 in section 1.");
+  await page.getByRole("button", { name: /^Text style:/ }).click();
+  await expect(page.getByRole("menu", { name: "Text style" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page
+    .getByRole("complementary", { name: "Add to the page" })
+    .getByRole("button", { name: "Image", exact: true })
+    .click();
+  const panel = page.getByRole("complementary", { name: "Image", exact: true });
+  await panel.getByRole("button", { name: "Choose image" }).click();
+  const picker = page.getByRole("dialog", { name: "Choose an image" });
+  await expect(picker).toBeVisible();
+  await picker.getByRole("button", { name: filename }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(writing.getByRole("img", { name: "A CSP pixel" })).toBeVisible();
 
   await page.getByRole("button", { name: "Save draft" }).click();
   await page.waitForURL(/\/admin\/posts\/[0-9a-f-]{36}$/);

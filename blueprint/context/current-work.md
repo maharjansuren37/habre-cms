@@ -206,7 +206,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   -> open a page -> move a block -> Publish -> the public page shows the new
   order, as a full page load and through the app's links.
 
-- [ ] **Step 8 - The admin policy tightens** - `content-security-policy.ts`
+- [x] **Step 8 - The admin policy tightens** _(plan section 6's CSP line awaits your approval - proposed in the review packet)_ - `content-security-policy.ts`
   drops `'unsafe-inline'` from the admin's `style-src` and `data:` from its
   `img-src`; its header comment and plan section 6's line say why they went.
   *Done when:* `content-security-policy.spec.ts`'s admin test, in the
