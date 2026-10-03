@@ -150,10 +150,18 @@ const blockquoteSchema = z.object({
   content: z.array(paragraphSchema).min(1, REFUSALS.unreadable),
 });
 
-/** Atoms hold no text. Keys outside the contract are dropped, `content` included. */
+/** Atoms hold no text. Keys outside the contract are dropped, `content` included.
+ *  An empty `mediaId` is an image with no file chosen yet, as a template inserts it. */
 const imageSchema = z.object({
   type: z.literal("image"),
-  attrs: z.object({ mediaId: z.uuid(REFUSALS.imageNeedsMedia) }, REFUSALS.imageNeedsMedia),
+  attrs: z.object(
+    {
+      mediaId: z
+        .string(REFUSALS.imageNeedsMedia)
+        .refine((id) => id === "" || z.uuid().safeParse(id).success, REFUSALS.imageNeedsMedia),
+    },
+    REFUSALS.imageNeedsMedia,
+  ),
 });
 
 const buttonSchema = z.object({
