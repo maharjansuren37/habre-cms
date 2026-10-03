@@ -8,7 +8,7 @@
 ### F-206 [P3] closed - The top-level insertion position is computed twice, and `insertSection` throws for an index past the section count
 File: app/features/blocks/palette-insert.ts:131-135 (`topLevelPosition`); app/features/blocks/block-drag.client.tsx:92-96 (`sectionPos`)
 
-### F-207 [P3] open - The section and block drag paths share `startDrag` through casts the compiler cannot check
+### F-207 [P3] fixed - The section and block drag paths share `startDrag` through casts the compiler cannot check
 File: app/features/blocks/block-drag.client.tsx:326-327,361,365,370,399,406,474
 
 ### F-86 [P3] fixed - `public-site.spec.ts`'s home-page "newest first" test is a second instance of F-78's race, on a different query

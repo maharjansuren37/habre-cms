@@ -14,7 +14,6 @@ import {
 import { createPortal } from "react-dom";
 import styles from "./block-drag.module.css";
 import {
-  type BlockSource,
   CAP_SENTENCE,
   DRAG_CANCELLED,
   type DropSlot,
@@ -42,7 +41,6 @@ import {
 } from "./palette.client.tsx";
 import {
   insertSection,
-  type PaletteKind,
   SECTION_TEMPLATE_NAMES,
   sectionAddedAnnouncement,
   topLevelPosition,
@@ -322,8 +320,7 @@ export function useBlockDrag(
       }
       let dragging = false;
       // A section template lands between sections; a block source in a column.
-      const template = "template" in source ? source.template : null;
-      const block = "template" in source ? null : source;
+      // `source` is narrowed with `"template" in source` where each path splits.
       let slot: DropSlot | null = null;
       let shown: DropSlot | null = null;
       let shownSection: SectionSlot | null = null;
@@ -346,7 +343,8 @@ export function useBlockDrag(
       function begin() {
         dragging = true;
         document.documentElement.dataset.blockDragging = "";
-        if (template) {
+        if ("template" in source) {
+          const { template } = source;
           setGhost({
             kind: template,
             icon: SECTION_ICONS[template],
@@ -356,18 +354,21 @@ export function useBlockDrag(
           setGap(current, { ...NO_GAP, label: sectionDropZoneLabel(template) });
           return;
         }
-        const node = block && "pos" in block ? current.state.doc.nodeAt(block.pos) : null;
-        const kind = node ? blockKind(node) : (block as { kind: PaletteKind }).kind;
+        // A moved block exists at its position, as `dragName` and `drop` also assume.
+        const kind =
+          "pos" in source
+            ? blockKind(current.state.doc.nodeAt(source.pos) as ProseMirrorNode)
+            : source.kind;
         setGhost({
           kind,
           icon: KIND_ICONS[kind],
-          name: dragName(current.state, block as BlockSource),
-          fromTile: !(block && "pos" in block),
+          name: dragName(current.state, source),
+          fromTile: !("pos" in source),
         });
         setGap(current, {
           ...NO_GAP,
-          label: dropZoneLabel(current.state, block as BlockSource),
-          dragged: block && "pos" in block ? block.pos : null,
+          label: dropZoneLabel(current.state, source),
+          dragged: "pos" in source ? source.pos : null,
         });
       }
 
@@ -383,7 +384,8 @@ export function useBlockDrag(
           window.scrollBy(0, speed);
           frame = requestAnimationFrame(update);
         }
-        if (template) {
+        if ("template" in source) {
+          const { template } = source;
           const at = sectionSlotUnder(current, point.current.x, point.current.y);
           if (!sameSectionSlot(at, shownSection)) {
             shownSection = at;
@@ -395,14 +397,14 @@ export function useBlockDrag(
         const next = slotAt(measure(current), point.current.x, point.current.y);
         if (sameSlot(next, slot) && said) return;
         slot = next;
-        const result = next ? drop(current.state, block as BlockSource, next) : null;
+        const result = next ? drop(current.state, source, next) : null;
         const visible = result && typeof result === "object" ? next : null;
         if (!sameSlot(visible, shown)) {
           shown = visible;
           const gap = gapKey.getState(current.state) ?? NO_GAP;
           setGap(current, { ...gap, slot: visible });
         }
-        say(hoverAnnouncement(current.state, block as BlockSource, next));
+        say(hoverAnnouncement(current.state, source, next));
       }
 
       function finish(clearGap: boolean) {
@@ -454,14 +456,22 @@ export function useBlockDrag(
           return;
         }
         point.current = { x: released.clientX, y: released.clientY };
-        const at = template && sectionSlotUnder(current, point.current.x, point.current.y);
-        const final = template ? null : slotAt(measure(current), point.current.x, point.current.y);
+        const at =
+          "template" in source ? sectionSlotUnder(current, point.current.x, point.current.y) : null;
+        const final =
+          "template" in source ? null : slotAt(measure(current), point.current.x, point.current.y);
         finish(true);
         dragging = false;
         swallowClick(false);
-        if (template) {
+        if ("template" in source) {
           if (at)
-            dropSection(current, template, at, { entryType, maxSections }, latestAnnounce.current);
+            dropSection(
+              current,
+              source.template,
+              at,
+              { entryType, maxSections },
+              latestAnnounce.current,
+            );
           else latestAnnounce.current(DRAG_CANCELLED);
           return;
         }
@@ -470,7 +480,6 @@ export function useBlockDrag(
           return;
         }
         const before = current.state;
-        const source = block as BlockSource;
         const result = drop(before, source, final);
         if (result === "invalid") {
           latestAnnounce.current(DRAG_CANCELLED);

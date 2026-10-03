@@ -87,7 +87,7 @@ F-147, F-175, F-188, F-190 (stale text).
     finds no top-level loop.
   - `npm test` is green.
 
-- [ ] **Step 2 - One narrowed drag source (F-207)**
+- [x] **Step 2 - One narrowed drag source (F-207)**
   - `startDrag` narrows `source` once, into a section path holding a non-null
     `SectionTemplate` and a block path holding a non-null `BlockSource`.
   - Each path's begin, update and release is either:
