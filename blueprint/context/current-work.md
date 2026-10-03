@@ -108,7 +108,7 @@ the template shape item 18b's AI expands its section kinds with.
   old document exactly); null at 30 sections, and when the template's blocks
   would pass 200 while a smaller template still fits; the announcement reads
   "Hero added: now section 3 of 5." Seen red first.
-- [ ] **Step 3 - The Sections group** - `palette.client.tsx`: the group in the
+- [x] **Step 3 - The Sections group** - `palette.client.tsx`: the group in the
   side panel and the dialog, the tiles calling `insertSection` and announcing
   through the editor's status, disabled with the sentence when the template
   does not fit; the dialog's new title and `h3`s. *Done when:* a Playwright

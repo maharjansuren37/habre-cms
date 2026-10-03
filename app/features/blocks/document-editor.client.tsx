@@ -47,7 +47,7 @@ import content from "./content.module.css";
 import styles from "./document-editor.module.css";
 import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
 import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
-import { AddButton, AddDialog, Palette } from "./palette.client.tsx";
+import { AddButton, AddDialog, Palette, SECTIONS_FULL_NOTE } from "./palette.client.tsx";
 import {
   ButtonSettings,
   ImageSettings,
@@ -467,6 +467,7 @@ export function DocumentEditor({
   }
 
   const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce);
+  const sectionPalette = { entryType, maxSections: MAX_SECTIONS, announce };
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
@@ -478,14 +479,21 @@ export function DocumentEditor({
     <>
       {paletteSlot && editor
         ? createPortal(
-            <Palette editor={editor} startDrag={startDrag} draggingTile={draggingTile} />,
+            <Palette
+              editor={editor}
+              startDrag={startDrag}
+              draggingTile={draggingTile}
+              sections={sectionPalette}
+            />,
             paletteSlot,
           )
         : null}
       {addSlot && editor
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}
-      {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
+      {isAddOpen && editor ? (
+        <AddDialog editor={editor} onClose={() => setAddOpen(false)} sections={sectionPalette} />
+      ) : null}
       {undoSlot && editor ? createPortal(<UndoRedo editor={editor} />, undoSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>
@@ -1011,9 +1019,7 @@ function AddSection({ editor }: { editor: Editor }) {
         </svg>
         Add a section
       </Button>
-      {isFull ? (
-        <p className={styles.addSectionNote}>Thirty sections is the most there can be.</p>
-      ) : null}
+      {isFull ? <p className={styles.addSectionNote}>{SECTIONS_FULL_NOTE}</p> : null}
     </div>
   );
 }

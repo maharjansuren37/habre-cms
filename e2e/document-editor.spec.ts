@@ -1109,9 +1109,9 @@ test("keyboard only: Tab to the Line tile, Enter - the line lands after the curs
   await settle(page);
 
   // Shift+Tab walks back out of the writing area: the title, then the palette's
-  // tiles from the last (Space) to Line.
+  // tiles - the four section tiles (14c1), then Space - to Line.
   const line = tile(page, "Line");
-  for (let presses = 0; presses < 3; presses++) await page.keyboard.press("Shift+Tab");
+  for (let presses = 0; presses < 7; presses++) await page.keyboard.press("Shift+Tab");
   await expect(line).toBeFocused();
   await page.keyboard.press("Enter");
 
@@ -1221,7 +1221,7 @@ test("at 390px the palette is hidden, Add opens it in a dialog, a tile adds its 
   await settle(page);
 
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Blocks" });
+  const dialog = page.getByRole("dialog", { name: "Add to the page" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Close" })).toBeVisible();
   await dialog.getByRole("button", { name: "Line", exact: true }).click();
@@ -1246,7 +1246,8 @@ test("a document of 200 blocks disables every tile and says why", async ({ page 
     textDocument(...Array.from({ length: 200 }, (_, n) => `Block ${n + 1}`)),
   );
   await expect(textbox).toBeVisible();
-  await expect(palette(page).getByText("You can have at most 200 blocks.")).toBeVisible();
+  // Shown under both groups' headings (14c1), so two sentences.
+  await expect(palette(page).getByText("You can have at most 200 blocks.")).toHaveCount(2);
   for (const name of ["Text", "Heading", "List", "Image", "Button", "Quote", "Line", "Space"]) {
     await expect(tile(page, name)).toBeDisabled();
   }
