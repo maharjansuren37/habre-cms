@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-03, `main` after `ab9f20a`.
+Generated 2026-10-03, `main` after `faf4501`.
 
 ## What this is
 
@@ -48,9 +48,11 @@ with a page's one Main heading, Delete, and the section chip's moves; the
 admin CSP without inline styles or `data:` images; drag and drop (14b) - a
 palette tile or the selected block's grip dragged into any column, a drop
 gap and ghost, the place announced, auto-scroll, touch on the grip, and
-Duplicate in the toolbar.
+Duplicate in the toolbar; ready-made sections (14c1) - Blank, Hero, Image
+and text, Call to action as empty templates of ordinary blocks, added from
+the palette, with editor-only hints for empty text.
 
-**Platform v1 (queued):** ready-made sections as templates (14c); signup with email verification, one isolated site per
+**Platform v1 (queued):** dragging a section tile (14c2); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
@@ -142,8 +144,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13b and 14a1-14b done; 14c and 15-21 queued; nothing
-  in flight. 15 and 18 split when spec'd. Last shipped: 14b
-  (`blueprint/history/features/14b-palette-and-drag-and-drop.md`).
-- **Next:** `spec` item 14c, ready-made sections as templates.
+- **Plan:** items 1-13b, 14a1-14b and 14c1 done; 14c2 and 15-21 queued;
+  nothing in flight. 15 and 18 split when spec'd. Last shipped: 14c1
+  (`blueprint/history/features/14c1-ready-made-sections.md`).
+- **Next:** `spec` item 14c2, dragging a section tile.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
