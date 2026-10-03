@@ -110,7 +110,7 @@ every later per-site feature build on. It adds no screen and no signup.
   - A second `db/roles.sql` run against the dev database prints no error and changes nothing.
   - `npm run db:migrate` reports no pending migrations as the owner.
   - `npm run verify` and the full `npm run test:e2e` pass, with the app connected as `habre_cms_app`.
-- [ ] **Step 2 - Sites, memberships and `site_id` (expand)** - add `db/migrations/0010_sites.sql`, following *Data and contracts*:
+- [x] **Step 2 - Sites, memberships and `site_id` (expand)** - add `db/migrations/0010_sites.sql`, following *Data and contracts*:
   - creates `sites` and `site_members`;
   - inserts site 1 with the subdomain `surenmaharjan` (see Decisions) and copies each user's `role` and `deactivated_at` into a membership of site 1;
   - adds `site_id uuid not null` to `entries`, `media` and `site_settings`, filled with site 1's id and given it as a temporary default (set through a `DO` block, since the id is generated);
