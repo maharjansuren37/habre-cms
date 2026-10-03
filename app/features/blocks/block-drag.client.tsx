@@ -187,15 +187,19 @@ export type StartDrag = (source: DropSource, event: ReactPointerEvent<HTMLElemen
 
 /**
  * The drag controller, owned by the document editor (not the toolbar, which
- * re-renders as the selection moves). Returns `startDrag` and the ghost to
- * render. Hit-testing runs at most once per animation frame; the document
+ * re-renders as the selection moves). Returns `startDrag`, the ghost to
+ * render, and the tile being dragged, which the palette draws dashed. Hit-testing runs at most once per animation frame; the document
  * changes only on release.
  */
 export function useBlockDrag(
   editor: Editor | null,
   announce: (message: string) => void,
-): { startDrag: StartDrag; ghost: ReactNode } {
-  const [ghost, setGhost] = useState<{ kind: PaletteKind; name: string } | null>(null);
+): { startDrag: StartDrag; ghost: ReactNode; draggingTile: PaletteKind | null } {
+  const [ghost, setGhost] = useState<{
+    kind: PaletteKind;
+    name: string;
+    fromTile: boolean;
+  } | null>(null);
   const ghostElement = useRef<HTMLDivElement | null>(null);
   const point = useRef({ x: 0, y: 0 });
   const stop = useRef<(() => void) | null>(null);
@@ -247,6 +251,7 @@ export function useBlockDrag(
         setGhost({
           kind: node ? blockKind(node) : (source as { kind: PaletteKind }).kind,
           name: dragName(current.state, source),
+          fromTile: !("pos" in source),
         });
         setGap(current, {
           slot: null,
@@ -400,5 +405,5 @@ export function useBlockDrag(
       )
     : null;
 
-  return { startDrag, ghost: ghostNode };
+  return { startDrag, ghost: ghostNode, draggingTile: ghost?.fromTile ? ghost.kind : null };
 }

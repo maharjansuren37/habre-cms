@@ -466,7 +466,7 @@ export function DocumentEditor({
     setAnnouncement(message);
   }
 
-  const { startDrag, ghost } = useBlockDrag(editor, announce);
+  const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce);
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
@@ -476,7 +476,12 @@ export function DocumentEditor({
 
   return (
     <>
-      {paletteSlot && editor ? createPortal(<Palette editor={editor} />, paletteSlot) : null}
+      {paletteSlot && editor
+        ? createPortal(
+            <Palette editor={editor} startDrag={startDrag} draggingTile={draggingTile} />,
+            paletteSlot,
+          )
+        : null}
       {addSlot && editor
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}

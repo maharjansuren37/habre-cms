@@ -122,11 +122,20 @@ async function pickUp(page: Page, from: Locator) {
   await page.mouse.move(x + 12, y + 12, { steps: 3 });
 }
 
-/** Moves the held pointer to just inside the top (or bottom) edge of a block. */
+/**
+ * Moves the held pointer to just inside the top (or bottom) edge of a block.
+ * A gap opening on the way moves the blocks below it, so the block is
+ * measured again once the pointer has arrived, and the last step corrects.
+ */
 async function hover(page: Page, block: Locator, edge: "top" | "bottom") {
-  const { box } = await centre(block);
-  const y = edge === "top" ? box.y + 3 : box.y + box.height - 3;
-  await page.mouse.move(box.x + box.width / 2, y, { steps: 8 });
+  for (const steps of [8, 2]) {
+    const { box } = await centre(block);
+    const y = edge === "top" ? box.y + 3 : box.y + box.height - 3;
+    await page.mouse.move(box.x + box.width / 2, y, { steps });
+    await page.evaluate(
+      "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+    );
+  }
 }
 
 /** No gap, ghost or dimmed block is left, and nothing interactive sits in the writing area. */
@@ -298,3 +307,130 @@ test("the grip is out of the toolbar's arrow order: Tab still lands on Move up",
   await expect(toolbar.getByRole("button", { name: "Move up", exact: true })).toBeFocused();
   await expect(toolbar.getByRole("button", { name: GRIP })).toHaveAttribute("tabindex", "-1");
 });
+
+// ---- Step 4: dragging a palette tile ----------------------------------------
+
+function tile(page: Page, name: string) {
+  return page
+    .getByRole("complementary", { name: "Add to the page" })
+    .getByRole("button", { name, exact: true });
+}
+
+test("dragging the Image tile to the top of column 2 shows the gap, ghost and place, adds a selected image there, and one Ctrl+Z removes it", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Tile Drag", SEEDED());
+  await select(textbox, "A");
+  await pickUp(page, tile(page, "Image"));
+  await hover(page, textbox.getByText("C", { exact: true }), "top");
+
+  await expect(page.locator("[data-drop-zone]")).toHaveText("Drop image here");
+  await expect(page.locator("[data-drag-ghost]")).toHaveText("Image");
+  await expect(page.getByRole("status")).toHaveText(
+    "Image: drop at block 1 of 2 in column 2 of section 1.",
+  );
+  await expect(tile(page, "Image")).toHaveCSS("border-top-style", "dashed");
+  await expect(tile(page, "Text")).not.toHaveCSS("border-top-style", "dashed");
+
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText(
+    "Image added: block 1 of 2 in column 2 of section 1.",
+  );
+  expect(await canvasShape(page)).toEqual([
+    [
+      ["A", "B"],
+      ["No image chosen", "C"],
+    ],
+    [["D"]],
+  ]);
+  await expect(page.getByRole("toolbar", { name: "Image" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Image", exact: true })).toBeVisible();
+  await expect(tile(page, "Image")).not.toHaveCSS("border-top-style", "dashed");
+  await expectClean(page, textbox);
+
+  await page.keyboard.press("ControlOrMeta+z");
+  expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+});
+
+test("dropping a Text tile into an untouched column replaces its empty paragraph", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Tile Untouched",
+    doc({
+      type: "section",
+      attrs: { align: "top", background: "none" },
+      content: [
+        { type: "column", content: [text("Left")] },
+        { type: "column", content: [EMPTY] },
+      ],
+    }),
+  );
+  await select(textbox, "Left");
+  await pickUp(page, tile(page, "Text"));
+  await hover(page, textbox.locator('[data-node="column"]').nth(1), "top");
+  await expect(page.getByRole("status")).toHaveText(
+    "Text: drop at block 1 of 1 in column 2 of section 1.",
+  );
+  await page.mouse.up();
+  await page.keyboard.type("Typed right");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(doc(section(["Left"], ["Typed right"])));
+});
+
+test("a click on the Line tile still adds one line after the selected block, and a drag never also clicks", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Tile Click", doc(section(["First", "Last"])));
+  await select(textbox, "First");
+  await tile(page, "Line").click();
+  await expect(textbox.locator("hr")).toHaveCount(1);
+  expect(await canvasShape(page)).toEqual([[["First", "", "Last"]]]);
+
+  // A drag released over the palette adds nothing: no drop, and no click.
+  await select(textbox, "Last");
+  await pickUp(page, tile(page, "Line"));
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  await expect(textbox.locator("hr")).toHaveCount(1);
+});
+
+// Journey 2 (design.md, *Edit and publish*), the drag's part: open a page,
+// drag a Text tile into section 1, type, Publish, and the public page shows
+// it where it was dropped. ("Home" and "View site" arrive with items 15-19.)
+for (const arrival of ["a full page load", "the admin's own links"] as const) {
+  test(`journey 2: open a page by ${arrival}, drag a Text tile in, type, Publish, and the public page shows it there`, async ({
+    page,
+  }) => {
+    const title = `Dragged Journey ${randomInt(1_000_000)}`;
+    const id = await createDraftFor(editor.email, title, doc(section(["First", "Second"])), {
+      type: "page",
+    });
+    await logIn(page, editor);
+    if (arrival === "a full page load") {
+      await page.goto(`/admin/pages/${id}`);
+    } else {
+      await page.goto("/admin");
+      await page.getByRole("link", { name: "Pages", exact: true }).click();
+      await page.getByRole("link", { name: title, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+    }
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await expect(textbox).toBeVisible();
+    await pickUp(page, tile(page, "Text"));
+    await hover(page, textbox.getByText("Second", { exact: true }), "top");
+    await page.mouse.up();
+    await page.keyboard.type("Dragged in");
+    expect(await canvasShape(page)).toEqual([[["First", "Dragged in", "Second"]]]);
+
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\?/);
+    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await expect(page.getByRole("main").getByRole("paragraph")).toHaveText([
+      "First",
+      "Dragged in",
+      "Second",
+    ]);
+  });
+}

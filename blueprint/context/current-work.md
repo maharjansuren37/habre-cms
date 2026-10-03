@@ -155,7 +155,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   after every drop or cancel no gap, ghost or dimmed block is left in the DOM;
   the writing area is still the only `textbox`; Save stores no gap.
 
-- [ ] **Step 4 - Dragging a palette tile** - the tiles start the same
+- [x] **Step 4 - Dragging a palette tile** - the tiles start the same
   controller with `{ kind }`; the tile is drawn dashed while it drags; a
   press without movement still adds after the selected block, and a drag
   never also fires the click. *Done when:* `block-drag.spec.ts`: drag the

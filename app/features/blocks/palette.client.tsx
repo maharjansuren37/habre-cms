@@ -2,6 +2,7 @@ import { useEditorState } from "@tiptap/react";
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "#app/lib/ui/button.tsx";
+import type { StartDrag } from "./block-drag.client.tsx";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
 import styles from "./palette.module.css";
 import { countBlocks, insertBlock, type PaletteKind } from "./palette-insert.ts";
@@ -76,16 +77,22 @@ function addBlock(editor: Editor, kind: PaletteKind) {
 /**
  * The palette (design.md, *Palette*): eight tiles, each a `button` that adds
  * its block after the selected one - by click, or Enter / Space on the focused
- * tile. Rendered both in the side panel and inside the phone's dialog.
+ * tile. Rendered both in the side panel and inside the phone's dialog. In the
+ * side panel a tile also drags its block to a place in any column (14b); a
+ * press without movement is still a click.
  */
 function Tiles({
   editor,
   headingId,
   onAdded,
+  startDrag,
+  draggingTile,
 }: {
   editor: Editor;
   headingId: string;
   onAdded?: () => void;
+  startDrag?: StartDrag;
+  draggingTile?: PaletteKind | null;
 }) {
   const isFull = useEditorState({
     editor,
@@ -103,10 +110,11 @@ function Tiles({
           <button
             key={tile.kind}
             type="button"
-            className={styles.tile}
+            className={`${styles.tile} ${draggingTile === tile.kind ? styles.isDragging : ""}`}
             disabled={isFull}
             // A pointer press leaves the writing area's selection where it is.
             onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={startDrag ? (event) => startDrag({ kind: tile.kind }, event) : undefined}
             onClick={() => {
               if (onAdded) onAdded();
               addBlock(editor, tile.kind);
@@ -122,14 +130,27 @@ function Tiles({
 }
 
 /** The side panel, from 1024px; hidden below it, where Add opens the dialog. */
-export function Palette({ editor }: { editor: Editor }) {
+export function Palette({
+  editor,
+  startDrag,
+  draggingTile,
+}: {
+  editor: Editor;
+  startDrag: StartDrag;
+  draggingTile: PaletteKind | null;
+}) {
   const headingId = useId();
   return (
     <aside className={styles.palette} aria-label="Add to the page">
       <h2 className={styles.heading} id={headingId}>
         Blocks
       </h2>
-      <Tiles editor={editor} headingId={headingId} />
+      <Tiles
+        editor={editor}
+        headingId={headingId}
+        startDrag={startDrag}
+        draggingTile={draggingTile}
+      />
     </aside>
   );
 }
