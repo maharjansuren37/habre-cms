@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-03, `main` after `f6ae3c3`.
+Generated 2026-10-04, `main` after `9a0f9c3`.
 
 ## What this is
 
@@ -146,7 +146,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 ## Current state
 
 - **Plan:** items 1-14 done (14c2 last); 15-21 queued; nothing in flight.
-  15 and 18 split when spec'd. Last shipped: 14c2
-  (`blueprint/history/features/14c2-dragging-a-section-tile.md`).
+  15 and 18 split when spec'd. Last shipped: the drag tidy fix
+  (`blueprint/history/fixes/drag-backlog-tidy.md`), after 14c2.
 - **Next:** `spec` item 15, sign up and sites (split into 15a-15d).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
