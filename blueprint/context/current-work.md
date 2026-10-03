@@ -126,7 +126,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   old in the same transaction, and demotes every level-1 heading in a post -
   and `npm run verify` is green.
 
-- [ ] **Step 2 - The ring, the toolbar, Move and Delete** - the selection
+- [x] **Step 2 - The ring, the toolbar, Move and Delete** - the selection
   decoration (ring), `BlockToolbar` in a new `block-toolbar.client.tsx` (+
   `.module.css`, the editor file is 39 KB), placed over the selected block,
   after the writing area and before the chip in the DOM; Move up, Move down,

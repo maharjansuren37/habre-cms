@@ -1,0 +1,247 @@
+import { randomInt } from "node:crypto";
+import { expect, type Page, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
+import { lineBlock, type TestNode } from "./helpers/documents.ts";
+import {
+  createAdmin,
+  createDraftFor,
+  deleteEntriesBy,
+  deleteTestUser,
+  setRole,
+  storedEntry,
+  type TestUser,
+} from "./helpers/users.ts";
+
+// Item 14a3: the selected block's ring and toolbar - Move up, Move down and
+// Delete, announced in a polite status region - and the hint an untouched
+// column shows in a section of two or three columns.
+
+let editor: TestUser;
+// The admin's Content-Security-Policy is not loosened for the toolbar: anything
+// it refuses while the editor runs fails the test (Chromium logs each refusal).
+let refusedByPolicy: string[];
+
+test.beforeEach(async ({ page }) => {
+  refusedByPolicy = [];
+  page.on("console", (message) => {
+    if (message.text().includes("Content Security Policy")) refusedByPolicy.push(message.text());
+  });
+  await page.setExtraHTTPHeaders({
+    "X-Forwarded-For": `10.${randomInt(256)}.${randomInt(256)}.16`,
+  });
+  editor = createAdmin("Toolbar Writer");
+  await setRole(editor.email, "editor");
+});
+
+test.afterEach(async () => {
+  await deleteEntriesBy(editor.email);
+  await deleteTestUser(editor.email);
+  expect(refusedByPolicy).toEqual([]);
+});
+
+const HINT = "Empty column - add a block or change Columns in Section settings.";
+
+function text(value: string): TestNode {
+  return { type: "paragraph", content: [{ type: "text", text: value }] };
+}
+
+/** A section of these columns, each a list of blocks (a string is a paragraph). */
+function section(...columns: (TestNode | string)[][]): TestNode {
+  return {
+    type: "section",
+    attrs: { align: "top", background: "none" },
+    content: columns.map((blocks) => ({
+      type: "column",
+      content: blocks.map((block) => (typeof block === "string" ? text(block) : block)),
+    })),
+  };
+}
+
+function doc(...sections: TestNode[]): TestNode {
+  return { type: "doc", content: sections };
+}
+
+const EMPTY = { type: "paragraph" };
+
+async function openPage(page: Page, title: string, document: TestNode, published = false) {
+  const id = await createDraftFor(editor.email, title, document, {
+    type: "page",
+    status: published ? "published" : "draft",
+  });
+  await logIn(page, editor);
+  await page.goto(`/admin/pages/${id}`);
+  const textbox = page.getByRole("textbox", { name: "Page content" });
+  await expect(textbox).toBeVisible();
+  return { id, textbox };
+}
+
+/** Lets the editor read a caret the browser moved itself (see document-editor.spec.ts). */
+async function settle(page: Page) {
+  await page.evaluate("new Promise((done) => requestAnimationFrame(() => setTimeout(done)))");
+}
+
+/** The canvas's sections, as the texts of each column's blocks. */
+async function canvasShape(page: Page) {
+  return page.evaluate(`[...document.querySelectorAll('[role="textbox"] [data-node="section"]')].map(
+    (section) => [...section.querySelectorAll('[data-node="column"]')].map(
+      (column) => [...column.children].map((block) => block.textContent),
+    ),
+  )`);
+}
+
+/** The text of the block holding the browser's caret. */
+async function caretBlockText(page: Page) {
+  return page.evaluate(`(() => {
+    let node = window.getSelection().anchorNode;
+    while (node && !(node.parentElement && node.parentElement.dataset.node === "column")) node = node.parentNode;
+    return node ? node.textContent : null;
+  })()`);
+}
+
+async function save(page: Page) {
+  const saved = page.waitForResponse((response) => response.request().method() === "POST");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  expect((await saved).ok()).toBe(true);
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+}
+
+test("keyboard only: Move down twice crosses into the next column, announced, and one Ctrl+Z undoes one move", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Moving Page",
+    doc(section(["A", "B"], ["C"]), section(["D"])),
+  );
+  await textbox.getByText("A", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("End");
+  await settle(page);
+
+  await page.keyboard.press("Tab");
+  const toolbar = page.getByRole("toolbar", { name: "Text" });
+  const moveUp = toolbar.getByRole("button", { name: "Move up" });
+  const moveDown = toolbar.getByRole("button", { name: "Move down" });
+  await expect(moveUp).toBeFocused();
+  // Nothing is above A: the button says so and does nothing, and keeps focus.
+  await expect(moveUp).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Enter");
+  expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+  await expect(moveUp).toBeFocused();
+
+  await page.keyboard.press("ArrowRight");
+  await expect(moveDown).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText(
+    "Text moved down: block 2 of 2 in column 1 of section 1.",
+  );
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText(
+    "Text moved down: block 1 of 2 in column 2 of section 1.",
+  );
+  await expect(moveDown).toBeFocused();
+  expect(await canvasShape(page)).toEqual([[["B"], ["A", "C"]], [["D"]]]);
+
+  // Escape returns to the writing area with the cursor where it was, then one
+  // Ctrl+Z undoes one move.
+  await page.keyboard.press("Escape");
+  await expect(textbox).toBeFocused();
+  expect(await caretBlockText(page)).toBe("A");
+  await page.keyboard.press("ControlOrMeta+z");
+  expect(await canvasShape(page)).toEqual([[["B", "A"], ["C"]], [["D"]]]);
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+
+  await save(page);
+  const stored = (await storedEntry(id)).blocks;
+  expect(stored).toEqual(doc(section(["B"], ["A", "C"]), section(["D"])));
+  // Nothing interactive was put inside the writing area.
+  await expect(textbox.getByRole("toolbar")).toHaveCount(0);
+  await expect(textbox.getByRole("textbox")).toHaveCount(0);
+});
+
+test("a selected line shows its ring and a Line toolbar; Delete removes it, announced, and Ctrl+Z restores it", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(
+    page,
+    "Line Page",
+    doc(section(["Before", lineBlock(), "After"])),
+  );
+  const line = textbox.locator("hr");
+  await line.click();
+  const toolbar = page.getByRole("toolbar", { name: "Line" });
+  await expect(toolbar).toBeVisible();
+  await expect(line).toHaveCSS("outline-width", "2px");
+
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("End");
+  const remove = toolbar.getByRole("button", { name: "Delete line" });
+  await expect(remove).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Line deleted.");
+  await expect(textbox.locator("hr")).toHaveCount(0);
+  await expect(textbox).toBeFocused();
+  expect(await caretBlockText(page)).toBe("After");
+
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(textbox.locator("hr")).toHaveCount(1);
+});
+
+test("an untouched column of a two-column section shows the hint, in the editor only", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(
+    page,
+    "Hint Page",
+    doc(section(["A"], ["B"]), section(["C"])),
+    true,
+  );
+  const hinted = textbox.locator("[data-hint]");
+  await expect(hinted).toHaveCount(0);
+
+  // B, column 2's only block, moves up into column 1 and leaves the placeholder.
+  await textbox.getByText("B", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  expect(await canvasShape(page)).toEqual([[["A", "B"], [""]], [["C"]]]);
+  await expect(hinted).toHaveCount(1);
+  await expect(hinted).toHaveAttribute("data-hint", HINT);
+  // Run in the page, so written as source: these tests' types have no DOM.
+  expect(
+    await page.evaluate(
+      `getComputedStyle(document.querySelector('[role="textbox"] [data-hint]'), "::before").content`,
+    ),
+  ).toBe(`"${HINT}"`);
+  // The cursor is in B, not in the hinted column.
+  await page.keyboard.press("Escape");
+  expect(await caretBlockText(page)).toBe("B");
+  await expect(hinted).toHaveCount(1);
+
+  // Moving a block back in takes the placeholder's place, and the hint goes.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  expect(await canvasShape(page)).toEqual([[["A"], ["B"]], [["C"]]]);
+  await expect(hinted).toHaveCount(0);
+
+  // The public page draws nothing for an untouched column.
+  const id = await createDraftFor(editor.email, "Public Hint", doc(section(["A"], [EMPTY])), {
+    type: "page",
+    status: "published",
+  });
+  expect(id).not.toBe("");
+  await page.goto("/public-hint");
+  await expect(page.getByText("A", { exact: true })).toBeVisible();
+  await expect(page.getByText(HINT)).toHaveCount(0);
+  await expect(page.locator("[data-hint]")).toHaveCount(0);
+});
+
+test("a one-column empty section shows the page's placeholder, not the hint", async ({ page }) => {
+  const { textbox } = await openPage(page, "Empty Page", doc(section([EMPTY])));
+  await expect(textbox.locator("[data-hint]")).toHaveCount(0);
+  await expect(textbox.locator("p[data-placeholder]")).toHaveAttribute(
+    "data-placeholder",
+    "Write your page…",
+  );
+});

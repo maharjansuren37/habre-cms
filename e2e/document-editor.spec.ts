@@ -607,9 +607,16 @@ test("Backspace at the start of a column and Delete at the end of a section chan
   expect((await storedEntry(id)).blocks).toEqual(seeded);
 });
 
-test("Tab from the writing area reaches the chip's Section settings button", async ({ page }) => {
+test("Tab from the writing area reaches the block toolbar, then the chip's Section settings button", async ({
+  page,
+}) => {
   const { textbox } = await openSeeded(page, "post", "Tab Post");
   await textbox.getByText("Start here.").click();
+  // The toolbar is one tab stop (14a3), between the writing area and the chip.
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("toolbar", { name: "Text" }).getByRole("button", { name: "Move up" }),
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(
     chip(page, "Section 1 of 1").getByRole("button", { name: "Section settings" }),

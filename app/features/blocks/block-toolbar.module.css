@@ -1,0 +1,80 @@
+/* The selected block's toolbar (prototypes/components.css, .block-toolbar):
+   dark, above its block, placed by the editor's code (`top`, `left`). Habre's
+   chrome, outside the writing area. */
+.toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-text);
+  color: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+.group {
+  display: contents;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover,
+.button[aria-pressed="true"],
+.button[aria-expanded="true"] {
+  background: var(--color-text-muted);
+}
+
+/* At the document's ends: still focusable, so focus never falls to the page. */
+.button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.button[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.button:focus-visible {
+  outline: var(--focus-width) solid var(--color-bg);
+  outline-offset: -3px;
+}
+
+.separator {
+  width: 1px;
+  align-self: stretch;
+  margin: var(--space-1);
+  background: var(--color-text-muted);
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

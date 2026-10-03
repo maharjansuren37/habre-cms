@@ -341,3 +341,23 @@
   outline: 2px solid var(--color-selection);
   outline-offset: 2px;
 }
+
+/* ---- The selected block and empty columns (item 14a3) ---------------------- */
+
+/* The selected block's ring (design.md, Editor decisions): a decoration on the
+   column's direct child holding the selection. */
+.prose :global(.ProseMirror-selectednode),
+.prose .selectedBlock {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 2px;
+}
+
+/* An untouched column of a two- or three-column section says what it is, in
+   the editor only; the public site draws nothing there. */
+.prose .emptyColumn::before {
+  content: attr(data-hint);
+  float: left;
+  height: 0;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}

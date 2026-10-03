@@ -1,8 +1,16 @@
-import { mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
+import { Extension, mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
-import { NodeSelection, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import {
+  type EditorState,
+  NodeSelection,
+  Plugin,
+  Selection,
+  TextSelection,
+  type Transaction,
+} from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import {
   EditorContent,
   NodeViewWrapper,
@@ -26,6 +34,8 @@ import { createPortal, flushSync } from "react-dom";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
+import { selectedBlock } from "./block-moves.ts";
+import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
 import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
@@ -223,6 +233,47 @@ const SpaceNode = Node.create({
   ],
 });
 
+/** What an untouched column of a two- or three-column section says (editor only). */
+const EMPTY_COLUMN_HINT = "Empty column - add a block or change Columns in Section settings.";
+
+/**
+ * The editor's own marks on the canvas, never content (item 14a3): the
+ * selected block's rust ring, and the hint in each untouched column of a
+ * multi-column section. Decorations are not saved, typed into or counted.
+ */
+function blockDecorations(state: EditorState): DecorationSet {
+  const decorations: Decoration[] = [];
+  const selected = selectedBlock(state);
+  if (selected) {
+    decorations.push(
+      Decoration.node(selected.pos, selected.pos + selected.node.nodeSize, {
+        class: styles.selectedBlock,
+      }),
+    );
+  }
+  state.doc.forEach((section, sectionOffset) => {
+    if (section.childCount < 2) return;
+    section.forEach((column, columnOffset) => {
+      if (!isUntouched(column)) return;
+      const paragraph = sectionOffset + 1 + columnOffset + 1;
+      decorations.push(
+        Decoration.node(paragraph, paragraph + column.child(0).nodeSize, {
+          class: styles.emptyColumn,
+          "data-hint": EMPTY_COLUMN_HINT,
+        }),
+      );
+    });
+  });
+  return DecorationSet.create(state.doc, decorations);
+}
+
+const BlockDecorations = Extension.create({
+  name: "blockDecorations",
+  addProseMirrorPlugins() {
+    return [new Plugin({ props: { decorations: blockDecorations } })];
+  },
+});
+
 const TEXT_STYLES = [
   { value: "paragraph", label: "Text" },
   { value: "2", label: "Heading" },
@@ -242,6 +293,7 @@ function extensionsFor(placeholder: string) {
     ButtonNode,
     LineNode,
     SpaceNode,
+    BlockDecorations,
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -380,6 +432,13 @@ export function DocumentEditor({
 
   const canvas = useRef<HTMLDivElement>(null);
   const [isAddOpen, setAddOpen] = useState(false);
+  // What the polite status region last said: moves and deletes (14a3).
+  const [announcement, setAnnouncement] = useState("");
+  function announce(message: string) {
+    // Emptied first, so the same sentence twice is still read twice.
+    flushSync(() => setAnnouncement(""));
+    setAnnouncement(message);
+  }
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
@@ -399,12 +458,16 @@ export function DocumentEditor({
         <MediaContext.Provider value={media}>
           <EditorContent editor={editor} />
         </MediaContext.Provider>
-        {/* After the writing area, so Tab reaches it next; outside it, so no
-            control sits inside the textbox (D169). */}
+        {/* After the writing area, so Tab reaches the toolbar and then the
+            chip; outside it, so no control sits inside the textbox (D169). */}
+        {editor ? <BlockToolbar editor={editor} canvas={canvas} announce={announce} /> : null}
         {editor ? (
           <SectionChip editor={editor} canvas={canvas} onOpenSettings={openSectionSettings} />
         ) : null}
       </div>
+      <p className="visually-hidden" role="status">
+        {announcement}
+      </p>
       {editor ? <AddSection editor={editor} /> : null}
       {settingsSlot && editor
         ? createPortal(
