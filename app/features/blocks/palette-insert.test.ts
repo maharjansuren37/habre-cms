@@ -4,12 +4,13 @@ import { GapCursor } from "@tiptap/pm/gapcursor";
 import { history, undo } from "@tiptap/pm/history";
 import { Schema } from "@tiptap/pm/model";
 import { EditorState, NodeSelection, TextSelection } from "@tiptap/pm/state";
+import { countBlocks } from "./document-queries.ts";
 import {
-  countBlocks,
   insertBlock,
   insertionPoint,
   insertSection,
   sectionAddedAnnouncement,
+  sectionFits,
   sectionInsertionPoint,
   templateBlockCount,
 } from "./palette-insert.ts";
@@ -314,6 +315,15 @@ test("a template that would pass the block cap is refused while a smaller one fi
   const options = { ...OPTIONS, maxBlocks: countBlocks(three) + 2 };
   assert.equal(insertSection(state, "hero", options), null);
   assert.notEqual(insertSection(state, "blank", options), null);
+});
+
+test("sectionFits: only Blank fits when two blocks are left, none at the section cap, all with room", () => {
+  const kinds = SECTION_TEMPLATES.filter((kind) => kind !== "blank");
+  const tight = countBlocks(three) + 2;
+  assert.equal(sectionFits(three, "blank", 30, tight), true);
+  for (const kind of kinds) assert.equal(sectionFits(three, kind, 30, tight), false, kind);
+  for (const kind of SECTION_TEMPLATES) assert.equal(sectionFits(three, kind, 3, 200), false, kind);
+  for (const kind of SECTION_TEMPLATES) assert.equal(sectionFits(three, kind, 30, 200), true, kind);
 });
 
 test("each template reports how many blocks it adds", () => {

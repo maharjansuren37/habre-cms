@@ -7,7 +7,7 @@ import {
   TextSelection,
   type Transaction,
 } from "@tiptap/pm/state";
-import { mainHeading } from "./block-moves.ts";
+import { countBlocks, mainHeading } from "./document-queries.ts";
 import { type SectionTemplate, sectionTemplate } from "./section-templates.ts";
 
 /** The palette's tiles, in the order it shows them. */
@@ -53,19 +53,6 @@ export function newBlock(
     case "space":
       return { node: nodes.space.create(), isText: false };
   }
-}
-
-/** How many blocks the document holds: the children of every column (a list or quote is one). */
-export function countBlocks(doc: ProseMirrorNode): number {
-  let count = 0;
-  doc.descendants((node) => {
-    if (node.type.name === "column") {
-      count += node.childCount;
-      return false;
-    }
-    return true;
-  });
-  return count;
 }
 
 /**
@@ -140,6 +127,16 @@ export function sectionInsertionPoint(doc: ProseMirrorNode, selection: Selection
   return $head.after(1);
 }
 
+/** Whether a `kind` section fits: under the section cap, and its blocks under the block cap. */
+export function sectionFits(
+  doc: ProseMirrorNode,
+  kind: SectionTemplate,
+  maxSections: number,
+  maxBlocks: number,
+): boolean {
+  return doc.childCount < maxSections && countBlocks(doc) + templateBlockCount(kind) <= maxBlocks;
+}
+
 /**
  * The transaction that adds a ready-made section as its own undo step, with
  * the cursor in its first text block. Null when the document is at the section
@@ -150,8 +147,7 @@ export function insertSection(
   kind: SectionTemplate,
   options: { allowMainHeading: boolean; maxSections: number; maxBlocks: number },
 ): Transaction | null {
-  if (state.doc.childCount >= options.maxSections) return null;
-  if (countBlocks(state.doc) + templateBlockCount(kind) > options.maxBlocks) return null;
+  if (!sectionFits(state.doc, kind, options.maxSections, options.maxBlocks)) return null;
   const json = sectionTemplate(kind, {
     mainHeading: options.allowMainHeading && mainHeading(state.doc) === null,
   });

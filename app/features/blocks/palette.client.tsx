@@ -4,15 +4,15 @@ import { createPortal } from "react-dom";
 import { Button } from "#app/lib/ui/button.tsx";
 import type { StartDrag } from "./block-drag.client.tsx";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
+import { countBlocks } from "./document-queries.ts";
 import styles from "./palette.module.css";
 import {
-  countBlocks,
   insertBlock,
   insertSection,
   type PaletteKind,
   SECTION_TEMPLATE_NAMES,
   sectionAddedAnnouncement,
-  templateBlockCount,
+  sectionFits,
 } from "./palette-insert.ts";
 import type { SectionTemplate } from "./section-templates.ts";
 
@@ -155,25 +155,29 @@ function SectionTiles({
   options: SectionPaletteOptions;
   onAdded?: () => void;
 }) {
-  const { sectionsFull, blocksUsed } = useEditorState({
+  const { sectionsFull, blocksUsed, fitting } = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
       sectionsFull: current.state.doc.childCount >= options.maxSections,
       blocksUsed: countBlocks(current.state.doc),
+      fitting: SECTION_TILES.map((tile) =>
+        sectionFits(current.state.doc, tile.kind, options.maxSections, MAX_DOCUMENT_BLOCKS),
+      ),
     }),
   });
   const fits = (kind: SectionTemplate) =>
-    !sectionsFull && blocksUsed + templateBlockCount(kind) <= MAX_DOCUMENT_BLOCKS;
+    fitting[SECTION_TILES.findIndex((tile) => tile.kind === kind)] === true;
   const anyDisabled = SECTION_TILES.some((tile) => !fits(tile.kind));
+  // The Blocks group above already says the blocks sentence once the document is full.
+  let note: string | null = null;
+  if (anyDisabled) {
+    if (sectionsFull) note = SECTIONS_FULL_NOTE;
+    else if (blocksUsed < MAX_DOCUMENT_BLOCKS)
+      note = `You can have at most ${MAX_DOCUMENT_BLOCKS} blocks.`;
+  }
   return (
     <>
-      {anyDisabled ? (
-        <p className={styles.note}>
-          {sectionsFull
-            ? SECTIONS_FULL_NOTE
-            : `You can have at most ${MAX_DOCUMENT_BLOCKS} blocks.`}
-        </p>
-      ) : null}
+      {note ? <p className={styles.note}>{note}</p> : null}
       <div className={styles.grid}>
         {SECTION_TILES.map((tile) => (
           <button

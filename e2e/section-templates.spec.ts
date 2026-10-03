@@ -199,7 +199,11 @@ test("a page of 30 sections shows all four section tiles disabled, with the reas
   for (const { name } of Object.values(SHAPES)) {
     await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
   }
-  await expect(page.getByText("Thirty sections is the most there can be.").first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("complementary", { name: "Add to the page" })
+      .getByText("Thirty sections is the most there can be."),
+  ).toBeVisible();
 });
 
 test("a saved page with an added hero (images unchosen) saves", async ({ page }) => {
@@ -218,11 +222,13 @@ test("a saved page with an added hero (images unchosen) saves", async ({ page })
 /** The browser's own function; the e2e project has no DOM types. */
 declare function getComputedStyle(element: unknown, pseudo: string): { content: string };
 
-/** What the canvas draws before an element, from its `::before` (quotes stripped). */
+/** What the canvas draws before an element, from its `::before` (quotes and the empty alt text stripped). */
 async function drawnHint(locator: ReturnType<Page["locator"]>): Promise<string> {
   return locator.evaluate((element) => {
     const content = getComputedStyle(element, "::before").content;
-    return content === "none" || content === "normal" ? "" : content.replace(/^"|"$/g, "");
+    return content === "none" || content === "normal"
+      ? ""
+      : content.replace(/ \/ ""$/, "").replace(/^"|"$/g, "");
   });
 }
 

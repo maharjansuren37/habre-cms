@@ -51,23 +51,5 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
 
-### F-199 [P3] open - Lists and quotes show the entry's placeholder in every empty line holding the cursor; neither the spec nor design.md decides it
-File: app/features/blocks/empty-text-hint.ts:22
-
-### F-200 [P3] open - At 200 blocks the side panel says "You can have at most 200 blocks." twice
-File: app/features/blocks/palette.client.tsx (`SectionTiles`); e2e/document-editor.spec.ts:1250
-
-### F-201 [P3] open - The 30-sections browser test's sentence check passes without the new note
-File: e2e/section-templates.spec.ts:202
-
-### F-202 [P3] open - Nothing tests a part-full page, where some section tiles fit and some do not
-File: app/features/blocks/palette.client.tsx (`fits`)
-
-### F-203 [P3] open - New circular import between palette-insert.ts and block-moves.ts
-File: app/features/blocks/palette-insert.ts:10; app/features/blocks/block-moves.ts:11
-
-### F-204 [P2] unverified - Screen readers may read the editor's empty-text hints as content
+### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
 File: app/features/blocks/document-editor.module.css:49, :323
-
-### F-205 [P3] unverified - A hero published without an image leaves an empty half-width column on the public site
-File: app/features/blocks/render.tsx:65-77

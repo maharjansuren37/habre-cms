@@ -107,7 +107,7 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
   - [x] 14a3. **The block toolbar** - the selected block's ring and toolbar: Move up / Move down for blocks and sections with the new position announced, the Text style menu with Main heading, Bold, Italic, Link and Delete
   - [x] 14b. **The palette and drag and drop** - the drop gap, the ghost, the announcements, and Duplicate
   - [ ] 14c. **Ready-made sections as templates** - Hero, Image and text, Call to action and Blank section insert ordinary blocks (D170)
-    - [ ] 14c1. **Ready-made sections, added from the palette** - the Sections tiles add Blank section, Hero, Image and text or Call to action after the section being edited, by click, Enter or the phone's Add; empty-text hints in the editor; the template shape 18b reuses
+    - [x] 14c1. **Ready-made sections, added from the palette** - the Sections tiles add Blank section, Hero, Image and text or Call to action after the section being edited, by click, Enter or the phone's Add; empty-text hints in the editor; the template shape 18b reuses
     - [ ] 14c2. **Dragging a section tile** - a section drop slot between sections, its gap and ghost, and the announcements
 - [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
 - [ ] 16. **Sites on their own subdomains** - each site's public site served at `<name>.<sites domain>` (D153)

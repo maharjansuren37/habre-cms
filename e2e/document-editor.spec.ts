@@ -1246,8 +1246,8 @@ test("a document of 200 blocks disables every tile and says why", async ({ page 
     textDocument(...Array.from({ length: 200 }, (_, n) => `Block ${n + 1}`)),
   );
   await expect(textbox).toBeVisible();
-  // Shown under both groups' headings (14c1), so two sentences.
-  await expect(palette(page).getByText("You can have at most 200 blocks.")).toHaveCount(2);
+  // Said once: the Sections group leaves it to the Blocks group when the document is full.
+  await expect(palette(page).getByText("You can have at most 200 blocks.")).toHaveCount(1);
   for (const name of ["Text", "Heading", "List", "Image", "Button", "Quote", "Line", "Space"]) {
     await expect(tile(page, name)).toBeDisabled();
   }

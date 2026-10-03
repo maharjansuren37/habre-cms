@@ -11,7 +11,6 @@ import {
   describePosition,
   keepOneMainHeading,
   kindName,
-  mainHeading,
   mainHeadingAnnouncement,
   moveAnnouncement,
   moveBlock,
@@ -21,6 +20,7 @@ import {
   setMainHeading,
   shortQuote,
 } from "./block-moves.ts";
+import { mainHeading } from "./document-queries.ts";
 
 const schema = new Schema({
   nodes: {

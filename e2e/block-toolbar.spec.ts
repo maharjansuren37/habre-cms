@@ -213,7 +213,8 @@ test("an untouched column of a two-column section shows the hint, in the editor 
     await page.evaluate(
       `getComputedStyle(document.querySelector('[role="textbox"] [data-hint]'), "::before").content`,
     ),
-  ).toBe(`"${HINT}"`);
+    // The `/ ""` is the empty alt text that keeps screen readers from reading the hint (F-204).
+  ).toBe(`"${HINT}" / ""`);
   // The cursor is in B, not in the hinted column.
   await page.keyboard.press("Escape");
   expect(await caretBlockText(page)).toBe("B");

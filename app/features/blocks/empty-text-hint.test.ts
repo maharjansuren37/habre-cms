@@ -63,12 +63,12 @@ test("an empty paragraph alone in its column has the placeholder with the cursor
   assert.equal(emptyTextHint(p(), alone, false, "page"), "");
 });
 
-test("an empty paragraph in a list item or a quote has the placeholder with the cursor, else nothing", () => {
+test("an empty paragraph in a list item or a quote has no hint, with or without the cursor", () => {
   const inList = list(p()).firstChild as ReturnType<typeof item>;
   const inQuote = quote(p());
-  assert.equal(emptyTextHint(p(), inList, true, "page"), "Write your page…");
+  assert.equal(emptyTextHint(p(), inList, true, "page"), "");
   assert.equal(emptyTextHint(p(), inList, false, "page"), "");
-  assert.equal(emptyTextHint(p(), inQuote, true, "post"), "Write your post…");
+  assert.equal(emptyTextHint(p(), inQuote, true, "post"), "");
   assert.equal(emptyTextHint(p(), inQuote, false, "post"), "");
 });
 

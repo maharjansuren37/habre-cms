@@ -373,7 +373,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     first text block, announced "Hero added: now section 3 of 5." A tile is
     disabled when its template would not fit (30 sections, or 200 blocks
     counting the template's), with "Thirty sections is the most there can be."
-    or "You can have at most 200 blocks." under the group. Section tiles do
+    or "You can have at most 200 blocks." under the group's heading. Section tiles do
     not drag yet (14c2).
   - **The templates, all empty - no starter text.** Hero: two columns,
     middle-aligned; heading (the Main heading on a page with none), text,
@@ -384,8 +384,9 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     "Blocks" and "Sections".
   - **Empty-text hints:** an empty heading always shows its style's name in
     muted text; an empty paragraph beside other blocks shows "Text" until the
-    cursor is in it, then "Write your page…" / "Write your post…". An
-    untouched column keeps the empty-column hint. Editor only, never saved.
+    cursor is in it, then "Write your page…" / "Write your post…". List and
+    quote lines show no hint. An untouched column keeps the empty-column
+    hint. Editor only, never saved.
   - **Tab order unchanged**, except the four section tiles follow the block
     tiles in the palette.
 - **The canvas is the customer's site**, drawn in its scope with its brand
