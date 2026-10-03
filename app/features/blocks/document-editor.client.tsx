@@ -483,7 +483,10 @@ export function DocumentEditor({
     setAnnouncement(message);
   }
 
-  const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce);
+  const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce, {
+    entryType,
+    maxSections: MAX_SECTIONS,
+  });
   const sectionPalette = { entryType, maxSections: MAX_SECTIONS, announce };
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */

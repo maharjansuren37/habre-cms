@@ -94,6 +94,14 @@ const SECTION_TILES: { kind: SectionTemplate; icon: ReactNode }[] = [
   },
 ];
 
+/** Each section tile's icon, which the drag ghost shows too (14c2). */
+export const SECTION_ICONS = Object.fromEntries(
+  SECTION_TILES.map((tile) => [tile.kind, tile.icon]),
+) as Record<SectionTemplate, ReactNode>;
+
+/** The tile being dragged, block kind or section template (their names never overlap). */
+export type DraggingTile = PaletteKind | SectionTemplate | null;
+
 /** What a section tile needs from the editor beyond the editor itself. */
 export type SectionPaletteOptions = {
   entryType: "post" | "page";
@@ -144,16 +152,21 @@ function addSectionFrom(editor: Editor, kind: SectionTemplate, options: SectionP
 
 /**
  * The Sections group: four wide tiles, each a `button` that adds a ready-made
- * section (14c1). A click or Enter / Space only - dragging a section tile is 14c2.
+ * section (14c1). In the side panel a tile also drags its section between
+ * sections (14c2); a press without movement is still a click.
  */
 function SectionTiles({
   editor,
   options,
   onAdded,
+  startDrag,
+  draggingTile,
 }: {
   editor: Editor;
   options: SectionPaletteOptions;
   onAdded?: () => void;
+  startDrag?: StartDrag;
+  draggingTile?: DraggingTile;
 }) {
   const { sectionsFull, blocksUsed, fitting } = useEditorState({
     editor,
@@ -183,10 +196,18 @@ function SectionTiles({
           <button
             key={tile.kind}
             type="button"
-            className={`${styles.tile} ${styles.wide}`}
+            className={`${styles.tile} ${styles.wide} ${draggingTile === tile.kind ? styles.isDragging : ""}`}
             disabled={!fits(tile.kind)}
             // A pointer press leaves the writing area's selection where it is.
             onMouseDown={(event) => event.preventDefault()}
+            // Chromium sends pointer events to a disabled button, so a tile that does not fit never drags.
+            onPointerDown={
+              startDrag
+                ? (event) => {
+                    if (fits(tile.kind)) startDrag({ template: tile.kind }, event);
+                  }
+                : undefined
+            }
             onClick={() => {
               if (onAdded) onAdded();
               addSectionFrom(editor, tile.kind, options);
@@ -219,7 +240,7 @@ function Tiles({
   headingId: string;
   onAdded?: () => void;
   startDrag?: StartDrag;
-  draggingTile?: PaletteKind | null;
+  draggingTile?: DraggingTile;
 }) {
   const isFull = useEditorState({
     editor,
@@ -265,7 +286,7 @@ export function Palette({
 }: {
   editor: Editor;
   startDrag: StartDrag;
-  draggingTile: PaletteKind | null;
+  draggingTile: DraggingTile;
   sections: SectionPaletteOptions;
 }) {
   const headingId = useId();
@@ -281,7 +302,12 @@ export function Palette({
         draggingTile={draggingTile}
       />
       <h2 className={`${styles.heading} ${styles.groupHeading}`}>Sections</h2>
-      <SectionTiles editor={editor} options={sections} />
+      <SectionTiles
+        editor={editor}
+        options={sections}
+        startDrag={startDrag}
+        draggingTile={draggingTile}
+      />
     </aside>
   );
 }

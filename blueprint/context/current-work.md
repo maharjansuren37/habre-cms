@@ -91,7 +91,7 @@ click, Enter or the phone's Add stay the non-drag path (WCAG 2.5.7).
   announcement and label's wording; seen red against stubs first; `npm run
   verify` green.
 
-- [ ] **Step 2 - Dragging a section tile** - `block-drag.client.tsx`: the
+- [x] **Step 2 - Dragging a section tile** - `block-drag.client.tsx`: the
   controller takes `{ template }` through the same `startDrag`; for it,
   `measure` reads the sections and the writing area, the gap plugin places a
   widget at the slot's top-level position, the ghost shows the template's icon
@@ -213,6 +213,16 @@ Extended, load-bearing (14b and 14c1 locked them for this item):
   lower case - beat a taller, section-sized gap: the tile is already named in
   the ghost and the status, and one look for "something lands here" is the
   record's intent.
+
+- **`useBlockDrag` takes `{ entryType, maxSections }`** (found building step
+  2) - the controller now drops sections itself, so it needs the page/post
+  rule and the cap; beat routing the drop back through the palette's
+  `addSectionFrom`, which would split one drag across two components.
+- **Typing straight after a drop joins its undo step** (observed building
+  step 2) - ProseMirror groups changes within 500ms, so a Ctrl+Z after
+  typing at once removes the section and the typing together. The same holds
+  for 14c1's click and 14b's drops; not changed here. The Undo test drops
+  without typing.
 
 ## Production needs
 
