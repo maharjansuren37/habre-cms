@@ -14,7 +14,6 @@ import {
 import { createPortal } from "react-dom";
 import styles from "./block-drag.module.css";
 import {
-  type BlockSource,
   CAP_SENTENCE,
   DRAG_CANCELLED,
   type DropSlot,
@@ -42,9 +41,9 @@ import {
 } from "./palette.client.tsx";
 import {
   insertSection,
-  type PaletteKind,
   SECTION_TEMPLATE_NAMES,
   sectionAddedAnnouncement,
+  topLevelPosition,
 } from "./palette-insert.ts";
 import type { SectionTemplate } from "./section-templates.ts";
 
@@ -81,17 +80,11 @@ const gapKey = new PluginKey<Gap>("dropGap");
 function slotPos(doc: ProseMirrorNode, slot: DropSlot): number | null {
   const column = columnsOf(doc).find((c) => c.section === slot.section && c.column === slot.column);
   if (!column) return null;
+  if (slot.index < 0 || slot.index > column.node.childCount) return null;
   let pos = column.pos + 1;
-  for (let i = 0; i < Math.min(slot.index, column.node.childCount); i++) {
+  for (let i = 0; i < slot.index; i++) {
     pos += column.node.child(i).nodeSize;
   }
-  return pos;
-}
-
-/** The top-level position before section `index` (the document's end for the count). */
-function sectionPos(doc: ProseMirrorNode, slot: SectionSlot): number {
-  let pos = 0;
-  for (let i = 0; i < Math.min(slot.index, doc.childCount); i++) pos += doc.child(i).nodeSize;
   return pos;
 }
 
@@ -123,7 +116,7 @@ function gapDecorations(state: EditorState): DecorationSet | null {
   }
   let at: number | null = null;
   if (gap.slot) at = slotPos(state.doc, gap.slot);
-  else if (gap.section) at = sectionPos(state.doc, gap.section);
+  else if (gap.section) at = topLevelPosition(state.doc, gap.section.index);
   if (at !== null) {
     const { label } = gap;
     decorations.push(
@@ -175,9 +168,25 @@ function sameSectionSlot(a: SectionSlot | null, b: SectionSlot | null): boolean 
   return a === b || (!!a && !!b && a.index === b.index);
 }
 
+/**
+ * Whether something drawn over the writing area (the sticky top bar, the
+ * settings sheet below 1024px) is the topmost element at the point. Such a
+ * point is no place, whatever section lies underneath.
+ */
+function covered(editor: Editor, x: number, y: number): boolean {
+  const top = document.elementFromPoint(x, y);
+  return !top || !editor.view.dom.contains(top);
+}
+
+/** The block slot under the point, or null outside every section or under an overlay. */
+function blockSlotUnder(editor: Editor, x: number, y: number): DropSlot | null {
+  return covered(editor, x, y) ? null : slotAt(measure(editor), x, y);
+}
+
 /** The section slot under the point: the top-level sections' rects against the writing area's. */
 function sectionSlotUnder(editor: Editor, x: number, y: number): SectionSlot | null {
   const { view, state } = editor;
+  if (covered(editor, x, y)) return null;
   const rects: Rect[] = [];
   state.doc.forEach((_, offset) => {
     const dom = view.nodeDOM(offset);
@@ -197,6 +206,10 @@ function dropSection(
   options: SectionDropOptions,
   announce: (message: string) => void,
 ) {
+  if (topLevelPosition(editor.state.doc, at.index) === null) {
+    announce(DRAG_CANCELLED);
+    return;
+  }
   const tr = insertSection(editor.state, template, {
     allowMainHeading: options.entryType === "page",
     maxSections: options.maxSections,
@@ -244,6 +257,8 @@ function measure(editor: Editor): MeasuredColumn[] {
 const SCROLL_ZONE = 48;
 /** The fastest auto-scroll, in pixels a frame, at the very edge. */
 const SCROLL_MAX = 24;
+/** How long a place must stay the same, while the window auto-scrolls, before it is announced. */
+const SETTLE_MS = 300;
 
 /**
  * Pixels to scroll this frame for a pointer at `y`: down near the window's
@@ -262,7 +277,9 @@ function scrollSpeed(y: number): number {
 /**
  * Swallows the click a drag's release would send to the element it started
  * on (the grip announcing itself, a tile adding its block). With the pointer
- * still down, it waits for the release.
+ * still down, it waits for the gesture to end: a release, a cancel (a touch
+ * the browser took for a pan), or one second, whichever comes first. Each call
+ * removes only its own blocker.
  */
 function swallowClick(pointerStillDown: boolean) {
   const block = (event: MouseEvent) => {
@@ -270,10 +287,25 @@ function swallowClick(pointerStillDown: boolean) {
     event.preventDefault();
   };
   window.addEventListener("click", block, true);
-  const release = () => setTimeout(() => window.removeEventListener("click", block, true), 0);
-  if (pointerStillDown)
-    window.addEventListener("pointerup", release, { capture: true, once: true });
-  else release();
+  if (!pointerStillDown) {
+    setTimeout(() => window.removeEventListener("click", block, true), 0);
+    return;
+  }
+  let timer = 0;
+  const end = (afterClick: boolean) => {
+    window.removeEventListener("pointerup", onUp, true);
+    window.removeEventListener("pointercancel", onCancel, true);
+    clearTimeout(timer);
+    // A release is followed at once by its click, which is still swallowed;
+    // a cancel and the fallback have no click coming.
+    if (afterClick) setTimeout(() => window.removeEventListener("click", block, true), 0);
+    else window.removeEventListener("click", block, true);
+  };
+  const onUp = () => end(true);
+  const onCancel = () => end(false);
+  window.addEventListener("pointerup", onUp, true);
+  window.addEventListener("pointercancel", onCancel, true);
+  timer = window.setTimeout(() => end(false), 1000);
 }
 
 /** What a tile or the grip calls on `pointerdown`: the one entry point for every drag. */
@@ -323,18 +355,36 @@ export function useBlockDrag(
       }
       let dragging = false;
       // A section template lands between sections; a block source in a column.
-      const template = "template" in source ? source.template : null;
-      const block = "template" in source ? null : source;
+      // `source` is narrowed with `"template" in source` where each path splits.
       let slot: DropSlot | null = null;
       let shown: DropSlot | null = null;
       let shownSection: SectionSlot | null = null;
       let frame = 0;
       let said = "";
+      let settle: ReturnType<typeof setTimeout> | undefined;
+      let settling = "";
 
       function say(message: string) {
         if (message === said) return;
         said = message;
         latestAnnounce.current(message);
+      }
+
+      /** A hover place: said at once, or while auto-scrolling only once it has held for SETTLE_MS. */
+      function hold(message: string, scrolling: boolean) {
+        if (!scrolling || message === said) {
+          clearTimeout(settle);
+          settling = "";
+          say(message);
+          return;
+        }
+        if (message === settling) return;
+        clearTimeout(settle);
+        settling = message;
+        settle = setTimeout(() => {
+          settling = "";
+          say(message);
+        }, SETTLE_MS);
       }
 
       function placeGhost() {
@@ -347,7 +397,8 @@ export function useBlockDrag(
       function begin() {
         dragging = true;
         document.documentElement.dataset.blockDragging = "";
-        if (template) {
+        if ("template" in source) {
+          const { template } = source;
           setGhost({
             kind: template,
             icon: SECTION_ICONS[template],
@@ -357,18 +408,21 @@ export function useBlockDrag(
           setGap(current, { ...NO_GAP, label: sectionDropZoneLabel(template) });
           return;
         }
-        const node = block && "pos" in block ? current.state.doc.nodeAt(block.pos) : null;
-        const kind = node ? blockKind(node) : (block as { kind: PaletteKind }).kind;
+        // A moved block exists at its position, as `dragName` and `drop` also assume.
+        const kind =
+          "pos" in source
+            ? blockKind(current.state.doc.nodeAt(source.pos) as ProseMirrorNode)
+            : source.kind;
         setGhost({
           kind,
           icon: KIND_ICONS[kind],
-          name: dragName(current.state, block as BlockSource),
-          fromTile: !(block && "pos" in block),
+          name: dragName(current.state, source),
+          fromTile: !("pos" in source),
         });
         setGap(current, {
           ...NO_GAP,
-          label: dropZoneLabel(current.state, block as BlockSource),
-          dragged: block && "pos" in block ? block.pos : null,
+          label: dropZoneLabel(current.state, source),
+          dragged: "pos" in source ? source.pos : null,
         });
       }
 
@@ -384,31 +438,33 @@ export function useBlockDrag(
           window.scrollBy(0, speed);
           frame = requestAnimationFrame(update);
         }
-        if (template) {
+        if ("template" in source) {
+          const { template } = source;
           const at = sectionSlotUnder(current, point.current.x, point.current.y);
           if (!sameSectionSlot(at, shownSection)) {
             shownSection = at;
             setGap(current, { ...(gapKey.getState(current.state) ?? NO_GAP), section: at });
           }
-          say(sectionHoverAnnouncement(template, at, current.state.doc.childCount));
+          hold(sectionHoverAnnouncement(template, at, current.state.doc.childCount), speed !== 0);
           return;
         }
-        const next = slotAt(measure(current), point.current.x, point.current.y);
+        const next = blockSlotUnder(current, point.current.x, point.current.y);
         if (sameSlot(next, slot) && said) return;
         slot = next;
-        const result = next ? drop(current.state, block as BlockSource, next) : null;
+        const result = next ? drop(current.state, source, next) : null;
         const visible = result && typeof result === "object" ? next : null;
         if (!sameSlot(visible, shown)) {
           shown = visible;
           const gap = gapKey.getState(current.state) ?? NO_GAP;
           setGap(current, { ...gap, slot: visible });
         }
-        say(hoverAnnouncement(current.state, block as BlockSource, next));
+        hold(hoverAnnouncement(current.state, source, next), speed !== 0);
       }
 
       function finish(clearGap: boolean) {
         if (frame) cancelAnimationFrame(frame);
         frame = 0;
+        clearTimeout(settle);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
@@ -455,14 +511,22 @@ export function useBlockDrag(
           return;
         }
         point.current = { x: released.clientX, y: released.clientY };
-        const at = template && sectionSlotUnder(current, point.current.x, point.current.y);
-        const final = template ? null : slotAt(measure(current), point.current.x, point.current.y);
+        const at =
+          "template" in source ? sectionSlotUnder(current, point.current.x, point.current.y) : null;
+        const final =
+          "template" in source ? null : blockSlotUnder(current, point.current.x, point.current.y);
         finish(true);
         dragging = false;
         swallowClick(false);
-        if (template) {
+        if ("template" in source) {
           if (at)
-            dropSection(current, template, at, { entryType, maxSections }, latestAnnounce.current);
+            dropSection(
+              current,
+              source.template,
+              at,
+              { entryType, maxSections },
+              latestAnnounce.current,
+            );
           else latestAnnounce.current(DRAG_CANCELLED);
           return;
         }
@@ -471,8 +535,11 @@ export function useBlockDrag(
           return;
         }
         const before = current.state;
-        const source = block as BlockSource;
         const result = drop(before, source, final);
+        if (result === "invalid") {
+          latestAnnounce.current(DRAG_CANCELLED);
+          return;
+        }
         if (result === "in-place") return;
         if (result === "full") {
           latestAnnounce.current(CAP_SENTENCE);

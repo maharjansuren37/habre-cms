@@ -641,3 +641,35 @@ test("a section tile's status names the place or says release to cancel", () => 
     "Call to action: drop as section 4 of 4.",
   );
 });
+
+/** A drop's result as a short string: a failing `equal` on a Transaction exhausts memory. */
+const outcome = (result: DropResult) => (typeof result === "string" ? result : "dropped");
+
+test("drop refuses a slot naming no column", () => {
+  const state = cursorIn(base(), "A");
+  assert.equal(outcome(drop(state, { kind: "image" }, slot(0, 5, 0))), "invalid");
+  assert.equal(outcome(drop(state, { kind: "image" }, slot(9, 0, 0))), "invalid");
+});
+
+test("drop refuses an index past the column's children", () => {
+  const state = cursorIn(base(), "A");
+  assert.equal(outcome(drop(state, { kind: "image" }, slot(0, 0, 3))), "invalid");
+  assert.equal(outcome(drop(state, { pos: posOf(state.doc, "D") }, slot(0, 1, 2))), "invalid");
+});
+
+test("drop refuses a negative index", () => {
+  const state = cursorIn(base(), "A");
+  assert.equal(outcome(drop(state, { kind: "image" }, slot(0, 0, -1))), "invalid");
+});
+
+test("hover over an invalid slot says release to cancel", () => {
+  const state = cursorIn(base(), "A");
+  assert.equal(
+    hoverAnnouncement(state, { kind: "image" }, slot(0, 5, 0)),
+    "Image: release to cancel.",
+  );
+  assert.equal(
+    hoverAnnouncement(state, { kind: "image" }, slot(0, 0, 3)),
+    "Image: release to cancel.",
+  );
+});

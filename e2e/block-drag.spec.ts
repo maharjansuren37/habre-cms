@@ -319,7 +319,7 @@ function tile(page: Page, name: string) {
 test("dragging the Image tile to the top of column 2 shows the gap, ghost and place, adds a selected image there, and one Ctrl+Z removes it", async ({
   page,
 }) => {
-  const { textbox } = await openPage(page, "Tile Drag", SEEDED());
+  const { id, textbox } = await openPage(page, "Tile Drag", SEEDED());
   await select(textbox, "A");
   await pickUp(page, tile(page, "Image"));
   await hover(page, textbox.getByText("C", { exact: true }), "top");
@@ -358,6 +358,12 @@ test("dragging the Image tile to the top of column 2 shows the gap, ghost and pl
 
   await page.keyboard.press("ControlOrMeta+z");
   expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+  // What is stored, not only what is drawn (F-198): an image with no file, first in column 2.
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section(["A", "B"], [{ type: "image", attrs: { mediaId: "" } }, "C"]), section(["D"])),
+  );
 });
 
 test("dropping a Text tile into an untouched column replaces its empty paragraph", async ({
@@ -402,6 +408,27 @@ test("a click on the Line tile still adds one line after the selected block, and
   await page.mouse.up();
   await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
   await expect(textbox.locator("hr")).toHaveCount(1);
+});
+
+// F-195: a drag cancelled by Escape waits for its gesture to end. A gesture
+// that ends in pointercancel, not pointerup, must not leave the click blocker
+// behind to eat the next click.
+test("after a drag is cancelled by Escape and its gesture ends in pointercancel, the next click adds a line", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Cancel Click", doc(section(["First", "Last"])));
+  await select(textbox, "First");
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  await page.evaluate(
+    'window.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 1, bubbles: true }))',
+  );
+  // Within the blocker's one-second fallback, so that cannot be what removed it.
+  await tile(page, "Line").dispatchEvent("click");
+  await expect(textbox.locator("hr")).toHaveCount(1);
+  expect(await canvasShape(page)).toEqual([[["First", "", "Last"]]]);
+  await page.mouse.up();
 });
 
 // Journey 2 (design.md, *Edit and publish*), the drag's part: open a page,
@@ -474,6 +501,69 @@ test("on a page taller than the window, holding a block at the window's bottom e
   expect(stored.content[11]).toEqual(section(["S12 first", "S12 second", "S1 first"]));
 });
 
+/** Records each message the status region shows (not the blank between two) with the time, in `window.__said`. */
+async function recordStatus(page: Page) {
+  await page.evaluate(`(() => {
+    const element = document.querySelector('[role="status"]');
+    const said = [];
+    window.__said = said;
+    new MutationObserver(() => {
+      const text = element.textContent ?? "";
+      if (text && text !== said.at(-1)?.text) said.push({ t: performance.now(), text });
+    }).observe(element, { childList: true, characterData: true, subtree: true });
+  })()`);
+}
+
+/**
+ * With the pointer held at the window's bottom edge for 2 seconds (the window
+ * scrolling under it): no two announcements come under 300 ms apart, and the
+ * place where the scrolling ends is announced within 600 ms. (F-197)
+ */
+async function expectSettledWhileScrolling(page: Page) {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+  const before = (await page.evaluate("window.scrollY")) as number;
+  await page.mouse.move(viewport.width / 2, viewport.height - 6, { steps: 8 });
+  const arrived = (await page.evaluate("performance.now()")) as number;
+  await page.waitForTimeout(2000);
+  expect(((await page.evaluate("window.scrollY")) as number) > before).toBe(true);
+  const stopped = (await page.evaluate(`new Promise((done) => {
+    const check = () =>
+      window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1
+        ? done(performance.now())
+        : requestAnimationFrame(check);
+    check();
+  })`)) as number;
+  await page.waitForTimeout(700);
+  const said = (await page.evaluate("window.__said")) as { t: number; text: string }[];
+  const during = said.filter((entry) => entry.t >= arrived);
+  expect(during.length).toBeGreaterThan(0);
+  const gaps = during.slice(1).map((entry, i) => Math.round(entry.t - (during[i]?.t ?? 0)));
+  expect(
+    Math.min(...gaps, 300),
+    `gaps between announcements: ${gaps.join(", ")} ms`,
+  ).toBeGreaterThanOrEqual(300);
+  const last = said.at(-1);
+  expect(last && last.t - stopped).toBeLessThanOrEqual(600);
+  await expect(page.getByRole("status")).toHaveText(last?.text ?? "");
+}
+
+test("holding a block at the window's bottom edge while it scrolls announces a place only once it has held for 300 ms", async ({
+  page,
+}) => {
+  const sections = Array.from({ length: 12 }, (_, i) =>
+    section([`S${i + 1} first`, `S${i + 1} second`]),
+  );
+  const { textbox } = await openPage(page, "Settled Block Drag", doc(...sections));
+  await select(textbox, "S1 first");
+  await recordStatus(page);
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  await expectSettledWhileScrolling(page);
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+});
+
 test("near the sticky top bar the window scrolls back up", async ({ page }) => {
   const sections = Array.from({ length: 12 }, (_, i) => section([`S${i + 1} only`]));
   const { textbox } = await openPage(page, "Scroll Up", doc(...sections));
@@ -486,6 +576,48 @@ test("near the sticky top bar the window scrolls back up", async ({ page }) => {
   await expect(textbox.getByText("S1 only", { exact: true })).toBeInViewport({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await page.mouse.up();
+});
+
+// F-193: a point under something drawn over the writing area is no place. The
+// window scrolls up while the pointer is over the sticky bar (it is inside the
+// scroll zone), so the page is scrolled well down first and the release comes
+// within a second, while sections still lie under the bar.
+test("releasing over the sticky top bar cancels and stores nothing, though a section lies under it", async ({
+  page,
+}) => {
+  // Tall sections, so the bar's scroll never leaves the pointer in a margin between two.
+  const sections = Array.from({ length: 30 }, (_, i) =>
+    section(["a", "b", "c", "d", "e"].map((letter) => `S${i + 1} ${letter}`)),
+  );
+  const { id, textbox } = await openPage(page, "Under The Bar", doc(...sections));
+  await select(textbox, "S25 a");
+  await expect(textbox.getByText("S1 a", { exact: true })).not.toBeInViewport();
+  const shape = await canvasShape(page);
+  const stored = (await storedEntry(id)).blocks;
+  // Scroll so the section above the selected one sits under the bar.
+  const bar = await centre(page.locator("[data-sticky-bar]"));
+  const above = await centre(textbox.getByText("S24 c", { exact: true }));
+  await page.mouse.wheel(0, above.y - bar.y);
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  const canvas = await centre(textbox);
+  const over = bar.y;
+  await page.mouse.move(canvas.x, over, { steps: 8 });
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  // The bar scrolls the page, so the place is announced once it has held for 300 ms (F-197).
+  await page.waitForTimeout(350);
+  // Read once: the bar keeps scrolling the page, so a retry could catch a margin between sections.
+  expect(await page.getByRole("status").textContent()).toBe("Text: release to cancel.");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await canvasShape(page)).toEqual(shape);
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(stored);
 });
 
 test("Ctrl+Z while dragging undoes the typing, cancels the drag, and the release stores nothing more", async ({
@@ -567,5 +699,71 @@ test.describe("at 390px by touch", () => {
     await expectClean(page, textbox);
     await save(page);
     expect((await storedEntry(id)).blocks).toEqual(doc(section(["B"], ["C"]), section(["A", "D"])));
+  });
+
+  // F-193: below 1024px the settings panel is a bottom sheet over the page's foot.
+  test("releasing a dragged image over the settings sheet cancels, though a section lies under it", async ({
+    page,
+  }) => {
+    const sections = Array.from({ length: 8 }, (_, i) => section([`S${i + 1} only`]));
+    const { textbox } = await openPage(
+      page,
+      "Under The Sheet",
+      doc(section([{ type: "image", attrs: { mediaId: "" } }, "S0 only"]), ...sections),
+    );
+    await textbox.getByText("No image chosen").tap();
+    const sheet = page.getByRole("complementary", { name: "Image", exact: true });
+    await expect(sheet).toBeVisible();
+    const shape = await canvasShape(page);
+    await pickUp(page, page.getByRole("button", { name: GRIP }));
+    const over = await centre(sheet);
+    await page.mouse.move(over.x, over.y, { steps: 8 });
+    // The premise: a section is under the sheet at this point.
+    expect(
+      await page.evaluate(
+        `document.elementsFromPoint(${over.x}, ${over.y}).some((el) => el.matches('[data-node="section"]'))`,
+      ),
+    ).toBe(true);
+    await expect(page.getByRole("status")).toHaveText("Image: release to cancel.", {
+      timeout: 1000,
+    });
+    await page.mouse.up();
+    await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+    expect(await canvasShape(page)).toEqual(shape);
+  });
+});
+
+// F-196: on a landscape tablet the side panel shows. A touch on a tile is a
+// tap, never a drag; touch drags by the grip only.
+test.describe("a touch on a palette tile at 1280px", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: true });
+
+  test("moving 20px never starts a drag", async ({ page }) => {
+    const { textbox } = await openPage(page, "Touch Tile", SEEDED());
+    await select(textbox, "A");
+    const from = await centre(tile(page, "Text"));
+    const fire = (type: string, dy: number) =>
+      page.evaluate(
+        `document.elementFromPoint(${from.x}, ${from.y}).dispatchEvent(new PointerEvent("${type}", { pointerId: 7, pointerType: "touch", isPrimary: true, bubbles: true, clientX: ${from.x}, clientY: ${from.y + dy} }))`,
+      );
+    await fire("pointerdown", 0);
+    for (const dy of [4, 8, 14, 20]) {
+      await fire("pointermove", dy);
+      await page.evaluate(
+        "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+      );
+    }
+    await expect(page.locator("[data-drag-ghost]")).toHaveCount(0);
+    await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+    await fire("pointerup", 20);
+    await expect(page.locator("[data-drag-ghost]")).toHaveCount(0);
+  });
+
+  test("a tap on the Line tile adds one line after the selected block", async ({ page }) => {
+    const { textbox } = await openPage(page, "Tap Tile", doc(section(["First", "Last"])));
+    await select(textbox, "First");
+    await tile(page, "Line").tap();
+    await expect(textbox.locator("hr")).toHaveCount(1);
+    expect(await canvasShape(page)).toEqual([[["First", "", "Last"]]]);
   });
 });

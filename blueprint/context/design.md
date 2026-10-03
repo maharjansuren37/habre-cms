@@ -334,8 +334,10 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     wider) or **the selected block by its grip** drags to any place in any
     column; a drag starts after 6px of movement, and a shorter press is a
     click (a tile adds its block after the selected one, the grip announces
-    itself). No dragging from the phone's Add dialog. Section tiles drag
-    between sections (14c2); existing sections move from their chip.
+    itself). Touch drags by the grip only: a touch on a palette tile is a
+    tap that adds its block. No dragging from the phone's Add dialog.
+    Section tiles drag between sections (14c2); existing sections move from
+    their chip.
   - **The grip** is a `button` named "Drag to move, or use Move up and Move
     down", first in the toolbar, **pointer-only and out of the arrow order**
     (`tabindex="-1"`), so the toolbar's one tab stop still lands on Move up.
@@ -349,7 +351,9 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     dragged tile is dashed, the dragged block dimmed; the toolbar and chip
     hide while dragging.
   - **Ending:** a release over a place drops (one undo step, the block
-    selected); Escape, a release outside every section, `pointercancel` or
+    selected); Escape, a release outside every section (a point under
+    anything drawn over the writing area - the sticky top bar, the settings
+    sheet below 1024px - is outside every section), `pointercancel` or
     a change to the document mid-drag cancels. Near the window's bottom, or
     the sticky top bar's lower edge (48px), the window scrolls each frame,
     faster nearer the edge.

@@ -215,13 +215,13 @@
   white-space: nowrap;
 }
 
-/* Warning amber, measured 5.6:1 light / 8.7:1 dark (design.md). */
+/* Warning ochre; its measured contrast is in design.md's table. */
 .draft {
   background: var(--color-warning-subtle);
   color: var(--color-warning);
 }
 
-/* Success green, measured 5.3:1 light / 8.4:1 dark (design.md). */
+/* Success green; its measured contrast is in design.md's table. */
 .published {
   background: var(--color-success-subtle);
   color: var(--color-success);

@@ -17,8 +17,8 @@
   background: var(--color-surface);
 }
 
-/* The top bar, and the document editor's format bar under it, stay in view
-   together while the writing scrolls. */
+/* The top bar, with the document editor's Undo and Redo in it, stays in view
+   while the writing scrolls. */
 .chrome {
   position: sticky;
   top: 0;

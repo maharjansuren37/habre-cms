@@ -13,6 +13,7 @@ import {
   sectionFits,
   sectionInsertionPoint,
   templateBlockCount,
+  topLevelPosition,
 } from "./palette-insert.ts";
 import { SECTION_TEMPLATES } from "./section-templates.ts";
 
@@ -395,4 +396,25 @@ test("a section with an index is refused at the section cap and past the block c
   const tight = { ...OPTIONS, maxBlocks: countBlocks(three) + 2, index: 1 };
   assert.equal(insertSection(state, "hero", tight), null);
   assert.notEqual(insertSection(state, "blank", tight), null);
+});
+
+test("insertSection refuses an index past the section count", () => {
+  const state = EditorState.create({ doc: three });
+  // `=== null`, not `equal(tr, null)`: a failing diff of a Transaction exhausts memory.
+  assert.ok(insertSection(state, "blank", { ...OPTIONS, index: three.childCount + 1 }) === null);
+});
+
+test("insertSection refuses a negative index", () => {
+  const state = EditorState.create({ doc: three });
+  assert.ok(insertSection(state, "blank", { ...OPTIONS, index: -1 }) === null);
+});
+
+test("topLevelPosition is the start of the document at 0 and its end at the child count", () => {
+  assert.equal(topLevelPosition(three, 0), 0);
+  assert.equal(topLevelPosition(three, three.childCount), three.content.size);
+});
+
+test("topLevelPosition is null outside 0 to the child count", () => {
+  assert.equal(topLevelPosition(three, -1), null);
+  assert.equal(topLevelPosition(three, three.childCount + 1), null);
 });

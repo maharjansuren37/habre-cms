@@ -2,9 +2,9 @@
  * Habre CMS global styles: design tokens and base element styles only.
  * Component styles live in CSS Modules beside their component (D12).
  * Colour primitives are plain scales; every role is light-dark(light, dark),
- * switched by `color-scheme`; the app follows the system setting. Measured
- * contrast ratios are recorded in blueprint/context/design.md - re-measure
- * before changing a color.
+ * switched by `color-scheme`; the admin follows the system setting, and
+ * public pages are light only (D168). Measured contrast ratios are recorded
+ * in blueprint/context/design.md - re-measure before changing a color.
  */
 
 /* Inter, served from our own host - no third-party font request. One variable

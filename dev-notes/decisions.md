@@ -2900,3 +2900,57 @@ step - for drops and inserted sections, as 14b and 14c1 already behave.
 Beats: forcing `closeHistory` after every drop, which no item has needed yet.
 Costs: a Ctrl+Z right after typing at once removes the dropped section and
 the typing together.
+
+## D234 - An out-of-range drop slot is refused, not clamped (2026-10-04)
+
+**Chose:** `drop()` returns `"invalid"` for a slot naming no column or an
+index outside the column's children, and `insertSection` returns null for an
+index outside 0 to the section count; both are announced as a cancel.
+`topLevelPosition(doc, index)` in `palette-insert.ts` is the one place a
+top-level index becomes a position. `"full"` now means only the block cap.
+Beats: clamping to the nearest valid place (F-206's suggestion) - a bad slot
+means hit-testing is wrong, and landing somewhere else silently hides that.
+Costs: a hit-testing bug shows as a cancelled drag rather than a near-miss
+drop.
+
+## D235 - A point covered by anything drawn over the writing area is no drop place (2026-10-04)
+
+**Chose:** in a block or section-tile drag, a point is a place only when
+`document.elementFromPoint` there is inside the writing area (`view.dom`), so
+the sticky top bar, the settings sheet below 1024px and any later overlay
+count as outside every section.
+Beats: clipping section rects to the bar's and sheet's rects (F-193's
+suggestion) - one rule covers every overlay, present and future, instead of a
+list kept up to date.
+Costs: relies on the gap being inside `view.dom`, the ghost having
+`pointer-events: none`, and the toolbar and chip hiding while dragging; a
+pointer outside the viewport has no element and so is no place (F-216).
+
+## D236 - Touch drags by the grip only; a touch on a palette tile is a tap (2026-10-04)
+
+**Chose:** palette block and section tiles start a drag only for
+`pointerType` mouse or pen; a touch does nothing on pointerdown and the tap's
+click adds the block.
+Beats: `touch-action: none` on the tiles, which would stop a swipe from
+scrolling the side panel.
+Costs: a tablet user cannot drag a tile into place, only tap it in after the
+selected block and then move it.
+
+## D237 - While auto-scrolling, a hover place is announced only once it has held for 300 ms (2026-10-04)
+
+**Chose:** while `scrollSpeed` is not 0, a hover announcement waits until its
+place has stayed the same for 300 ms; the gap and ghost still move every
+frame, and with no auto-scroll announcements stay immediate.
+Beats: a fixed rate limit, which would still announce places the pointer is
+only passing.
+Costs: during a long auto-scroll a screen reader hears nothing until the page
+stops or the pointer holds still.
+
+## D238 - Docs name the R2 skip mechanism, not a count of tests (2026-10-04)
+
+**Chose:** `AGENTS.md`, `ci.yml` and `needs-you.md` describe the R2-only
+browser tests as those calling `test.skip(skipWithoutStorage)`, and a full
+local run as "every test passes, none skipped".
+Beats: a test count - it was wrong three times in a row (26, 27, really 5
+calls), because every item that adds a test changes it.
+Costs: a reader wanting the number has to grep for it.

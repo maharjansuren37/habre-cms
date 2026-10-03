@@ -31,8 +31,8 @@
   gap: var(--space-3);
 }
 
-/* The default button, recolored to danger text - matches post-delete's own
-   measured 6.0:1 light / 7.8:1 dark against --color-surface. */
+/* The default button, recolored to danger text - the same as post-delete's;
+   its contrast on --color-surface is in design.md's table. */
 .delete {
   border-color: var(--color-danger);
   color: var(--color-danger);

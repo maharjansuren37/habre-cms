@@ -306,6 +306,66 @@ test("on a page taller than the window, holding the Blank tile at the bottom edg
   expect(last?.content?.[0]?.content).toEqual([{ type: "paragraph" }]);
 });
 
+/** Records each message the status region shows (not the blank between two) with the time, in `window.__said`. */
+async function recordStatus(page: Page) {
+  await page.evaluate(`(() => {
+    const element = document.querySelector('[role="status"]');
+    const said = [];
+    window.__said = said;
+    new MutationObserver(() => {
+      const text = element.textContent ?? "";
+      if (text && text !== said.at(-1)?.text) said.push({ t: performance.now(), text });
+    }).observe(element, { childList: true, characterData: true, subtree: true });
+  })()`);
+}
+
+/**
+ * With the pointer held at the window's bottom edge for 2 seconds (the window
+ * scrolling under it): no two announcements come under 300 ms apart, and the
+ * place where the scrolling ends is announced within 600 ms. (F-197)
+ */
+async function expectSettledWhileScrolling(page: Page) {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+  const before = (await page.evaluate("window.scrollY")) as number;
+  await page.mouse.move(viewport.width / 2, viewport.height - 6, { steps: 8 });
+  const arrived = (await page.evaluate("performance.now()")) as number;
+  await page.waitForTimeout(2000);
+  expect(((await page.evaluate("window.scrollY")) as number) > before).toBe(true);
+  const stopped = (await page.evaluate(`new Promise((done) => {
+    const check = () =>
+      window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1
+        ? done(performance.now())
+        : requestAnimationFrame(check);
+    check();
+  })`)) as number;
+  await page.waitForTimeout(700);
+  const said = (await page.evaluate("window.__said")) as { t: number; text: string }[];
+  const during = said.filter((entry) => entry.t >= arrived);
+  expect(during.length).toBeGreaterThan(0);
+  const gaps = during.slice(1).map((entry, i) => Math.round(entry.t - (during[i]?.t ?? 0)));
+  expect(
+    Math.min(...gaps, 300),
+    `gaps between announcements: ${gaps.join(", ")} ms`,
+  ).toBeGreaterThanOrEqual(300);
+  const last = said.at(-1);
+  expect(last && last.t - stopped).toBeLessThanOrEqual(600);
+  await expect(page.getByRole("status")).toHaveText(last?.text ?? "");
+}
+
+test("holding a Hero tile at the window's bottom edge while it scrolls announces a place only once it has held for 300 ms", async ({
+  page,
+}) => {
+  const sections = Array.from({ length: 12 }, (_, i) => section(`S${i + 1}`));
+  await openPage(page, "Settled Section Drag", { type: "doc", content: sections });
+  await recordStatus(page);
+  await pickUp(page, tile(page, "Hero"));
+  await expectSettledWhileScrolling(page);
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+});
+
 test("Ctrl+Z while dragging a section tile undoes the typing, cancels the drag, and the release stores nothing more", async ({
   page,
 }) => {
@@ -379,3 +439,39 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(sections.last()).toContainText("Join us");
   });
 }
+
+// F-193: the sticky top bar covers sections on a scrolled page. The window
+// scrolls up while the pointer is over the bar, so the release comes within a
+// second, while sections still lie under it.
+test("a Hero tile released over the sticky top bar adds no section", async ({ page }) => {
+  const sections = Array.from({ length: 29 }, (_, i) => section(`S${i + 1}`));
+  const { textbox } = await openPage(page, "Tile Under The Bar", {
+    type: "doc",
+    content: sections,
+  });
+  await select(textbox, "S29");
+  await expect(textbox.getByText("S1", { exact: true })).not.toBeInViewport();
+  const texts = await sectionTexts(page);
+  await pickUp(page, tile(page, "Hero"));
+  const bar = await centre(page.locator("[data-sticky-bar]"));
+  const canvas = await centre(textbox);
+  await page.mouse.move(canvas.x, bar.y, { steps: 8 });
+  // The premise: a section is under the bar at this point.
+  expect(
+    await page.evaluate(
+      `document.elementsFromPoint(${canvas.x}, ${bar.y}).some((el) => el.matches('[data-node="section"]'))`,
+    ),
+  ).toBe(true);
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  // The bar scrolls the page, so the place is announced once it has held for 300 ms (F-197).
+  await page.waitForTimeout(350);
+  // Read once: the bar keeps scrolling the page, so a retry could catch a margin between sections.
+  expect(await page.getByRole("status").textContent()).toBe("Hero: release to cancel.");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await sectionTexts(page)).toEqual(texts);
+  expect(await sectionTexts(page)).toHaveLength(29);
+});

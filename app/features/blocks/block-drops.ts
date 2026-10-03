@@ -29,7 +29,7 @@ export type SectionSlot = { index: number };
 export type BlockSource = { kind: PaletteKind } | { pos: number };
 /** What is dragged: a block source, or a ready-made section template. */
 export type DropSource = BlockSource | { template: SectionTemplate };
-export type DropResult = { tr: Transaction; pos: number } | "in-place" | "full";
+export type DropResult = { tr: Transaction; pos: number } | "in-place" | "full" | "invalid";
 
 export type Rect = { left: number; top: number; right: number; bottom: number };
 /** A column as measured on screen; `blocks` are its children's rects in order, gap excluded. */
@@ -60,10 +60,11 @@ function selectLanded(tr: Transaction, pos: number): void {
 /**
  * The transaction dropping `source` at `slot`, as one undo step, with the
  * landed block selected and its position. "in-place" when the slot is beside
- * the moved block itself; "full" when it would take the document over
- * `maxBlocks` (a pure reorder never does). A column never empties: a moved
- * block's only column gets an empty paragraph, and a block arriving in an
- * untouched column replaces its paragraph.
+ * the moved block itself; "invalid" when the slot names no column or an index
+ * outside 0 to the column's child count; "full" when it would take the
+ * document over `maxBlocks` (a pure reorder never does). A column never
+ * empties: a moved block's only column gets an empty paragraph, and a block
+ * arriving in an untouched column replaces its paragraph.
  */
 export function drop(
   state: EditorState,
@@ -74,7 +75,7 @@ export function drop(
   const { doc } = state;
   const columns = columnsOf(doc);
   const target = columns.find((c) => c.section === slot.section && c.column === slot.column);
-  if (!target) return "full";
+  if (!target || slot.index < 0 || slot.index > target.node.childCount) return "invalid";
 
   let node: ProseMirrorNode;
   let from = -1;
@@ -194,6 +195,7 @@ export function hoverAnnouncement(
   const name = dragName(state, source);
   if (!slot) return `${name}: release to cancel.`;
   const result = drop(state, source, slot, maxBlocks);
+  if (result === "invalid") return `${name}: release to cancel.`;
   if (result === "in-place") return `${name}: drop here to leave it in place.`;
   if (result === "full") return CAP_SENTENCE;
   return `${name}: drop at ${describePosition(result.tr.doc, result.pos)}.`;

@@ -25,8 +25,7 @@
 
 /* The default button (surface + border), recolored to danger text - not the
    only signal, since the button already says "Delete post" (design.md,
-   Buttons). Text on --color-surface measures 6.0:1 light / 7.8:1 dark
-   (design.md). */
+   Buttons). Its contrast on --color-surface is in design.md's table. */
 .delete {
   border-color: var(--color-danger);
   color: var(--color-danger);

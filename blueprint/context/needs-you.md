@@ -142,9 +142,12 @@ not tidying; it is what keeps the open list true.
       Chrome) - hardware and manual verification; the browser tests dispatch
       touch pointer events in Chromium, which is not a finger on glass. Check
       that the page does not scroll under the drag, that auto-scroll reaches
-      the last section, and that the gap and ghost fit the screen. Blocks
+      the last section, and that the gap and ghost fit the screen. Also, on
+      a landscape tablet (side panel showing), that a tap on a palette tile
+      adds its block and never starts a drag (F-196). Blocks
       nothing now; `verify` of item 14b names it as not proven, and
-      `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03)
+      `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03;
+      widened, drag tidy fix, 2026-10-04)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these
@@ -183,12 +186,13 @@ not tidying; it is what keeps the open list true.
       the first green `e2e` run. `open` (spec, F-17 fix, 2026-10-01)
 
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
-      manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
-      F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 255
-      passed, item 14c2). Nothing in `deploy` runs it. Blocks nothing now; needed before each
-      `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
-      next steps). `open` (ship, F-17 fix, 2026-10-01)
+      manual verification; CI skips the tests that upload to R2 - every
+      `test.skip(skipWithoutStorage)` (`E2E_SKIP_R2=1`, F-17 fix) - so images,
+      the logo, the picker and image + text are covered only by
+      `npm run test:e2e` on your machine with the real `.env` (every test
+      passes, none skipped). Nothing in `deploy` runs it. Blocks nothing now;
+      needed before each `deploy`, until a fake R2 server brings those tests
+      into CI (`dev-notes/status.md`, next steps). `open` (ship, F-17 fix, 2026-10-01)
 
 - [ ] **A Stripe account for the business, in Australia** - accounts and
       spend; your business details, bank account and identity checks. Test-mode
