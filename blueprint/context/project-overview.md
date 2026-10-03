@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-03, `main` after `aa561e2`.
+Generated 2026-10-03, `main` after `98292ac`.
 
 ## What this is
 
@@ -42,9 +42,12 @@ first part (14a1) - TipTap on one v4 document per entry, sections of 1-3
 columns, text styles, lists, quote, links, undo, the public renderer;
 Editor.js and all old content removed (migration `0009`); the remaining v1
 blocks (14a2) - image, button, line, space - with the Blocks palette and
-the settings panel.
+the settings panel; the block toolbar (14a3) - the selected block's ring,
+Move up / down across columns and sections, announced, the Text style menu
+with a page's one Main heading, Delete, and the section chip's moves; the
+admin CSP without inline styles or `data:` images.
 
-**Platform v1 (queued):** the rest of the drag-and-drop editor (14a3 block toolbar; 14b drag and drop; 14c templates); signup with email verification, one isolated site per
+**Platform v1 (queued):** the rest of the drag-and-drop editor (14b drag and drop; 14c templates); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
@@ -136,8 +139,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13b, 14a1 and 14a2 done; 14a3-14c and 15-21 queued;
-  nothing in flight. 15 and 18 split when spec'd. Last shipped: 14a2
-  (`blueprint/history/features/14a2-image-button-line-and-space.md`).
-- **Next:** `spec` item 14a3, the block toolbar.
+- **Plan:** items 1-13b and 14a1-14a3 done; 14b, 14c and 15-21 queued;
+  nothing in flight. 15 and 18 split when spec'd. Last shipped: 14a3
+  (`blueprint/history/features/14a3-block-toolbar.md`).
+- **Next:** `spec` item 14b, the palette and drag and drop.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
