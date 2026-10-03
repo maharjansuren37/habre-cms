@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-03, `main` after `faf4501`.
+Generated 2026-10-03, `main` after `f6ae3c3`.
 
 ## What this is
 
@@ -50,9 +50,10 @@ palette tile or the selected block's grip dragged into any column, a drop
 gap and ghost, the place announced, auto-scroll, touch on the grip, and
 Duplicate in the toolbar; ready-made sections (14c1) - Blank, Hero, Image
 and text, Call to action as empty templates of ordinary blocks, added from
-the palette, with editor-only hints for empty text.
+the palette, with editor-only hints for empty text; a section tile dragged
+between sections (14c2), which completes item 14.
 
-**Platform v1 (queued):** dragging a section tile (14c2); signup with email verification, one isolated site per
+**Platform v1 (queued):** signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
@@ -144,8 +145,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13b, 14a1-14b and 14c1 done; 14c2 and 15-21 queued;
-  nothing in flight. 15 and 18 split when spec'd. Last shipped: 14c1
-  (`blueprint/history/features/14c1-ready-made-sections.md`).
-- **Next:** `spec` item 14c2, dragging a section tile.
+- **Plan:** items 1-14 done (14c2 last); 15-21 queued; nothing in flight.
+  15 and 18 split when spec'd. Last shipped: 14c2
+  (`blueprint/history/features/14c2-dragging-a-section-tile.md`).
+- **Next:** `spec` item 15, sign up and sites (split into 15a-15d).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
