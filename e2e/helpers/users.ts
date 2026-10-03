@@ -35,7 +35,10 @@ export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): P
 
 export function deactivateUser(email: string): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update users set deactivated_at = now() where email = ${email}`;
+    await sql`
+      update site_members set deactivated_at = now()
+      where user_id in (select id from users where email = ${email})
+    `;
   });
 }
 
@@ -48,6 +51,9 @@ export function revokeSessions(email: string): Promise<void> {
 /** Test cleanup only - the product deactivates users, never deletes them. */
 export function deleteTestUser(email: string): Promise<void> {
   return withDatabase(async (sql) => {
+    await sql`
+      delete from site_members where user_id in (select id from users where email = ${email})
+    `;
     await sql`delete from users where email = ${email}`;
   });
 }
@@ -55,7 +61,19 @@ export function deleteTestUser(email: string): Promise<void> {
 /** Test-only: create-admin makes admins, and some tests need another role. */
 export function setRole(email: string, role: "admin" | "editor" | "author"): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update users set role = ${role} where email = ${email}`;
+    await sql`
+      update site_members set role = ${role}
+      where user_id in (select id from users where email = ${email})
+    `;
+  });
+}
+
+/** Test-only: removes the membership, leaving a user who belongs to no site. */
+export function removeMembership(email: string): Promise<void> {
+  return withDatabase(async (sql) => {
+    await sql`
+      delete from site_members where user_id in (select id from users where email = ${email})
+    `;
   });
 }
 

@@ -111,7 +111,12 @@ async function checkCredentials(email: string, password: string, ip: string) {
     logSecurityEvent({ event: "login_failed", reason: "bad_password", userId: user.id, ip });
     return null;
   }
-  if (user.deactivatedAt) {
+  // No membership is refused exactly like a deactivated one.
+  if (!user.membership) {
+    logSecurityEvent({ event: "login_failed", reason: "no_membership", userId: user.id, ip });
+    return null;
+  }
+  if (user.membership.deactivatedAt) {
     logSecurityEvent({ event: "login_failed", reason: "deactivated", userId: user.id, ip });
     return null;
   }

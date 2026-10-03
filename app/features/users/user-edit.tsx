@@ -13,7 +13,7 @@ import styles from "./user-form.module.css";
 import { isUserFormBodyAllowed, newPasswordSchema, roleSchema } from "./user-input.ts";
 import {
   deactivateUser,
-  findUserById,
+  findMemberById,
   reactivateUser,
   setUserPassword,
   updateUserRole,
@@ -59,7 +59,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   const id = requireUserId(params.id);
-  const user = await findUserById(id);
+  const user = await findMemberById(id);
   if (!user) throw data("Not Found", { status: 404 });
   const actor = context.get(userContext);
   const searchParams = new URL(request.url).searchParams;
@@ -75,7 +75,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (!isUserFormBodyAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
-  const target = await findUserById(id);
+  const target = await findMemberById(id);
   if (!target) throw data("Not Found", { status: 404 });
 
   const actor = context.get(userContext);

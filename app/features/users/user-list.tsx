@@ -3,7 +3,7 @@ import { requireRole } from "#app/features/auth/require-role.server.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import type { Route } from "./+types/user-list";
 import styles from "./user-list.module.css";
-import { listUsers, type User } from "./users.server.ts";
+import { listUsers, type Member } from "./users.server.ts";
 
 // Admin only (project-plan.md's routes table); the nav hides the link too
 // (admin-shell/layout.tsx) and a non-admin gets the same 404 an ownership
@@ -41,7 +41,7 @@ export default function UserList({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function UserTable({ users }: { users: User[] }) {
+function UserTable({ users }: { users: Member[] }) {
   return (
     <div className={styles.list}>
       <table>
