@@ -190,7 +190,7 @@ File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
 ### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
 File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
 
-### F-165 [P3] fixed - The Text style select's label is visually hidden
+### F-165 [P3] closed - The Text style select's label is visually hidden
 File: app/features/blocks/document-editor.client.tsx:520-522
 
 ### F-171 [P3] open - "Enter did not submit the entry form" cannot fail

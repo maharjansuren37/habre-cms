@@ -3,7 +3,7 @@
 **From build plan:** item 14a3
 **Type:** Feature
 **Verified:** not yet
-**Reviewed:** not yet
+**Reviewed:** 2026-10-03, 8553e28d3448, current (3044513..0bd787a), every lens, independent `reviewer` - 0 blocking (F-181-F-192 P3; F-165 closed)
 
 ## Goal
 
