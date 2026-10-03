@@ -118,13 +118,13 @@ export async function findUserById(id: string): Promise<UserWithMembership | nul
   return row ? withMembership(row) : null;
 }
 
-/** The user as a member, or null when they do not exist or belong to no site. */
-export async function findMemberById(id: string): Promise<Member | null> {
+/** The user as a member of this site, or null when they do not exist or belong to another site. */
+export async function findMemberById(siteId: string, id: string): Promise<Member | null> {
   const [member] = await sql<Member[]>`
     select ${memberColumns}
     from users u
     join site_members m on m.user_id = u.id
-    where u.id = ${id}
+    where m.site_id = ${siteId} and u.id = ${id}
   `;
   return member ?? null;
 }
@@ -138,19 +138,22 @@ export async function revokeSessions(id: string): Promise<void> {
   `;
 }
 
-/** Every member, all roles and both active and deactivated, for the admin-only list. */
-export async function listUsers(): Promise<Member[]> {
+/** This site's members, all roles and both active and deactivated, for the admin-only list. */
+export async function listUsers(siteId: string): Promise<Member[]> {
   return sql<Member[]>`
     select ${memberColumns}
     from users u
     join site_members m on m.user_id = u.id
+    where m.site_id = ${siteId}
     order by u.name
   `;
 }
 
-// Changes the membership and bumps the user's token_version in one transaction,
-// so a change to access is seen on the person's very next request (D6).
+// Changes this site's membership and, only when that membership exists, bumps the
+// user's token_version in the same transaction, so a change to access is seen on
+// the person's very next request (D6). A member of another site matches nothing.
 async function updateMembership(
+  siteId: string,
   id: string,
   revoke: boolean,
   change: (tx: TransactionSql) => Promise<{ count: number }>,
@@ -167,53 +170,74 @@ async function updateMembership(
       select ${memberColumns}
       from users u
       join site_members m on m.user_id = u.id
-      where u.id = ${id}
+      where m.site_id = ${siteId} and u.id = ${id}
     `;
     return member;
   });
 }
 
 /**
- * Changes a user's role and revokes their sessions in the same transaction, so
+ * Changes a member's role and revokes their sessions in the same transaction, so
  * a demoted or promoted user's next request reads the new role rather than one
  * still valid on an old token (D6 - role changes take effect immediately).
  */
-export async function updateUserRole(id: string, role: Role): Promise<Member | null> {
+export async function updateUserRole(
+  siteId: string,
+  id: string,
+  role: Role,
+): Promise<Member | null> {
   return updateMembership(
+    siteId,
     id,
     true,
-    (tx) => tx`update site_members set role = ${role} where user_id = ${id}`,
+    (tx) =>
+      tx`update site_members set role = ${role} where site_id = ${siteId} and user_id = ${id}`,
   );
 }
 
-/** Sets a new password hash and revokes sessions in the same statement - the
- *  same "takes effect immediately" rule `updateUserRole` follows. */
-export async function setUserPassword(id: string, passwordHash: string): Promise<User | null> {
-  const [user] = await sql<User[]>`
-    update users u
-    set password_hash = ${passwordHash}, token_version = token_version + 1, updated_at = now()
-    where u.id = ${id}
-    returning ${userColumns}
-  `;
-  return user ?? null;
+/** Sets a member's new password hash and revokes sessions in one transaction - the
+ *  same "takes effect immediately" rule `updateUserRole` follows. Changes nothing
+ *  unless the user is a member of this site. */
+export async function setUserPassword(
+  siteId: string,
+  id: string,
+  passwordHash: string,
+): Promise<User | null> {
+  return sql.begin(async (tx) => {
+    const [member] = await tx`
+      select 1 from site_members where site_id = ${siteId} and user_id = ${id}
+    `;
+    if (!member) return null;
+    const [user] = await tx<User[]>`
+      update users u
+      set password_hash = ${passwordHash}, token_version = token_version + 1, updated_at = now()
+      where u.id = ${id}
+      returning ${userColumns}
+    `;
+    return user ?? null;
+  });
 }
 
-/** Deactivates a user and revokes their sessions in one transaction - login and
+/** Deactivates a member and revokes their sessions in one transaction - login and
  *  every existing session are refused from their very next request. */
-export async function deactivateUser(id: string): Promise<Member | null> {
+export async function deactivateUser(siteId: string, id: string): Promise<Member | null> {
   return updateMembership(
+    siteId,
     id,
     true,
-    (tx) => tx`update site_members set deactivated_at = now() where user_id = ${id}`,
+    (tx) =>
+      tx`update site_members set deactivated_at = now() where site_id = ${siteId} and user_id = ${id}`,
   );
 }
 
 /** Restores login. Does not touch sessions - there are none left to revoke. */
-export async function reactivateUser(id: string): Promise<Member | null> {
+export async function reactivateUser(siteId: string, id: string): Promise<Member | null> {
   return updateMembership(
+    siteId,
     id,
     false,
-    (tx) => tx`update site_members set deactivated_at = null where user_id = ${id}`,
+    (tx) =>
+      tx`update site_members set deactivated_at = null where site_id = ${siteId} and user_id = ${id}`,
   );
 }
 

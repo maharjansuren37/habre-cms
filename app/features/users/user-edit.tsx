@@ -59,9 +59,9 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   const id = requireUserId(params.id);
-  const user = await findMemberById(id);
-  if (!user) throw data("Not Found", { status: 404 });
   const actor = context.get(userContext);
+  const user = await findMemberById(actor.siteId, id);
+  if (!user) throw data("Not Found", { status: 404 });
   const searchParams = new URL(request.url).searchParams;
   const created = searchParams.get("created") !== null;
   const updated = searchParams.get("updated");
@@ -75,10 +75,10 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (!isUserFormBodyAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
-  const target = await findMemberById(id);
+  const actor = context.get(userContext);
+  const target = await findMemberById(actor.siteId, id);
   if (!target) throw data("Not Found", { status: 404 });
 
-  const actor = context.get(userContext);
   const isSelf = target.id === actor.id;
   const form = await request.formData();
   const intent = form.get("intent");
@@ -97,7 +97,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         { status: 400 },
       );
     }
-    const updated = await updateUserRole(id, role.data);
+    const updated = await updateUserRole(actor.siteId, id, role.data);
     if (!updated) throw data("Not Found", { status: 404 });
     logSecurityEvent({
       event: "role_changed",
@@ -119,7 +119,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         { status: 400 },
       );
     }
-    const updated = await setUserPassword(id, await hashPassword(password.data));
+    const updated = await setUserPassword(actor.siteId, id, await hashPassword(password.data));
     if (!updated) throw data("Not Found", { status: 404 });
     logSecurityEvent({ event: "password_reset", userId: id, actorId: actor.id });
     return redirect(`/admin/users/${id}?updated=reset-password`);
@@ -132,7 +132,10 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     if (isSelf) {
       return data({ problem: CANNOT_DEACTIVATE_SELF } satisfies ActionResult, { status: 400 });
     }
-    const updated = intent === "deactivate" ? await deactivateUser(id) : await reactivateUser(id);
+    const updated =
+      intent === "deactivate"
+        ? await deactivateUser(actor.siteId, id)
+        : await reactivateUser(actor.siteId, id);
     if (!updated) throw data("Not Found", { status: 404 });
     logSecurityEvent({
       event: intent === "deactivate" ? "user_deactivated" : "user_reactivated",

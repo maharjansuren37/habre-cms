@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
+import { userContext } from "#app/features/auth/user-context.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import type { Route } from "./+types/user-list";
 import styles from "./user-list.module.css";
@@ -20,8 +21,8 @@ export function meta(_: Route.MetaArgs) {
   return [{ title: "Users - Habre CMS" }];
 }
 
-export async function loader(_: Route.LoaderArgs) {
-  return { users: await listUsers() };
+export async function loader({ context }: Route.LoaderArgs) {
+  return { users: await listUsers(context.get(userContext).siteId) };
 }
 
 export default function UserList({ loaderData }: Route.ComponentProps) {
