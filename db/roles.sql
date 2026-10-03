@@ -1,0 +1,32 @@
+-- The app's database role (D152). Run as the PostgreSQL superuser, connected to
+-- the app database, with the password given as a psql variable:
+--
+--   psql -v ON_ERROR_STOP=1 -d habre_cms -v app_password=... -f db/roles.sql
+--
+-- Why two roles: `habre_cms` owns the tables and runs migrations. A table
+-- owner bypasses row-level security, so the web app connects as
+-- `habre_cms_app`, which owns nothing and is subject to it. Why here and not in
+-- a migration: the owner cannot create roles, and the password must not live
+-- in the repository.
+--
+-- Safe to run again: the role is created only when absent, and GRANTs that are
+-- already in place change nothing. It never grants CREATE, so the app role
+-- cannot make tables (PostgreSQL 16: schema public belongs to the owner).
+
+select format('create role habre_cms_app login password %L', :'app_password')
+where not exists (select 1 from pg_roles where rolname = 'habre_cms_app')
+\gexec
+
+select format('grant connect on database %I to habre_cms_app', current_database())
+\gexec
+
+grant usage on schema public to habre_cms_app;
+grant select, insert, update, delete on all tables in schema public to habre_cms_app;
+grant usage, select on all sequences in schema public to habre_cms_app;
+
+-- Tables and sequences made by later migrations (run as the owner) get the
+-- same grants without another run of this script.
+alter default privileges for role habre_cms in schema public
+  grant select, insert, update, delete on tables to habre_cms_app;
+alter default privileges for role habre_cms in schema public
+  grant usage, select on sequences to habre_cms_app;

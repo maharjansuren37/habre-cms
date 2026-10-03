@@ -5,11 +5,15 @@ services:
     environment:
       POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?set DEV_POSTGRES_PASSWORD in .env}
       HABRE_DB_PASSWORD: ${DEV_DB_PASSWORD:?set DEV_DB_PASSWORD in .env}
+      HABRE_APP_DB_PASSWORD: ${DEV_APP_DB_PASSWORD:?set DEV_APP_DB_PASSWORD in .env}
+      HABRE_ROLES_SQL: /opt/habre/roles.sql
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - habre_cms_dev_db:/var/lib/postgresql/data
       - ./db/dev/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      # Outside initdb.d on purpose - see db/dev/init.sh.
+      - ./db/roles.sql:/opt/habre/roles.sql:ro
 
 volumes:
   habre_cms_dev_db:

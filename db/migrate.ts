@@ -1,7 +1,17 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { sql } from "#app/lib/db.server.ts";
+import postgres from "postgres";
+import { z } from "zod";
+import { parseEnv } from "#app/lib/database-env.server.ts";
 import { pendingMigrations } from "./pending-migrations.ts";
+
+// Migrations run as the owner role (D152), never the app role, which cannot
+// create tables. The web app never reads this variable.
+const migrateEnv = parseEnv(
+  z.object({ DATABASE_OWNER_URL: z.url({ protocol: /^postgres(ql)?$/ }) }),
+  process.env,
+);
+const sql = postgres(migrateEnv.DATABASE_OWNER_URL, { max: 1 });
 
 const MIGRATIONS_DIR = path.join(import.meta.dirname, "migrations");
 

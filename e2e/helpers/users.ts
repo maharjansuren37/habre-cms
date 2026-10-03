@@ -21,8 +21,10 @@ export function createAdmin(name = "E2E Admin"): TestUser {
  *  Exported for other helper modules (e.g. `media.ts`) - one pool-per-call
  *  pattern, not a shared connection. */
 export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): Promise<T> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error("DATABASE_URL is not set - browser tests need .env");
+  // The owner, not the app role: test setup and cleanup must not be limited by
+  // the row-level security the app runs under (D152).
+  const databaseUrl = process.env.DATABASE_OWNER_URL;
+  if (!databaseUrl) throw new Error("DATABASE_OWNER_URL is not set - browser tests need .env");
   const sql = postgres(databaseUrl, { max: 1 });
   try {
     return await run(sql);
