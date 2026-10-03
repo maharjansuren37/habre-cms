@@ -34,7 +34,7 @@ import { createPortal, flushSync } from "react-dom";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
-import { selectedBlock } from "./block-moves.ts";
+import { keepOneMainHeading, selectedBlock } from "./block-moves.ts";
 import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
@@ -267,6 +267,27 @@ function blockDecorations(state: EditorState): DecorationSet {
   return DecorationSet.create(state.doc, decorations);
 }
 
+/**
+ * One main heading (14a3, Decisions): a page keeps the one it had when a paste
+ * or a typed `# ` makes another, and a post has none. The Text style menu
+ * demotes the old one itself, in the same transaction.
+ */
+function mainHeadingGuard(entryType: "post" | "page") {
+  return Extension.create({
+    name: "mainHeadingGuard",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          appendTransaction: (transactions, oldState, newState) =>
+            transactions.some((tr) => tr.docChanged)
+              ? keepOneMainHeading(oldState, newState, entryType)
+              : null,
+        }),
+      ];
+    },
+  });
+}
+
 const BlockDecorations = Extension.create({
   name: "blockDecorations",
   addProseMirrorPlugins() {
@@ -274,7 +295,7 @@ const BlockDecorations = Extension.create({
   },
 });
 
-function extensionsFor(placeholder: string) {
+function extensionsFor(entryType: "post" | "page", placeholder: string) {
   return [
     DocumentNode,
     SectionNode,
@@ -286,6 +307,7 @@ function extensionsFor(placeholder: string) {
     LineNode,
     SpaceNode,
     BlockDecorations,
+    mainHeadingGuard(entryType),
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -300,8 +322,9 @@ function extensionsFor(placeholder: string) {
       underline: false,
       // Appends a paragraph at the document's end, where only sections go.
       trailingNode: false,
-      // What this item's Text style offers; Main heading is 14a3's, 5-6 item 20's.
-      heading: { levels: [2, 3, 4] },
+      // What the Text style menu offers: a page's one Main heading (level 1,
+      // so `# ` makes it), then 2-4 everywhere; 5-6 are item 20's.
+      heading: { levels: entryType === "page" ? [1, 2, 3, 4] : [2, 3, 4] },
       link: {
         openOnClick: false,
         autolink: false,
@@ -326,9 +349,10 @@ const COPY = {
  * TipTap compares its options by identity and calls `setOptions` when they
  * differ, so they are built once per entry type here, never in a render (F-158).
  */
-function optionsFor(copy: { label: string; placeholder: string }) {
+function optionsFor(entryType: "post" | "page") {
+  const copy = COPY[entryType];
   return {
-    extensions: extensionsFor(copy.placeholder),
+    extensions: extensionsFor(entryType, copy.placeholder),
     editorProps: {
       attributes: {
         class: [content.document, styles.prose].join(" "),
@@ -339,7 +363,7 @@ function optionsFor(copy: { label: string; placeholder: string }) {
     },
   };
 }
-const OPTIONS = { page: optionsFor(COPY.page), post: optionsFor(COPY.post) };
+const OPTIONS = { page: optionsFor("page"), post: optionsFor("post") };
 
 /**
  * The v4 document editor (item 14a1): TipTap on one document per entry. Undo
@@ -459,6 +483,7 @@ export function DocumentEditor({
             editor={editor}
             canvas={canvas}
             announce={announce}
+            entryType={entryType}
             onLink={() => setLinkOpen(true)}
           />
         ) : null}

@@ -11,11 +11,15 @@ import {
   describePosition,
   keepOneMainHeading,
   kindName,
+  mainHeading,
+  mainHeadingAnnouncement,
   moveAnnouncement,
   moveBlock,
   moveSection,
   sectionMoveAnnouncement,
   selectedBlock,
+  setMainHeading,
+  shortQuote,
 } from "./block-moves.ts";
 
 const schema = new Schema({
@@ -399,4 +403,54 @@ test("the guard demotes every level-1 heading in a post", () => {
 test("the guard on a post does nothing when there is no level-1 heading", () => {
   const s = stateOf(pageWith(h(2, "A")));
   assert.equal(keepOneMainHeading(s, s, "post"), null);
+});
+
+test("a short heading is quoted whole, a long one cut to 40 characters with an ellipsis", () => {
+  assert.equal(shortQuote("Welcome"), "Welcome");
+  const long = "Portraits and weddings in the Adelaide Hills since 2009";
+  assert.equal(shortQuote(long), `${long.slice(0, 40)}…`);
+  assert.equal(shortQuote("x".repeat(40)), "x".repeat(40));
+});
+
+test("the main heading is the page's level-1 heading, or none", () => {
+  assert.equal(mainHeading(pageWith(h(2, "Work"), h(1, "Welcome")))?.textContent, "Welcome");
+  assert.equal(mainHeading(pageWith(h(2, "Work"))), null);
+});
+
+test("Main heading makes the selected heading level 1 and the old one a Heading, in one undo step", () => {
+  const state = cursorIn(
+    pageWith(h(1, "Welcome"), p("Body"), h(2, "Our work")),
+    "Our work",
+    1,
+    true,
+  );
+  const result = setMainHeading(state);
+  assert.notEqual(result, null);
+  const { tr, demoted } = result as NonNullable<typeof result>;
+  assert.equal(demoted?.textContent, "Welcome");
+  const next = state.apply(tr);
+  assert.deepEqual(levels(next.doc), [2, 1]);
+  assert.equal(mainHeadingAnnouncement(demoted as ProseMirrorNode), '"Welcome" is now a Heading.');
+  assert.equal(selectedBlock(next)?.node.textContent, "Our work");
+  const undone = state.apply(tr);
+  let restored = undone;
+  undo(undone, (t) => {
+    restored = undone.apply(t);
+  });
+  assert.deepEqual(levels(restored.doc), [1, 2]);
+});
+
+test("Main heading turns text into the main heading, with none to demote", () => {
+  const state = cursorIn(pageWith(p("Hello"), h(2, "Work")), "Hello");
+  const result = setMainHeading(state);
+  assert.equal(result?.demoted, null);
+  const next = state.apply(result?.tr as never);
+  assert.deepEqual(levels(next.doc), [1, 2]);
+});
+
+test("Main heading does nothing for a list, quote or atom", () => {
+  assert.equal(
+    setMainHeading(nodeSelect(pageWith(p("a"), n.horizontalRule.create()), "horizontalRule")),
+    null,
+  );
 });

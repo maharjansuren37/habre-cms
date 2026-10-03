@@ -145,3 +145,16 @@
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
 }
+
+.styleMain {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+/* Under Main heading: "One per page. Now: "…"". */
+.hint {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+}

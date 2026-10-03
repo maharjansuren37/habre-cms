@@ -172,7 +172,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   `getByRole("toolbar", { name: "Formatting" })` finds nothing; Undo and Redo
   are visible at 1280 and 390 with no horizontal scroll.
 
-- [ ] **Step 5 - Main heading** - pages' editor allows level 1 (posts' keep
+- [x] **Step 5 - Main heading** - pages' editor allows level 1 (posts' keep
   2-4); the menu's Main heading with its hint naming the current one
   (truncated, Notes); choosing it demotes the previous one in the same
   transaction and announces it; the step-1 guard runs as an

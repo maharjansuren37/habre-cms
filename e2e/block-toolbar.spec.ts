@@ -267,6 +267,8 @@ test("keyboard only: the Text style menu turns text into a Subheading and back, 
   await expect(menu.getByRole("menuitemradio", { name: "Text", exact: true })).toBeFocused();
   await expect(menu.getByRole("menuitemradio", { checked: true })).toHaveText("Text");
   // F-153's concern, kept: moving through the styles changes nothing until one is chosen.
+  // Text, Main heading (a page's), Heading, Subheading.
+  await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitemradio", { name: "Subheading" })).toBeFocused();
@@ -377,3 +379,130 @@ for (const width of [1280, 390]) {
     );
   });
 }
+
+function heading(level: number, value: string): TestNode {
+  return { type: "heading", attrs: { level }, content: [{ type: "text", text: value }] };
+}
+
+/** Pastes this HTML at the caret - written as source, since these tests' types have no DOM. */
+async function paste(page: Page, html: string) {
+  await page.evaluate(`(() => {
+    const element = document.querySelector('[role="textbox"]');
+    const data = new DataTransfer();
+    data.setData("text/html", ${JSON.stringify(html)});
+    data.setData("text/plain", "Pasted");
+    element.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+  })()`);
+}
+
+test("journey 4: Main heading moves the page's one h1, announced, undone in one step, and published", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Journey Four",
+    doc(section([heading(1, "Welcome"), "Intro", heading(2, "Our work")])),
+    true,
+  );
+  await textbox.getByText("Our work", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  const styleButton = page
+    .getByRole("toolbar", { name: "Heading" })
+    .getByRole("button", { name: "Text style: Heading" });
+  await expect(styleButton).toBeFocused();
+  await page.keyboard.press("Enter");
+  const main = page.getByRole("menuitemradio", { name: /^Main heading/ });
+  await expect(main).toContainText('One per page. Now: "Welcome"');
+  await page.keyboard.press("ArrowUp");
+  await expect(main).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("status")).toHaveText('"Welcome" is now a Heading.');
+  await expect(textbox).toBeFocused();
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveText(["Our work"]);
+  await expect(textbox.getByRole("heading", { level: 2 })).toHaveText(["Welcome"]);
+
+  // One Ctrl+Z restores both.
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveText(["Welcome"]);
+  await expect(textbox.getByRole("heading", { level: 2 })).toHaveText(["Our work"]);
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveText(["Our work"]);
+
+  const saved = page.waitForResponse((response) => response.request().method() === "POST");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  expect((await saved).ok()).toBe(true);
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section([heading(2, "Welcome"), "Intro", heading(1, "Our work")])),
+  );
+
+  await page.goto("/journey-four");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Our work"]);
+  await expect(page.getByRole("heading", { name: "Journey Four" })).toHaveCount(0);
+});
+
+test("a page with no main heading still shows its title as the h1", async ({ page }) => {
+  await createDraftFor(editor.email, "Title Shown", doc(section(["Body"])), {
+    type: "page",
+    status: "published",
+  });
+  await page.goto("/title-shown");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Title Shown"]);
+});
+
+test("a pasted h1 on a page that has a main heading arrives as a Heading, and Save succeeds", async ({
+  page,
+}) => {
+  const { id, textbox } = await openPage(
+    page,
+    "Pasted Main",
+    doc(section([heading(1, "Welcome"), "Body"])),
+  );
+  await textbox.getByText("Body", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await paste(page, "<h1>Pasted</h1>");
+  await expect(textbox.getByRole("heading", { level: 2, name: "Pasted" })).toBeVisible();
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveText(["Welcome"]);
+  await save(page);
+  await expect(page.getByText("Your changes were not saved.")).toHaveCount(0);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section([heading(1, "Welcome"), "Body", heading(2, "Pasted")])),
+  );
+});
+
+test("a post's menu has no Main heading, and typing # never makes a level-1 heading", async ({
+  page,
+}) => {
+  const id = await createDraftFor(editor.email, "No Main Post", doc(section(["Words"])), {
+    type: "post",
+  });
+  await logIn(page, editor);
+  await page.goto(`/admin/posts/${id}`);
+  const textbox = page.getByRole("textbox", { name: "Post content" });
+  await textbox.getByText("Words", { exact: true }).click();
+  await settle(page);
+  await page.getByRole("button", { name: /^Text style:/ }).click();
+  await expect(page.getByRole("menuitemradio")).toHaveText([
+    "Text",
+    "Heading",
+    "Subheading",
+    "Small heading",
+  ]);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(textbox).toBeFocused();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("# Not a main heading");
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveCount(0);
+  await paste(page, "<h1>Pasted</h1>");
+  await expect(textbox.getByRole("heading", { level: 1 })).toHaveCount(0);
+  await save(page);
+  expect(JSON.stringify((await storedEntry(id)).blocks)).not.toContain('"level":1');
+});

@@ -351,3 +351,47 @@ export function keepOneMainHeading(
   for (const { pos, node } of demote) tr.setNodeMarkup(pos, undefined, { ...node.attrs, level: 2 });
   return tr;
 }
+
+/** A heading's text as the menu's hint and the announcement quote it: cut to 40 characters with "…". */
+export function shortQuote(text: string): string {
+  return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+}
+
+/** The page's main heading (level 1), or null. */
+export function mainHeading(doc: ProseMirrorNode): ProseMirrorNode | null {
+  let found: ProseMirrorNode | null = null;
+  doc.descendants((node) => {
+    if (found) return false;
+    if (node.type.name === "heading" && node.attrs.level === 1) found = node;
+    return node.type.name !== "paragraph" && node.type.name !== "heading";
+  });
+  return found;
+}
+
+/** "\"Welcome\" is now a Heading." */
+export function mainHeadingAnnouncement(demoted: ProseMirrorNode): string {
+  return `"${shortQuote(demoted.textContent)}" is now a Heading.`;
+}
+
+/**
+ * Makes the selected text or heading the page's main heading, in one
+ * transaction and one undo step: the previous main heading becomes a Heading.
+ * Returns that previous heading for the announcement, or null with none.
+ */
+export function setMainHeading(
+  state: EditorState,
+): { tr: Transaction; demoted: ProseMirrorNode | null } | null {
+  const selected = selectedBlock(state);
+  if (!selected || (selected.kind !== "text" && selected.kind !== "heading")) return null;
+  const tr = closeHistory(state.tr);
+  let demoted: ProseMirrorNode | null = null;
+  state.doc.descendants((node, pos) => {
+    if (node.type.name === "heading" && node.attrs.level === 1 && pos !== selected.pos) {
+      tr.setNodeMarkup(pos, undefined, { ...node.attrs, level: 2 });
+      demoted = node;
+    }
+    return node.type.name !== "paragraph" && node.type.name !== "heading";
+  });
+  tr.setNodeMarkup(selected.pos, state.schema.nodes.heading, { level: 1 });
+  return { tr, demoted };
+}

@@ -14,9 +14,13 @@ import {
   deleteAnnouncement,
   deleteBlock,
   kindName,
+  mainHeading,
+  mainHeadingAnnouncement,
   moveAnnouncement,
   moveBlock,
   selectedBlock,
+  setMainHeading,
+  shortQuote,
 } from "./block-moves.ts";
 import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
@@ -35,11 +39,14 @@ export function BlockToolbar({
   editor,
   canvas,
   announce,
+  entryType,
   onLink,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
   announce: (message: string) => void;
+  /** A page has one Main heading; a post has none. */
+  entryType: "post" | "page";
   /** Opens the link dialog, which the editor draws (unchanged from the format bar). */
   onLink: () => void;
 }) {
@@ -58,6 +65,9 @@ export function BlockToolbar({
         // and says why nothing moved.
         canUp: moveBlock(state, "up", Number.POSITIVE_INFINITY) !== null,
         canDown: moveBlock(state, "down", Number.POSITIVE_INFINITY) !== null,
+        // Main heading is for one block, never a range.
+        isRange: !state.selection.$from.sameParent(state.selection.$to),
+        main: mainHeading(state.doc)?.textContent ?? null,
         bold: current.isActive("bold"),
         italic: current.isActive("italic"),
         link: current.isActive("link"),
@@ -254,6 +264,9 @@ export function BlockToolbar({
             <TextStyleButton
               editor={editor}
               current={tool.label}
+              offerMain={entryType === "page" && !block.isRange}
+              main={block.main}
+              announce={announce}
               isOpen={isStyleOpen}
               setOpen={setStyleOpen}
               tabIndex={index === current ? 0 : -1}
@@ -316,6 +329,7 @@ function Icon({ children }: { children: ReactNode }) {
 /** The Text style menu's choices, each drawn at its own size (design.md, Editor decisions). */
 const STYLES = [
   { label: "Text", level: 0, className: styles.styleText },
+  { label: "Main heading", level: 1, className: styles.styleMain },
   { label: "Heading", level: 2, className: styles.styleHeading },
   { label: "Subheading", level: 3, className: styles.styleSubheading },
   { label: "Small heading", level: 4, className: styles.styleSmall },
@@ -330,6 +344,9 @@ const STYLES = [
 function TextStyleButton({
   editor,
   current,
+  offerMain,
+  main,
+  announce,
   isOpen,
   setOpen,
   tabIndex,
@@ -337,6 +354,11 @@ function TextStyleButton({
 }: {
   editor: Editor;
   current: string;
+  /** Whether Main heading is offered: on a page, for one block. */
+  offerMain: boolean;
+  /** The page's main heading's text, for the hint, or null. */
+  main: string | null;
+  announce: (message: string) => void;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
   tabIndex: number;
@@ -359,6 +381,15 @@ function TextStyleButton({
 
   function choose(level: number) {
     setOpen(false);
+    if (level === 1) {
+      const result = setMainHeading(editor.state);
+      if (result) {
+        editor.view.dispatch(result.tr);
+        if (result.demoted) announce(mainHeadingAnnouncement(result.demoted));
+      }
+      editor.view.focus();
+      return;
+    }
     if (level === 0) editor.commands.setParagraph();
     else editor.commands.setHeading({ level: level as 2 | 3 | 4 });
     // Now, not TipTap's `focus()`, which waits a frame and can take focus back
@@ -433,7 +464,7 @@ function TextStyleButton({
             if (!menu.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
           }}
         >
-          {STYLES.map((style) => (
+          {STYLES.filter((style) => style.level !== 1 || offerMain).map((style) => (
             <button
               key={style.label}
               type="button"
@@ -444,7 +475,18 @@ function TextStyleButton({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(style.level)}
             >
-              <span className={style.className}>{style.label}</span>
+              {style.level === 1 ? (
+                <span>
+                  <span className={style.className}>{style.label}</span>
+                  <span className={styles.hint}>
+                    {main === null || current === "Main heading"
+                      ? "One per page."
+                      : `One per page. Now: "${shortQuote(main)}"`}
+                  </span>
+                </span>
+              ) : (
+                <span className={style.className}>{style.label}</span>
+              )}
               <Icon>
                 <path d="M5 12l5 5L20 7" />
               </Icon>
