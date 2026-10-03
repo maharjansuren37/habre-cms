@@ -53,3 +53,33 @@ File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-edit
 
 ### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
 File: app/features/blocks/document-editor.module.css:49, :323
+
+### F-208 [P3] open - Escape, hold over 1 s, then release on the starting tile still clicks it
+File: app/features/blocks/block-drag.client.tsx:308 (`swallowClick` fallback timer)
+
+### F-209 [P3] open - The auto-scroll announcement tests do not check what is announced when scrolling stops
+File: e2e/block-drag.spec.ts and e2e/section-drag.spec.ts (`expectSettledWhileScrolling`)
+
+### F-210 [P3] open - The top-bar block test never checks that a section lies under the bar
+File: e2e/block-drag.spec.ts ("releasing over the sticky top bar cancels and stores nothing, though a section lies under it")
+
+### F-211 [P3] open - The over-the-bar tests wait a fixed 350 ms against a 300 ms hold, then read once
+File: e2e/block-drag.spec.ts, e2e/section-drag.spec.ts (`waitForTimeout(350)` before `textContent()`)
+
+### F-212 [P3] open - Nothing enforces the F-195 test's "within 1 second" condition
+File: e2e/block-drag.spec.ts:416-434
+
+### F-213 [P3] open - No test covers a touch on a section tile
+File: app/features/blocks/palette.client.tsx:207 (`SectionTiles` touch guard)
+
+### F-214 [P3] open - Three reworded comments still say something slightly untrue
+File: app/features/content/entry-delete.module.css:28; app/features/media/media-delete.module.css:34; AGENTS.md (ci row); dev-notes/status.md:644-645
+
+### F-215 [P3] open - Older unit tests compare a Transaction to null with `assert.equal`, which exhausts memory when one fails
+File: app/features/blocks/palette-insert.test.ts:127,311,317,318,395,397,398; block-moves.test.ts:145,146,165,166,171,294,295; block-drops.test.ts:305,388
+
+### F-216 [P3] unverified - A mouse overshooting the window's bottom while auto-scrolling now hides the gap and cancels on release
+File: app/features/blocks/block-drag.client.tsx (`covered`: `elementFromPoint` is null outside the viewport)
+
+### F-217 [P3] open - design.md's Announcements bullet does not record the 300 ms hold while auto-scrolling
+File: blueprint/context/design.md ("Built in item 14b", *Announcements*)

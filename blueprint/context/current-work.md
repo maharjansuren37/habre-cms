@@ -1,8 +1,8 @@
 # Fix: Tidy the drag-and-drop backlog and stale comments
 
 **Type:** Fix
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-04, cad7e0d17197, every done-when of steps 1-7 proven (unit: `npm test` 412/412; browser: `npm run test:e2e` 263 passed, none skipped, real R2; step 7 greps empty); real-tablet tap (F-196) and screen-reader hearing not verifiable here - needs-you
+**Reviewed:** 2026-10-04, cad7e0d17197, current (main..03aa4a8), every lens, reviewer subagent - 0 blocking; 9 new P3 open (F-208..F-215, F-217), 1 unverified (F-216); 10 repairs confirmed, left fixed for a person to close (autopilot)
 
 ## Goal
 
