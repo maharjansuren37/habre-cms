@@ -206,7 +206,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   -> open a page -> move a block -> Publish -> the public page shows the new
   order, as a full page load and through the app's links.
 
-- [x] **Step 8 - The admin policy tightens** _(plan section 6's CSP line awaits your approval - proposed in the review packet)_ - `content-security-policy.ts`
+- [x] **Step 8 - The admin policy tightens** - `content-security-policy.ts`
   drops `'unsafe-inline'` from the admin's `style-src` and `data:` from its
   `img-src`; its header comment and plan section 6's line say why they went.
   *Done when:* `content-security-policy.spec.ts`'s admin test, in the
@@ -225,6 +225,10 @@ a page gets its one main heading (D166). The interim format bar goes.
   announcements and the chip's moves. *Done when:* both files carry those
   lines, and `npm run verify` and the whole browser suite pass
   (`npm run test:e2e` locally with R2; CI's `e2e` with `E2E_SKIP_R2=1`).
+
+- [x] Repair F-183 - The toolbar's tab stop is remembered by index across blocks and can land on Delete
+- [x] Repair F-181 - The Text style menu can open with no item focused and then not close from the keyboard
+- [x] Repair F-182 - Clicking the Text style button while its menu is open drops focus to the page body
 
 ## Files and areas
 

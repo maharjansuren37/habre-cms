@@ -257,6 +257,11 @@ export function BlockToolbar({
       role="toolbar"
       aria-label={block.name}
       onKeyDown={onKeyDown}
+      // Leaving the toolbar starts its tab stop at Move up again, so an index
+      // kept from one block never lands on another block's Delete (F-183).
+      onBlur={(event) => {
+        if (!toolbar.current?.contains(event.relatedTarget as Node | null)) setActive(0);
+      }}
     >
       {tools.map((tool, index) => (
         <span key={tool.key} className={styles.group}>
@@ -371,7 +376,11 @@ function TextStyleButton({
   // Opening puts focus on the checked item, before the next key arrives.
   useLayoutEffect(() => {
     if (!isOpen) return;
-    menu.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+    // The first item when none matches (a range in the main heading, F-181).
+    const items = menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    (
+      menu.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]') ?? items?.[0]
+    )?.focus();
   }, [isOpen]);
 
   function close(focusButton: boolean) {
@@ -437,9 +446,14 @@ function TextStyleButton({
         tabIndex={tabIndex}
         onFocus={onFocus}
         onMouseDown={(event) => event.preventDefault()}
-        onClick={() => setOpen(!isOpen)}
+        // Closing from the button keeps focus on it, not on an item it removes (F-182).
+        onClick={() => (isOpen ? close(true) : setOpen(true))}
         onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
+          if (event.key === "Escape" && isOpen) {
+            event.preventDefault();
+            event.stopPropagation();
+            close(true);
+          } else if (event.key === "ArrowDown") {
             event.preventDefault();
             setOpen(true);
           }

@@ -51,13 +51,13 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
 
-### F-181 [P3] open - The Text style menu can open with no item focused and then not close from the keyboard
+### F-181 [P3] closed - The Text style menu can open with no item focused and then not close from the keyboard
 File: app/features/blocks/block-toolbar.client.tsx:372-375,463-467
 
-### F-182 [P3] open - Clicking the Text style button while its menu is open drops focus to the page body
+### F-182 [P3] closed - Clicking the Text style button while its menu is open drops focus to the page body
 File: app/features/blocks/block-toolbar.client.tsx:439-440
 
-### F-183 [P3] open - The toolbar's tab stop is remembered by index across blocks and can land on Delete
+### F-183 [P3] closed - The toolbar's tab stop is remembered by index across blocks and can land on Delete
 File: app/features/blocks/block-toolbar.client.tsx:79,229
 
 ### F-184 [P3] unverified - The toolbar is placed with its old size when its buttons change but its block does not move

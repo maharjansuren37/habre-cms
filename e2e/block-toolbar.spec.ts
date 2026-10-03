@@ -278,8 +278,10 @@ test("keyboard only: the Text style menu turns text into a Subheading and back, 
   await expect(textbox).toBeFocused();
   await expect(textbox.getByRole("heading", { level: 3, name: "Words" })).toBeVisible();
 
-  // Back again: Tab to the toolbar, which remembers the menu button.
+  // Back again: Tab to the toolbar, which starts at Move up (F-183).
   await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
   const subheadingButton = page
     .getByRole("toolbar", { name: "Subheading" })
     .getByRole("button", { name: "Text style: Subheading" });
@@ -296,6 +298,8 @@ test("keyboard only: the Text style menu turns text into a Subheading and back, 
   await expect(textbox.getByRole("heading")).toHaveCount(0);
 
   await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
   await expect(toolbar.getByRole("button", { name: "Text style: Text" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitemradio", { name: "Text", exact: true })).toBeFocused();
@@ -652,3 +656,64 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(page.getByRole("main").getByRole("paragraph")).toHaveText(["Second", "First"]);
   });
 }
+
+// ---- Repairs after review ---------------------------------------------------
+
+test("F-183: a newly selected block's toolbar starts at Move up, not at the last block's button", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Tab Stop Page", doc(section(["Words", lineBlock()])));
+  await textbox.getByText("Words", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("button", { name: "Bold" })).toBeFocused();
+  await page.keyboard.press("Escape");
+
+  await textbox.locator("hr").click();
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("toolbar", { name: "Line" }).getByRole("button", { name: "Move up" }),
+  ).toBeFocused();
+});
+
+test("F-181: with no style checked, the menu still opens on an item and Escape closes it to the button", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(
+    page,
+    "Range Main Page",
+    doc(section([heading(1, "Welcome"), "Body"])),
+  );
+  // A range from Body back into the main heading: Main heading is not offered
+  // for a range, so no item matches the button's "Main heading".
+  await textbox.getByText("Body", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("End");
+  await page.keyboard.press("Shift+ArrowUp");
+  await settle(page);
+  const button = page.getByRole("button", { name: "Text style: Main heading" });
+  await button.click();
+  const menu = page.getByRole("menu", { name: "Text style" });
+  await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(button).toBeFocused();
+});
+
+test("F-182: pressing the Text style button while its menu is open closes it and keeps focus on the button", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Toggle Menu Page", doc(section(["Words"])));
+  await textbox.getByText("Words", { exact: true }).click();
+  await settle(page);
+  const button = page.getByRole("button", { name: "Text style: Text" });
+  await button.click();
+  const menu = page.getByRole("menu", { name: "Text style" });
+  await expect(menu).toBeVisible();
+  await button.click();
+  await expect(menu).toHaveCount(0);
+  await expect(button).toBeFocused();
+});
