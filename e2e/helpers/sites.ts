@@ -2,6 +2,17 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { PASSWORD, type TestUser, withDatabase } from "./users.ts";
 
+let siteOne: string | undefined;
+/** The oldest site: the one today's install became. Test users made by `createAdmin` belong to it. */
+export async function siteOneId(): Promise<string> {
+  siteOne ??= await withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`select id from sites order by created_at, id limit 1`;
+    if (!row) throw new Error("no site exists");
+    return row.id;
+  });
+  return siteOne;
+}
+
 /** Makes a site and its settings row, and returns the site's id. The subdomain
  *  gets a random suffix so parallel workers never collide. */
 export function createSite(subdomain: string): Promise<string> {

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
+import { siteOneId } from "./sites.ts";
 
 export const PASSWORD = "correct horse battery staple";
 
@@ -128,11 +129,12 @@ export async function createDraftFor(
   // published needs one too, or anything ordering by it (item 4b's public
   // home) sees every seeded row tie at null.
   const publishedAt = options.publishedAt ?? (status === "published" ? new Date() : null);
+  const siteId = await siteOneId();
   let id = "";
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into entries (type, title, slug, blocks, blocks_format, status, published_at, author_id)
-      select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
+      insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+      select ${siteId}, ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
              ${sql.json(blocks as never)}, 'v4', ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id
