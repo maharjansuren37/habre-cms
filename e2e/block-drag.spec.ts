@@ -330,6 +330,14 @@ test("dragging the Image tile to the top of column 2 shows the gap, ghost and pl
     "Image: drop at block 1 of 2 in column 2 of section 1.",
   );
   await expect(tile(page, "Image")).toHaveCSS("border-top-style", "dashed");
+  // The ghost is Habre's chrome: its border and icon take the tiles' rust.
+  // Run in the page, so written as source: these tests' types have no DOM.
+  const rust = (await page.evaluate(
+    `getComputedStyle(document.querySelector('[aria-label="Add to the page"] button svg')).stroke`,
+  )) as string;
+  expect(rust).not.toBe("none");
+  await expect(page.locator("[data-drag-ghost]")).toHaveCSS("border-top-color", rust);
+  await expect(page.locator("[data-drag-ghost] svg")).toHaveCSS("stroke", rust);
   await expect(tile(page, "Text")).not.toHaveCSS("border-top-style", "dashed");
 
   await page.mouse.up();

@@ -30,6 +30,9 @@
   opacity: 0.4;
 }
 
+/* The ghost is Habre's chrome, drawn in the admin's body, outside the site
+   scope that defines --color-selection: it takes the admin's rust, as the
+   palette's tile icons do. */
 .ghost {
   position: fixed;
   top: 0;
@@ -39,7 +42,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-selection);
+  border: 1px solid var(--color-primary);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
@@ -52,7 +55,7 @@
 
 .ghostIcon {
   fill: none;
-  stroke: var(--color-selection);
+  stroke: var(--color-primary);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;

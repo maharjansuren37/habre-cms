@@ -2,7 +2,7 @@
 
 **From build plan:** item 14b
 **Type:** Feature
-**Verified:** not yet
+**Verified:** 2026-10-03, 30033c1edc46, 8 of 8 proven (every done-when by Playwright against the production build, the full suite 228 passed; gap and ghost seen in screenshots at 1280px and 390px); not provable here: a real phone and a screen reader (needs-you.md)
 **Reviewed:** not yet
 
 ## Goal
@@ -198,6 +198,14 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   plan section 6's drop-gap line as approved at this gate. *Done when:* both
   files carry those lines, and `npm run verify` and the whole browser suite
   pass (`npm run test:e2e` locally with R2; CI's `e2e` with `E2E_SKIP_R2=1`).
+
+- [x] **Repair - the ghost's icon and border** (found by `verify`,
+  2026-10-03): the ghost is drawn in the admin's `body`, outside the site
+  scope where `--color-selection` is defined, so its icon had no stroke and
+  its border no rust. Use the admin's rust, `--color-primary` (the tile
+  icons' colour, already measured). *Done when:* `block-drag.spec.ts`
+  asserts the ghost's border and icon take the Image tile icon's colour,
+  seen failing first; a screenshot mid-drag shows both.
 
 ## Files and areas
 
