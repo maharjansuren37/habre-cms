@@ -618,7 +618,9 @@ test("Tab from the writing area reaches the block toolbar, then the chip's Secti
   // The toolbar is one tab stop (14a3), between the writing area and the chip.
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("toolbar", { name: "Text" }).getByRole("button", { name: "Move up" }),
+    page
+      .getByRole("toolbar", { name: "Text" })
+      .getByRole("button", { name: "Move up", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(

@@ -121,8 +121,8 @@ test("keyboard only: Move down twice crosses into the next column, announced, an
 
   await page.keyboard.press("Tab");
   const toolbar = page.getByRole("toolbar", { name: "Text" });
-  const moveUp = toolbar.getByRole("button", { name: "Move up" });
-  const moveDown = toolbar.getByRole("button", { name: "Move down" });
+  const moveUp = toolbar.getByRole("button", { name: "Move up", exact: true });
+  const moveDown = toolbar.getByRole("button", { name: "Move down", exact: true });
   await expect(moveUp).toBeFocused();
   // Nothing is above A: the button says so and does nothing, and keeps focus.
   await expect(moveUp).toHaveAttribute("aria-disabled", "true");
@@ -608,7 +608,9 @@ test("journey 3, keyboard only: Move up is announced, then a palette tile adds i
   await settle(page);
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("toolbar", { name: "Text" }).getByRole("button", { name: "Move up" }),
+    page
+      .getByRole("toolbar", { name: "Text" })
+      .getByRole("button", { name: "Move up", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("status")).toHaveText("Text moved up: block 1 of 2 in section 1.");
@@ -646,7 +648,7 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await textbox.getByText("Second", { exact: true }).click();
     await page
       .getByRole("toolbar", { name: "Text" })
-      .getByRole("button", { name: "Move up" })
+      .getByRole("button", { name: "Move up", exact: true })
       .click();
     expect(await canvasShape(page)).toEqual([[["Second", "First"]]]);
 
@@ -675,7 +677,9 @@ test("F-183: a newly selected block's toolbar starts at Move up, not at the last
   await textbox.locator("hr").click();
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("toolbar", { name: "Line" }).getByRole("button", { name: "Move up" }),
+    page
+      .getByRole("toolbar", { name: "Line" })
+      .getByRole("button", { name: "Move up", exact: true }),
   ).toBeFocused();
 });
 
@@ -736,7 +740,7 @@ test("keyboard only: Duplicate text puts a selected copy after it, announced, an
 
   await page.keyboard.press("Tab");
   const toolbar = page.getByRole("toolbar", { name: "Text" });
-  await expect(toolbar.getByRole("button", { name: "Move up" })).toBeFocused();
+  await expect(toolbar.getByRole("button", { name: "Move up", exact: true })).toBeFocused();
   await page.keyboard.press("End");
   await page.keyboard.press("ArrowLeft");
   const duplicate = toolbar.getByRole("button", { name: "Duplicate text" });
@@ -820,4 +824,39 @@ test("at 200 blocks Duplicate is unavailable and says why, adding nothing", asyn
   await page.keyboard.press("Enter");
   await expect(page.getByRole("status")).toHaveText("You can have at most 200 blocks.");
   await expect(textbox.getByText("Block 1", { exact: true })).toHaveCount(1);
+});
+
+test("the toolbar of a right-hand column's first block slides left of the section chip rather than covering it", async ({
+  page,
+}) => {
+  const { textbox } = await openPage(page, "Chip Clear", doc(section(["Left"], ["Right"])));
+  await textbox.getByText("Right", { exact: true }).click();
+  const toolbar = await page.getByRole("toolbar", { name: "Text" }).boundingBox();
+  const chip = await page.getByRole("group", { name: "Section 1 of 1", exact: true }).boundingBox();
+  const block = await textbox.getByText("Right", { exact: true }).boundingBox();
+  if (!toolbar || !chip || !block) throw new Error("not drawn");
+  const overlaps =
+    toolbar.x < chip.x + chip.width &&
+    toolbar.x + toolbar.width > chip.x &&
+    toolbar.y < chip.y + chip.height &&
+    toolbar.y + toolbar.height > chip.y;
+  expect(overlaps).toBe(false);
+  // Still above its block.
+  expect(toolbar.y + toolbar.height).toBeLessThanOrEqual(block.y);
+  await page.getByRole("button", { name: "Section settings" }).click();
+  await expect(page.getByRole("complementary", { name: "Section 1", exact: true })).toBeVisible();
+});
+
+test("at 390px the first block's toolbar stacks above the chip, covering neither the chip nor the next block", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { textbox } = await openPage(page, "Phone Chip", doc(section(["First", "Second"])));
+  await textbox.getByText("First", { exact: true }).click();
+  const toolbar = await page.getByRole("toolbar", { name: "Text" }).boundingBox();
+  const chip = await page.getByRole("group", { name: "Section 1 of 1", exact: true }).boundingBox();
+  const second = await textbox.getByText("Second", { exact: true }).boundingBox();
+  if (!toolbar || !chip || !second) throw new Error("not drawn");
+  expect(toolbar.y + toolbar.height).toBeLessThanOrEqual(chip.y);
+  expect(toolbar.y + toolbar.height).toBeLessThanOrEqual(second.y);
 });

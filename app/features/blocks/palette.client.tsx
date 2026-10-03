@@ -44,6 +44,12 @@ const TILES: { kind: PaletteKind; label: string; icon: ReactNode }[] = [
   { kind: "space", label: "Space", icon: <path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4" /> },
 ];
 
+/** Each kind's tile icon, which the drag ghost shows too (14b). */
+export const KIND_ICONS = Object.fromEntries(TILES.map((tile) => [tile.kind, tile.icon])) as Record<
+  PaletteKind,
+  ReactNode
+>;
+
 function Icon({ children }: { children: ReactNode }) {
   return (
     <svg

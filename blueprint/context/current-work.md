@@ -127,7 +127,7 @@ Move down and Enter on a tile (14a2, 14a3) stay the non-drag path (WCAG 2.5.7).
   level-2 heading; duplicating a line selects the copy (its ring); the
   existing toolbar tests pass (F-183's "starts at Move up" included).
 
-- [ ] **Step 3 - Dragging the selected block** - new
+- [x] **Step 3 - Dragging the selected block** - new
   `app/features/blocks/block-drag.client.tsx`: the drag controller, owned by
   `DocumentEditor` (not the toolbar, which re-renders as the selection
   moves); the grip (`button`, `tabindex="-1"`, `touch-action: none`,
@@ -281,6 +281,15 @@ Locked here for 14c, which drops section tiles:
   will be once dropped. Beats the mockup's column names: columns have none.
 - **Any change to the document mid-drag cancels the drag** (a Ctrl+Z, say),
   so a stale position is never used.
+
+- **The toolbar never covers the section chip** (owner, 2026-10-03, during
+  step 3): two more buttons (grip, Duplicate) made a right-hand column's
+  first-block toolbar cover the chip's Section settings. When the toolbar
+  would overlap the chip it slides left to end before it; with no room
+  there (a phone), it stacks just above the chip. "Just below the block" was
+  tried and refused: it covered the next block.
+- **Duplicate's announcement names what was duplicated** - "Main heading
+  duplicated: ..." for a main heading, though its copy is a Heading.
 
 ## Production needs
 

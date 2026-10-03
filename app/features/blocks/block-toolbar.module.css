@@ -158,3 +158,14 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-regular);
 }
+
+/* Out of the way while a block is dragged, so it covers no drop place (14b). */
+:global(html[data-block-dragging]) .toolbar {
+  visibility: hidden;
+}
+
+/* The drag handle (14b): grabs, and keeps a touch drag from scrolling the page. */
+.grip {
+  cursor: grab;
+  touch-action: none;
+}

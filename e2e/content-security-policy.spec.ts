@@ -190,7 +190,7 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await page.keyboard.type("Moved up");
   await page
     .getByRole("toolbar", { name: "Text" })
-    .getByRole("button", { name: "Move up" })
+    .getByRole("button", { name: "Move up", exact: true })
     .click();
   await expect(page.getByRole("status")).toHaveText("Text moved up: block 1 of 2 in section 1.");
   await page.getByRole("button", { name: /^Text style:/ }).click();

@@ -51,6 +51,11 @@ const KINDS: Readonly<Record<string, BlockKind>> = {
   space: "space",
 };
 
+/** The toolbar's name for a block's kind: "list" for either list, and so on. */
+export function blockKind(node: ProseMirrorNode): BlockKind {
+  return KINDS[node.type.name] ?? "text";
+}
+
 /**
  * The column's direct child holding the selection - the whole list or quote,
  * never a part of it. A selected block is itself; a range across blocks uses
