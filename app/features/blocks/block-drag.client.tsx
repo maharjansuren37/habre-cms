@@ -168,9 +168,25 @@ function sameSectionSlot(a: SectionSlot | null, b: SectionSlot | null): boolean 
   return a === b || (!!a && !!b && a.index === b.index);
 }
 
+/**
+ * Whether something drawn over the writing area (the sticky top bar, the
+ * settings sheet below 1024px) is the topmost element at the point. Such a
+ * point is no place, whatever section lies underneath.
+ */
+function covered(editor: Editor, x: number, y: number): boolean {
+  const top = document.elementFromPoint(x, y);
+  return !top || !editor.view.dom.contains(top);
+}
+
+/** The block slot under the point, or null outside every section or under an overlay. */
+function blockSlotUnder(editor: Editor, x: number, y: number): DropSlot | null {
+  return covered(editor, x, y) ? null : slotAt(measure(editor), x, y);
+}
+
 /** The section slot under the point: the top-level sections' rects against the writing area's. */
 function sectionSlotUnder(editor: Editor, x: number, y: number): SectionSlot | null {
   const { view, state } = editor;
+  if (covered(editor, x, y)) return null;
   const rects: Rect[] = [];
   state.doc.forEach((_, offset) => {
     const dom = view.nodeDOM(offset);
@@ -394,7 +410,7 @@ export function useBlockDrag(
           say(sectionHoverAnnouncement(template, at, current.state.doc.childCount));
           return;
         }
-        const next = slotAt(measure(current), point.current.x, point.current.y);
+        const next = blockSlotUnder(current, point.current.x, point.current.y);
         if (sameSlot(next, slot) && said) return;
         slot = next;
         const result = next ? drop(current.state, source, next) : null;
@@ -459,7 +475,7 @@ export function useBlockDrag(
         const at =
           "template" in source ? sectionSlotUnder(current, point.current.x, point.current.y) : null;
         const final =
-          "template" in source ? null : slotAt(measure(current), point.current.x, point.current.y);
+          "template" in source ? null : blockSlotUnder(current, point.current.x, point.current.y);
         finish(true);
         dragging = false;
         swallowClick(false);

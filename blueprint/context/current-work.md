@@ -102,7 +102,7 @@ F-147, F-175, F-188, F-190 (stale text).
   - `npx playwright test e2e/block-drag.spec.ts e2e/section-drag.spec.ts`
     passes with no test edited.
 
-- [ ] **Step 3 - A covered point is no place (F-193)**
+- [x] **Step 3 - A covered point is no place (F-193)**
   - In `update`, `onUp` and `sectionSlotUnder`, a point is no place unless
     the topmost element there (`document.elementFromPoint`) is inside the
     writing area (`view.dom`).

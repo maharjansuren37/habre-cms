@@ -379,3 +379,37 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(sections.last()).toContainText("Join us");
   });
 }
+
+// F-193: the sticky top bar covers sections on a scrolled page. The window
+// scrolls up while the pointer is over the bar, so the release comes within a
+// second, while sections still lie under it.
+test("a Hero tile released over the sticky top bar adds no section", async ({ page }) => {
+  const sections = Array.from({ length: 29 }, (_, i) => section(`S${i + 1}`));
+  const { textbox } = await openPage(page, "Tile Under The Bar", {
+    type: "doc",
+    content: sections,
+  });
+  await select(textbox, "S29");
+  await expect(textbox.getByText("S1", { exact: true })).not.toBeInViewport();
+  const texts = await sectionTexts(page);
+  await pickUp(page, tile(page, "Hero"));
+  const bar = await centre(page.locator("[data-sticky-bar]"));
+  const canvas = await centre(textbox);
+  await page.mouse.move(canvas.x, bar.y, { steps: 8 });
+  // The premise: a section is under the bar at this point.
+  expect(
+    await page.evaluate(
+      `document.elementsFromPoint(${canvas.x}, ${bar.y}).some((el) => el.matches('[data-node="section"]'))`,
+    ),
+  ).toBe(true);
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  // Read once: the bar keeps scrolling the page, so a retry could catch a margin between sections.
+  expect(await page.getByRole("status").textContent()).toBe("Hero: release to cancel.");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await sectionTexts(page)).toEqual(texts);
+  expect(await sectionTexts(page)).toHaveLength(29);
+});

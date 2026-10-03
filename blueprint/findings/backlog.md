@@ -244,7 +244,7 @@ File: app/features/blocks/block-toolbar.client.tsx (tools by kind)
 ### F-192 [P3] open - The toolbar may cover content above the canvas or the sticky top bar
 File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module.css (.toolbar z-index)
 
-### F-193 [P3] open - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
+### F-193 [P3] fixed - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
 File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152; app/features/blocks/block-drag.client.tsx:186,458 (`sectionSlotUnder`, 14c2)
 
 ### F-194 [P3] closed - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children

@@ -349,7 +349,9 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     dragged tile is dashed, the dragged block dimmed; the toolbar and chip
     hide while dragging.
   - **Ending:** a release over a place drops (one undo step, the block
-    selected); Escape, a release outside every section, `pointercancel` or
+    selected); Escape, a release outside every section (a point under
+    anything drawn over the writing area - the sticky top bar, the settings
+    sheet below 1024px - is outside every section), `pointercancel` or
     a change to the document mid-drag cancels. Near the window's bottom, or
     the sticky top bar's lower edge (48px), the window scrolls each frame,
     faster nearer the edge.

@@ -488,6 +488,46 @@ test("near the sticky top bar the window scrolls back up", async ({ page }) => {
   await page.mouse.up();
 });
 
+// F-193: a point under something drawn over the writing area is no place. The
+// window scrolls up while the pointer is over the sticky bar (it is inside the
+// scroll zone), so the page is scrolled well down first and the release comes
+// within a second, while sections still lie under the bar.
+test("releasing over the sticky top bar cancels and stores nothing, though a section lies under it", async ({
+  page,
+}) => {
+  // Tall sections, so the bar's scroll never leaves the pointer in a margin between two.
+  const sections = Array.from({ length: 30 }, (_, i) =>
+    section(["a", "b", "c", "d", "e"].map((letter) => `S${i + 1} ${letter}`)),
+  );
+  const { id, textbox } = await openPage(page, "Under The Bar", doc(...sections));
+  await select(textbox, "S25 a");
+  await expect(textbox.getByText("S1 a", { exact: true })).not.toBeInViewport();
+  const shape = await canvasShape(page);
+  const stored = (await storedEntry(id)).blocks;
+  // Scroll so the section above the selected one sits under the bar.
+  const bar = await centre(page.locator("[data-sticky-bar]"));
+  const above = await centre(textbox.getByText("S24 c", { exact: true }));
+  await page.mouse.wheel(0, above.y - bar.y);
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  await pickUp(page, page.getByRole("button", { name: GRIP }));
+  const canvas = await centre(textbox);
+  const over = bar.y;
+  await page.mouse.move(canvas.x, over, { steps: 8 });
+  await page.evaluate(
+    "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+  );
+  // Read once: the bar keeps scrolling the page, so a retry could catch a margin between sections.
+  expect(await page.getByRole("status").textContent()).toBe("Text: release to cancel.");
+  await expect(page.locator("[data-drop-zone]")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+  expect(await canvasShape(page)).toEqual(shape);
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(stored);
+});
+
 test("Ctrl+Z while dragging undoes the typing, cancels the drag, and the release stores nothing more", async ({
   page,
 }) => {
@@ -567,5 +607,36 @@ test.describe("at 390px by touch", () => {
     await expectClean(page, textbox);
     await save(page);
     expect((await storedEntry(id)).blocks).toEqual(doc(section(["B"], ["C"]), section(["A", "D"])));
+  });
+
+  // F-193: below 1024px the settings panel is a bottom sheet over the page's foot.
+  test("releasing a dragged image over the settings sheet cancels, though a section lies under it", async ({
+    page,
+  }) => {
+    const sections = Array.from({ length: 8 }, (_, i) => section([`S${i + 1} only`]));
+    const { textbox } = await openPage(
+      page,
+      "Under The Sheet",
+      doc(section([{ type: "image", attrs: { mediaId: "" } }, "S0 only"]), ...sections),
+    );
+    await textbox.getByText("No image chosen").tap();
+    const sheet = page.getByRole("complementary", { name: "Image", exact: true });
+    await expect(sheet).toBeVisible();
+    const shape = await canvasShape(page);
+    await pickUp(page, page.getByRole("button", { name: GRIP }));
+    const over = await centre(sheet);
+    await page.mouse.move(over.x, over.y, { steps: 8 });
+    // The premise: a section is under the sheet at this point.
+    expect(
+      await page.evaluate(
+        `document.elementsFromPoint(${over.x}, ${over.y}).some((el) => el.matches('[data-node="section"]'))`,
+      ),
+    ).toBe(true);
+    await expect(page.getByRole("status")).toHaveText("Image: release to cancel.", {
+      timeout: 1000,
+    });
+    await page.mouse.up();
+    await expect(page.getByRole("status")).toHaveText("Drag cancelled.");
+    expect(await canvasShape(page)).toEqual(shape);
   });
 });
