@@ -4,6 +4,7 @@ import { getSiteSettings, type SiteSettings } from "#app/features/settings/setti
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
+import { findPublicSiteId } from "./public-site.server.ts";
 import { FALLBACK_SITE_TITLE, publicTitle } from "./public-title.ts";
 
 type NavLink = { label: string; href: string };
@@ -15,9 +16,12 @@ type NavLink = { label: string; href: string };
  * same degrade-silently rule an image block's dangling `mediaId` already
  * follows (D61), not a new one invented for this table.
  */
-async function resolveNavigation(items: SiteSettings["navigation"]): Promise<NavLink[]> {
+async function resolveNavigation(
+  siteId: string,
+  items: SiteSettings["navigation"],
+): Promise<NavLink[]> {
   const pageIds = items.flatMap((item) => ("pageId" in item ? [item.pageId] : []));
-  const published = await findPublishedPageSlugs(pageIds);
+  const published = await findPublishedPageSlugs(siteId, pageIds);
   const slugById = new Map(published.map((page) => [page.id, page.slug]));
   return items.flatMap((item) => {
     if ("url" in item) return [{ label: item.label, href: item.url }];
@@ -41,7 +45,7 @@ export function meta({ error, matches }: Route.MetaArgs) {
 
 export async function loader() {
   const settings = await getSiteSettings(env.R2_PUBLIC_URL);
-  const navLinks = await resolveNavigation(settings.navigation);
+  const navLinks = await resolveNavigation(await findPublicSiteId(), settings.navigation);
   // Only what the header and footer show (F-108); never the whole row.
   return { settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl }, navLinks };
 }

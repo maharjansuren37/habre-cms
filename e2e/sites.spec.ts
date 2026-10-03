@@ -1,9 +1,12 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
+import { textDocument } from "./helpers/documents.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import {
   createAdmin,
+  createDraftFor,
   deactivateUser,
+  deleteEntriesBy,
   deleteTestUser,
   PASSWORD,
   removeMembership,
@@ -190,5 +193,79 @@ test.describe("the Users screens act only on this site's members", () => {
       `,
     );
     expect(memberships.map((row) => row.siteId)).toEqual([siteId]);
+  });
+});
+
+test.describe("content belongs to one site", () => {
+  const tag = String(randomInt(1e9));
+  let siteId: string;
+  let siteAdmin: TestUser;
+  let siteOneAuthor: TestUser;
+  let postId: string;
+  let pageId: string;
+  const postTitle = `Cross site post ${tag}`;
+  const pageTitle = `Cross site page ${tag}`;
+
+  test.beforeEach(async () => {
+    siteId = await createSite("content");
+    siteAdmin = await createSiteAdmin(siteId);
+    siteOneAuthor = createAdmin("Site One Author");
+    postId = await createDraftFor(siteOneAuthor.email, postTitle, textDocument("Hello"));
+    pageId = await createDraftFor(siteOneAuthor.email, pageTitle, textDocument("Hello"), {
+      type: "page",
+    });
+  });
+
+  test.afterEach(async () => {
+    await deleteEntriesBy(siteOneAuthor.email);
+    await deleteTestUser(siteOneAuthor.email);
+    await deleteSite(siteId);
+  });
+
+  test("a site-2 admin opening another site's post or page gets Not Found", async ({ page }) => {
+    await signIn(page, siteAdmin);
+
+    expect((await page.goto(`/admin/posts/${postId}`))?.status()).toBe(404);
+    expect((await page.goto(`/admin/pages/${pageId}`))?.status()).toBe(404);
+    expect((await page.goto(`/admin/posts/${postId}/delete`))?.status()).toBe(404);
+  });
+
+  test("a site-2 admin's lists show none of another site's entries", async ({ page }) => {
+    await signIn(page, siteAdmin);
+
+    await page.goto("/admin/posts");
+    await expect(page.getByText(postTitle)).toHaveCount(0);
+    await page.goto("/admin/pages");
+    await expect(page.getByText(pageTitle)).toHaveCount(0);
+  });
+
+  test("two sites can each have a page at the same address, and the public site shows site 1's", async ({
+    page,
+  }) => {
+    const slug = `about-${tag}`;
+    const siteOneTitle = `Site one about ${tag}`;
+    const siteTwoTitle = `Site two about ${tag}`;
+    await createDraftFor(siteOneAuthor.email, slug, textDocument("One"), {
+      type: "page",
+      status: "published",
+    });
+    await withDatabase(async (sql) => {
+      await sql`update entries set title = ${siteOneTitle} where slug = ${slug}`;
+      // The same address in site 2: the database accepts it.
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status,
+          published_at, author_id)
+        select ${siteId}, 'page', ${siteTwoTitle}, ${slug}, ${sql.json(textDocument("Two") as never)},
+          'v4', 'published', now(), u.id
+        from users u join site_members m on m.user_id = u.id
+        where m.site_id = ${siteId} limit 1
+      `;
+    });
+
+    await page.goto(`/${slug}`);
+
+    // The page's title is its document title; the body is "One" or "Two".
+    await expect(page).toHaveTitle(new RegExp(siteOneTitle));
+    await expect(page.getByText("Two")).toHaveCount(0);
   });
 });

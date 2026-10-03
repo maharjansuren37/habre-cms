@@ -35,7 +35,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   // findEntryForUser already returns null for a page that does not exist -
   // pages have no author-ownership restriction (only admin/editor reach this
   // route at all), but the same "not found, not forbidden" shape still applies.
-  const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
+  const entry = await findEntryForUser(
+    context.get(userContext).siteId,
+    "page",
+    requirePageId(params.id),
+    context.get(userContext),
+  );
   if (!entry) throw data("Not Found", { status: 404 });
   // The list state the person came from, so Cancel returns to it. Read
   // through the list's own parser: nothing but status, q and page gets through.
@@ -45,7 +50,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePageId(params.id);
-  const deleted = await deleteEntry("page", id, context.get(userContext));
+  const deleted = await deleteEntry(
+    context.get(userContext).siteId,
+    "page",
+    id,
+    context.get(userContext),
+  );
   if (!deleted) throw data("Not Found", { status: 404 });
   return bannerRedirect(
     "deleted",

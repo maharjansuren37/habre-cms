@@ -33,7 +33,12 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   // findEntryForUser already returns null for someone else's post, the same as
   // for a post that does not exist - existence stays private either way.
-  const entry = await findEntryForUser("post", requirePostId(params.id), context.get(userContext));
+  const entry = await findEntryForUser(
+    context.get(userContext).siteId,
+    "post",
+    requirePostId(params.id),
+    context.get(userContext),
+  );
   if (!entry) throw data("Not Found", { status: 404 });
   // The list state the person came from, so Cancel returns to it. Read
   // through the list's own parser: nothing but status, q and page gets through.
@@ -43,7 +48,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const id = requirePostId(params.id);
-  const deleted = await deleteEntry("post", id, context.get(userContext));
+  const deleted = await deleteEntry(
+    context.get(userContext).siteId,
+    "post",
+    id,
+    context.get(userContext),
+  );
   if (!deleted) throw data("Not Found", { status: 404 });
   return bannerRedirect(
     "deleted",

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { data, Form, redirect, useNavigation, useRouteLoaderData } from "react-router";
 import type { loader as adminLayoutLoader } from "#app/features/admin-shell/layout.tsx";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
+import { userContext } from "#app/features/auth/user-context.ts";
 import { listPagesForNav } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -42,9 +43,9 @@ export function meta(_: Route.MetaArgs) {
 // No settings fetch here - the admin-shell layout's own loader already reads
 // the same row for the sidebar, on every admin page including this one
 // (F-91); reading it back via useRouteLoaderData below avoids a second query.
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const updated = new URL(request.url).searchParams.get("updated") !== null;
-  const pages = await listPagesForNav();
+  const pages = await listPagesForNav(context.get(userContext).siteId);
   return { updated, pages };
 }
 
@@ -58,7 +59,7 @@ type ActionResult = {
   homePageId: string;
 };
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   if (!isSettingsFormBodyAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
@@ -125,7 +126,7 @@ export async function action({ request }: Route.ActionArgs) {
     );
   }
 
-  const pages = await listPagesForNav();
+  const pages = await listPagesForNav(context.get(userContext).siteId);
   const navResult = draftRowsToNavItems(rows, new Set(pages.map((page) => page.id)));
   if (!navResult.ok) {
     return data(

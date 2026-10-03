@@ -3,6 +3,7 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/page";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
+import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -10,7 +11,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const page = await findPublishedEntry("page", params.slug);
+  const page = await findPublishedEntry(await findPublicSiteId(), "page", params.slug);
   // A draft and a missing slug get the same answer - matches post.tsx's own
   // rule (item 4b's D-5), so a page's existence is never leaked by its status.
   if (!page) throw data("Not Found", { status: 404 });

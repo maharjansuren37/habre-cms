@@ -143,7 +143,7 @@ every later per-site feature build on. It adds no screen and no signup.
   - A browser test: a site-2 admin opening `/admin/users/<site-1 member id>` gets Not Found, posting a role change for that id changes nothing, and their Users list shows only site 2's members.
   - A member added by a site-2 admin belongs to site 2 only.
   - The existing users browser specs pass.
-- [ ] **Step 5 - `inSite` and entries scoped** - add `inSite<T>(siteId: string, run: (tx: TransactionSql) => Promise<T>): Promise<T>` to `app/lib/db.server.ts`. It calls `sql.begin`, then `select set_config('app.site_id', ${siteId}, true)`, then `run(tx)`.
+- [x] **Step 5 - `inSite` and entries scoped** - add `inSite<T>(siteId: string, run: (tx: TransactionSql) => Promise<T>): Promise<T>` to `app/lib/db.server.ts`. It calls `sql.begin`, then `select set_config('app.site_id', ${siteId}, true)`, then `run(tx)`.
 
   Every function in `entries.server.ts` takes `siteId` first, runs inside `inSite`, and filters on `e.site_id = ${siteId}` (or the unaliased form). Specifically:
   - `createDraft` inserts `site_id`, and its slug search is per site;
@@ -151,7 +151,7 @@ every later per-site feature build on. It adds no screen and no signup.
   - `saveEntry`'s stale-or-missing follow-up runs in the same transaction.
 
   Add `app/features/public-site/public-site.server.ts`, whose `findPublicSiteId()` returns the oldest site's id (`order by created_at, id limit 1`), with a comment that item 16 replaces it with a lookup by host. Public routes use it, and admin routes use `user.siteId`. *Done when:*
-  - A browser test with two sites shows that a site-2 admin opening `/admin/posts/<site-1 post id>/edit` and `/admin/pages/<site-1 page id>/edit` gets Not Found, and that their posts and pages lists show none of site 1's.
+  - A browser test with two sites shows that a site-2 admin opening `/admin/posts/<site-1 post id>` and `/admin/pages/<site-1 page id>` (the edit routes; the spec first said `/edit`, corrected at build) gets Not Found, and that their posts and pages lists show none of site 1's.
   - A site-1 page and a site-2 page can share the slug `about`.
   - The public `/about` shows site 1's page.
   - Every existing content and public-site browser spec passes.

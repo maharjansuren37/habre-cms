@@ -30,7 +30,12 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const entry = await findEntryForUser("post", requirePostId(params.id), context.get(userContext));
+  const entry = await findEntryForUser(
+    context.get(userContext).siteId,
+    "post",
+    requirePostId(params.id),
+    context.get(userContext),
+  );
   // A post belonging to someone else is not "forbidden", it is not found: the
   // answer is the same either way, so its existence stays private.
   if (!entry) throw data("Not Found", { status: 404 });
@@ -38,7 +43,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   return {
     entry,
     mediaById: await resolveDocumentMedia(entry.document),
-    pages: await listLinkablePages(actor),
+    pages: await listLinkablePages(actor.siteId, actor),
   };
 }
 
@@ -77,6 +82,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const result = await saveEntry(
+    context.get(userContext).siteId,
     "post",
     id,
     { title: parsed.title, document: parsed.document },

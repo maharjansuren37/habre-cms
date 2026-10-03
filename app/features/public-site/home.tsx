@@ -6,6 +6,7 @@ import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
 import listStyles from "./post-list.module.css";
+import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -17,11 +18,12 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 // it is published; otherwise a placeholder, never the post list - an
 // unpublished or deleted home page never breaks the front door (D-2).
 export async function loader() {
-  const page = await findHomePage();
+  const siteId = await findPublicSiteId();
+  const page = await findHomePage(siteId);
   if (page) {
     return { kind: "page" as const, page, mediaById: await resolveDocumentMedia(page.document) };
   }
-  return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts() };
+  return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts(siteId) };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {

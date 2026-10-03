@@ -35,7 +35,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   const url = new URL(request.url);
   const query = parseEntryListQuery(url);
-  const list = await listEntries("post", actor, query);
+  const list = await listEntries(actor.siteId, "post", actor, query);
   // Read once: a successful delete, publish or unpublish redirects here with
   // the title it acted on - the same `?deleted=` shape the other list reads.
   const banner = readBanner(url.searchParams);

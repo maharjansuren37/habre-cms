@@ -4,6 +4,7 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/post";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
+import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -11,7 +12,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const post = await findPublishedEntry("post", params.slug);
+  const post = await findPublishedEntry(await findPublicSiteId(), "post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
   // never leaked by its status (item 4b's D-5; matches findEntryForUser's
   // own rule for ownership on the admin side).
