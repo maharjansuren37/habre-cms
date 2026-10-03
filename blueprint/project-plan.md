@@ -1017,8 +1017,9 @@ From `stack`:
   **Content-Security-Policy** is set per HTML response by
   `app/entry.server.tsx`, not `server.js`, because it carries a per-request
   nonce for React Router's inline scripts. The public site and the admin get
-  separate policies: the admin also allows inline styles and `data:` images
-  which Editor.js once needed (D22); kept until the editor is re-checked after item 14a3. Images are allowed from `self` and the `R2_PUBLIC_URL`
+  the same policy since item 14a3, which dropped the admin's inline styles and
+  `data:` images once nothing in the editor needed them (Editor.js did, D22);
+  the two stay separate in code so the hosts can differ again. Images are allowed from `self` and the `R2_PUBLIC_URL`
   origin. It is not sent in development. `e2e/content-security-policy.spec.ts`
   fails on any violation.
 - **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,

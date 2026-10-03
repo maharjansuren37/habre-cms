@@ -161,6 +161,12 @@
   cursor: pointer;
 }
 
+/* At the first or last section: still focusable, so focus stays on it. */
+.chipButton[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .chipButton:focus-visible {
   outline: var(--focus-width) solid var(--color-on-selection);
   outline-offset: 1px;
@@ -200,54 +206,19 @@
   font-size: var(--text-sm);
 }
 
-/* ---- Format bar (interim; 14a3 moves these into the block toolbar) -------- */
-
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-4);
-  border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
-}
-
-/* The kit's select, at the small control size. */
-.select {
-  min-height: var(--size-control-sm);
-  padding: 0 var(--space-3);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
-}
-
-.select:hover {
-  border-color: var(--color-text-muted);
-}
-
-.select:focus-visible {
-  border-color: var(--color-focus-ring);
-}
+/* ---- Undo and Redo, in the top bar (14a3) ---------------------------------- */
 
 /* The kit's sm ghost icon button (.btn--ghost.btn--sm.btn--icon). Doubled
    class so it outranks the Button component's own padding and height,
    whichever stylesheet loads first. */
-.bar .tool {
+.tool.tool {
   min-height: var(--size-control-sm);
   width: var(--size-control-sm);
   padding: 0;
 }
 
-.bar .tool:hover {
+.tool.tool:hover {
   background: var(--color-surface-hover);
-}
-
-.bar .tool[aria-pressed="true"] {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
 }
 
 .icon {
@@ -258,13 +229,6 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.separator {
-  width: var(--border-width);
-  align-self: stretch;
-  margin: var(--space-1);
-  background: var(--color-border);
 }
 
 /* ---- Link dialog (the kit's .dialog) --------------------------------------- */
@@ -340,4 +304,24 @@
 .prose :global(.ProseMirror-selectednode) {
   outline: 2px solid var(--color-selection);
   outline-offset: 2px;
+}
+
+/* ---- The selected block and empty columns (item 14a3) ---------------------- */
+
+/* The selected block's ring (design.md, Editor decisions): a decoration on the
+   column's direct child holding the selection. */
+.prose :global(.ProseMirror-selectednode),
+.prose .selectedBlock {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 2px;
+}
+
+/* An untouched column of a two- or three-column section says what it is, in
+   the editor only; the public site draws nothing there. */
+.prose .emptyColumn::before {
+  content: attr(data-hint);
+  float: left;
+  height: 0;
+  color: var(--color-text-muted);
+  pointer-events: none;
 }

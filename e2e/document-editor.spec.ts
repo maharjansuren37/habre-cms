@@ -103,6 +103,12 @@ async function newParagraphAfter(page: Page, textbox: Locator, text = "Start her
   await page.keyboard.press("Enter");
 }
 
+/** Chooses a text style from the selected block's Text style menu (14a3). */
+async function setTextStyle(page: Page, label: string) {
+  await page.getByRole("button", { name: /^Text style:/ }).click();
+  await page.getByRole("menuitemradio", { name: label, exact: true }).click();
+}
+
 async function save(page: Page) {
   const saved = page.waitForResponse((response) => response.request().method() === "POST");
   await page.getByRole("button", { name: "Save draft" }).click();
@@ -168,40 +174,37 @@ test("text styles, both lists and a quote survive Save and a reload, stored as v
   page,
 }) => {
   const { id, textbox } = await openSeeded(page, "page", "Styled Page");
-  const textStyle = page.getByLabel("Text style");
 
   await newParagraphAfter(page, textbox);
   await page.keyboard.type("Big idea");
-  await textStyle.selectOption({ label: "Heading" });
+  await setTextStyle(page, "Heading");
   await newParagraphAfter(page, textbox, "Big idea");
   await page.keyboard.type("Smaller");
-  await textStyle.selectOption({ label: "Subheading" });
+  await setTextStyle(page, "Subheading");
   await newParagraphAfter(page, textbox, "Smaller");
   await page.keyboard.type("Smallest");
-  await textStyle.selectOption({ label: "Small heading" });
+  await setTextStyle(page, "Small heading");
   await newParagraphAfter(page, textbox, "Smallest");
   await page.keyboard.type("Plain again");
-  await textStyle.selectOption({ label: "Heading" });
-  await textStyle.selectOption({ label: "Text" });
-  await newParagraphAfter(page, textbox, "Plain again");
+  await setTextStyle(page, "Heading");
+  await setTextStyle(page, "Text");
 
+  // Lists and quotes come from the palette since 14a3; a list's own toolbar
+  // switches it to numbered.
+  await tile(page, "List").click();
   await page.keyboard.type("One");
-  await page.getByRole("button", { name: "Bulleted list" }).click();
   await page.keyboard.press("Enter");
   await page.keyboard.type("Two");
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  await tile(page, "List").click();
   await page.keyboard.type("First");
-  await page.getByRole("button", { name: "Numbered list" }).click();
+  await page
+    .getByRole("toolbar", { name: "List" })
+    .getByRole("button", { name: "Numbered list" })
+    .click();
   await page.keyboard.press("Enter");
   await page.keyboard.type("Second");
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  await tile(page, "Quote").click();
   await page.keyboard.type("Quoted words");
-  await page
-    .getByRole("toolbar", { name: "Formatting" })
-    .getByRole("button", { name: "Quote" })
-    .click();
 
   await save(page);
   await page.reload();
@@ -607,9 +610,16 @@ test("Backspace at the start of a column and Delete at the end of a section chan
   expect((await storedEntry(id)).blocks).toEqual(seeded);
 });
 
-test("Tab from the writing area reaches the chip's Section settings button", async ({ page }) => {
+test("Tab from the writing area reaches the block toolbar, then the chip's Section settings button", async ({
+  page,
+}) => {
   const { textbox } = await openSeeded(page, "post", "Tab Post");
   await textbox.getByText("Start here.").click();
+  // The toolbar is one tab stop (14a3), between the writing area and the chip.
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("toolbar", { name: "Text" }).getByRole("button", { name: "Move up" }),
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(
     chip(page, "Section 1 of 1").getByRole("button", { name: "Section settings" }),
@@ -911,24 +921,6 @@ test("a document at the caps saves in under 1 s and its published page answers i
   console.log(`At the caps: save ${saveMs} ms; published page ${timings.join(", ")} ms`);
   expect(saveMs).toBeLessThan(1000);
   expect(Math.max(...timings)).toBeLessThan(500);
-});
-
-test("the Text style select keeps focus while arrow keys step through its styles (F-153)", async ({
-  page,
-}) => {
-  const { textbox } = await openSeeded(page, "page", "Keyboard Style Page");
-  const textStyle = page.getByLabel("Text style");
-
-  await textbox.getByText("Start here.").click();
-  await settle(page);
-  await textStyle.focus();
-
-  // With the select closed, Chromium fires `change` on each arrow key.
-  for (const level of [2, 3, 4]) {
-    await page.keyboard.press("ArrowDown");
-    await expect(textStyle).toBeFocused();
-    await expect(textbox.getByRole("heading", { level, name: "Start here." })).toBeVisible();
-  }
 });
 
 test("content the editor cannot read is not saved over (F-154)", async ({ page }) => {

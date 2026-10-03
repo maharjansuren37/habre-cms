@@ -287,6 +287,45 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     that keeps the selected block in view above it.
   - **Tab order:** palette, title, writing area, section chip, settings
     panel.
+- **Built in item 14a3** (decided there; the mockup is wrong where noted):
+  - **Block toolbar:** `role="toolbar"` named for the block ("Heading",
+    "Image"), above the block, outside the writing area, after it and before
+    the chip in tab order. **One tab stop**: arrow keys, Home and End move
+    within it, Escape returns to the writing area with the selection kept.
+    Contents: text and heading - Move up, Move down | Text style, Bold,
+    Italic, Link | Delete; **a list - Bulleted list, Numbered list in place
+    of Text style** (lists are not text styles, and without them numbered
+    lists would be reachable only by typing `1. `); **a quote has no style
+    control**; image, button, line, space - Move up, Move down | Delete. The
+    drag handle and Duplicate come with 14b; their places stay empty.
+  - **Move up / Move down** cross columns and sections in reading order; at
+    the first or last position they are `aria-disabled`, not `disabled`, so
+    focus stays on the button. Delete is named for the block ("Delete
+    heading").
+  - **A column never empties:** its last block leaving leaves an empty
+    paragraph, and a block arriving in that untouched column replaces it. In a
+    section of two or three columns an untouched column shows "Empty column -
+    add a block or change Columns in Section settings." in `--color-text-muted`
+    (editor only; a one-column section keeps "Write your page…").
+  - **Announcements**, in one polite `role="status"` outside the writing
+    area: "Heading moved down: block 1 of 2 in column 2 of section 1." ("column
+    N of" left out in a one-column section), "Section moved down: now section 2
+    of 3.", "Heading deleted.", `"Welcome" is now a Heading.`
+  - **Text style menu:** a menu button showing the current style; Enter,
+    Space or Down opens it on the checked item, Enter chooses and returns to
+    the writing area, Escape closes back to the button. **Main heading** is
+    offered on pages only, for one block, never a range, with the hint `One
+    per page. Now: "…"` (cut to 40 characters); choosing it makes the old
+    one a Heading in the same step. A paste or a typed `# ` never makes a
+    second; a post has none.
+  - **Section chip:** label, Move section up, Move section down, Section
+    settings, **Remove section** (the mockup has none, and nothing else
+    removes a section). A one-section page shows no moves, as it shows no
+    Remove section.
+  - **Undo and Redo sit in the editor's top bar at every width.** The mockup
+    hides them below 1024px, which leaves a phone with no undo at all.
+  - **Tab order:** palette, title, writing area, block toolbar, section chip,
+    settings panel.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

@@ -1,8 +1,16 @@
-import { mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
+import { Extension, mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
 import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
-import { NodeSelection, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import {
+  type EditorState,
+  NodeSelection,
+  Plugin,
+  Selection,
+  TextSelection,
+  type Transaction,
+} from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import {
   EditorContent,
   NodeViewWrapper,
@@ -26,6 +34,14 @@ import { createPortal, flushSync } from "react-dom";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
+import {
+  type Direction,
+  keepOneMainHeading,
+  moveSection,
+  sectionMoveAnnouncement,
+  selectedBlock,
+} from "./block-moves.ts";
+import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
 import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
@@ -223,15 +239,69 @@ const SpaceNode = Node.create({
   ],
 });
 
-const TEXT_STYLES = [
-  { value: "paragraph", label: "Text" },
-  { value: "2", label: "Heading" },
-  { value: "3", label: "Subheading" },
-  { value: "4", label: "Small heading" },
-] as const;
-type TextStyle = (typeof TEXT_STYLES)[number]["value"];
+/** What an untouched column of a two- or three-column section says (editor only). */
+const EMPTY_COLUMN_HINT = "Empty column - add a block or change Columns in Section settings.";
 
-function extensionsFor(placeholder: string) {
+/**
+ * The editor's own marks on the canvas, never content (item 14a3): the
+ * selected block's rust ring, and the hint in each untouched column of a
+ * multi-column section. Decorations are not saved, typed into or counted.
+ */
+function blockDecorations(state: EditorState): DecorationSet {
+  const decorations: Decoration[] = [];
+  const selected = selectedBlock(state);
+  if (selected) {
+    decorations.push(
+      Decoration.node(selected.pos, selected.pos + selected.node.nodeSize, {
+        class: styles.selectedBlock,
+      }),
+    );
+  }
+  state.doc.forEach((section, sectionOffset) => {
+    if (section.childCount < 2) return;
+    section.forEach((column, columnOffset) => {
+      if (!isUntouched(column)) return;
+      const paragraph = sectionOffset + 1 + columnOffset + 1;
+      decorations.push(
+        Decoration.node(paragraph, paragraph + column.child(0).nodeSize, {
+          class: styles.emptyColumn,
+          "data-hint": EMPTY_COLUMN_HINT,
+        }),
+      );
+    });
+  });
+  return DecorationSet.create(state.doc, decorations);
+}
+
+/**
+ * One main heading (14a3, Decisions): a page keeps the one it had when a paste
+ * or a typed `# ` makes another, and a post has none. The Text style menu
+ * demotes the old one itself, in the same transaction.
+ */
+function mainHeadingGuard(entryType: "post" | "page") {
+  return Extension.create({
+    name: "mainHeadingGuard",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          appendTransaction: (transactions, oldState, newState) =>
+            transactions.some((tr) => tr.docChanged)
+              ? keepOneMainHeading(oldState, newState, entryType)
+              : null,
+        }),
+      ];
+    },
+  });
+}
+
+const BlockDecorations = Extension.create({
+  name: "blockDecorations",
+  addProseMirrorPlugins() {
+    return [new Plugin({ props: { decorations: blockDecorations } })];
+  },
+});
+
+function extensionsFor(entryType: "post" | "page", placeholder: string) {
   return [
     DocumentNode,
     SectionNode,
@@ -242,6 +312,8 @@ function extensionsFor(placeholder: string) {
     ButtonNode,
     LineNode,
     SpaceNode,
+    BlockDecorations,
+    mainHeadingGuard(entryType),
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -256,8 +328,9 @@ function extensionsFor(placeholder: string) {
       underline: false,
       // Appends a paragraph at the document's end, where only sections go.
       trailingNode: false,
-      // What this item's Text style offers; Main heading is 14a3's, 5-6 item 20's.
-      heading: { levels: [2, 3, 4] },
+      // What the Text style menu offers: a page's one Main heading (level 1,
+      // so `# ` makes it), then 2-4 everywhere; 5-6 are item 20's.
+      heading: { levels: entryType === "page" ? [1, 2, 3, 4] : [2, 3, 4] },
       link: {
         openOnClick: false,
         autolink: false,
@@ -282,9 +355,10 @@ const COPY = {
  * TipTap compares its options by identity and calls `setOptions` when they
  * differ, so they are built once per entry type here, never in a render (F-158).
  */
-function optionsFor(copy: { label: string; placeholder: string }) {
+function optionsFor(entryType: "post" | "page") {
+  const copy = COPY[entryType];
   return {
-    extensions: extensionsFor(copy.placeholder),
+    extensions: extensionsFor(entryType, copy.placeholder),
     editorProps: {
       attributes: {
         class: [content.document, styles.prose].join(" "),
@@ -295,23 +369,23 @@ function optionsFor(copy: { label: string; placeholder: string }) {
     },
   };
 }
-const OPTIONS = { page: optionsFor(COPY.page), post: optionsFor(COPY.post) };
+const OPTIONS = { page: optionsFor("page"), post: optionsFor("post") };
 
 /**
- * The v4 document editor (item 14a1): TipTap on one document per entry. The
- * format bar is drawn into `barSlot`, a place under the editor's top bar that
- * the entry form owns; the writing area is the customer's site, in its own
+ * The v4 document editor (item 14a1): TipTap on one document per entry. Undo
+ * and Redo are drawn into `undoSlot`, in the top bar the entry form owns; the
+ * selected block's toolbar does the rest (14a3). The writing area is the customer's site, in its own
  * light scope (`data-surface="site"`) even inside dark Habre.
  *
- * Nothing interactive sits inside the writing area (D169): the bar and the
- * link dialog are outside it.
+ * Nothing interactive sits inside the writing area (D169): the toolbar, the
+ * chip and the link dialog are outside it.
  */
 export function DocumentEditor({
   initialDocument,
   entryType,
   contentRef,
   onChange,
-  barSlot,
+  undoSlot,
   paletteSlot,
   addSlot,
   settingsSlot,
@@ -323,7 +397,8 @@ export function DocumentEditor({
   /** Reads the current document when the form submits. */
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
-  barSlot: HTMLElement | null;
+  /** Where Undo and Redo are drawn: the editor's top bar, at every width (14a3). */
+  undoSlot: HTMLElement | null;
   /** Where the palette is drawn (before the canvas) and where the phone's Add button goes. */
   paletteSlot: HTMLElement | null;
   addSlot: HTMLElement | null;
@@ -380,6 +455,14 @@ export function DocumentEditor({
 
   const canvas = useRef<HTMLDivElement>(null);
   const [isAddOpen, setAddOpen] = useState(false);
+  const [isLinkOpen, setLinkOpen] = useState(false);
+  // What the polite status region last said: moves and deletes (14a3).
+  const [announcement, setAnnouncement] = useState("");
+  function announce(message: string) {
+    // Emptied first, so the same sentence twice is still read twice.
+    flushSync(() => setAnnouncement(""));
+    setAnnouncement(message);
+  }
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
@@ -394,17 +477,37 @@ export function DocumentEditor({
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}
       {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
-      {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
+      {undoSlot && editor ? createPortal(<UndoRedo editor={editor} />, undoSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>
           <EditorContent editor={editor} />
         </MediaContext.Provider>
-        {/* After the writing area, so Tab reaches it next; outside it, so no
-            control sits inside the textbox (D169). */}
+        {/* After the writing area, so Tab reaches the toolbar and then the
+            chip; outside it, so no control sits inside the textbox (D169). */}
         {editor ? (
-          <SectionChip editor={editor} canvas={canvas} onOpenSettings={openSectionSettings} />
+          <BlockToolbar
+            editor={editor}
+            canvas={canvas}
+            announce={announce}
+            entryType={entryType}
+            onLink={() => setLinkOpen(true)}
+          />
+        ) : null}
+        {editor ? (
+          <SectionChip
+            editor={editor}
+            canvas={canvas}
+            onOpenSettings={openSectionSettings}
+            announce={announce}
+          />
         ) : null}
       </div>
+      <p className="visually-hidden" role="status">
+        {announcement}
+      </p>
+      {isLinkOpen && editor ? (
+        <LinkDialog editor={editor} onClose={() => setLinkOpen(false)} />
+      ) : null}
       {editor ? <AddSection editor={editor} /> : null}
       {settingsSlot && editor
         ? createPortal(
@@ -534,17 +637,20 @@ function removeSection(editor: Editor, index: number) {
 /**
  * The section chip (design.md, *Section controls*): on the section holding the
  * cursor, drawn outside the writing area and placed over its section by this
- * code. It offers Section settings (Columns live in the panel) and Remove
- * section; Move section up and down come with 14a3.
+ * code. Its label, Move section up and down (14a3, announced; at the ends
+ * `aria-disabled`, so focus stays), Section settings (Columns live in the
+ * panel) and Remove section.
  */
 function SectionChip({
   editor,
   canvas,
   onOpenSettings,
+  announce,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
   onOpenSettings: (index: number) => void;
+  announce: (message: string) => void;
 }) {
   const chip = useRef<HTMLFieldSetElement>(null);
   const { index, count } = useEditorState({
@@ -578,10 +684,60 @@ function SectionChip({
     };
   }, [editor, canvas, index]);
 
+  /** One section move, one undo step; the selection, and so the chip, go with it. */
+  function move(direction: Direction) {
+    const tr = moveSection(editor.state, index, direction);
+    if (!tr) return;
+    editor.view.dispatch(tr);
+    announce(sectionMoveAnnouncement(direction, index + (direction === "down" ? 1 : -1), count));
+  }
+
   const label = `Section ${index + 1} of ${count}`;
   return (
     <fieldset ref={chip} className={styles.chip}>
       <legend className={styles.chipLegend}>{label}</legend>
+      {count > 1 ? (
+        <>
+          <button
+            type="button"
+            className={styles.chipButton}
+            aria-label="Move section up"
+            title="Move section up"
+            aria-disabled={index === 0 ? "true" : undefined}
+            onClick={() => move("up")}
+          >
+            <svg
+              className={styles.chipIcon}
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.chipButton}
+            aria-label="Move section down"
+            title="Move section down"
+            aria-disabled={index === count - 1 ? "true" : undefined}
+            onClick={() => move("down")}
+          >
+            <svg
+              className={styles.chipIcon}
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+          </button>
+        </>
+      ) : null}
       <button
         type="button"
         className={styles.chipButton}
@@ -851,102 +1007,18 @@ function AddSection({ editor }: { editor: Editor }) {
   );
 }
 
-/**
- * The interim format bar (current-work.md, Design reference): a native select
- * for the text style and the kit's small ghost icon buttons. 14a3 moves these
- * controls into the selected block's toolbar.
- */
-function FormatBar({ editor }: { editor: Editor }) {
-  const selectId = useId();
-  const [isLinkOpen, setLinkOpen] = useState(false);
+/** Undo and Redo, in the editor's top bar at every width - a phone has no
+ *  keyboard undo (14a3, Decisions). */
+function UndoRedo({ editor }: { editor: Editor }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
-      textStyle:
-        (["2", "3", "4"] as const).find((level) =>
-          current.isActive("heading", { level: Number(level) }),
-        ) ?? ("paragraph" as TextStyle),
-      bold: current.isActive("bold"),
-      italic: current.isActive("italic"),
-      link: current.isActive("link"),
-      bulletList: current.isActive("bulletList"),
-      orderedList: current.isActive("orderedList"),
-      blockquote: current.isActive("blockquote"),
       canUndo: current.can().undo(),
       canRedo: current.can().redo(),
     }),
   });
-
-  function setTextStyle(value: TextStyle) {
-    // No .focus(): the select keeps it, so arrow keys can step through the
-    // styles (F-153, WCAG 3.2.2). The command acts on the saved selection.
-    const chain = editor.chain();
-    if (value === "paragraph") chain.setParagraph().run();
-    else chain.setHeading({ level: Number(value) as 2 | 3 | 4 }).run();
-  }
-
   return (
-    <div className={styles.bar} role="toolbar" aria-label="Formatting">
-      <label className="visually-hidden" htmlFor={selectId}>
-        Text style
-      </label>
-      <select
-        id={selectId}
-        className={styles.select}
-        value={state.textStyle}
-        onChange={(event) => setTextStyle(event.currentTarget.value as TextStyle)}
-      >
-        {TEXT_STYLES.map((style) => (
-          <option key={style.value} value={style.value}>
-            {style.label}
-          </option>
-        ))}
-      </select>
-      <span className={styles.separator} aria-hidden="true" />
-      <Tool
-        label="Bulleted list"
-        pressed={state.bulletList}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-      >
-        <path d="M9 6h11M9 12h11M9 18h11" />
-        <circle cx="4.5" cy="6" r="1" />
-        <circle cx="4.5" cy="12" r="1" />
-        <circle cx="4.5" cy="18" r="1" />
-      </Tool>
-      <Tool
-        label="Numbered list"
-        pressed={state.orderedList}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-      >
-        <path d="M10 6h10M10 12h10M10 18h10M4 4h1.5v4M4 8h3M4 11.5h3l-3 4h3" />
-      </Tool>
-      <Tool
-        label="Quote"
-        pressed={state.blockquote}
-        onClick={() => editor.chain().focus().toggleWrap("blockquote").run()}
-      >
-        <path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6" />
-      </Tool>
-      <span className={styles.separator} aria-hidden="true" />
-      <Tool
-        label="Bold"
-        pressed={state.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-      >
-        <path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" />
-      </Tool>
-      <Tool
-        label="Italic"
-        pressed={state.italic}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      >
-        <path d="M10 5h8M6 19h8M14 5l-4 14" />
-      </Tool>
-      <Tool label="Link" pressed={state.link} onClick={() => setLinkOpen(true)}>
-        <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
-        <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
-      </Tool>
-      <span className={styles.separator} aria-hidden="true" />
+    <>
       <Tool
         label="Undo"
         disabled={!state.canUndo}
@@ -963,21 +1035,18 @@ function FormatBar({ editor }: { editor: Editor }) {
         <path d="m15 14 5-5-5-5" />
         <path d="M20 9H10a6 6 0 0 0 0 12h3" />
       </Tool>
-      {isLinkOpen ? <LinkDialog editor={editor} onClose={() => setLinkOpen(false)} /> : null}
-    </div>
+    </>
   );
 }
 
-/** The kit's small ghost icon button; a toggle says whether it is on. */
+/** The kit's small ghost icon button. */
 function Tool({
   label,
-  pressed,
   disabled,
   onClick,
   children,
 }: {
   label: string;
-  pressed?: boolean;
   disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -989,7 +1058,6 @@ function Tool({
       className={styles.tool}
       aria-label={label}
       title={label}
-      aria-pressed={pressed}
       disabled={disabled}
       // A pointer press leaves the caret where it is, so the command applies
       // to the writing area's selection at once and typing carries on there.

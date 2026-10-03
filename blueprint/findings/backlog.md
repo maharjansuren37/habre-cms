@@ -190,9 +190,6 @@ File: e2e/document-editor.spec.ts (no placeholder assertion; :816-817)
 ### F-163 [P3] open - An unreadable document opens as an empty, editable editor; the refusal comes only at Save and suggests a reload that cannot help
 File: app/features/blocks/document-editor.client.tsx:212-235; app/features/content/entry-form.tsx:178-181
 
-### F-165 [P3] open - The Text style select's label is visually hidden
-File: app/features/blocks/document-editor.client.tsx:520-522
-
 ### F-171 [P3] open - "Enter did not submit the entry form" cannot fail
 File: e2e/document-editor.spec.ts:1544
 
@@ -213,3 +210,30 @@ File: app/features/blocks/document-editor.client.tsx:698-707
 
 ### F-180 [P3] open - Cut then paste of an image deletes it and pastes nothing
 File: app/features/blocks/document-editor.client.tsx (`ImageNode`, no `parseHTML` by design)
+
+### F-184 [P3] unverified - The toolbar is placed with its old size when its buttons change but its block does not move
+File: app/features/blocks/block-toolbar.client.tsx:85-106
+
+### F-185 [P3] open - The ring's browser test cannot fail if the selected-block decoration breaks; the selected-node rule is declared twice
+File: e2e/block-toolbar.spec.ts:163-176; app/features/blocks/document-editor.module.css:303-315
+
+### F-186 [P3] open - CI checks the admin policy for the toolbar and menu but not for the link dialog, picker or panel
+File: e2e/content-security-policy.spec.ts:160
+
+### F-187 [P3] unverified - A repeated announcement is probably not re-read by a screen reader
+File: app/features/blocks/document-editor.client.tsx:460-465
+
+### F-188 [P3] open - Comments still describe the removed format bar
+File: app/features/content/entry-form.tsx:71; app/features/content/entry-form.module.css:20-21; app/features/blocks/document-editor.module.css:4
+
+### F-189 [P3] open - "Main heading does nothing for a list, quote or atom" asserts only the atom
+File: app/features/blocks/block-moves.test.ts (last test)
+
+### F-190 [P3] open - needs-you.md and AGENTS.md give stale counts of the R2-only browser tests
+File: blueprint/context/needs-you.md:172,176; AGENTS.md (ci row)
+
+### F-191 [P3] open - No control converts existing text into a list or quote, or a quote back to text
+File: app/features/blocks/block-toolbar.client.tsx (tools by kind)
+
+### F-192 [P3] unverified - The toolbar may cover content above the canvas or the sticky top bar
+File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module.css (.toolbar z-index)
