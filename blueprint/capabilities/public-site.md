@@ -7,3 +7,4 @@
 - **public-site.5** - an empty paragraph or heading renders no element, and neither does a section in which nothing renders (only empty text, spaces, empty buttons or deleted images) *Since:* features/14a1-the-document · *Changed:* features/14a2-image-button-line-and-space
 - **public-site.6** - an image renders as an `img` named once by its alt text; the first on a page loads at once with high priority, the rest lazily *Since:* features/14a2-image-button-line-and-space
 - **public-site.7** - a button renders as a link; a button without text or a destination, and an image whose file was deleted, render nothing *Since:* features/14a2-image-button-line-and-space
+- **public-site.8** - a hero renders as a two-column section with its columns centred vertically, a call to action on a band background *Since:* features/14c1-ready-made-sections

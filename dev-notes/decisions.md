@@ -2805,3 +2805,65 @@ end before it; with no room (a phone) it stacks just above the chip (owner,
 during item 14b step 3).
 Beats: "just below the block", tried and refused - it covered the next block.
 Costs: the toolbar is not always aligned to the block's right edge.
+
+## D226 - A section tile inserts after the section holding the selection (2026-10-03)
+
+**Chose:** Blank section, Hero, Image and text and Call to action add their
+section directly after the section holding the selection, the cursor in its
+first text block, as one undo step (item 14c1).
+Beats: appending at the end (what "Add a section" already does, so a tile
+would add nothing but a kind); inserting before (reading order puts new
+things after the place you are).
+Costs: adding to the end of a long page means selecting in the last section
+first, or using Add a section.
+
+## D227 - Section templates hold empty blocks, never starter text (2026-10-03)
+
+**Chose:** every text block a template inserts is empty, its button has no
+text or link and its image no file; editor-only hints name each empty block
+("Main heading", "Text"). AI fills the same templates in item 18b. The hero is
+heading, text, space, button | image - the space as the mockup draws it, which
+D170's list leaves out.
+Beats: placeholder copy ("Your headline here"), which publishes if left
+unedited.
+Costs: an inserted template looks bare until filled; an untouched one
+publishes nothing.
+
+## D228 - Templates are plain v4 JSON, shared by the editor and the server (2026-10-03)
+
+**Chose:** `sectionTemplate(kind, { mainHeading })` in
+`app/features/blocks/section-templates.ts` returns a v4 `Section` as JSON with
+no editor import; its kinds (`blank`, `hero`, `image-text`, `cta`) are the
+section kinds item 18b's AI output uses (D170).
+Beats: building templates with the editor's ProseMirror schema, which the
+server cannot import.
+Costs: the editor converts with `schema.nodeFromJSON`, and a template must
+stay valid against the v4 Zod schema (unit-tested).
+
+## D229 - An image with no file chosen is stored as `mediaId: ""` (2026-10-03)
+
+**Chose:** the v4 schema accepts an image's `mediaId` as a UUID or exactly
+`""` ("not chosen yet"); anything else is still refused with "An image needs
+a file from Media.". `""` renders nothing publicly and is never looked up
+(`documentMediaIds` skips it). **Amends 14a2's contract**, which required a
+UUID.
+Beats: refusing the save (every hero would block its page's save until both
+images were chosen); dropping the block on save (the layout would change
+silently).
+Costs: a published page can hold image blocks that draw nothing; an image
+column left empty still takes its width (F-205).
+
+## D230 - Empty-text hints are the editor's own decorations, not TipTap's `Placeholder` (2026-10-03)
+
+**Chose:** `blockDecorations` marks each empty text block with `is-empty` and
+a `data-placeholder` from `emptyTextHint`: an empty heading names its style; an
+empty paragraph beside other blocks says "Text", and with the cursor in a
+column paragraph "Write your page…" / "Write your post…"; list and quote
+lines have none. The generated text has empty alt text (`/ ""`) so screen
+readers skip it (F-204, unconfirmed).
+Beats: TipTap's `Placeholder`, which computes the hint while the editor still
+holds the previous document, so a hint that depends on the parent went wrong
+once typing shifted positions.
+Costs: `@tiptap/extensions` is no longer imported by app code but stays in
+`package.json` (StarterKit depends on it at the same pinned version); "Write
+your page…" now draws in any empty one-column section holding the cursor.

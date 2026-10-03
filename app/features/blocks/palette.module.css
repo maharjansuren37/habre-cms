@@ -126,3 +126,13 @@ button.addButton {
   border-style: dashed;
   color: var(--color-text-muted);
 }
+
+/* The Sections group: its heading follows the Blocks grid, and a section tile
+   takes a whole row (prototypes/components.css, .tile--wide). */
+.groupHeading {
+  margin-top: var(--space-5);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}

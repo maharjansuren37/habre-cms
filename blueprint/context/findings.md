@@ -50,3 +50,6 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
+
+### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
+File: app/features/blocks/document-editor.module.css:49, :323

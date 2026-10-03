@@ -406,6 +406,10 @@ test("an image without a valid media id is refused", () => {
   assert.equal(refused(oneBlock({ type: "image" })), sentence);
 });
 
+test("an image with no file chosen (an empty media id) is accepted and stored exactly", () => {
+  assert.deepEqual(storedBlock(image({ mediaId: "" })), image({ mediaId: "" }));
+});
+
 test("a button label over 80 characters is refused", () => {
   assert.equal(MAX_BUTTON_LABEL_LENGTH, 80);
   assert.equal(storedBlock(button({ label: "a".repeat(80) })) !== undefined, true);

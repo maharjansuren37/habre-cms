@@ -124,7 +124,8 @@ not tidying; it is what keeps the open list true.
       item 14a3, the block toolbar, the Text style menu, the move and delete
       announcements and the chip's section moves; from item 14b, the drag
       announcements - over a place, dropped, cancelled - the grip's name and
-      Duplicate).
+      Duplicate; from item 14c1, the Sections tiles, the dialog's "Add to the
+      page" headings, the "added" announcement and the empty-text hints).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -132,7 +133,7 @@ not tidying; it is what keeps the open list true.
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
-      widened, item 9; widened, item 14a3; widened, item 14b)
+      widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -181,8 +182,8 @@ not tidying; it is what keeps the open list true.
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
       manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
       F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 228
-      passed, item 14b). Nothing in `deploy` runs it. Blocks nothing now; needed before each
+      by `npm run test:e2e` on your machine with the real `.env` (expect 244
+      passed, item 14c1). Nothing in `deploy` runs it. Blocks nothing now; needed before each
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 

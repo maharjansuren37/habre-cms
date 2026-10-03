@@ -1,5 +1,4 @@
 import { Extension, mergeAttributes, Node, type NodeViewProps } from "@tiptap/core";
-import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 import {
@@ -46,8 +45,9 @@ import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
 import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
+import { emptyTextHint } from "./empty-text-hint.ts";
 import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
-import { AddButton, AddDialog, Palette } from "./palette.client.tsx";
+import { AddButton, AddDialog, Palette, SECTIONS_FULL_NOTE } from "./palette.client.tsx";
 import {
   ButtonSettings,
   ImageSettings,
@@ -248,7 +248,7 @@ const EMPTY_COLUMN_HINT = "Empty column - add a block or change Columns in Secti
  * selected block's rust ring, and the hint in each untouched column of a
  * multi-column section. Decorations are not saved, typed into or counted.
  */
-function blockDecorations(state: EditorState): DecorationSet {
+function blockDecorations(state: EditorState, entryType: "post" | "page"): DecorationSet {
   const decorations: Decoration[] = [];
   const selected = selectedBlock(state);
   if (selected) {
@@ -270,6 +270,20 @@ function blockDecorations(state: EditorState): DecorationSet {
         }),
       );
     });
+  });
+  // The hint in each empty text block. Drawn from `data-placeholder` as TipTap's
+  // placeholder was; "" draws nothing. Built here, from the new state, because
+  // TipTap's placeholder reads the previous document when it is asked for the parent.
+  const anchor = state.selection.anchor;
+  state.doc.descendants((node, pos, parent) => {
+    if (!node.isTextblock || node.content.size > 0 || !parent) return;
+    const hasAnchor = anchor > pos && anchor < pos + node.nodeSize;
+    decorations.push(
+      Decoration.node(pos, pos + node.nodeSize, {
+        class: "is-empty",
+        "data-placeholder": emptyTextHint(node, parent, hasAnchor, entryType),
+      }),
+    );
   });
   return DecorationSet.create(state.doc, decorations);
 }
@@ -295,14 +309,18 @@ function mainHeadingGuard(entryType: "post" | "page") {
   });
 }
 
-const BlockDecorations = Extension.create({
-  name: "blockDecorations",
-  addProseMirrorPlugins() {
-    return [new Plugin({ props: { decorations: blockDecorations } })];
-  },
-});
+function blockDecorationsFor(entryType: "post" | "page") {
+  return Extension.create({
+    name: "blockDecorations",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({ props: { decorations: (state) => blockDecorations(state, entryType) } }),
+      ];
+    },
+  });
+}
 
-function extensionsFor(entryType: "post" | "page", placeholder: string) {
+function extensionsFor(entryType: "post" | "page") {
   return [
     DocumentNode,
     SectionNode,
@@ -313,7 +331,7 @@ function extensionsFor(entryType: "post" | "page", placeholder: string) {
     ButtonNode,
     LineNode,
     SpaceNode,
-    BlockDecorations,
+    blockDecorationsFor(entryType),
     DropGap,
     mainHeadingGuard(entryType),
     StarterKit.configure({
@@ -344,13 +362,12 @@ function extensionsFor(entryType: "post" | "page", placeholder: string) {
         isAllowedUri: (url: string) => isSafeHref(url),
       },
     }),
-    Placeholder.configure({ placeholder, includeChildren: true }),
   ];
 }
 
 const COPY = {
-  page: { label: "Page content", placeholder: "Write your page…" },
-  post: { label: "Post content", placeholder: "Write your post…" },
+  page: { label: "Page content" },
+  post: { label: "Post content" },
 } as const;
 
 /**
@@ -360,7 +377,7 @@ const COPY = {
 function optionsFor(entryType: "post" | "page") {
   const copy = COPY[entryType];
   return {
-    extensions: extensionsFor(entryType, copy.placeholder),
+    extensions: extensionsFor(entryType),
     editorProps: {
       attributes: {
         class: [content.document, styles.prose].join(" "),
@@ -467,6 +484,7 @@ export function DocumentEditor({
   }
 
   const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce);
+  const sectionPalette = { entryType, maxSections: MAX_SECTIONS, announce };
 
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
@@ -478,14 +496,21 @@ export function DocumentEditor({
     <>
       {paletteSlot && editor
         ? createPortal(
-            <Palette editor={editor} startDrag={startDrag} draggingTile={draggingTile} />,
+            <Palette
+              editor={editor}
+              startDrag={startDrag}
+              draggingTile={draggingTile}
+              sections={sectionPalette}
+            />,
             paletteSlot,
           )
         : null}
       {addSlot && editor
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}
-      {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
+      {isAddOpen && editor ? (
+        <AddDialog editor={editor} onClose={() => setAddOpen(false)} sections={sectionPalette} />
+      ) : null}
       {undoSlot && editor ? createPortal(<UndoRedo editor={editor} />, undoSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>
@@ -1011,9 +1036,7 @@ function AddSection({ editor }: { editor: Editor }) {
         </svg>
         Add a section
       </Button>
-      {isFull ? (
-        <p className={styles.addSectionNote}>Thirty sections is the most there can be.</p>
-      ) : null}
+      {isFull ? <p className={styles.addSectionNote}>{SECTIONS_FULL_NOTE}</p> : null}
     </div>
   );
 }

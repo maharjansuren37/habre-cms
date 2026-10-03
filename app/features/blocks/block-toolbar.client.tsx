@@ -16,7 +16,6 @@ import {
   deleteAnnouncement,
   deleteBlock,
   kindName,
-  mainHeading,
   mainHeadingAnnouncement,
   moveAnnouncement,
   moveBlock,
@@ -26,7 +25,7 @@ import {
 } from "./block-moves.ts";
 import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-import { countBlocks } from "./palette-insert.ts";
+import { countBlocks, mainHeading } from "./document-queries.ts";
 
 /**
  * The selected block's toolbar (current-work.md, 14a3): drawn outside the

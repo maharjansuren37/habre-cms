@@ -8,7 +8,7 @@ import {
   type Transaction,
 } from "@tiptap/pm/state";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-import { countBlocks } from "./palette-insert.ts";
+import { countBlocks } from "./document-queries.ts";
 
 /**
  * Moving, deleting and announcing blocks (item 14a3). Pure ProseMirror, no
@@ -360,17 +360,6 @@ export function keepOneMainHeading(
 /** A heading's text as the menu's hint and the announcement quote it: cut to 40 characters with "…". */
 export function shortQuote(text: string): string {
   return text.length > 40 ? `${text.slice(0, 40)}…` : text;
-}
-
-/** The page's main heading (level 1), or null. */
-export function mainHeading(doc: ProseMirrorNode): ProseMirrorNode | null {
-  let found: ProseMirrorNode | null = null;
-  doc.descendants((node) => {
-    if (found) return false;
-    if (node.type.name === "heading" && node.attrs.level === 1) found = node;
-    return node.type.name !== "paragraph" && node.type.name !== "heading";
-  });
-  return found;
 }
 
 /** "\"Welcome\" is now a Heading." */

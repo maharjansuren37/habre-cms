@@ -9,7 +9,8 @@ import {
   selectedBlock,
 } from "./block-moves.ts";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-import { countBlocks, newBlock, type PaletteKind } from "./palette-insert.ts";
+import { countBlocks } from "./document-queries.ts";
+import { newBlock, type PaletteKind } from "./palette-insert.ts";
 
 /**
  * Drops, duplicates and drop-target geometry for drag and drop (item 14b).

@@ -27,3 +27,14 @@ test("a document with no image has no media ids", () => {
   const document: Document = { type: "doc", content: [section({ type: "space" })] };
   assert.deepEqual(documentMediaIds(document), []);
 });
+
+test("an image with no file chosen contributes no media id", () => {
+  const id = "0b7e3a52-6d1c-4f3e-9a41-2c8d5e7f9b10";
+  const document: Document = {
+    type: "doc",
+    content: [
+      section({ type: "image", attrs: { mediaId: "" } }, { type: "image", attrs: { mediaId: id } }),
+    ],
+  };
+  assert.deepEqual(documentMediaIds(document), [id]);
+});

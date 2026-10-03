@@ -42,9 +42,11 @@
   margin-top: var(--space-2);
 }
 
-/* The placeholder in an empty document's first paragraph. */
-.prose :global(.is-editor-empty):first-child::before {
-  content: attr(data-placeholder);
+/* The hint in an empty text block (item 14c1): the editor marks each one `is-empty`
+   with its text in `data-placeholder`, which is "" where nothing is shown. An
+   untouched column of a multi-column section draws its own hint below. */
+.prose :global(.is-empty):not(.emptyColumn)::before {
+  content: attr(data-placeholder) / "";
   float: left;
   height: 0;
   color: var(--color-text-muted);
@@ -319,7 +321,7 @@
 /* An untouched column of a two- or three-column section says what it is, in
    the editor only; the public site draws nothing there. */
 .prose .emptyColumn::before {
-  content: attr(data-hint);
+  content: attr(data-hint) / "";
   float: left;
   height: 0;
   color: var(--color-text-muted);
