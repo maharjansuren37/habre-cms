@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from "react";
+import type { StartDrag } from "./block-drag.client.tsx";
+import { CAP_SENTENCE, duplicateAnnouncement, duplicateBlock, GRIP_HINT } from "./block-drops.ts";
 import {
   type Direction,
   deleteAnnouncement,
@@ -24,9 +26,7 @@ import {
 } from "./block-moves.ts";
 import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-
-/** What the palette says at the cap, so a refused move reads the same. */
-const CAP_SENTENCE = `You can have at most ${MAX_DOCUMENT_BLOCKS} blocks.`;
+import { countBlocks } from "./palette-insert.ts";
 
 /**
  * The selected block's toolbar (current-work.md, 14a3): drawn outside the
@@ -41,6 +41,7 @@ export function BlockToolbar({
   announce,
   entryType,
   onLink,
+  startDrag,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
@@ -49,6 +50,8 @@ export function BlockToolbar({
   entryType: "post" | "page";
   /** Opens the link dialog, which the editor draws (unchanged from the format bar). */
   onLink: () => void;
+  /** Starts dragging the selected block from the grip (14b). */
+  startDrag: StartDrag;
 }) {
   const toolbar = useRef<HTMLDivElement>(null);
   const block = useEditorState({
@@ -65,6 +68,7 @@ export function BlockToolbar({
         // and says why nothing moved.
         canUp: moveBlock(state, "up", Number.POSITIVE_INFINITY) !== null,
         canDown: moveBlock(state, "down", Number.POSITIVE_INFINITY) !== null,
+        full: countBlocks(state.doc) >= MAX_DOCUMENT_BLOCKS,
         // Main heading is for one block, never a range.
         isRange: !state.selection.$from.sameParent(state.selection.$to),
         main: mainHeading(state.doc)?.textContent ?? null,
@@ -92,8 +96,22 @@ export function BlockToolbar({
       if (!(dom instanceof HTMLElement)) return;
       const box = dom.getBoundingClientRect();
       const frame = host.getBoundingClientRect();
-      const left = Math.max(0, Math.min(box.left - frame.left, frame.width - element.offsetWidth));
-      element.style.top = `${box.top - frame.top - element.offsetHeight - 8}px`;
+      const width = element.offsetWidth;
+      const height = element.offsetHeight;
+      let left = Math.max(0, Math.min(box.left - frame.left, frame.width - width));
+      let top = box.top - frame.top - height - GAP;
+      // Never over the section chip: slide left until it ends before the chip,
+      // or, with no room there, stack just above the chip (14b).
+      const chip = host.querySelector("[data-section-chip]")?.getBoundingClientRect();
+      if (chip) {
+        const chipLeft = chip.left - frame.left;
+        const level = top < chip.bottom - frame.top && top + height > chip.top - frame.top;
+        if (level && left + width > chipLeft - GAP) {
+          if (chipLeft - GAP - width >= 0) left = chipLeft - GAP - width;
+          else top = chip.top - frame.top - height - GAP;
+        }
+      }
+      element.style.top = `${top}px`;
       element.style.left = `${left}px`;
     }
     place();
@@ -120,6 +138,15 @@ export function BlockToolbar({
     editor.view.dispatch(tr);
     const landed = selectedBlock(editor.state);
     if (landed) announce(moveAnnouncement(selected.node, direction, editor.state.doc, landed.pos));
+  }
+
+  function duplicate() {
+    const { state } = editor;
+    const selected = selectedBlock(state);
+    const result = duplicateBlock(state);
+    if (!selected || !result) return;
+    editor.view.dispatch(result.tr);
+    announce(duplicateAnnouncement(selected.node, editor.state.doc, result.pos));
   }
 
   function remove() {
@@ -218,6 +245,19 @@ export function BlockToolbar({
     ...lists,
     ...marks,
     {
+      key: "duplicate",
+      label: `Duplicate ${block.name.toLowerCase()}`,
+      disabled: block.full,
+      run: duplicate,
+      refused: () => announce(CAP_SENTENCE),
+      icon: (
+        <>
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+        </>
+      ),
+    },
+    {
       key: "delete",
       label: `Delete ${block.name.toLowerCase()}`,
       run: remove,
@@ -263,6 +303,31 @@ export function BlockToolbar({
         if (!toolbar.current?.contains(event.relatedTarget as Node | null)) setActive(0);
       }}
     >
+      {/* Pointer-only and out of the arrow order (14b), so the toolbar's one
+          tab stop still lands on Move up (F-183); a press without a drag says
+          what it is for. */}
+      <button
+        type="button"
+        className={`${styles.button} ${styles.grip}`}
+        aria-label={GRIP_LABEL}
+        title={GRIP_LABEL}
+        tabIndex={-1}
+        onMouseDown={(event) => event.preventDefault()}
+        onPointerDown={(event) => {
+          const selected = selectedBlock(editor.state);
+          if (selected) startDrag({ pos: selected.pos }, event);
+        }}
+        onClick={() => announce(GRIP_HINT)}
+      >
+        <Icon>
+          <circle cx="9" cy="6" r="1" />
+          <circle cx="15" cy="6" r="1" />
+          <circle cx="9" cy="12" r="1" />
+          <circle cx="15" cy="12" r="1" />
+          <circle cx="9" cy="18" r="1" />
+          <circle cx="15" cy="18" r="1" />
+        </Icon>
+      </button>
       {tools.map((tool, index) => (
         <span key={tool.key} className={styles.group}>
           {"menu" in tool ? (
@@ -292,6 +357,7 @@ export function BlockToolbar({
               onFocus={() => setActive(index)}
               onClick={() => {
                 if (!tool.disabled) tool.run();
+                else tool.refused?.();
               }}
             >
               <Icon>{tool.icon}</Icon>
@@ -304,6 +370,12 @@ export function BlockToolbar({
   );
 }
 
+/** Space between the toolbar and its block, or the chip. */
+const GAP = 8;
+
+/** The grip's name: the hint without its full stop. */
+const GRIP_LABEL = GRIP_HINT.slice(0, -1);
+
 type Tool =
   | {
       key: string;
@@ -311,6 +383,8 @@ type Tool =
       disabled?: boolean;
       pressed?: boolean;
       run: () => void;
+      /** Pressed while disabled: says why nothing happened. */
+      refused?: () => void;
       icon: ReactNode;
       separatorAfter?: boolean;
     }

@@ -2722,3 +2722,86 @@ placeholder) is refused with the palette's 200-block sentence; a pure reorder
 never is (item 14a3).
 Beats: refusing every move at the cap, which would freeze a full page.
 Costs: none known.
+
+## D217 - Dragging uses Pointer Events, not HTML5 drag and drop, and no library (2026-10-03)
+
+**Chose:** one drag controller on Pointer Events (`block-drag.client.tsx`),
+started by `startDrag(source, event)` from a palette tile or the selected
+block's grip (item 14b).
+Beats: native drag and drop - uneven touch support, the browser draws its own
+drag image instead of the design's ghost, and ProseMirror's drop handler would
+insert the drag's data as text; dnd-kit or Pragmatic drag and drop - a runtime
+dependency that knows DOM lists, not ProseMirror positions.
+Costs: hit-testing, auto-scroll, pointer capture and cleanup are ours to keep.
+
+## D218 - The drop gap is a widget decoration inside the writing area (2026-10-03)
+
+**Chose:** the gap is a ProseMirror widget decoration - not focusable, not
+stored, `aria-hidden`, `contenteditable="false"` - set by a plugin whose
+transactions change no document and add no history (item 14b). Replaces plan
+section 6's "drop gaps drawn outside the editable area".
+Beats: an overlay outside the writing area, which can only draw a line over
+content, not open a gap that pushes the blocks below it down.
+Costs: a decoration inside the editable area; D169's rule - nothing
+interactive there - still holds, as with 14a3's empty-column hint.
+
+## D219 - A drop lands by the midpoint rule; a drag starts after 6px (2026-10-03)
+
+**Chose:** above a block's vertical middle is before it, below is after;
+hit-testing reads the live block rects, skipping the gap, at most once per
+animation frame. A press moving less than 6px is a click: a tile adds its
+block, the grip announces itself (item 14b).
+Beats: edge-based targets, which flicker as the gap pushes blocks down.
+Costs: none known.
+
+## D220 - Only the selected block's grip drags it, and the grip is pointer-only (2026-10-03)
+
+**Chose:** a grip `button` at the start of the selected block's toolbar,
+`tabindex="-1"` and out of the toolbar's arrow order, `touch-action: none`,
+named "Drag to move, or use Move up and Move down"; a press without a drag
+announces that name. Move up / Move down are the keyboard path (WCAG 2.5.7).
+Not draggable from the phone's Add dialog, which is modal over the canvas
+(item 14b).
+Beats: dragging an atom by its body or text by its block (a press in text
+starts a text selection), hover grips (not in the record), and a keyboard
+drag mode.
+Costs: select first, then drag.
+
+## D221 - A block's own place is no drop target (2026-10-03)
+
+**Chose:** no gap opens at the two slots beside the dragged block; releasing
+there changes nothing and makes no undo step (item 14b).
+Beats: a no-op transaction that adds an empty undo step.
+Costs: none known.
+
+## D222 - Drop announcements name positions, not columns (2026-10-03)
+
+**Chose:** drop announcements reuse `describePosition`, describing where the
+block will be once dropped ("Image: drop at block 1 of 2 in column 2 of
+section 1."), only when the place changes (item 14b).
+Beats: the mockup's column names ("column 2, Portraits") - columns have none.
+Costs: none known.
+
+## D223 - Any document change mid-drag cancels the drag (2026-10-03)
+
+**Chose:** a change to the document while dragging (a Ctrl+Z, say) cancels
+it with "Drag cancelled."; the document changes only on release (item 14b).
+Beats: re-mapping the dragged position, which risks using a stale one.
+Costs: an undo mid-drag ends the drag.
+
+## D224 - Duplicate selects the copy, after the original (2026-10-03)
+
+**Chose:** Duplicate in every toolbar puts a copy just after the block,
+selects it, and announces it as one undo step; a main heading's copy is a
+Heading (the 14a3 guard keeps the original by identity), but the announcement
+names what was duplicated - "Main heading duplicated: ..." (item 14b).
+Beats: selecting the original, which leaves the copy unannounced and unseen.
+Costs: none known.
+
+## D225 - The block toolbar never covers the section chip (2026-10-03)
+
+**Chose:** when the toolbar would overlap the section chip it slides left to
+end before it; with no room (a phone) it stacks just above the chip (owner,
+during item 14b step 3).
+Beats: "just below the block", tried and refused - it covered the next block.
+Costs: the toolbar is not always aligned to the block's right edge.

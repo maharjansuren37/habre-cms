@@ -325,3 +325,8 @@
   color: var(--color-text-muted);
   pointer-events: none;
 }
+
+/* Out of the way while a block is dragged, so it covers no drop place (14b). */
+:global(html[data-block-dragging]) .chip {
+  visibility: hidden;
+}

@@ -105,7 +105,7 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
   - [x] 14a1. **The document, text editing and the public render** - `blocks_format` v4 and its Zod schema, TipTap on one document per page and post, sections of 1-3 columns, Text / Heading / Subheading / Small heading, lists and quote, bold, italic and links, undo and redo, the public renderer, existing content discarded and Editor.js removed
   - [x] 14a2. **Image, button, line and space** - the four remaining v1 blocks, the palette's keyboard path (focus a tile, Enter adds the block after the selected one), the settings panel (a block's settings and a section's columns); the first image on a page loads at once (D174)
   - [x] 14a3. **The block toolbar** - the selected block's ring and toolbar: Move up / Move down for blocks and sections with the new position announced, the Text style menu with Main heading, Bold, Italic, Link and Delete
-  - [ ] 14b. **The palette and drag and drop** - the drop gap, the ghost, the announcements, and Duplicate
+  - [x] 14b. **The palette and drag and drop** - the drop gap, the ghost, the announcements, and Duplicate
   - [ ] 14c. **Ready-made sections as templates** - Hero, Image and text, Call to action and Blank section insert ordinary blocks (D170)
 - [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
 - [ ] 16. **Sites on their own subdomains** - each site's public site served at `<name>.<sites domain>` (D153)

@@ -51,6 +51,11 @@ const KINDS: Readonly<Record<string, BlockKind>> = {
   space: "space",
 };
 
+/** The toolbar's name for a block's kind: "list" for either list, and so on. */
+export function blockKind(node: ProseMirrorNode): BlockKind {
+  return KINDS[node.type.name] ?? "text";
+}
+
 /**
  * The column's direct child holding the selection - the whole list or quote,
  * never a part of it. A selected block is itself; a range across blocks uses
@@ -90,7 +95,7 @@ export function selectedBlock(state: EditorState): SelectedBlock | null {
 type ColumnSlot = { pos: number; node: ProseMirrorNode; section: number; column: number };
 
 /** Every column in reading order, `pos` being the position before the column. */
-function columnsOf(doc: ProseMirrorNode): ColumnSlot[] {
+export function columnsOf(doc: ProseMirrorNode): ColumnSlot[] {
   const columns: ColumnSlot[] = [];
   doc.forEach((section, sectionOffset, sectionIndex) => {
     section.forEach((column, columnOffset, columnIndex) => {
@@ -106,7 +111,7 @@ function columnsOf(doc: ProseMirrorNode): ColumnSlot[] {
 }
 
 /** An untouched column: exactly one empty paragraph, the placeholder rule's blank. */
-function isUntouched(column: ProseMirrorNode): boolean {
+export function isUntouched(column: ProseMirrorNode): boolean {
   return (
     column.childCount === 1 &&
     column.child(0).type.name === "paragraph" &&

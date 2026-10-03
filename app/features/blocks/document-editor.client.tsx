@@ -34,6 +34,7 @@ import { createPortal, flushSync } from "react-dom";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
+import { DropGap, useBlockDrag } from "./block-drag.client.tsx";
 import {
   type Direction,
   keepOneMainHeading,
@@ -313,6 +314,7 @@ function extensionsFor(entryType: "post" | "page", placeholder: string) {
     LineNode,
     SpaceNode,
     BlockDecorations,
+    DropGap,
     mainHeadingGuard(entryType),
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
@@ -464,6 +466,8 @@ export function DocumentEditor({
     setAnnouncement(message);
   }
 
+  const { startDrag, ghost, draggingTile } = useBlockDrag(editor, announce);
+
   /** Opens the section's panel and moves focus into it (the gear is a button, so this is a keyboard path). */
   function openSectionSettings(index: number) {
     flushSync(() => setSettingsSection(index));
@@ -472,7 +476,12 @@ export function DocumentEditor({
 
   return (
     <>
-      {paletteSlot && editor ? createPortal(<Palette editor={editor} />, paletteSlot) : null}
+      {paletteSlot && editor
+        ? createPortal(
+            <Palette editor={editor} startDrag={startDrag} draggingTile={draggingTile} />,
+            paletteSlot,
+          )
+        : null}
       {addSlot && editor
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}
@@ -491,6 +500,7 @@ export function DocumentEditor({
             announce={announce}
             entryType={entryType}
             onLink={() => setLinkOpen(true)}
+            startDrag={startDrag}
           />
         ) : null}
         {editor ? (
@@ -505,6 +515,7 @@ export function DocumentEditor({
       <p className="visually-hidden" role="status">
         {announcement}
       </p>
+      {ghost}
       {isLinkOpen && editor ? (
         <LinkDialog editor={editor} onClose={() => setLinkOpen(false)} />
       ) : null}
@@ -694,7 +705,7 @@ function SectionChip({
 
   const label = `Section ${index + 1} of ${count}`;
   return (
-    <fieldset ref={chip} className={styles.chip}>
+    <fieldset ref={chip} className={styles.chip} data-section-chip="">
       <legend className={styles.chipLegend}>{label}</legend>
       {count > 1 ? (
         <>

@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
@@ -190,12 +190,29 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await page.keyboard.type("Moved up");
   await page
     .getByRole("toolbar", { name: "Text" })
-    .getByRole("button", { name: "Move up" })
+    .getByRole("button", { name: "Move up", exact: true })
     .click();
   await expect(page.getByRole("status")).toHaveText("Text moved up: block 1 of 2 in section 1.");
   await page.getByRole("button", { name: /^Text style:/ }).click();
   await expect(page.getByRole("menu", { name: "Text style" })).toBeVisible();
   await page.keyboard.press("Escape");
+
+  // Dragging (14b): a Line tile, then the selected block by its grip - the
+  // gap and the ghost are placed with CSSOM, never a style attribute.
+  await drag(
+    page,
+    page
+      .getByRole("complementary", { name: "Add to the page" })
+      .getByRole("button", { name: "Line", exact: true }),
+    writing.getByText("Moved up", { exact: true }),
+  );
+  await expect(page.getByRole("status")).toHaveText("Line added: block 2 of 3 in section 1.");
+  await drag(
+    page,
+    page.getByRole("button", { name: "Drag to move, or use Move up and Move down" }),
+    writing.locator("p").last(),
+  );
+  await expect(page.getByRole("status")).toHaveText("Line moved: block 3 of 3 in section 1.");
 
   await page
     .getByRole("complementary", { name: "Add to the page" })
@@ -232,3 +249,23 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
 
   expect(violations).toEqual([]);
 });
+
+/** Drags `from` past the 6px threshold and drops it just below the top of `to`. */
+async function drag(page: Page, from: Locator, to: Locator) {
+  const start = await from.boundingBox();
+  if (!start) throw new Error("nothing to drag");
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(start.x + start.width / 2 + 12, start.y + start.height / 2 + 12, {
+    steps: 4,
+  });
+  for (const steps of [8, 2]) {
+    const end = await to.boundingBox();
+    if (!end) throw new Error("nowhere to drop");
+    await page.mouse.move(end.x + end.width / 2, end.y + end.height - 3, { steps });
+    await page.evaluate(
+      "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+    );
+  }
+  await page.mouse.up();
+}

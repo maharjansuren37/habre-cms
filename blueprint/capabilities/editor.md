@@ -16,3 +16,6 @@
 - **editor.14** - an empty column in a section of two or three columns shows "Empty column - add a block or change Columns in Section settings." in the editor only *Since:* features/14a3-block-toolbar
 - **editor.15** - choosing Main heading on a page makes the previous main heading a Heading and announces it; a page never holds two, and a post offers none *Since:* features/14a3-block-toolbar
 - **editor.16** - a section moves up or down from its chip, and its new position is announced *Since:* features/14a3-block-toolbar
+- **editor.17** - a palette block can be dragged into any column - between blocks or at either end - with a gap labelled "Drop <kind> here" where it will land, the place announced, and one Undo removing it *Since:* features/14b-palette-and-drag-and-drop
+- **editor.18** - the selected block can be dragged by its toolbar's grip to any place a palette block can go, as one undo step; Escape or a release outside the page cancels, and a release on its own place changes nothing *Since:* features/14b-palette-and-drag-and-drop
+- **editor.19** - Duplicate in the toolbar puts a copy after the selected block, selects it and says so, and Undo removes it; a page's main heading's copy is a Heading *Since:* features/14b-palette-and-drag-and-drop

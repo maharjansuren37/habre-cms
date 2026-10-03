@@ -296,8 +296,9 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     Italic, Link | Delete; **a list - Bulleted list, Numbered list in place
     of Text style** (lists are not text styles, and without them numbered
     lists would be reachable only by typing `1. `); **a quote has no style
-    control**; image, button, line, space - Move up, Move down | Delete. The
-    drag handle and Duplicate come with 14b; their places stay empty.
+    control**; image, button, line, space - Move up, Move down | Delete.
+    Item 14b added the drag handle before Move up and Duplicate before
+    Delete, in every kind's toolbar.
   - **Move up / Move down** cross columns and sections in reading order; at
     the first or last position they are `aria-disabled`, not `disabled`, so
     focus stays on the button. Delete is named for the block ("Delete
@@ -326,6 +327,43 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     hides them below 1024px, which leaves a phone with no undo at all.
   - **Tab order:** palette, title, writing area, block toolbar, section chip,
     settings panel.
+- **Built in item 14b** (decided there; the mockup is wrong where noted):
+  - **Dragging** uses Pointer Events - mouse, pen and touch alike - no HTML5
+    drag and drop, no library. A **palette tile** (side panel, 1024px and
+    wider) or **the selected block by its grip** drags to any place in any
+    column; a drag starts after 6px of movement, and a shorter press is a
+    click (a tile adds its block after the selected one, the grip announces
+    itself). No dragging from the phone's Add dialog; sections do not drag
+    (14c).
+  - **The grip** is a `button` named "Drag to move, or use Move up and Move
+    down", first in the toolbar, **pointer-only and out of the arrow order**
+    (`tabindex="-1"`), so the toolbar's one tab stop still lands on Move up.
+    It sets `touch-action: none`, so a touch drag does not scroll the page.
+  - **The gap** ("Drop image here", the kind in lower case) is a decoration
+    inside the writing area - not stored, not focusable, `aria-hidden` - so
+    it opens and pushes the blocks below it down. Where it lands is the
+    midpoint rule: above a block's vertical middle is before it, below is
+    after. **The block's own place is no target**: no gap, and a release
+    there changes nothing. The ghost shows the kind's icon and name; the
+    dragged tile is dashed, the dragged block dimmed; the toolbar and chip
+    hide while dragging.
+  - **Ending:** a release over a place drops (one undo step, the block
+    selected); Escape, a release outside every section, `pointercancel` or
+    a change to the document mid-drag cancels. Near the window's bottom, or
+    the sticky top bar's lower edge (48px), the window scrolls each frame,
+    faster nearer the edge.
+  - **Announcements name positions, not columns** (the mockup names a
+    column by its content; columns have no names): "Image: drop at block 1
+    of 2 in column 2 of section 1.", "Heading: drop here to leave it in
+    place.", "Image: release to cancel.", "Image added: ..." / "Heading
+    moved: ...", "Drag cancelled.", "Heading duplicated: block 2 of 3 in
+    section 1.", the palette's "You can have at most 200 blocks.", and for a
+    press on the grip "Drag to move, or use Move up and Move down."
+  - **Duplicate** puts a copy just after the block and selects it; a main
+    heading's copy is a Heading. At 200 blocks it is `aria-disabled` and
+    says the palette's sentence.
+  - **The toolbar never covers the section chip:** it slides left to end
+    before the chip, or, with no room there (a phone), stacks just above it.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

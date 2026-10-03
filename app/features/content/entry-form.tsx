@@ -135,7 +135,8 @@ export function EntryForm({
 
   return (
     <Form method="post" onSubmit={handleSubmit} className={styles.editor}>
-      <div className={styles.chrome}>
+      {/* `data-sticky-bar`: dragging a block scrolls up near its lower edge (14b). */}
+      <div className={styles.chrome} data-sticky-bar="">
         <div className={styles.topbar}>
           <div className={styles.topbarLeft}>
             <Link to={copy.backHref} className={styles.back}>

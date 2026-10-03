@@ -532,7 +532,9 @@ no counters to drift.
 - **One editor and one undo history per page.** Moving a block between
   columns is one transaction, so one undo. Sections and columns are
   `isolating` nodes, so typing and deleting never cross or merge them; section
-  chips, block toolbars and drop gaps are drawn outside the editable area.
+  chips and block toolbars are drawn outside the editable area. The drop gap
+  is a decoration inside it - not stored, not focusable, `aria-hidden` -
+  because only that can open a gap and push the blocks below down (14b).
 - **Our own Zod schema** validates the whole tree on save and **our own
   escaping renderer** draws it, each node as its semantic element - a button
   block is a link (`coding-standards.md`). TipTap's HTML is never stored or

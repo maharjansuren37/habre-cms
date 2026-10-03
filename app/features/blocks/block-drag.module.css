@@ -1,0 +1,68 @@
+/* Dragging a block (item 14b; prototypes/components.css, .drop-zone and
+   .drag-ghost). The gap is a decoration inside the writing area, so it opens
+   and pushes the blocks below it down; the ghost follows the pointer, placed
+   by the drag controller with CSSOM (`translate`). Neither animates, so
+   reduced motion needs nothing more. */
+
+.dropZone {
+  display: grid;
+  place-items: center;
+  min-height: calc(2 * var(--space-8));
+  margin-block: var(--space-2);
+  border: 2px dashed var(--color-selection);
+  border-radius: var(--radius-sm);
+  user-select: none;
+}
+
+.dropZoneLabel {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-selection);
+  color: var(--color-on-selection);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+}
+
+/* The block being dragged stays in place, dimmed. */
+.dragged {
+  opacity: 0.4;
+}
+
+/* The ghost is Habre's chrome, drawn in the admin's body, outside the site
+   scope that defines --color-selection: it takes the admin's rust, as the
+   palette's tile icons do. */
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.ghostIcon {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* While dragging, the page does not select text under the pointer. */
+:global(html[data-block-dragging]) {
+  user-select: none;
+  cursor: grabbing;
+}
