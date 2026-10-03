@@ -50,3 +50,21 @@ File: app/lib/content-security-policy.ts (`areaForPath`); app/lib/host-routing.t
 
 ### F-152 [P2] open - A keyboard selection in the new editor is sometimes never registered, so Bold applies to nothing
 File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-editor.client.tsx
+
+### F-193 [P3] open - A release over the sticky top bar while it auto-scrolls drops the block into a section hidden under the bar
+File: app/features/blocks/block-drag.client.tsx:294,356 (`slotAt(measure(...))`); app/features/blocks/block-drops.ts:147-152
+
+### F-194 [P3] open - `drop()` returns "full" for a slot naming no column, and throws for an index past the column's children
+File: app/features/blocks/block-drops.ts:68 (`if (!target) return "full"`), :88 (`target.node.child(i)` unbounded)
+
+### F-195 [P3] unverified - The click blocker can outlive a cancelled drag and swallow the next unrelated click
+File: app/features/blocks/block-drag.client.tsx:192-202 (`swallowClick`)
+
+### F-196 [P3] unverified - Dragging a palette tile by touch is likely cancelled by the browser's own panning
+File: app/features/blocks/palette.client.tsx:117; palette.module.css (`.tile`, no `touch-action`)
+
+### F-197 [P3] open - During auto-scroll the status region is rewritten several times a second
+File: app/features/blocks/block-drag.client.tsx:289-304 (`update`)
+
+### F-198 [P3] open - Step 4's Image-tile test checks the canvas, not what is stored
+File: e2e/block-drag.spec.ts:343-353

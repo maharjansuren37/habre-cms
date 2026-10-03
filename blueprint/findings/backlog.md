@@ -235,5 +235,5 @@ File: blueprint/context/needs-you.md:172,176; AGENTS.md (ci row)
 ### F-191 [P3] open - No control converts existing text into a list or quote, or a quote back to text
 File: app/features/blocks/block-toolbar.client.tsx (tools by kind)
 
-### F-192 [P3] unverified - The toolbar may cover content above the canvas or the sticky top bar
+### F-192 [P3] open - The toolbar may cover content above the canvas or the sticky top bar
 File: app/features/blocks/block-toolbar.client.tsx (place); block-toolbar.module.css (.toolbar z-index)

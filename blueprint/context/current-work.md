@@ -3,7 +3,7 @@
 **From build plan:** item 14b
 **Type:** Feature
 **Verified:** 2026-10-03, 30033c1edc46, 8 of 8 proven (every done-when by Playwright against the production build, the full suite 228 passed; gap and ghost seen in screenshots at 1280px and 390px); not provable here: a real phone and a screen reader (needs-you.md)
-**Reviewed:** not yet
+**Reviewed:** 2026-10-03, 30033c1edc46, current (f0432fb..0f3b7e6), every lens, reviewer subagent - 0 blocking; 6 new P3 (F-193-F-198), F-192 reopened
 
 ## Goal
 
