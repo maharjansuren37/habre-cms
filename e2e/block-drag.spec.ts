@@ -319,7 +319,7 @@ function tile(page: Page, name: string) {
 test("dragging the Image tile to the top of column 2 shows the gap, ghost and place, adds a selected image there, and one Ctrl+Z removes it", async ({
   page,
 }) => {
-  const { textbox } = await openPage(page, "Tile Drag", SEEDED());
+  const { id, textbox } = await openPage(page, "Tile Drag", SEEDED());
   await select(textbox, "A");
   await pickUp(page, tile(page, "Image"));
   await hover(page, textbox.getByText("C", { exact: true }), "top");
@@ -358,6 +358,12 @@ test("dragging the Image tile to the top of column 2 shows the gap, ghost and pl
 
   await page.keyboard.press("ControlOrMeta+z");
   expect(await canvasShape(page)).toEqual([[["A", "B"], ["C"]], [["D"]]]);
+  // What is stored, not only what is drawn (F-198): an image with no file, first in column 2.
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section(["A", "B"], [{ type: "image", attrs: { mediaId: "" } }, "C"]), section(["D"])),
+  );
 });
 
 test("dropping a Text tile into an untouched column replaces its empty paragraph", async ({

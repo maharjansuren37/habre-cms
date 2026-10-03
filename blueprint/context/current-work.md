@@ -163,7 +163,7 @@ F-147, F-175, F-188, F-190 (stale text).
     within 600 ms.
   - The existing auto-scroll tests, at lines 448 and 477, still pass.
 
-- [ ] **Step 6 - The Image-tile drop test checks what is stored (F-198)**
+- [x] **Step 6 - The Image-tile drop test checks what is stored (F-198)**
   - The test at `e2e/block-drag.spec.ts:319` saves after the drop, before
     the Ctrl+Z part, or in a sibling test.
   - It asserts the stored document holds an image with an empty `mediaId`
