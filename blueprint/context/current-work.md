@@ -96,7 +96,7 @@ the template shape item 18b's AI expands its section kinds with.
   still refusing any other non-UUID with "An image needs a file from Media.";
   `documentMediaIds` skips `""`, so the media lookup never sends it to
   PostgreSQL as a UUID. Unit tests for both, seen red first.
-- [ ] **Step 2 - The insert transaction** - in `palette-insert.ts`:
+- [x] **Step 2 - The insert transaction** - in `palette-insert.ts`:
   `insertSection(state, kind, { allowMainHeading, maxSections, maxBlocks })`
   returning a transaction or null, plus `sectionAddedAnnouncement`, with unit
   tests first. *Done when:* `npm test` proves - the section lands directly

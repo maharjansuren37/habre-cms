@@ -7,6 +7,8 @@ import {
   TextSelection,
   type Transaction,
 } from "@tiptap/pm/state";
+import { mainHeading } from "./block-moves.ts";
+import { type SectionTemplate, sectionTemplate } from "./section-templates.ts";
 
 /** The palette's tiles, in the order it shows them. */
 export const PALETTE_KINDS = [
@@ -109,4 +111,72 @@ export function insertBlock(
     tr.setSelection(NodeSelection.create(tr.doc, at));
   }
   return tr.scrollIntoView();
+}
+
+/** The names the palette and the announcements use for each section template. */
+export const SECTION_TEMPLATE_NAMES: Record<SectionTemplate, string> = {
+  blank: "Blank section",
+  hero: "Hero",
+  "image-text": "Image and text",
+  cta: "Call to action",
+};
+
+/** How many blocks a template adds: the children of each of its columns. */
+export function templateBlockCount(kind: SectionTemplate): number {
+  return sectionTemplate(kind, { mainHeading: false }).content.reduce(
+    (total, column) => total + column.content.length,
+    0,
+  );
+}
+
+/**
+ * Where a new section goes: directly after the top-level section holding the
+ * selection. A gap cursor between sections goes there; before the first
+ * section, or with no section around the selection, at the end.
+ */
+export function sectionInsertionPoint(doc: ProseMirrorNode, selection: Selection): number {
+  const { $head } = selection;
+  if ($head.depth === 0) return $head.pos > 0 ? $head.pos : doc.content.size;
+  return $head.after(1);
+}
+
+/**
+ * The transaction that adds a ready-made section as its own undo step, with
+ * the cursor in its first text block. Null when the document is at the section
+ * cap or the template's blocks would pass the block cap.
+ */
+export function insertSection(
+  state: EditorState,
+  kind: SectionTemplate,
+  options: { allowMainHeading: boolean; maxSections: number; maxBlocks: number },
+): Transaction | null {
+  if (state.doc.childCount >= options.maxSections) return null;
+  if (countBlocks(state.doc) + templateBlockCount(kind) > options.maxBlocks) return null;
+  const json = sectionTemplate(kind, {
+    mainHeading: options.allowMainHeading && mainHeading(state.doc) === null,
+  });
+  const section = state.schema.nodeFromJSON(json);
+  const tr = closeHistory(state.tr);
+  const at = sectionInsertionPoint(state.doc, state.selection);
+  tr.insert(at, section);
+  let cursor = -1;
+  section.descendants((node, pos) => {
+    if (cursor >= 0) return false;
+    if (node.isTextblock) {
+      cursor = at + 1 + pos + 1;
+      return false;
+    }
+    return true;
+  });
+  if (cursor >= 0) tr.setSelection(TextSelection.create(tr.doc, cursor));
+  return tr.scrollIntoView();
+}
+
+/** "Hero added: now section 3 of 5." */
+export function sectionAddedAnnouncement(
+  kind: SectionTemplate,
+  index: number,
+  total: number,
+): string {
+  return `${SECTION_TEMPLATE_NAMES[kind]} added: now section ${index + 1} of ${total}.`;
 }
