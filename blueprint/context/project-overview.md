@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-02, `main` after `75048ad`.
+Generated 2026-10-03, `main` after `aa561e2`.
 
 ## What this is
 
@@ -40,10 +40,11 @@ mode; sections, columns and ready-made sections (D114-D143).
 self-hosted, public sites neutral and light only (D168); the new editor's
 first part (14a1) - TipTap on one v4 document per entry, sections of 1-3
 columns, text styles, lists, quote, links, undo, the public renderer;
-Editor.js and all old content removed (migration `0009`).
+Editor.js and all old content removed (migration `0009`); the remaining v1
+blocks (14a2) - image, button, line, space - with the Blocks palette and
+the settings panel.
 
-**Platform v1 (queued):** the rest of the drag-and-drop editor (14a2 image,
-button, line, space; 14a3 block toolbar; 14b drag and drop; 14c templates); signup with email verification, one isolated site per
+**Platform v1 (queued):** the rest of the drag-and-drop editor (14a3 block toolbar; 14b drag and drop; 14c templates); signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
@@ -135,8 +136,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-13b and 14a1 done; 14a2-14c and 15-21 queued; nothing in
-  flight. 15 and 18 split when spec'd. Last shipped: 14a1
-  (`blueprint/history/features/14a1-the-document.md`).
-- **Next:** `spec` item 14a2, image, button, line and space.
+- **Plan:** items 1-13b, 14a1 and 14a2 done; 14a3-14c and 15-21 queued;
+  nothing in flight. 15 and 18 split when spec'd. Last shipped: 14a2
+  (`blueprint/history/features/14a2-image-button-line-and-space.md`).
+- **Next:** `spec` item 14a3, the block toolbar.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
