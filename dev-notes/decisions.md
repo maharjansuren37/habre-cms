@@ -2867,3 +2867,36 @@ once typing shifted positions.
 Costs: `@tiptap/extensions` is no longer imported by app code but stays in
 `package.json` (StarterKit depends on it at the same pinned version); "Write
 your page…" now draws in any empty one-column section holding the cursor.
+
+## D231 - A section drop reuses `insertSection` with an index, not `drop()` (2026-10-03)
+
+**Chose:** `insertSection(state, kind, { ..., index? })` places a dragged
+section tile before top-level section `index`; `DropSource` gains
+`{ template }` so `startDrag` stays the one entry point; `SectionSlot =
+{ index }` sits beside the unchanged `DropSlot`.
+Beats: widening `drop()` to `{ template }` (14b's note) - `drop()` works on a
+slot inside a column, and a section slot has none.
+Costs: the controller branches on the source (F-207 records the casts this
+took); `useBlockDrag` now takes `{ entryType, maxSections }`, since it drops
+sections itself rather than routing through the palette.
+
+## D232 - A section slot is the midpoint rule over whole sections, anywhere over the writing area (2026-10-03)
+
+**Chose:** above a section's vertical middle is before it, below is after,
+anywhere inside the writing area's rect, including inside a section's
+columns; outside it is no place. The gap is the block gap's look, labelled
+"Drop <name> here", and a dropped section never replaces an untouched one.
+Beats: a thin strip between sections (hard to hit with a finger or at 200%
+zoom); a taller section-sized gap; replacing an untouched page's one section
+(a click does not, and the cursor's section would vanish).
+Costs: the dashed line between two sections is absent beside the gap; the
+writing area's rect includes what the sticky bar covers when scrolled
+(F-193).
+
+## D233 - Typing straight after a drop joins its undo step (2026-10-03)
+
+**Chose:** keep ProseMirror's grouping - changes within 500ms share one undo
+step - for drops and inserted sections, as 14b and 14c1 already behave.
+Beats: forcing `closeHistory` after every drop, which no item has needed yet.
+Costs: a Ctrl+Z right after typing at once removes the dropped section and
+the typing together.
