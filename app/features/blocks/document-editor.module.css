@@ -200,34 +200,19 @@
   font-size: var(--text-sm);
 }
 
-/* ---- Format bar (interim; 14a3 moves these into the block toolbar) -------- */
-
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-4);
-  border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
-}
+/* ---- Undo and Redo, in the top bar (14a3) ---------------------------------- */
 
 /* The kit's sm ghost icon button (.btn--ghost.btn--sm.btn--icon). Doubled
    class so it outranks the Button component's own padding and height,
    whichever stylesheet loads first. */
-.bar .tool {
+.tool.tool {
   min-height: var(--size-control-sm);
   width: var(--size-control-sm);
   padding: 0;
 }
 
-.bar .tool:hover {
+.tool.tool:hover {
   background: var(--color-surface-hover);
-}
-
-.bar .tool[aria-pressed="true"] {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
 }
 
 .icon {
@@ -238,13 +223,6 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.separator {
-  width: var(--border-width);
-  align-self: stretch;
-  margin: var(--space-1);
-  background: var(--color-border);
 }
 
 /* ---- Link dialog (the kit's .dialog) --------------------------------------- */

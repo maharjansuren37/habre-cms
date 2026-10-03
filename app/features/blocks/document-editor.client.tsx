@@ -342,20 +342,20 @@ function optionsFor(copy: { label: string; placeholder: string }) {
 const OPTIONS = { page: optionsFor(COPY.page), post: optionsFor(COPY.post) };
 
 /**
- * The v4 document editor (item 14a1): TipTap on one document per entry. The
- * format bar is drawn into `barSlot`, a place under the editor's top bar that
- * the entry form owns; the writing area is the customer's site, in its own
+ * The v4 document editor (item 14a1): TipTap on one document per entry. Undo
+ * and Redo are drawn into `undoSlot`, in the top bar the entry form owns; the
+ * selected block's toolbar does the rest (14a3). The writing area is the customer's site, in its own
  * light scope (`data-surface="site"`) even inside dark Habre.
  *
- * Nothing interactive sits inside the writing area (D169): the bar and the
- * link dialog are outside it.
+ * Nothing interactive sits inside the writing area (D169): the toolbar, the
+ * chip and the link dialog are outside it.
  */
 export function DocumentEditor({
   initialDocument,
   entryType,
   contentRef,
   onChange,
-  barSlot,
+  undoSlot,
   paletteSlot,
   addSlot,
   settingsSlot,
@@ -367,7 +367,8 @@ export function DocumentEditor({
   /** Reads the current document when the form submits. */
   contentRef: { current: (() => Promise<unknown>) | null };
   onChange: () => void;
-  barSlot: HTMLElement | null;
+  /** Where Undo and Redo are drawn: the editor's top bar, at every width (14a3). */
+  undoSlot: HTMLElement | null;
   /** Where the palette is drawn (before the canvas) and where the phone's Add button goes. */
   paletteSlot: HTMLElement | null;
   addSlot: HTMLElement | null;
@@ -424,6 +425,7 @@ export function DocumentEditor({
 
   const canvas = useRef<HTMLDivElement>(null);
   const [isAddOpen, setAddOpen] = useState(false);
+  const [isLinkOpen, setLinkOpen] = useState(false);
   // What the polite status region last said: moves and deletes (14a3).
   const [announcement, setAnnouncement] = useState("");
   function announce(message: string) {
@@ -445,14 +447,21 @@ export function DocumentEditor({
         ? createPortal(<AddButton onClick={() => setAddOpen(true)} />, addSlot)
         : null}
       {isAddOpen && editor ? <AddDialog editor={editor} onClose={() => setAddOpen(false)} /> : null}
-      {barSlot && editor ? createPortal(<FormatBar editor={editor} />, barSlot) : null}
+      {undoSlot && editor ? createPortal(<UndoRedo editor={editor} />, undoSlot) : null}
       <div data-surface="site" className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>
           <EditorContent editor={editor} />
         </MediaContext.Provider>
         {/* After the writing area, so Tab reaches the toolbar and then the
             chip; outside it, so no control sits inside the textbox (D169). */}
-        {editor ? <BlockToolbar editor={editor} canvas={canvas} announce={announce} /> : null}
+        {editor ? (
+          <BlockToolbar
+            editor={editor}
+            canvas={canvas}
+            announce={announce}
+            onLink={() => setLinkOpen(true)}
+          />
+        ) : null}
         {editor ? (
           <SectionChip editor={editor} canvas={canvas} onOpenSettings={openSectionSettings} />
         ) : null}
@@ -460,6 +469,9 @@ export function DocumentEditor({
       <p className="visually-hidden" role="status">
         {announcement}
       </p>
+      {isLinkOpen && editor ? (
+        <LinkDialog editor={editor} onClose={() => setLinkOpen(false)} />
+      ) : null}
       {editor ? <AddSection editor={editor} /> : null}
       {settingsSlot && editor
         ? createPortal(
@@ -906,72 +918,18 @@ function AddSection({ editor }: { editor: Editor }) {
   );
 }
 
-/**
- * The interim format bar: the kit's small ghost icon buttons. The text style
- * moved to the block toolbar's menu (14a3 step 3); the rest follows in step 4.
- */
-function FormatBar({ editor }: { editor: Editor }) {
-  const [isLinkOpen, setLinkOpen] = useState(false);
+/** Undo and Redo, in the editor's top bar at every width - a phone has no
+ *  keyboard undo (14a3, Decisions). */
+function UndoRedo({ editor }: { editor: Editor }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
-      bold: current.isActive("bold"),
-      italic: current.isActive("italic"),
-      link: current.isActive("link"),
-      bulletList: current.isActive("bulletList"),
-      orderedList: current.isActive("orderedList"),
-      blockquote: current.isActive("blockquote"),
       canUndo: current.can().undo(),
       canRedo: current.can().redo(),
     }),
   });
-
   return (
-    <div className={styles.bar} role="toolbar" aria-label="Formatting">
-      <Tool
-        label="Bulleted list"
-        pressed={state.bulletList}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-      >
-        <path d="M9 6h11M9 12h11M9 18h11" />
-        <circle cx="4.5" cy="6" r="1" />
-        <circle cx="4.5" cy="12" r="1" />
-        <circle cx="4.5" cy="18" r="1" />
-      </Tool>
-      <Tool
-        label="Numbered list"
-        pressed={state.orderedList}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-      >
-        <path d="M10 6h10M10 12h10M10 18h10M4 4h1.5v4M4 8h3M4 11.5h3l-3 4h3" />
-      </Tool>
-      <Tool
-        label="Quote"
-        pressed={state.blockquote}
-        onClick={() => editor.chain().focus().toggleWrap("blockquote").run()}
-      >
-        <path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6" />
-      </Tool>
-      <span className={styles.separator} aria-hidden="true" />
-      <Tool
-        label="Bold"
-        pressed={state.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-      >
-        <path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" />
-      </Tool>
-      <Tool
-        label="Italic"
-        pressed={state.italic}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      >
-        <path d="M10 5h8M6 19h8M14 5l-4 14" />
-      </Tool>
-      <Tool label="Link" pressed={state.link} onClick={() => setLinkOpen(true)}>
-        <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
-        <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
-      </Tool>
-      <span className={styles.separator} aria-hidden="true" />
+    <>
       <Tool
         label="Undo"
         disabled={!state.canUndo}
@@ -988,21 +946,18 @@ function FormatBar({ editor }: { editor: Editor }) {
         <path d="m15 14 5-5-5-5" />
         <path d="M20 9H10a6 6 0 0 0 0 12h3" />
       </Tool>
-      {isLinkOpen ? <LinkDialog editor={editor} onClose={() => setLinkOpen(false)} /> : null}
-    </div>
+    </>
   );
 }
 
-/** The kit's small ghost icon button; a toggle says whether it is on. */
+/** The kit's small ghost icon button. */
 function Tool({
   label,
-  pressed,
   disabled,
   onClick,
   children,
 }: {
   label: string;
-  pressed?: boolean;
   disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
@@ -1014,7 +969,6 @@ function Tool({
       className={styles.tool}
       aria-label={label}
       title={label}
-      aria-pressed={pressed}
       disabled={disabled}
       // A pointer press leaves the caret where it is, so the command applies
       // to the writing area's selection at once and typing carries on there.

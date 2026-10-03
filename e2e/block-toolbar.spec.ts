@@ -321,6 +321,59 @@ test("an image's toolbar has Move and Delete but no Text style", async ({ page }
   const toolbar = page.getByRole("toolbar", { name: "Image" });
   await expect(toolbar.getByRole("button", { name: "Delete image" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: /^Text style/ })).toHaveCount(0);
+  await expect(toolbar.getByRole("button", { name: "Bold" })).toHaveCount(0);
   await deleteEntriesBy(editor.email);
   await deleteTestMedia(mediaId);
 });
+
+test("a list's toolbar switches it to numbered, and the format bar is gone", async ({ page }) => {
+  const bulleted = {
+    type: "bulletList",
+    content: [
+      { type: "listItem", content: [text("One")] },
+      { type: "listItem", content: [text("Two")] },
+    ],
+  };
+  const { id, textbox } = await openPage(page, "List Page", doc(section([bulleted])));
+  await textbox.getByText("Two", { exact: true }).click();
+  await settle(page);
+  await page.keyboard.press("Tab");
+  const toolbar = page.getByRole("toolbar", { name: "List" });
+  await expect(toolbar.getByRole("button", { name: "Bulleted list" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(toolbar.getByRole("button", { name: /^Text style/ })).toHaveCount(0);
+  await toolbar.getByRole("button", { name: "Numbered list" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(textbox.locator("ol").getByRole("listitem")).toHaveText(["One", "Two"]);
+  await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+
+  await save(page);
+  expect((await storedEntry(id)).blocks).toEqual(
+    doc(section([{ ...bulleted, type: "orderedList" }])),
+  );
+});
+
+for (const width of [1280, 390]) {
+  test(`Undo and Redo are in the top bar at ${width}px, with no horizontal scroll`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 800 });
+    const { textbox } = await openPage(page, `Undo ${width}`, doc(section(["Words"])));
+    await textbox.getByText("Words", { exact: true }).click();
+    await settle(page);
+    await page.keyboard.press("End");
+    await page.keyboard.type(" more");
+    const undo = page.getByRole("button", { name: "Undo" });
+    const redo = page.getByRole("button", { name: "Redo" });
+    await expect(undo).toBeVisible();
+    await expect(redo).toBeVisible();
+    await undo.click();
+    await expect(textbox).toHaveText("Words");
+    await expect(redo).toBeEnabled();
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
+  });
+}

@@ -35,10 +35,13 @@ export function BlockToolbar({
   editor,
   canvas,
   announce,
+  onLink,
 }: {
   editor: Editor;
   canvas: RefObject<HTMLDivElement | null>;
   announce: (message: string) => void;
+  /** Opens the link dialog, which the editor draws (unchanged from the format bar). */
+  onLink: () => void;
 }) {
   const toolbar = useRef<HTMLDivElement>(null);
   const block = useEditorState({
@@ -55,6 +58,11 @@ export function BlockToolbar({
         // and says why nothing moved.
         canUp: moveBlock(state, "up", Number.POSITIVE_INFINITY) !== null,
         canDown: moveBlock(state, "down", Number.POSITIVE_INFINITY) !== null,
+        bold: current.isActive("bold"),
+        italic: current.isActive("italic"),
+        link: current.isActive("link"),
+        bulletList: current.isActive("bulletList"),
+        orderedList: current.isActive("orderedList"),
       };
     },
   });
@@ -114,7 +122,72 @@ export function BlockToolbar({
     editor.view.focus();
   }
 
+  /** Runs a formatting command, then returns focus to the writing area at once
+   *  (not TipTap's `focus()`, which waits a frame). */
+  function format(command: () => void) {
+    command();
+    editor.view.focus();
+  }
+
   const hasStyle = block.kind === "text" || block.kind === "heading";
+  const hasText = hasStyle || block.kind === "list" || block.kind === "quote";
+  const lists: Tool[] =
+    block.kind === "list"
+      ? [
+          {
+            key: "bullet",
+            label: "Bulleted list",
+            pressed: block.bulletList,
+            run: () => format(() => editor.commands.toggleBulletList()),
+            icon: (
+              <>
+                <path d="M9 6h11M9 12h11M9 18h11" />
+                <circle cx="4.5" cy="6" r="1" />
+                <circle cx="4.5" cy="12" r="1" />
+                <circle cx="4.5" cy="18" r="1" />
+              </>
+            ),
+          },
+          {
+            key: "ordered",
+            label: "Numbered list",
+            pressed: block.orderedList,
+            run: () => format(() => editor.commands.toggleOrderedList()),
+            icon: <path d="M10 6h10M10 12h10M10 18h10M4 4h1.5v4M4 8h3M4 11.5h3l-3 4h3" />,
+          },
+        ]
+      : [];
+  const marks: Tool[] = hasText
+    ? [
+        {
+          key: "bold",
+          label: "Bold",
+          pressed: block.bold,
+          run: () => format(() => editor.commands.toggleBold()),
+          icon: <path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" />,
+        },
+        {
+          key: "italic",
+          label: "Italic",
+          pressed: block.italic,
+          run: () => format(() => editor.commands.toggleItalic()),
+          icon: <path d="M10 5h8M6 19h8M14 5l-4 14" />,
+        },
+        {
+          key: "link",
+          label: "Link",
+          pressed: block.link,
+          run: onLink,
+          icon: (
+            <>
+              <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+              <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+            </>
+          ),
+          separatorAfter: true,
+        },
+      ]
+    : [];
   const tools: Tool[] = [
     {
       key: "up",
@@ -131,9 +204,9 @@ export function BlockToolbar({
       icon: <path d="M12 5v14M19 12l-7 7-7-7" />,
       separatorAfter: true,
     },
-    ...(hasStyle
-      ? [{ key: "style", label: block.name, menu: true as const, separatorAfter: true }]
-      : []),
+    ...(hasStyle ? [{ key: "style", label: block.name, menu: true as const }] : []),
+    ...lists,
+    ...marks,
     {
       key: "delete",
       label: `Delete ${block.name.toLowerCase()}`,

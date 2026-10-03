@@ -69,7 +69,7 @@ export function EntryForm({
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws its format bar: under the top bar.
-  const [formatBarSlot, setFormatBarSlot] = useState<HTMLDivElement | null>(null);
+  const [undoSlot, setUndoSlot] = useState<HTMLDivElement | null>(null);
   const [paletteSlot, setPaletteSlot] = useState<HTMLDivElement | null>(null);
   const [addSlot, setAddSlot] = useState<HTMLDivElement | null>(null);
   const [settingsSlot, setSettingsSlot] = useState<HTMLDivElement | null>(null);
@@ -147,6 +147,7 @@ export function EntryForm({
             </span>
           </div>
           <div className={styles.topbarActions}>
+            <div ref={setUndoSlot} className={styles.slot} />
             <div ref={setAddSlot} className={styles.slot} />
             {/* Save appears only once the editor has mounted: a native submit
               carries no blocks field, which reads as an empty post and wipes
@@ -180,7 +181,6 @@ export function EntryForm({
             ) : null}
           </div>
         </div>
-        <div ref={setFormatBarSlot} />
       </div>
 
       {/* One message at a time. The client-side guards win: they describe the
@@ -234,7 +234,7 @@ export function EntryForm({
               entryType={entryType}
               contentRef={readEditor}
               onChange={() => setUnsavedChanges(true)}
-              barSlot={formatBarSlot}
+              undoSlot={undoSlot}
               paletteSlot={paletteSlot}
               addSlot={addSlot}
               settingsSlot={settingsSlot}

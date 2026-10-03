@@ -188,25 +188,23 @@ test("text styles, both lists and a quote survive Save and a reload, stored as v
   await page.keyboard.type("Plain again");
   await setTextStyle(page, "Heading");
   await setTextStyle(page, "Text");
-  await newParagraphAfter(page, textbox, "Plain again");
 
+  // Lists and quotes come from the palette since 14a3; a list's own toolbar
+  // switches it to numbered.
+  await tile(page, "List").click();
   await page.keyboard.type("One");
-  await page.getByRole("button", { name: "Bulleted list" }).click();
   await page.keyboard.press("Enter");
   await page.keyboard.type("Two");
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  await tile(page, "List").click();
   await page.keyboard.type("First");
-  await page.getByRole("button", { name: "Numbered list" }).click();
+  await page
+    .getByRole("toolbar", { name: "List" })
+    .getByRole("button", { name: "Numbered list" })
+    .click();
   await page.keyboard.press("Enter");
   await page.keyboard.type("Second");
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  await tile(page, "Quote").click();
   await page.keyboard.type("Quoted words");
-  await page
-    .getByRole("toolbar", { name: "Formatting" })
-    .getByRole("button", { name: "Quote" })
-    .click();
 
   await save(page);
   await page.reload();

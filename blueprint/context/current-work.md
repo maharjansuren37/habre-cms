@@ -161,7 +161,7 @@ a page gets its one main heading (D166). The interim format bar goes.
   existing text-style tests pass against the menu; an image's toolbar has no
   Text style.
 
-- [ ] **Step 4 - Bold, Italic, Link and lists move; the format bar goes** -
+- [x] **Step 4 - Bold, Italic, Link and lists move; the format bar goes** -
   Bold, Italic, Link (the link dialog unchanged) for text, heading, list and
   quote; Bulleted / Numbered list for a list. `FormatBar` and the entry
   form's bar slot are removed; Undo / Redo render in the editor's top bar.
