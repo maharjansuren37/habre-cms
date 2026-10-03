@@ -134,7 +134,7 @@ click, Enter or the phone's Add stay the non-drag path (WCAG 2.5.7).
   -> Publish -> the URL is the pages list -> the public page shows a
   `section` with `data-background="band"` holding "Join us", last on the page.
 
-- [ ] **Step 4 - The record** - `design.md` *Editor decisions*: a "Built in
+- [x] **Step 4 - The record** - `design.md` *Editor decisions*: a "Built in
   item 14c2" block with the decided-here lines and the wording; the
   "(dragging one is 14c2)", "sections do not drag (14c2)" and "Section tiles
   do not drag yet (14c2)" phrases replaced. *Done when:* `design.md` carries
