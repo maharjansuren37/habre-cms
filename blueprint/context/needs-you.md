@@ -122,7 +122,9 @@ not tidying; it is what keeps the open list true.
       14a2, the palette and its phone Add dialog, the settings panel for an
       image, a button and a section, and the media picker in the editor; from
       item 14a3, the block toolbar, the Text style menu, the move and delete
-      announcements and the chip's section moves).
+      announcements and the chip's section moves; from item 14b, the drag
+      announcements - over a place, dropped, cancelled - the grip's name and
+      Duplicate).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -130,7 +132,15 @@ not tidying; it is what keeps the open list true.
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
-      widened, item 9; widened, item 14a3)
+      widened, item 9; widened, item 14a3; widened, item 14b)
+
+- [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
+      Chrome) - hardware and manual verification; the browser tests dispatch
+      touch pointer events in Chromium, which is not a finger on glass. Check
+      that the page does not scroll under the drag, that auto-scroll reaches
+      the last section, and that the gap and ghost fit the screen. Blocks
+      nothing now; `verify` of item 14b names it as not proven, and
+      `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03)
 
 - [ ] **Screen-reader and keyboard pass over the public site** (NVDA,
       VoiceOver or Orca) - manual verification; nobody has looked at these

@@ -22,7 +22,10 @@ export const PALETTE_KINDS = [
 export type PaletteKind = (typeof PALETTE_KINDS)[number];
 
 /** A new block of this kind, as the palette adds it, and whether the cursor goes in it. */
-function newBlock(schema: Schema, kind: PaletteKind): { node: ProseMirrorNode; isText: boolean } {
+export function newBlock(
+  schema: Schema,
+  kind: PaletteKind,
+): { node: ProseMirrorNode; isText: boolean } {
   const { nodes } = schema;
   switch (kind) {
     case "text":
