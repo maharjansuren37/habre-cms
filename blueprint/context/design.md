@@ -242,8 +242,9 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 - **Palette** (owner, 2026-10-02): blocks **Text, Heading, List, Image,
   Button, Quote, Line, Space**, and **Contact form** from item 19; sections
   **Blank section, Hero, Image and text, Call to action**. Drag a tile into a
-  column, or focus it and press Enter to add it after the selected block. It
-  collapses to a rail of icons whose names stay as accessible names.
+  column, or focus it and press Enter to add it after the selected block (a
+  section tile adds its section after the selection's section; dragging one
+  is 14c2). It collapses to a rail of icons whose names stay as accessible names.
 - **Page structure:** sections of one to three columns; columns hold blocks
   top to bottom. A heading across three columns is a one-column section above
   them. **Columns stack when their container is narrower than 40rem** - a
@@ -334,7 +335,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     column; a drag starts after 6px of movement, and a shorter press is a
     click (a tile adds its block after the selected one, the grip announces
     itself). No dragging from the phone's Add dialog; sections do not drag
-    (14c).
+    (14c2).
   - **The grip** is a `button` named "Drag to move, or use Move up and Move
     down", first in the toolbar, **pointer-only and out of the arrow order**
     (`tabindex="-1"`), so the toolbar's one tab stop still lands on Move up.
@@ -364,6 +365,29 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
     says the palette's sentence.
   - **The toolbar never covers the section chip:** it slides left to end
     before the chip, or, with no room there (a phone), stacks just above it.
+- **Built in item 14c1** (decided there):
+  - **The palette's Sections group:** an `h2` "Sections" below Blocks in the
+    side panel, four wide tiles - Blank section, Hero, Image and text, Call to
+    action - with the mockup's icons. A click, Enter or Space adds the section
+    **directly after the section holding the selection**, the cursor in its
+    first text block, announced "Hero added: now section 3 of 5." A tile is
+    disabled when its template would not fit (30 sections, or 200 blocks
+    counting the template's), with "Thirty sections is the most there can be."
+    or "You can have at most 200 blocks." under the group. Section tiles do
+    not drag yet (14c2).
+  - **The templates, all empty - no starter text.** Hero: two columns,
+    middle-aligned; heading (the Main heading on a page with none), text,
+    space, button | image. Image and text: image | heading, text. Call to
+    action: one column on the band; heading, text, button. Blank: one empty
+    column. An image with no file chosen saves and shows only in the editor.
+  - **The phone's Add dialog** is titled "Add to the page", with `h3`
+    "Blocks" and "Sections".
+  - **Empty-text hints:** an empty heading always shows its style's name in
+    muted text; an empty paragraph beside other blocks shows "Text" until the
+    cursor is in it, then "Write your page…" / "Write your post…". An
+    untouched column keeps the empty-column hint. Editor only, never saved.
+  - **Tab order unchanged**, except the four section tiles follow the block
+    tiles in the palette.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

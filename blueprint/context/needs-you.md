@@ -182,8 +182,8 @@ not tidying; it is what keeps the open list true.
 - [ ] **Run the full browser suite locally, with real R2, before every deploy** -
       manual verification; CI skips the 27 tests that upload to R2 (`E2E_SKIP_R2=1`,
       F-17 fix), so images, the logo, the picker and image + text are covered only
-      by `npm run test:e2e` on your machine with the real `.env` (expect 228
-      passed, item 14b). Nothing in `deploy` runs it. Blocks nothing now; needed before each
+      by `npm run test:e2e` on your machine with the real `.env` (expect 244
+      passed, item 14c1). Nothing in `deploy` runs it. Blocks nothing now; needed before each
       `deploy`, until a fake R2 server brings the 26 into CI (`dev-notes/status.md`,
       next steps). `open` (ship, F-17 fix, 2026-10-01)
 

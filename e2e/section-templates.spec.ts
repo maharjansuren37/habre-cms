@@ -289,3 +289,74 @@ test("an untouched column of a two-column section shows only the empty-column hi
   ).toHaveCount(0);
   await expect(empty).not.toHaveAttribute("data-placeholder", /./);
 });
+
+// ---- Step 5: a template, filled in and published ------------------------------
+
+function slugOf(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+test("a filled-in Hero publishes as a middle-aligned section with the only h1, a link and no image; an untouched Call to action renders nothing", async ({
+  page,
+}) => {
+  const target = `Hero Target ${randomInt(1_000_000)}`;
+  await createDraftFor(editor.email, target, TWO_SECTIONS, { type: "page", status: "published" });
+  const title = `Hero Page ${randomInt(1_000_000)}`;
+  const { textbox } = await openEntry(
+    page,
+    { type: "doc", content: [section(paragraph("Intro words"))] },
+    "page",
+    title,
+  );
+  await select(page, textbox.getByText("Intro words"));
+  await page.getByRole("button", { name: "Hero", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Hero added: now section 2 of 2.");
+  await page.keyboard.type("Welcome home");
+  const hero = textbox.locator('[data-node="section"]').nth(1);
+  await select(page, hero.locator('[data-node="column"]').first().locator("> p").first());
+  await page.keyboard.type("We make things.");
+  await hero.locator('[data-node="button"]').click();
+  const panel = page.getByRole("complementary", { name: "Button", exact: true });
+  await panel.getByLabel("Button text").fill("See more");
+  await panel.getByLabel("Goes to").selectOption({ label: target });
+
+  await select(page, textbox.getByText("Welcome home"));
+  await page.getByRole("button", { name: "Call to action", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Call to action added: now section 3 of 3.");
+
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?/);
+  await page.goto(`/${slugOf(title)}`);
+
+  const main = page.getByRole("main");
+  const sections = main.locator("section");
+  await expect(sections).toHaveCount(2);
+  const published = sections.nth(1);
+  await expect(published).toHaveAttribute("data-align", "middle");
+  await expect(main.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(published.getByRole("heading", { level: 1 })).toHaveText("Welcome home");
+  await expect(published.getByText("We make things.")).toBeVisible();
+  const link = published.getByRole("link", { name: "See more" });
+  await expect(link).toHaveAttribute("href", `/${slugOf(target)}`);
+  await expect(main.getByRole("img")).toHaveCount(0);
+});
+
+test("a filled-in Call to action publishes as a section on the band", async ({ page }) => {
+  const title = `Band Page ${randomInt(1_000_000)}`;
+  const { textbox } = await openEntry(
+    page,
+    { type: "doc", content: [section(paragraph("Intro words"))] },
+    "page",
+    title,
+  );
+  await select(page, textbox.getByText("Intro words"));
+  await page.getByRole("button", { name: "Call to action", exact: true }).click();
+  await page.keyboard.type("Join us");
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\?/);
+  await page.goto(`/${slugOf(title)}`);
+  const band = page.getByRole("main").locator("section", {
+    has: page.getByRole("heading", { name: "Join us" }),
+  });
+  await expect(band).toHaveAttribute("data-background", "band");
+});

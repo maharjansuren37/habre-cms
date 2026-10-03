@@ -133,7 +133,7 @@ the template shape item 18b's AI expands its section kinds with.
   one-column section still showing only "Write your page…" with the cursor
   in it, and an untouched column of a two-column section still showing only
   the empty-column hint (no second, empty hint drawn over it). Seen red first.
-- [ ] **Step 5 - Publish a template** - no new product code expected; the
+- [x] **Step 5 - Publish a template** - no new product code expected; the
   design record and the proof that templates render as the record says.
   *Done when:* a Playwright test publishes a page with a filled-in Hero
   (heading, text, button with a page link; image left empty, as CI has no R2)
