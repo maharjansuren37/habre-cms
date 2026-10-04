@@ -100,7 +100,7 @@ the front door of platform v1 and the first time Habre sends email.
     - `smtp://mail.example.com` is refused;
     - `smtp://127.0.0.1:1025` and `smtps://…:465` parse.
   - With `docker compose up -d`, a one-off `node -e` call to `sendEmail` against Mailpit shows the message, with the right sender, subject and text, in Mailpit's UI. `verify` reproduces this.
-- [ ] **Step 3 - Invite codes and `create-invite`** - add `app/features/signup/invite-code.ts`, pure functions:
+- [x] **Step 3 - Invite codes and `create-invite`** - add `app/features/signup/invite-code.ts`, pure functions:
   - generate a code of 12 characters from Crockford base32 (no `0 O 1 I L`), shown as three groups of four (`7K2Q-M9XD-HC4V`);
   - normalise what a person types (trim, uppercase, drop spaces and dashes);
   - hash it with SHA-256.
@@ -111,10 +111,10 @@ the front door of platform v1 and the first time Habre sends email.
     - 1,000 generated codes are distinct;
     - `"7k2q m9xd-hc4v "` normalises to the same hash as `7K2Q-M9XD-HC4V`.
   - Running the command prints one code, and `select code_hash, note from invites` shows the hash, not the code.
-- [ ] **Step 4 - Platform paths on the admin host** - in `host-routing.ts`, `/signup`, `/signup/*` and `/verify` are platform paths, treated like `/admin*`: allowed on the admin host, and redirected from the public host (GET/HEAD) or refused (other methods). `areaForPath` gives them `admin`, so `root.tsx` serves Habre's look and not the site scope. Add `signup` and `verify` to `RESERVED_PAGE_SLUGS`. *Done when:*
+- [x] **Step 4 - Platform paths on the admin host** - in `host-routing.ts`, `/signup`, `/signup/*` and `/verify` are platform paths, treated like `/admin*`: allowed on the admin host, and redirected from the public host (GET/HEAD) or refused (other methods). `areaForPath` gives them `admin`, so `root.tsx` serves Habre's look and not the site scope. Add `signup` and `verify` to `RESERVED_PAGE_SLUGS`. *Done when:*
   - `host-routing.test.ts`, `content-security-policy.test.ts` and `slug.test.ts` gain these cases and pass.
   - A page titled "Signup" gets the slug `signup-2`, as the existing reserved slugs do.
-- [ ] **Step 5 - Site address rules and signup input** - add `app/features/signup/site-address.ts`:
+- [x] **Step 5 - Site address rules and signup input** - add `app/features/signup/site-address.ts`:
   - **validation:** 3-63 characters, lowercase letters, digits and hyphens; no hyphen first or last; not starting `xn--`; not in the reserved list in *Data and contracts*;
   - **normalisation:** trim and lowercase;
   - **`addressSuggestions(address, name)`:** an ordered list of valid candidates. Its order is the person's name joined (`lenanovak`), then `<address>-site`, `<address>-web` and `<address>-2` to `-9`, with the address itself and invalid or reserved candidates removed. The server keeps the first two that are free.
@@ -355,6 +355,18 @@ caller decides what the person sees. It never logs the address or the text.
   platform host. They need the session cookie, which is host-only on the admin
   host.
 - **Confirming lands on `/admin`** until item 18 builds `/start`.
+- **Settled while building (autopilot, 2026-10-04):**
+  - Blank email and signup variables count as unset, so `.env.example`'s
+    empty lines keep signup `off` (step 2).
+  - `EMAIL_FROM` accepts `Name <address>` or a bare address (step 2).
+  - The invite alphabet is 30 characters (`2-9`, `A-Z` without `I L O U`),
+    so a code holds about 59 bits, not 60. Guessing is still impractical
+    under the per-IP limit (step 3).
+  - Signup form field names are `name`, `email`, `password`, `address`,
+    `invite`. The invite field is capped at 100 characters. The address
+    reports the first rule it breaks (step 5).
+  - `isPlatformPath` in `content-security-policy.ts` is the one test for
+    admin-host paths, used by both the CSP area and host routing (step 4).
 
 ## Production needs
 
