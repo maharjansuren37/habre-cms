@@ -132,7 +132,9 @@ not tidying; it is what keeps the open list true.
       field error and expired state, and login's "Forgot your password?" link;
       from item 15d, Media's storage meter, its full line and the refusal;
       from item 15e1, Your account's three forms, their banners and field
-      errors, the shell's Your account link, and `/confirm-email`).
+      errors, the shell's Your account link, and `/confirm-email`; from item
+      15e2, the Delete account section, `/admin/account/delete` in its three
+      states, and login's "Your account is deleted." banner).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -142,7 +144,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -264,9 +266,12 @@ not tidying; it is what keeps the open list true.
 - [ ] **Terms of service and a privacy policy** - decision; legal text only
       you can stand behind, ideally checked by someone qualified. Public signup
       makes you the host of strangers' content, and contact-form submissions
-      are visitors' personal data. Blocks nothing now; needed before signup
+      are visitors' personal data. It should also say that deleting an
+      account is immediate and that deleted data stays in the nightly backups
+      until they age out (7 days locally per `deploy/backup-db.sh`; the R2
+      backup bucket's retention is not recorded - check it). Blocks nothing now; needed before signup
       opens to the public (item 15's `deploy`). `open` (rescope review,
-      2026-10-01)
+      2026-10-01; widened, spec 15e2, 2026-10-05)
 
 - [ ] **The open-source licence** - decision; AGPL (a hosted fork must stay
       open) or MIT (anyone may close it). The repository is private, so nothing
