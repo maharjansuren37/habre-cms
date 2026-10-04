@@ -3,7 +3,7 @@
 **From build plan:** item 15b
 **Type:** Feature
 **Verified:** 2026-10-04, 9e60f7655568, 29 of 31 proven, 1 differs (Confirm pressed twice shows "already confirmed" - owner decision, see Decisions), 1 could not verify (CI run on the pull request - needs a push)
-**Reviewed:** not yet
+**Reviewed:** 2026-10-04, 9e60f7655568, current, every lens (independent `reviewer`) - 0 blocking; 10 P3 raised (F-233 to F-242)
 
 ## Goal
 
