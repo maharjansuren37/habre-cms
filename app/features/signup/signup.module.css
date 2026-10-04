@@ -1,0 +1,153 @@
+/* The kit's .auth layout (prototypes/components.css): the form's column beside
+ * an aside from 1024px. Login's own page (login.module.css) has no aside. */
+.auth {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+@media (min-width: 1024px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  }
+}
+
+.main {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding: var(--space-8) var(--space-4) var(--space-8);
+}
+
+.inner {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+}
+
+/* A placeholder until the red panda logo arrives (design.md). */
+.mark {
+  display: grid;
+  place-items: center;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--text-lg);
+}
+
+.inner h1 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-family-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.lede {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.summary {
+  margin-top: var(--space-6);
+}
+
+.summary a {
+  color: inherit;
+}
+
+.summary + .form {
+  margin-top: var(--space-6);
+}
+
+/* The kit's large button, full width. */
+.form .submit {
+  width: 100%;
+  min-height: var(--size-control-lg);
+  font-size: var(--text-lg);
+}
+
+.foot {
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.aside {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .aside {
+    display: grid;
+    align-content: center;
+    align-self: start;
+    gap: var(--space-6);
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    padding: var(--space-8);
+    background: var(--color-primary-subtle);
+    border-left: var(--border-width) solid var(--color-border);
+  }
+}
+
+.quote {
+  max-width: 20ch;
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+}
+
+.points {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.points svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
+/* The ringed tail: decorative bands, never behind text. */
+.rings {
+  height: var(--space-4);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-primary) 0 var(--space-8),
+    var(--color-surface) var(--space-8) calc(var(--space-8) * 1.5)
+  );
+}

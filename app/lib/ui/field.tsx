@@ -1,7 +1,7 @@
 import { type ComponentProps, useId } from "react";
 import styles from "./field.module.css";
 
-type FieldProps = Omit<ComponentProps<"input">, "id" | "name"> & {
+type FieldProps = Omit<ComponentProps<"input">, "name"> & {
   label: string;
   name: string;
   hint?: string;
@@ -9,8 +9,18 @@ type FieldProps = Omit<ComponentProps<"input">, "id" | "name"> & {
 };
 
 /** A labelled input. The label is always visible; hint and error are announced with it. */
-export function Field({ label, name, hint, error, className, ...inputProps }: FieldProps) {
-  const id = useId();
+export function Field({
+  label,
+  name,
+  hint,
+  error,
+  className,
+  id: givenId,
+  ...inputProps
+}: FieldProps) {
+  const generatedId = useId();
+  // A caller passes an id when something else links to the field (an error summary).
+  const id = givenId ?? generatedId;
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(" ");

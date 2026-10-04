@@ -24,7 +24,7 @@ export default defineConfig({
       // Tests the production build, which is what ships. Needs the dev database running.
       // PUBLIC_URL/ADMIN_URL must match the test origin, or the cross-site check refuses
       // logins. Equal, so the app is single-host here and redirects nothing.
-      command: `npm run build && PORT=${PORT} PUBLIC_URL=http://127.0.0.1:${PORT} ADMIN_URL=http://127.0.0.1:${PORT} npm start`,
+      command: `npm run build && PORT=${PORT} PUBLIC_URL=http://127.0.0.1:${PORT} ADMIN_URL=http://127.0.0.1:${PORT} SIGNUP_MODE=invite SMTP_URL=smtp://127.0.0.1:1025 EMAIL_FROM='Habre <hello@example.test>' npm start`,
       url: `http://127.0.0.1:${PORT}/healthz`,
       // Never reuse: a server left running from an earlier run keeps serving the
       // build it started with, so a run can pass against code that is no longer
@@ -47,7 +47,7 @@ export default defineConfig({
       // Also waits for the primary build (same reason as the proxied server
       // above): npm start reads whatever is in build/, and starting while it
       // is still being written serves a build no test intended to run against.
-      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${HOST_SPLIT_PORT} PUBLIC_URL=http://127.0.0.1:${HOST_SPLIT_PORT} ADMIN_URL=http://localhost:${HOST_SPLIT_PORT} npm start`,
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; SIGNUP_MODE=off PORT=${HOST_SPLIT_PORT} PUBLIC_URL=http://127.0.0.1:${HOST_SPLIT_PORT} ADMIN_URL=http://localhost:${HOST_SPLIT_PORT} npm start`,
       url: `http://127.0.0.1:${HOST_SPLIT_PORT}/healthz`,
       reuseExistingServer: false,
       timeout: 120_000,

@@ -1,4 +1,4 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { findUserByEmail } from "#app/features/users/users.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -27,7 +27,7 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   if (await findSessionUser(request)) throw redirect("/admin");
-  return null;
+  return { signupOpen: env.SIGNUP_MODE !== "off" };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -123,7 +123,7 @@ async function checkCredentials(email: string, password: string, ip: string) {
   return user;
 }
 
-export default function Login({ actionData }: Route.ComponentProps) {
+export default function Login({ actionData, loaderData }: Route.ComponentProps) {
   const isSubmitting = useNavigation().state === "submitting";
   const fieldErrors = actionData && "fieldErrors" in actionData ? actionData.fieldErrors : {};
 
@@ -179,6 +179,11 @@ export default function Login({ actionData }: Route.ComponentProps) {
         </Form>
 
         <p className={styles.help}>Forgot your password? Ask an admin of this site to reset it.</p>
+        {loaderData.signupOpen && (
+          <p className={styles.help}>
+            New to Habre? <Link to="/signup">Create your website</Link>
+          </p>
+        )}
       </main>
     </div>
   );

@@ -16,6 +16,8 @@ export default [
   route("healthz", "features/public-site/healthz.ts"),
   route("admin/login", "features/auth/login.tsx"),
   route("admin/logout", "features/auth/logout.ts"),
+  // Platform paths on the admin host until item 16 adds the platform host.
+  route("signup", "features/signup/signup.tsx"),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.ts"),
     route("admin/posts", "features/content/post-list.tsx"),
