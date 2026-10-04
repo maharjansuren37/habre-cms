@@ -127,7 +127,9 @@ not tidying; it is what keeps the open list true.
       Duplicate; from item 14c1, the Sections tiles, the dialog's "Add to the
       page" headings, the "added" announcement and the empty-text hints;
       from item 14c2, a section tile's drag announcements - "Hero: drop as
-      section 2 of 4.", release to cancel, added, cancelled).
+      section 2 of 4.", release to cancel, added, cancelled; from item 15c,
+      `/forgot-password` with its neutral reply, `/reset-password` with its
+      field error and expired state, and login's "Forgot your password?" link).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -136,7 +138,7 @@ not tidying; it is what keeps the open list true.
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
-      widened, item 14c2)
+      widened, item 14c2; widened, spec 15c, 2026-10-04)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch

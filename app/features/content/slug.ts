@@ -23,6 +23,8 @@ export const RESERVED_PAGE_SLUGS = [
   "healthz",
   "signup",
   "verify",
+  "forgot-password",
+  "reset-password",
 ] as const;
 
 export function slugFromTitle(title: string, type: EntryType): string {

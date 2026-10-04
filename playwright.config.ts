@@ -44,10 +44,13 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
+      // SMTP_URL= and EMAIL_FROM= are blank on purpose: this server is email-off, and
+      // node --env-file-if-exists=.env would otherwise fill them from a local .env
+      // (it never overrides a variable already set, blank included).
       // Also waits for the primary build (same reason as the proxied server
       // above): npm start reads whatever is in build/, and starting while it
       // is still being written serves a build no test intended to run against.
-      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; SIGNUP_MODE=off PORT=${HOST_SPLIT_PORT} PUBLIC_URL=http://127.0.0.1:${HOST_SPLIT_PORT} ADMIN_URL=http://localhost:${HOST_SPLIT_PORT} npm start`,
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; SIGNUP_MODE=off SMTP_URL= EMAIL_FROM= PORT=${HOST_SPLIT_PORT} PUBLIC_URL=http://127.0.0.1:${HOST_SPLIT_PORT} ADMIN_URL=http://localhost:${HOST_SPLIT_PORT} npm start`,
       url: `http://127.0.0.1:${HOST_SPLIT_PORT}/healthz`,
       reuseExistingServer: false,
       timeout: 120_000,

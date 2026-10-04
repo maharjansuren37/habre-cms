@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
-import { emailEnvFields, requireEmailForSignup } from "#app/lib/email-env.server.ts";
+import {
+  emailEnvFields,
+  requireEmailForSignup,
+  requireEmailPair,
+} from "#app/lib/email-env.server.ts";
 
 // Everything the web app reads. server/app.ts imports this, so the production
 // server refuses to start with a missing or invalid variable. Later items add
@@ -26,6 +30,7 @@ const envSchema = databaseEnvSchema
     // that signup needs email is in email-env.server.ts.
     ...emailEnvFields,
   })
-  .superRefine(requireEmailForSignup);
+  .superRefine(requireEmailForSignup)
+  .superRefine(requireEmailPair);
 
 export const env = parseEnv(envSchema, process.env);
