@@ -11,3 +11,10 @@
 - **accounts.9** - the reset link sets a new password once and within an hour, signs the person in on that browser and signs them out everywhere else *Since:* features/15c-password-reset
 - **accounts.10** - opening the reset link changes nothing until the person submits a new password *Since:* features/15c-password-reset
 - **accounts.11** - with email not configured, `/forgot-password` and `/reset-password` are Not Found and the login page says to ask an admin *Since:* features/15c-password-reset
+- **accounts.12** - anyone signed in can change their name on Your account, and the shell shows the new name at once *Since:* features/15e1-your-account
+- **accounts.13** - changing your password needs the current one, keeps you signed in on this browser and signs you out everywhere else *Since:* features/15e1-your-account
+- **accounts.14** - a wrong current password on Your account counts toward the same lock as a failed sign-in *Since:* features/15e1-your-account
+- **accounts.15** - with email off, a new email takes effect at once after the current password, and the old one no longer signs in *Since:* features/15e1-your-account
+- **accounts.16** - a new email that is already yours or another account's is refused beside the field *Since:* features/15e1-your-account
+- **accounts.17** - with email on, asking for a new email changes nothing until the link sent to that address is confirmed, and only the newest link works *Since:* features/15e1-your-account
+- **accounts.18** - confirming a new email changes it once and within 24 hours, tells the old address, and stops reset links sent before it *Since:* features/15e1-your-account

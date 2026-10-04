@@ -3400,3 +3400,67 @@ nor below a limit it has (F-249, F-250).
 Beats: rounding both down ("1.9 GB of 1.9 GB" with room left); rounding to
 nearest ("2 GB of 2 GB" with room left).
 Costs: a 2000 MB limit reads "2 GB" though it is 1.95 GB.
+
+## D290 - Your account is `/admin/account`, in the shell, for every role (2026-10-05)
+
+**Chose:** one page, **Your account**, inside the admin shell for authors,
+editors and admins alike, reached from a link at the shell's foot under the
+person's name, until item 21's Plan makes the account menu (item 15e1).
+Beats: an account menu holding one entry.
+Costs: the foot carries a link and the Log out button side by side until the
+menu arrives.
+
+## D291 - Changing email or password asks for the current password, checked like a login (2026-10-05)
+
+**Chose:** the current password is verified as at sign-in - it takes a
+`passwordCheckSlots` slot (503 "Busy, try again in a minute.") and a wrong one
+counts a failure against `emailLoginLimiter` for the account's current email;
+at the limit nothing is checked. A right one does not reset the counter.
+Beats: no re-check (a borrowed, unlocked laptop could take the account); a
+separate counter (two budgets of guesses for one password).
+Costs: a person who mistypes their current password here can lock their own
+sign-in for 15 minutes.
+
+## D292 - With email on, a new email takes effect only from a link sent to it; the old address is told afterwards (2026-10-05)
+
+**Chose:** the pending address lives on its `email_tokens` row
+(`purpose = 'email_change'`, `new_email`), 24 hours, only the newest link
+works, Confirm by POST (D251), no session issued (D270). Confirming re-checks
+the address is free, uses up the person's reset links (sent to the old
+address) and emails the old address a notice (owner, 2026-10-05).
+Beats: changing at once (a typo loses the reset path); a pending column on
+`users` (read on every request for a rare state).
+Costs: a new purpose and a nullable column on `email_tokens` (`0013`), held
+to `purpose = 'email_change'` by a check that any later purpose extends.
+
+## D293 - With email off, an email change is immediate after the current password (2026-10-05)
+
+**Chose:** Save changes the address at once and `email_verified_at` stays
+set; `/confirm-email` is Not Found.
+Beats: refusing email changes without email.
+Costs: a typo in the new address cannot be caught by a link - there is no way
+to send one, and an operator made the account.
+
+## D294 - A password change keeps this browser signed in and ends every other session (2026-10-05)
+
+**Chose:** saving bumps `token_version` and sets a fresh cookie on the new
+version, as password reset does (D271-D283).
+Beats: signing this browser out too; leaving other sessions alive.
+Costs: a live reset link still works afterwards (accounts.9); completing it
+ends every session.
+
+## D295 - A taken address is said beside the email field (2026-10-05)
+
+**Chose:** "That email is already used by another account." below the field,
+asked again at Confirm since someone can sign up with it in between.
+Beats: a neutral reply.
+Costs: reveals that an address has an account - behind a signed-in session
+and the current password, and D159's add-member already tells an admin.
+
+## D296 - The confirmation link is limited per new address and per IP (2026-10-05)
+
+**Chose:** 3 an hour per new address, 5 an hour per IP, a third
+`createResendLimits()` instance with the resend limits' numbers; over it,
+"Too many emails to that address. Try again later." and nothing is sent.
+Beats: no limit (the page would email any inbox from your own account).
+Costs: in-memory, so a restart resets it, like the resend limits.

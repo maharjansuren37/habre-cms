@@ -115,7 +115,7 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
   - [x] 15c. **Password reset by email**
   - [x] 15d. **Storage cap per site** (D150)
   - [ ] 15e. **Your account** - change your name, email and password; delete your account (design.md *Screens*)
-    - [ ] 15e1. **Your account** - the page, change your name, password and email (a confirm link to the new address, a notice to the old)
+    - [x] 15e1. **Your account** - the page, change your name, password and email (a confirm link to the new address, a notice to the old)
     - [ ] 15e2. **Delete your account** - the last active admin takes the site and everything on it; anyone else is erased and leaves, their content credited to "Deleted account"
 - [ ] 16. **Sites on their own subdomains** - each site's public site served at `<name>.<sites domain>` (D153)
 - [ ] 17. **SEO basics** - title and description per page and post, social image, `sitemap.xml` and `robots.txt` per site; one main address per site, the others redirecting to it, with a canonical link; nothing indexed until a site publishes; the site's language on every page (D173)
