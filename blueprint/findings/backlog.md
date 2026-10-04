@@ -378,3 +378,14 @@ File: blueprint/project-plan.md:131-178
 
 ### F-242 [P3] open - Failed invite codes leave no security event
 File: app/features/signup/signup.server.ts:117
+
+### F-243 [P3] fixed - A reset completing at the same moment as a new link request can deadlock, and one side answers 500
+File: app/features/signup/password-reset.server.ts (`completeReset`, `issueResetToken`)
+
+
+### F-246 [P3] fixed - Two of the spec's claims are untested: the completion's expiry guard, and journey 7's "own site"
+File: app/features/signup/password-reset.server.ts (`completeReset`, `expires_at > now()`); e2e/password-reset.spec.ts (journey 7)
+
+
+### F-247 [P3] open - The reset form gives password managers no username to save the new password against
+File: app/features/signup/reset-password.tsx (the form)

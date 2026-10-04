@@ -16,3 +16,7 @@
 - [ ] `SIGNUP_MODE` in `/etc/habre-cms/production.env`: leave it unset (`off`) until the beta opens, then set it to `invite` (D150).
 - [ ] `SMTP_URL` and `EMAIL_FROM` in `production.env` before signup is turned on: a Resend account with an API key and a sending domain with SPF, DKIM and DMARC records (`needs-you.md`); the sending domain depends on the platform domain still to be bought.
 - [ ] `nodemailer` is copied with `node_modules`, as every other package is; it has no native code.
+
+## features/15c-password-reset
+
+- [ ] Nothing new to install. `SMTP_URL` and `EMAIL_FROM` now go together - one alone stops startup (D272) - and setting both (the 15b line above) also turns on password reset by email (D271).
