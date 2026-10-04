@@ -169,7 +169,7 @@ the front door of platform v1 and the first time Habre sends email.
   - **The link opened twice:** a scanner-style GET followed by the person's Confirm still signs them in.
   - **Confirm pressed twice:** the second press shows the expired-or-used state.
   - **An expired token** (expiry set in the past by the owner in the database) shows the expired-or-used state and confirms nothing.
-- [ ] **Step 10 - CI, docs and the record** - in `.github/workflows/ci.yml`, the `e2e` job gains a Mailpit service at the same pinned tag, with ports 1025 and 8025. `AGENTS.md`: the Commands section says `docker compose up -d` also starts Mailpit, the `development` and `ci` Environments rows name `SIGNUP_MODE`, `SMTP_URL` and `EMAIL_FROM`, and `create-invite` is listed. The production row is left to `deploy`. *Done when:*
+- [ ] **Step 10 - CI, docs and the record** _(built, awaiting approval: its CI done-when needs the branch pushed)_ - in `.github/workflows/ci.yml`, the `e2e` job gains a Mailpit service at the same pinned tag, with ports 1025 and 8025. `AGENTS.md`: the Commands section says `docker compose up -d` also starts Mailpit, the `development` and `ci` Environments rows name `SIGNUP_MODE`, `SMTP_URL` and `EMAIL_FROM`, and `create-invite` is listed. The production row is left to `deploy`. *Done when:*
   - `npm run verify` passes, and the full `npm run test:e2e` passes locally with real R2, none skipped.
   - The CI run on the pull request is green on both jobs, with `signup.spec.ts` running in `e2e`, not skipped.
 
