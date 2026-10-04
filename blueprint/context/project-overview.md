@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-04, `main` after `9a0f9c3`.
+Generated 2026-10-04, `main` after `5bc2877`.
 
 ## What this is
 
@@ -40,18 +40,15 @@ mode; sections, columns and ready-made sections (D114-D143).
 self-hosted, public sites neutral and light only (D168); the new editor's
 first part (14a1) - TipTap on one v4 document per entry, sections of 1-3
 columns, text styles, lists, quote, links, undo, the public renderer;
-Editor.js and all old content removed (migration `0009`); the remaining v1
-blocks (14a2) - image, button, line, space - with the Blocks palette and
-the settings panel; the block toolbar (14a3) - the selected block's ring,
-Move up / down across columns and sections, announced, the Text style menu
-with a page's one Main heading, Delete, and the section chip's moves; the
-admin CSP without inline styles or `data:` images; drag and drop (14b) - a
-palette tile or the selected block's grip dragged into any column, a drop
-gap and ghost, the place announced, auto-scroll, touch on the grip, and
-Duplicate in the toolbar; ready-made sections (14c1) - Blank, Hero, Image
-and text, Call to action as empty templates of ordinary blocks, added from
-the palette, with editor-only hints for empty text; a section tile dragged
-between sections (14c2), which completes item 14.
+Editor.js and all old content removed (migration `0009`); image, button,
+line and space blocks, the palette and settings panel (14a2); the block
+toolbar - moves, Text style, Delete, announced (14a3); the admin CSP
+without inline styles or `data:` images; drag and drop and Duplicate (14b);
+ready-made sections as templates of ordinary blocks (14c1, 14c2); sites and memberships
+(15a) - `site_id` and row-level security on site-owned tables, owner and
+app database roles, today's install as site 1, the admin scoped by
+membership (migrations `0010`-`0011`; deploy steps in
+`blueprint/production-pending.md`).
 
 **Platform v1 (queued):** signup with email verification, one isolated site per
 signup; sites on their own subdomains; SEO basics; optimised images (17b);
@@ -145,8 +142,9 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 done (14c2 last); 15-21 queued; nothing in flight.
-  15 and 18 split when spec'd. Last shipped: the drag tidy fix
-  (`blueprint/history/fixes/drag-backlog-tidy.md`), after 14c2.
-- **Next:** `spec` item 15, sign up and sites (split into 15a-15d).
+- **Plan:** items 1-14 and 15a done; 15b-21 queued; nothing in flight.
+  18 splits when spec'd. Last shipped: 15a
+  (`blueprint/history/features/15a-sites-and-memberships.md`).
+- **Next:** `spec` item 15b, signup (needs Resend test credentials -
+  `needs-you.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
