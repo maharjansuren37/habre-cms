@@ -267,7 +267,7 @@ single-use link that lasts an hour, and a completed reset bumps
   **Timing (quality bar, admin saves under 1 s at p95, server-side):**
   `verify` times 20 local completions and reports the p95.
 
-- [x] **Step 4 - CI, docs and the record** _(CI on the pull request not yet run: it needs a push, which autopilot never does - `ship` checks it)_
+- [x] **Step 4 - CI, docs and the record** _(CI on PR #34, run 37186362627: `verify` pass; `e2e` 319 passed, 6 R2 skipped, all 17 `password-reset.spec.ts` tests ran and passed)_
   - `AGENTS.md`'s *Environments* `development` row says the two email
     variables go together and turn on password reset.
   - `design.md`'s *Screens* row for "Forgot password" becomes **built**
