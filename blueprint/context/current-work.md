@@ -2,8 +2,8 @@
 
 **From build plan:** item 15e1
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-05, ad62564ab3b6, 6 of 6 proven (browser tests against the production build; Step 3 p95 861 ms over 20 saves; journey 6 and the revoked-session click walked live; full suite 350 passed, 1 failed = F-230, editor untouched)
+**Reviewed:** 2026-10-05, ad62564ab3b6, current (main...HEAD from d6886d7), every lens, reviewer subagent - 0 blocking; F-252 P2 and F-253..F-262 P3 open
 
 ## Goal
 
