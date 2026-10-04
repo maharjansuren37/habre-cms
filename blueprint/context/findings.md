@@ -82,7 +82,7 @@ File: e2e/block-toolbar.spec.ts:687; e2e/sites.spec.ts:56
 File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488
 
 
-### F-263 [P2] open - After a 409 "Something changed" the delete screen stays stale, so every retry is refused
+### F-263 [P2] fixed - After a 409 "Something changed" the delete screen stays stale, so every retry is refused
 File: app/features/account/account-delete.tsx:96 (409 return; no `shouldRevalidate`)
 
 
@@ -90,7 +90,7 @@ File: app/features/account/account-delete.tsx:96 (409 return; no `shouldRevalida
 File: e2e/account-delete.spec.ts:337-362
 
 
-### F-265 [P2] open - The deletion transaction runs while holding a password slot, against the spec's order, and worsens F-231
+### F-265 [P2] fixed - The deletion transaction runs while holding a password slot, against the spec's order, and worsens F-231
 File: app/features/account/account-delete.tsx:86-89
 
 

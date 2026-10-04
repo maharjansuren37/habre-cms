@@ -221,6 +221,17 @@ field, input kept, except the password) and **6** (signed out,
     through Media answers 404 at its public URL after the site is deleted;
   - `site-deleted-notice.test.ts` passes.
 
+- [x] **Repair F-263 - after a 409 "Something changed" the delete screen stays
+  stale** - the screen reloads its case after a 409, so the person sees what
+  will now be deleted. *Done when:* the "loaded as leaving" test in
+  `e2e/account-delete.spec.ts` also sees the site case's text and address
+  field after CHANGED, failing with the repair reverted.
+- [x] **Repair F-265 - the deletion runs while holding a password slot** -
+  the password is checked inside `withCurrentPassword`, and `deleteAccount`
+  runs after the slot is released (Notes' order). *Done when:* a browser test
+  holding the site row locked with two deletions waiting on it still lets a
+  sign-in through, failing ("Busy") with the repair reverted.
+
 ## Files and areas
 
 - **New:**
@@ -340,9 +351,10 @@ field, input kept, except the password) and **6** (signed out,
   ask of site-owned data functions; `inSite` needs it.
 - **A refused or changed POST answers 409** with the message on the page
   (build, Step 3).
-- **The transaction runs inside `withCurrentPassword`'s callback**, as 15e1's
-  email change does (build, Step 3): a wrong password counts even when the
-  case is refused, and a right one never does.
+- **`withCurrentPassword` only verifies the password; the transaction runs
+  after it returns, with the slot released** (build, Step 3; repaired,
+  F-265): a wrong password counts even when the case is refused, and a right
+  one never does.
 - **The password field behaves as 15e1's do** (build, Step 3): uncontrolled,
   so the browser keeps what was typed after a refusal. Journey 8's "except
   the password" is not enforced here, nor in 15e1.

@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
+import postgres from "postgres";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { messagesTo, waitForMail } from "./helpers/mail.ts";
@@ -80,7 +81,7 @@ async function signInOutcome(
   browser: Browser,
   email: string,
   password: string,
-): Promise<"signed in" | "refused"> {
+): Promise<"signed in" | "refused" | "busy"> {
   const context = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": randomIp() } });
   try {
     const page = await context.newPage();
@@ -92,6 +93,10 @@ async function signInOutcome(
     return await Promise.race([
       page.waitForURL("**/admin/posts").then(() => "signed in" as const),
       refusal.waitFor().then(() => "refused" as const),
+      page
+        .getByText("Login is busy.")
+        .waitFor()
+        .then(() => "busy" as const),
     ]);
   } finally {
     await context.close();
@@ -332,6 +337,91 @@ test("a page loaded as leaving is refused once the other admin is deactivated", 
   expect(await userExists(admin.email)).toBe(true);
   const left = await leftOfSite([admin.email, otherAdmin.email, author.email]);
   expect(left).toMatchObject({ sites: 1, entries: 1, members: 3, users: 3 });
+
+  // F-263: the screen reloaded its case, so it now shows what will be deleted.
+  const summary = page.getByText("is deleted with your account:");
+  await expect(summary).toContainText(subdomain);
+  await expect(summary).toContainText("1 post");
+  const address = page.getByLabel(`Type ${subdomain} to confirm`);
+  await expect(address).toBeVisible();
+  await expect(page.getByText(CHANGED)).toBeVisible();
+
+  // And the retry works, as the site case.
+  await address.fill(subdomain);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL("/admin/login?deleted=1");
+  expect(await userExists(admin.email)).toBe(false);
+});
+
+test("a deletion waiting on the site's lock does not hold a password slot", async ({
+  page,
+  browser,
+}) => {
+  await makeSite();
+  const databaseUrl = process.env.DATABASE_OWNER_URL;
+  if (!databaseUrl) throw new Error("DATABASE_OWNER_URL is not set - browser tests need .env");
+  const owner = postgres(databaseUrl, { max: 2 });
+  const second = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": randomIp() } });
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let locked: () => void = () => {};
+  const lockTaken = new Promise<void>((resolve) => {
+    locked = resolve;
+  });
+  // The owner holds the site's row lock until `release` is called.
+  const holder = owner.begin(async (tx) => {
+    await tx`select 1 from sites where id = ${siteId} for update`;
+    locked();
+    await held;
+  });
+  try {
+    const secondPage = await second.newPage();
+    await logIn(page, admin);
+    await logIn(secondPage, otherAdmin);
+    await page.goto("/admin/account/delete");
+    await secondPage.goto("/admin/account/delete");
+    await page.getByLabel("Current password").fill(admin.password);
+    await secondPage.getByLabel("Current password").fill(otherAdmin.password);
+    await lockTaken;
+
+    const isDeletePost = (response: { request(): { method(): string }; url(): string }) =>
+      response.request().method() === "POST" && response.url().includes("/admin/account/delete");
+    const firstAnswer = page.waitForResponse(isDeletePost);
+    const secondAnswer = secondPage.waitForResponse(isDeletePost);
+    await page.getByRole("button", { name: "Delete my account" }).click();
+    await secondPage.getByRole("button", { name: "Delete my account" }).click();
+
+    // Both deletions are now blocked on the lock: two ungranted lock requests.
+    await expect
+      .poll(async () => {
+        const [row] = await owner<
+          { waiting: number }[]
+        >`select count(*)::int as waiting from pg_locks where not granted`;
+        return row.waiting;
+      })
+      .toBeGreaterThanOrEqual(2);
+
+    // A third person signs in while both wait (F-265: it answered "Busy").
+    expect(await signInOutcome(browser, author.email, author.password)).toBe("signed in");
+
+    release();
+    await holder;
+    const statuses = [(await firstAnswer).status(), (await secondAnswer).status()].sort();
+    // One deletion redirects (fetch follows it to the login page, 200); the other is CHANGED.
+    expect(statuses).toContain(409);
+    await expect
+      .poll(async () => (await userExists(admin.email)) !== (await userExists(otherAdmin.email)))
+      .toBe(true);
+    const left = await leftOfSite([admin.email, otherAdmin.email, author.email]);
+    expect(left).toMatchObject({ sites: 1, members: 2, users: 2 });
+  } finally {
+    release();
+    await holder.catch(() => {});
+    await owner.end();
+    await second.close();
+  }
 });
 
 test("two admins of one site deleting at once leave exactly one of them deleted", async ({

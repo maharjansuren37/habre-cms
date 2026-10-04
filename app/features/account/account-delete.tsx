@@ -1,4 +1,11 @@
-import { data, Form, Link, redirect, useNavigation } from "react-router";
+import {
+  data,
+  Form,
+  Link,
+  redirect,
+  type ShouldRevalidateFunctionArgs,
+  useNavigation,
+} from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
 import { serializeClearedSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
@@ -15,7 +22,6 @@ import type { Route } from "./+types/account-delete";
 import {
   BUSY,
   checkCurrentPassword,
-  type DeleteAccountResult,
   deleteAccount,
   findDeletion,
   TOO_MANY_ATTEMPTS,
@@ -45,6 +51,18 @@ function nameList(names: string[]): string {
 const REFUSED =
   "This is the platform's main site, so it can't be deleted yet. Make another member an admin first, then delete your account.";
 const CHANGED = "Something changed on your site. Check what will be deleted and try again.";
+
+/**
+ * React Router skips revalidation after a 4xx action. A 409 means the case
+ * changed, so the loader runs again and the screen shows what will now be
+ * deleted (F-263).
+ */
+export function shouldRevalidate({
+  actionStatus,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  return actionStatus === 409 || defaultShouldRevalidate;
+}
 
 export function meta() {
   return [{ title: "Delete your account - Habre CMS" }];
@@ -83,27 +101,29 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const ip = clientIp(request.headers);
-  const gate = await withCurrentPassword<DeleteAccountResult>(user, ip, async () => {
+  const gate = await withCurrentPassword<undefined>(user, ip, async () => {
     if (!(await checkCurrentPassword(user.id, parsed.currentPassword))) return { ok: false };
-    return { ok: true, value: await deleteAccount(user.siteId, user.id, parsed.expect) };
+    return { ok: true, value: undefined };
   });
   if (gate.status === "blocked") return refused({}, TOO_MANY_ATTEMPTS, 429);
   if (gate.status === "busy") return refused({}, BUSY, 503);
   if (gate.status === "wrong") {
     return refused({ currentPassword: "That's not your current password." });
   }
-  if (!gate.value.ok) {
-    return refused({}, gate.value.reason === "refused" ? REFUSED : CHANGED, 409);
+  // The slot is released: the transaction may wait on the site's lock (F-265).
+  const result = await deleteAccount(user.siteId, user.id, parsed.expect);
+  if (!result.ok) {
+    return refused({}, result.reason === "refused" ? REFUSED : CHANGED, 409);
   }
   logSecurityEvent({
     event: "account_deleted",
     userId: user.id,
     siteId: user.siteId,
-    siteDeleted: gate.value.siteDeleted,
+    siteDeleted: result.siteDeleted,
   });
   // After the commit, and not awaited: the person is not kept waiting for R2 or
   // the mail server. Both functions catch everything, so nothing can reject.
-  const { storageKeys, otherMembers, address } = gate.value;
+  const { storageKeys, otherMembers, address } = result;
   void removeStorageObjects(storageKeys, deleteObject, console.error);
   if (isEmailOn(env)) {
     void notifyMembers(otherMembers, address, sendEmail, () =>
