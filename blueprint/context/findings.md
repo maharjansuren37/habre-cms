@@ -80,3 +80,23 @@ File: e2e/block-toolbar.spec.ts:687; e2e/sites.spec.ts:56
 
 ### F-252 [P2] open - The confirm test's sign-in helper reads the URL before the login answers, so "the old address no longer signs in" can pass vacuously
 File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488
+
+
+### F-263 [P2] open - After a 409 "Something changed" the delete screen stays stale, so every retry is refused
+File: app/features/account/account-delete.tsx:96 (409 return; no `shouldRevalidate`)
+
+
+### F-264 [P2] open - The "two admins at once" test can pass without the site-row lock
+File: e2e/account-delete.spec.ts:337-362
+
+
+### F-265 [P2] open - The deletion transaction runs while holding a password slot, against the spec's order, and worsens F-231
+File: app/features/account/account-delete.tsx:86-89
+
+
+### F-266 [P3] unverified - A content write that lands during a site deletion likely ends in an unhandled 500
+File: app/features/account/account.server.ts (`deleteAccount`); app/features/content/entries.server.ts (`createDraft`); media upload
+
+
+### F-267 [P3] open - Known gap: delete in one tab while demoting the only other admin can leave a site with no admin, and then a memberless site
+File: app/features/users/ (role change, deactivate); app/features/account/account.server.ts (`readDeletionFacts`)

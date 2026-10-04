@@ -2,8 +2,8 @@
 
 **From build plan:** item 15e2
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-05, 6957e99a0e97, 29 of 29 proven
+**Reviewed:** 2026-10-05, 6957e99a0e97, current, every lens - 0 blocking
 
 ## Goal
 
