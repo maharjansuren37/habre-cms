@@ -1,10 +1,11 @@
 import { createHash, randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { textDocument } from "./helpers/documents.ts";
 import { createInvite, deleteInvites, hashInvite, randomAddress } from "./helpers/invites.ts";
 import { messagesTo, tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
-import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
-import { withDatabase } from "./helpers/users.ts";
+import { createSite, createSiteAdmin, deleteSite, siteOneId } from "./helpers/sites.ts";
+import { createDraftFor, deleteEntriesBy, deleteTestUser, withDatabase } from "./helpers/users.ts";
 
 function randomIp(): string {
   return `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
@@ -384,11 +385,20 @@ test("Send it again sends a second email and only the newest link stays valid", 
   );
   expect(rows).toHaveLength(2);
   const byHash = new Map(rows.map((row) => [row.hash, row]));
-  // Until step 9 builds /verify, "no longer confirms" is read from the row.
   expect(byHash.get(sha256(tokenFromMail(first)))?.used).not.toBeNull();
   const newest = byHash.get(sha256(tokenFromMail(second)));
   expect(newest?.used).toBeNull();
   expect(newest?.live).toBe(true);
+
+  // The first link no longer confirms; the second does.
+  await page.goto(`/verify?token=${tokenFromMail(first)}`);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await expect(page.getByRole("alert")).toContainText("This link has expired or was already used");
+  expect(await isConfirmed(email)).toBe(false);
+  await page.goto(`/verify?token=${tokenFromMail(second)}`);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await page.waitForURL("**/admin/posts");
+  expect(await isConfirmed(email)).toBe(true);
 });
 
 test("the reply is the same for no account, an unconfirmed one and a confirmed one", async ({
@@ -446,4 +456,139 @@ test("the fourth resend for one email in an hour is refused, from four different
 
   // The signup email and three resends; a fifth never arrives.
   expect(await waitForMail(email, 4)).toHaveLength(4);
+});
+
+const EXPIRED = "This link has expired or was already used";
+
+async function isConfirmed(email: string): Promise<boolean> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ verified: Date | null }[]>`
+      select email_verified_at as verified from users where email = ${email}`;
+    return row.verified !== null;
+  });
+}
+
+/** Signs up and returns the person and the link from their one email. */
+async function signUpAndGetLink(page: Page) {
+  const signup = await newSignup();
+  await fillSignup(page, signup);
+  await expect(page).toHaveURL(/\/signup\/sent/);
+  const [mail] = await waitForMail(signup.email, 1);
+  return { ...signup, token: tokenFromMail(mail), link: `/verify?token=${tokenFromMail(mail)}` };
+}
+
+test("journey 1: sign up, open the emailed link, confirm, and land in your own empty site", async ({
+  page,
+}) => {
+  // Site 1 has content the new admin must never see.
+  const owner = await createSiteAdmin(await siteOneId());
+  const title = `Site one only ${randomInt(1e9)}`;
+  await createDraftFor(owner.email, title, textDocument("hello"));
+  try {
+    const signup = await signUpAndGetLink(page);
+    await page.goto(signup.link);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Confirm your email");
+    await page.getByRole("button", { name: "Confirm my email" }).click();
+
+    await page.waitForURL("**/admin/posts");
+    await expect(page.getByRole("complementary")).toContainText(signup.address);
+    await expect(page.getByText(title)).toHaveCount(0);
+    await page.goto("/admin/pages");
+    await expect(page.getByText(title)).toHaveCount(0);
+    expect(await isConfirmed(signup.email)).toBe(true);
+    const [row] = await withDatabase(
+      (sql) => sql<{ n: number }[]>`
+        select count(*)::int as n from entries e join sites s on s.id = e.site_id
+        where s.subdomain = ${signup.address}`,
+    );
+    expect(row.n).toBe(0);
+  } finally {
+    await deleteEntriesBy(owner.email);
+    await deleteTestUser(owner.email);
+  }
+});
+
+test("before confirming, the right password lands on Check your email and gives no session", async ({
+  page,
+}) => {
+  const signup = await signUpAndGetLink(page);
+  await page.context().clearCookies();
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(signup.email);
+  await page.getByLabel("Password").fill("a long enough password");
+  await page.getByRole("button", { name: "Log in" }).click();
+
+  await expect(page).toHaveURL(/\/signup\/sent/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your email");
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("a scanner opening the link first does not use it up", async ({ page, request }) => {
+  const signup = await signUpAndGetLink(page);
+  const scan = await request.get(signup.link, { headers: { "X-Forwarded-For": randomIp() } });
+  expect(scan.status()).toBe(200);
+  expect(await isConfirmed(signup.email)).toBe(false);
+
+  await page.goto(signup.link);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await page.waitForURL("**/admin/posts");
+});
+
+test("pressing Confirm twice signs no one in the second time", async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  const signup = await signUpAndGetLink(page);
+  await page.goto(signup.link);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await page.waitForURL("**/admin/posts");
+
+  const again = await request.post("/verify", {
+    headers: { Origin: baseURL ?? "", "X-Forwarded-For": randomIp() },
+    form: { token: signup.token },
+    maxRedirects: 0,
+  });
+  expect(again.status()).toBe(200);
+  // The token is used up, and its account is confirmed, so the page says so.
+  expect(await again.text()).toContain("Your email is already confirmed");
+  expect(again.headers()["set-cookie"]).toBeUndefined();
+});
+
+test("an expired token confirms nothing", async ({ page }) => {
+  const signup = await signUpAndGetLink(page);
+  await withDatabase(async (sql) => {
+    await sql`update email_tokens set expires_at = now() - interval '1 minute'
+      where token_hash = ${sha256(signup.token)}`;
+  });
+  await page.goto(signup.link);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+
+  await expect(page.getByRole("alert")).toContainText(EXPIRED);
+  expect(await isConfirmed(signup.email)).toBe(false);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("/verify with no token, or an unknown one, shows the expired-or-used state with a way to get a new link", async ({
+  page,
+}) => {
+  await page.goto("/verify");
+  await expect(page.getByRole("alert")).toContainText(EXPIRED);
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send me a new link" })).toBeVisible();
+});
+
+test("a token of an already confirmed account says so, with a link to log in", async ({ page }) => {
+  const signup = await signUpAndGetLink(page);
+  await page.goto(signup.link);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await page.waitForURL("**/admin/posts");
+  await page.context().clearCookies();
+
+  await page.goto(signup.link);
+  await page.getByRole("button", { name: "Confirm my email" }).click();
+  await expect(page.getByRole("main")).toContainText("Your email is already confirmed");
+  await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/admin/login");
 });

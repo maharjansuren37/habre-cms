@@ -158,7 +158,7 @@ the front door of platform v1 and the first time Habre sends email.
     - the second one does.
   - **Playwright, the neutral answer:** for an address with no account, and for a confirmed account, the reply text is identical and Mailpit receives nothing.
   - The fourth resend for one email within an hour is refused with "Too many requests, wait an hour", and Mailpit holds no fourth email. `node --test` covers the limiter wiring if it is a pure helper. Otherwise Playwright does.
-- [ ] **Step 9 - Confirming, and login for unconfirmed accounts** - add `app/features/signup/verify.tsx` at `/verify`.
+- [x] **Step 9 - Confirming, and login for unconfirmed accounts** - add `app/features/signup/verify.tsx` at `/verify`.
   - **GET** shows "Confirm your email" with one **Confirm my email** button and changes nothing, so an email scanner that opens the link does not use it up.
   - **POST** atomically marks the token used (`update email_tokens set used_at = now() where token_hash = … and purpose = 'verify' and used_at is null and expires_at > now() returning user_id`). It then sets `email_verified_at`, issues the session cookie as login does, logs `email_verified` `{userId}` and redirects to `/admin`.
   - An unknown, used or expired token shows "This link has expired or was already used", with a form to get a new link. A user who is already confirmed is told so, with "Log in".
@@ -382,6 +382,18 @@ caller decides what the person sees. It never logs the address or the text.
   - On `/signup/sent` the pending-email cookie wins over a typed address; the
     email field shows only when there is no cookie. A refused resend is not
     counted, so a block cannot extend itself (step 8).
+  - **Needs the owner's yes:** a used link whose account is confirmed shows
+    "Your email is already confirmed" with Log in, so Confirm pressed twice
+    shows that and not the expired-or-used state step 9's done-when names. A
+    link can reach a confirmed account only once used, so the other reading
+    would leave the "already confirmed" state unreachable. The expired-or-used
+    state covers unknown, expired and superseded links. Reverting is one
+    `used_at is null` condition in `verify.tsx` (step 9).
+  - Login checks an unconfirmed email last, after the password, membership
+    and deactivation checks, so those refusals are unchanged. Sessions are
+    issued only by login and `/verify`, so `requireUser` does not re-check
+    confirmation. `/verify` has no rate limit: its token is 256 random bits
+    (step 9).
 
 ## Production needs
 

@@ -1,4 +1,5 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
+import { serializePendingEmailCookie } from "#app/features/signup/pending-email-cookie.server.ts";
 import { findUserByEmail } from "#app/features/users/users.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -73,6 +74,17 @@ export async function action({ request }: Route.ActionArgs) {
   }
   if (!user) return data({ credentialsRefused: true, email: form.email }, { status: 400 });
 
+  // A correct password on an account whose email is not confirmed signs no one
+  // in: it goes to "Check your email", where a new link can be asked for. It
+  // counts as a success for the limiters - the password was right.
+  if (!user.emailVerifiedAt) {
+    emailLoginLimiter.reset(form.email);
+    ipLoginLimiter.forgive(ipKey);
+    return redirect("/signup/sent", {
+      headers: { "Set-Cookie": await serializePendingEmailCookie(user.email) },
+    });
+  }
+
   const token = await signSessionToken(
     { userId: user.id, tokenVersion: user.tokenVersion },
     env.JWT_SECRET,
@@ -119,6 +131,11 @@ async function checkCredentials(email: string, password: string, ip: string) {
   if (user.membership.deactivatedAt) {
     logSecurityEvent({ event: "login_failed", reason: "deactivated", userId: user.id, ip });
     return null;
+  }
+  // Last, so a deactivated or memberless account is refused as before. The
+  // caller sends this user to "Check your email" instead of signing them in.
+  if (!user.emailVerifiedAt) {
+    logSecurityEvent({ event: "login_failed", reason: "unverified", userId: user.id, ip });
   }
   return user;
 }

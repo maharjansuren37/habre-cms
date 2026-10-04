@@ -7,7 +7,7 @@ export type SecurityEvent =
   | { event: "login_succeeded"; userId: string; ip: string }
   | {
       event: "login_failed";
-      reason: "unknown_email" | "bad_password" | "deactivated" | "no_membership";
+      reason: "unknown_email" | "bad_password" | "deactivated" | "no_membership" | "unverified";
       userId?: string;
       ip: string;
     }
@@ -15,6 +15,7 @@ export type SecurityEvent =
   | { event: "logout"; userId: string }
   | { event: "signup_created"; userId: string; siteId: string; ip: string }
   | { event: "signup_rate_limited"; scope: "ip" | "server"; ip: string }
+  | { event: "email_verified"; userId: string }
   | { event: "verification_resent"; userId: string }
   | { event: "resend_rate_limited"; scope: "ip" | "email"; ip: string }
   | { event: "email_send_failed"; purpose: "verify"; userId: string }
