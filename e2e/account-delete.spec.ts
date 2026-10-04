@@ -2,8 +2,9 @@ import { randomInt } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
+import { insertTestMediaRow } from "./helpers/media.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
-import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
+import { deactivateUser, setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Every test makes its own site and users, never site 1 (no test deletes or
 // reshapes the oldest site, which the public-site specs read).
@@ -200,29 +201,160 @@ test("signed out, the delete screen leads to sign-in and back", async ({ page })
   await expect(page.getByRole("heading", { level: 1, name: "Delete your account" })).toBeVisible();
 });
 
-test("a site's only active admin sees the refusal, no form, and a built POST deletes nothing", async ({
+const CHANGED = "Something changed on your site. Check what will be deleted and try again.";
+
+/** What of the site is left: rows in each table that names it, and its users by email. */
+async function leftOfSite(emails: string[]): Promise<Record<string, number>> {
+  return withDatabase(async (sql) => {
+    const count = async (rows: PromiseLike<readonly unknown[]>) => (await rows).length;
+    return {
+      sites: await count(sql`select 1 from sites where id = ${siteId}`),
+      settings: await count(sql`select 1 from site_settings where site_id = ${siteId}`),
+      entries: await count(sql`select 1 from entries where site_id = ${siteId}`),
+      media: await count(sql`select 1 from media where site_id = ${siteId}`),
+      members: await count(sql`select 1 from site_members where site_id = ${siteId}`),
+      users: await count(sql`select 1 from users where email in ${sql(emails)}`),
+    };
+  });
+}
+
+let deactivated: TestUser;
+let editor: TestUser;
+
+/** A site with one active admin, a deactivated admin, an editor, 2 posts, a home page and 2 images. */
+async function makeSoleAdminSite(): Promise<void> {
+  siteId = await createSite("takes");
+  subdomain = await withDatabase(async (sql) => {
+    const [row] = await sql<
+      { subdomain: string }[]
+    >`select subdomain from sites where id = ${siteId}`;
+    return row.subdomain;
+  });
+  admin = await createSiteAdmin(siteId, "Only Admin");
+  deactivated = await createSiteAdmin(siteId, "Deactivated Admin");
+  await deactivateUser(deactivated.email);
+  editor = await createSiteAdmin(siteId, "The Editor");
+  await setRole(editor.email, "editor");
+  await withDatabase(async (sql) => {
+    const doc = sql.json(textDocument("Body") as never);
+    for (const [type, slug] of [
+      ["post", "first-post"],
+      ["post", "second-post"],
+      ["page", "home"],
+    ] as const) {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+        select ${siteId}, ${type}, ${slug}, ${slug}, ${doc}, 'v4', 'published', now(), id
+        from users where email = ${editor.email}
+      `;
+    }
+    await sql`
+      update site_settings set home_page_id = (select id from entries where site_id = ${siteId} and slug = 'home')
+      where site_id = ${siteId}
+    `;
+  });
+  await insertTestMediaRow({ uploadedBy: editor.email, siteId });
+  await insertTestMediaRow({ uploadedBy: editor.email, siteId });
+}
+
+test("the last active admin sees what goes, and a wrong address deletes nothing", async ({
   page,
 }) => {
-  siteId = await createSite("sole");
-  admin = await createSiteAdmin(siteId, "Only Admin");
+  await makeSoleAdminSite();
+  await logIn(page, admin);
+  await page.goto("/admin/account");
+  await page.getByRole("link", { name: "Delete your account" }).click();
+  await expect(page).toHaveURL("/admin/account/delete");
+  const summary = page.getByText("is deleted with your account:");
+  await expect(summary).toContainText(subdomain);
+  await expect(summary).toContainText("2 posts, 1 page, 2 images");
+  await expect(summary).toContainText("the accounts of Deactivated Admin and The Editor");
+
+  await page.getByLabel("Current password").fill(admin.password);
+  const address = page.getByLabel(`Type ${subdomain} to confirm`);
+  await address.fill("not-the-address");
+  const answered = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().includes("/admin/account/delete"),
+  );
+  await page.getByRole("button", { name: "Delete my account" }).click();
+  await answered;
+  await expect(page.getByText("That isn't your site's address.")).toBeVisible();
+  await expect(address).toHaveAttribute("aria-invalid", "true");
+  await expect(address).toHaveValue("not-the-address");
+  const left = await leftOfSite([admin.email, deactivated.email, editor.email]);
+  expect(left).toEqual({ sites: 1, settings: 1, entries: 3, media: 2, members: 3, users: 3 });
+});
+
+test("the right address and password delete the site, its members, and free its address", async ({
+  page,
+  browser,
+}) => {
+  await makeSoleAdminSite();
   await logIn(page, admin);
   await page.goto("/admin/account/delete");
-  await expect(page.getByRole("heading", { level: 1, name: "Delete your account" })).toBeVisible();
-  await expect(
-    page.getByText(
-      "This is the platform's main site, so it can't be deleted yet. Make another member an admin first, then delete your account.",
-    ),
-  ).toBeVisible();
-  await expect(page.getByLabel("Current password")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Delete my account" })).toHaveCount(0);
-
-  const origin = new URL(page.url()).origin;
-  const response = await page.request.post("/admin/account/delete", {
-    headers: { Origin: origin },
-    form: { expect: "leave", currentPassword: admin.password },
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(`  ${subdomain.toUpperCase()} `);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL("/admin/login?deleted=1");
+  await expect(page.getByRole("status")).toContainText("Your account is deleted.");
+  expect(await leftOfSite([admin.email, deactivated.email, editor.email])).toEqual({
+    sites: 0,
+    settings: 0,
+    entries: 0,
+    media: 0,
+    members: 0,
+    users: 0,
   });
-  expect(response.status()).toBe(409);
+  expect(await signInOutcome(browser, editor.email, editor.password)).toBe("refused");
+
+  // The address can be taken again straight away.
+  const reused = await withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      insert into sites (subdomain) values (${subdomain}) returning id`;
+    return row.id;
+  });
+  siteId = reused;
+});
+
+test("a page loaded as leaving is refused once the other admin is deactivated", async ({
+  page,
+}) => {
+  await makeSite();
+  await logIn(page, admin);
+  await page.goto("/admin/account/delete");
+  await expect(page.getByText("You'll be signed out and can't sign in again.")).toBeVisible();
+  await deactivateUser(otherAdmin.email);
+  await submitDelete(page, admin.password);
+  await expect(page.getByText(CHANGED)).toBeVisible();
   expect(await userExists(admin.email)).toBe(true);
-  await page.goto("/admin/posts");
-  await expect(page).toHaveURL(/\/admin\/posts/);
+  const left = await leftOfSite([admin.email, otherAdmin.email, author.email]);
+  expect(left).toMatchObject({ sites: 1, entries: 1, members: 3, users: 3 });
+});
+
+test("two admins of one site deleting at once leave exactly one of them deleted", async ({
+  page,
+  browser,
+}) => {
+  await makeSite();
+  const second = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": randomIp() } });
+  try {
+    const secondPage = await second.newPage();
+    await logIn(page, admin);
+    await logIn(secondPage, otherAdmin);
+    await page.goto("/admin/account/delete");
+    await secondPage.goto("/admin/account/delete");
+    await page.getByLabel("Current password").fill(admin.password);
+    await secondPage.getByLabel("Current password").fill(otherAdmin.password);
+    await Promise.all([
+      page.getByRole("button", { name: "Delete my account" }).click(),
+      secondPage.getByRole("button", { name: "Delete my account" }).click(),
+    ]);
+    await expect
+      .poll(async () => (await userExists(admin.email)) !== (await userExists(otherAdmin.email)))
+      .toBe(true);
+    const left = await leftOfSite([admin.email, otherAdmin.email, author.email]);
+    expect(left).toMatchObject({ sites: 1, entries: 1, members: 2, users: 2 });
+  } finally {
+    await second.close();
+  }
 });

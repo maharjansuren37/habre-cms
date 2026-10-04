@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   addressMatches,
+  deletionCase,
   isDeleteFormBodyAllowed,
   parseDeleteExpect,
   parseDeleteForm,
@@ -78,4 +79,14 @@ test("the body cap is the Users forms' 8 KB, and needs a declared length", () =>
   assert.equal(isDeleteFormBodyAllowed(new Headers({ "Content-Length": "8192" })), true);
   assert.equal(isDeleteFormBodyAllowed(new Headers({ "Content-Length": "8193" })), false);
   assert.equal(isDeleteFormBodyAllowed(new Headers()), false);
+});
+
+test("a member who is not the last active admin leaves, on any site", () => {
+  assert.equal(deletionCase({ isLastActiveAdmin: false, isOldestSite: false }), "leave");
+  assert.equal(deletionCase({ isLastActiveAdmin: false, isOldestSite: true }), "leave");
+});
+
+test("the last active admin takes the site, unless it is the oldest site", () => {
+  assert.equal(deletionCase({ isLastActiveAdmin: true, isOldestSite: false }), "site");
+  assert.equal(deletionCase({ isLastActiveAdmin: true, isOldestSite: true }), "refused");
 });

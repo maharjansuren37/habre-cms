@@ -6,12 +6,27 @@ export type DeletionExpect = "leave" | "site";
 /** Which of the three situations a person is in; `refused` has no form. */
 export type DeletionCase = "leave" | "site" | "refused";
 
+/**
+ * Which case a member is in: not the site's last active admin leaves; the last
+ * active admin of the oldest site is refused (the public domain serves it until
+ * item 16); any other last active admin takes the site with them.
+ */
+export function deletionCase(facts: {
+  isLastActiveAdmin: boolean;
+  isOldestSite: boolean;
+}): DeletionCase {
+  if (!facts.isLastActiveAdmin) return "leave";
+  return facts.isOldestSite ? "refused" : "site";
+}
+
 const EXPECTS: readonly string[] = ["leave", "site"];
 
 /** The case the form was loaded as, or null for anything else. */
 export function parseDeleteExpect(value: unknown): DeletionExpect | null {
   return typeof value === "string" && EXPECTS.includes(value) ? (value as DeletionExpect) : null;
 }
+
+export const ADDRESS_MISMATCH = "That isn't your site's address.";
 
 export type DeleteFormErrors = { address?: string; currentPassword?: string };
 

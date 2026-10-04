@@ -19,10 +19,23 @@ import {
 } from "./account.server.ts";
 import styles from "./account-delete.module.css";
 import {
+  ADDRESS_MISMATCH,
+  addressMatches,
   isDeleteFormBodyAllowed,
   parseDeleteExpect,
   parseDeleteForm,
 } from "./account-delete-input.ts";
+
+/** "1 post", "2 posts". */
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/** "A", "A and B", "A, B and C". */
+function nameList(names: string[]): string {
+  if (names.length < 2) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
 
 const REFUSED =
   "This is the platform's main site, so it can't be deleted yet. Make another member an admin first, then delete your account.";
@@ -47,11 +60,22 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const expect = parseDeleteExpect(form.get("expect"));
   if (!expect) throw data("Bad Request", { status: 400 });
-  const refused = (errors: { currentPassword?: string }, formError?: string, status = 400) =>
-    data({ errors, formError }, { status });
+  const refused = (
+    errors: { address?: string; currentPassword?: string },
+    formError?: string,
+    status = 400,
+    typedAddress = "",
+  ) => data({ errors, formError, typedAddress }, { status });
 
   const parsed = parseDeleteForm(expect, form.get("address"), form.get("currentPassword"));
-  if (!parsed.ok) return refused(parsed.errors);
+  if (!parsed.ok) return refused(parsed.errors, undefined, 400, parsed.typedAddress);
+  if (parsed.expect === "site") {
+    const deletion = await findDeletion(user.siteId, user.id);
+    if (!deletion) throw data("Not Found", { status: 404 });
+    if (!addressMatches(parsed.address, deletion.address)) {
+      return refused({ address: ADDRESS_MISMATCH }, undefined, 400, parsed.address);
+    }
+  }
 
   const ip = clientIp(request.headers);
   const gate = await withCurrentPassword<DeleteAccountResult>(user, ip, async () => {
@@ -70,7 +94,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     event: "account_deleted",
     userId: user.id,
     siteId: user.siteId,
-    siteDeleted: false,
+    siteDeleted: gate.value.siteDeleted,
   });
   // A fixed flag, never text from the URL.
   return redirect("/admin/login?deleted=1", {
@@ -90,12 +114,33 @@ export default function DeleteAccount({ loaderData, actionData }: Route.Componen
         <p>{REFUSED}</p>
       ) : (
         <>
-          <p>
-            You'll be signed out and can't sign in again. Your posts, pages and images stay on{" "}
-            <strong>{loaderData.address}</strong>, credited to Deleted account.
-          </p>
+          {loaderData.site ? (
+            <p>
+              Your site <strong>{loaderData.address}</strong> is deleted with your account:{" "}
+              {plural(loaderData.site.posts, "post")}, {plural(loaderData.site.pages, "page")},{" "}
+              {plural(loaderData.site.images, "image")}, and{" "}
+              {loaderData.site.otherMemberNames.length === 0
+                ? "no other members"
+                : `the accounts of ${nameList(loaderData.site.otherMemberNames)}`}
+              .
+            </p>
+          ) : (
+            <p>
+              You'll be signed out and can't sign in again. Your posts, pages and images stay on{" "}
+              <strong>{loaderData.address}</strong>, credited to Deleted account.
+            </p>
+          )}
           <Form method="post" className={styles.form}>
             <input type="hidden" name="expect" value={loaderData.case} />
+            {loaderData.site && (
+              <Field
+                label={`Type ${loaderData.address} to confirm`}
+                name="address"
+                autoComplete="off"
+                defaultValue={actionData?.typedAddress}
+                error={actionData?.errors.address}
+              />
+            )}
             <Field
               label="Current password"
               name="currentPassword"

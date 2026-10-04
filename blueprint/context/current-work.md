@@ -173,7 +173,7 @@ field, input kept, except the password) and **6** (signed out,
   - signed out, `/admin/account/delete` leads to sign-in and back to it
     (journey 6);
   - `account-delete-input.test.ts` passes.
-- [ ] **Step 4 - the last admin takes the site** - `deleteAccount` gains the
+- [x] **Step 4 - the last admin takes the site** - `deleteAccount` gains the
   site case and the oldest-site refusal. The screen shows the counts, the
   names and the address field. Which case applies is a pure
   `deletionCase({ isLastActiveAdmin, isOldestSite })` in
@@ -346,6 +346,13 @@ field, input kept, except the password) and **6** (signed out,
 - **The password field behaves as 15e1's do** (build, Step 3): uncontrolled,
   so the browser keeps what was typed after a refusal. Journey 8's "except
   the password" is not enforced here, nor in 15e1.
+- **The confirm screen names every other member, active or deactivated**,
+  ordered by name, as "A, B and C" (build, Step 4).
+- **The typed address is checked against the loader's address before the
+  limiter** (build, Step 4); a case that changed after that is caught by the
+  transaction as "changed".
+- **`insertTestMediaRow` takes an optional `siteId`** (build, Step 4), so a
+  test site can hold media without R2; site 1 stays the default.
 - **`DELETED_ACCOUNT` lives in `app/lib/deleted-account.ts`** (build, Step 2):
   browser components show it, so it cannot sit in a `.server.ts` file.
 - **The public byline shows only the date for a deleted author; the admin
