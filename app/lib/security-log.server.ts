@@ -22,7 +22,13 @@ export type SecurityEvent =
   | { event: "password_reset_completed"; userId: string }
   | { event: "reset_rate_limited"; scope: "ip" | "email"; ip: string }
   | { event: "email_changed"; userId: string }
-  | { event: "email_send_failed"; purpose: "verify" | "reset"; userId: string }
+  | { event: "email_change_requested"; userId: string }
+  | { event: "email_change_rate_limited"; scope: "ip" | "email"; ip: string }
+  | {
+      event: "email_send_failed";
+      purpose: "verify" | "reset" | "email_change" | "email_changed_notice";
+      userId: string;
+    }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
   | {
       event: "request_refused";

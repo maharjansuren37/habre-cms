@@ -124,7 +124,7 @@ row records this (spec, 2026-10-05); Step 2 marks it **built**.
   current address, another account's address and a wrong password are each
   refused below their field with the input kept; `account-input.test.ts`
   covers the new rule.
-- [ ] **Step 5 - email on: send the link** - `email-change-email.ts` (+ test:
+- [x] **Step 5 - email on: send the link** - `email-change-email.ts` (+ test:
   the link, 24 hours, no markup from the name) and
   `requestEmailChange(userId, newEmail)` in `account.server.ts` (uses up the
   user's earlier `email_change` tokens, issues one with `new_email`, returns

@@ -1,10 +1,12 @@
 import { data, Form, redirect, useNavigation } from "react-router";
-import { clientIp } from "#app/features/auth/client-ip.ts";
+import { clientIp, rateLimitKeyForIp } from "#app/features/auth/client-ip.ts";
 import { serializeSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { signSessionToken } from "#app/features/auth/session-token.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { emailChangeLimits } from "#app/features/signup/resend-rate-limit.server.ts";
 import styles from "#app/features/users/user-form.module.css";
 import { PASSWORD_MIN_LENGTH } from "#app/features/users/user-input.ts";
+import { sendEmail } from "#app/lib/email.server.ts";
 import { isEmailOn } from "#app/lib/email-env.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -14,10 +16,14 @@ import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/account";
 import {
   BUSY,
+  cancelEmailChange,
   changeEmailNow,
   changeName,
   changePassword,
   checkCurrentPassword,
+  findPendingEmailChange,
+  isEmailTakenByAnother,
+  requestEmailChange,
   TOO_MANY_ATTEMPTS,
   withCurrentPassword,
 } from "./account.server.ts";
@@ -28,6 +34,7 @@ import {
   parseAccountName,
   parseAccountPassword,
 } from "./account-input.ts";
+import { emailChangeEmail } from "./email-change-email.ts";
 
 type FieldErrors = {
   name?: string;
@@ -48,7 +55,7 @@ export function meta() {
   return [{ title: "Your account - Habre CMS" }];
 }
 
-export function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const user = context.get(userContext);
   const saved = new URL(request.url).searchParams.get("saved");
   const emailOn = isEmailOn(env);
@@ -56,7 +63,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
   if (saved === "email" && !emailOn) savedMessage = savedEmailMessage(user.email);
   else if (saved !== null && Object.hasOwn(SAVED_MESSAGE, saved))
     savedMessage = SAVED_MESSAGE[saved];
-  return { name: user.name, email: user.email, emailOn, savedMessage };
+  const pendingEmail = emailOn ? await findPendingEmailChange(user.id) : null;
+  return { name: user.name, email: user.email, emailOn, savedMessage, pendingEmail };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -92,7 +100,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === "email") {
-    if (isEmailOn(env)) throw data("Bad Request", { status: 400 });
     const parsed = parseAccountEmail(form.get("newEmail"), form.get("currentPassword"), user.email);
     if (!parsed.ok) {
       return data(
@@ -106,11 +113,15 @@ export async function action({ request, context }: Route.ActionArgs) {
       );
     }
     const typed = String(form.get("newEmail") ?? "");
+    const ip = clientIp(request.headers);
+    const emailOn = isEmailOn(env);
     const gate = await withCurrentPassword<Awaited<ReturnType<typeof changeEmailNow>>>(
       user,
-      clientIp(request.headers),
+      ip,
       async () => {
         if (!(await checkCurrentPassword(user.id, parsed.currentPassword))) return { ok: false };
+        // Email on changes nothing here; the link is sent below.
+        if (emailOn) return { ok: true, value: { ok: true } };
         return { ok: true, value: await changeEmailNow(user.id, parsed.newEmail) };
       },
     );
@@ -127,8 +138,37 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (!gate.value.ok) {
       return refused({ newEmail: "That email is already used by another account." });
     }
-    logSecurityEvent({ event: "email_changed", userId: user.id });
-    return redirect("/admin/account?saved=email");
+    if (!emailOn) {
+      logSecurityEvent({ event: "email_changed", userId: user.id });
+      return redirect("/admin/account?saved=email");
+    }
+
+    if (await isEmailTakenByAnother(user.id, parsed.newEmail)) {
+      return refused({ newEmail: "That email is already used by another account." });
+    }
+    const limited = emailChangeLimits.attempt(rateLimitKeyForIp(ip), parsed.newEmail);
+    if (limited) {
+      logSecurityEvent({ event: "email_change_rate_limited", scope: limited, ip });
+      return refused(
+        {},
+        limited === "email"
+          ? "Too many emails to that address. Try again later."
+          : "Too many emails. Try again later.",
+        429,
+      );
+    }
+    const issued = await requestEmailChange(user.id, parsed.newEmail);
+    const message = emailChangeEmail(env.ADMIN_URL, issued.token, issued.name);
+    // Awaited, unlike forgot-password: the person is told whether it went.
+    try {
+      await sendEmail({ to: parsed.newEmail, subject: message.subject, text: message.text });
+    } catch {
+      await cancelEmailChange(user.id);
+      logSecurityEvent({ event: "email_send_failed", purpose: "email_change", userId: user.id });
+      return refused({}, "We couldn't send the email. Try again.", 502);
+    }
+    logSecurityEvent({ event: "email_change_requested", userId: user.id });
+    return redirect("/admin/account?saved=link");
   }
 
   if (intent === "password") {
@@ -164,7 +204,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
-  const { name, email, emailOn, savedMessage } = loaderData;
+  const { name, email, emailOn, savedMessage, pendingEmail } = loaderData;
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting" ? navigation.formData?.get("intent") : null;
   const isSaving = submitting === "name";
@@ -199,39 +239,49 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             </Button>
           </Form>
         </section>
-        {emailOn ? null : (
-          <section className={styles.section} aria-labelledby="account-email-heading">
-            <h2 className={styles.sectionTitle} id="account-email-heading">
-              Email
-            </h2>
-            {emailForm?.formError && <Message tone="error" title={emailForm.formError} />}
-            <div className={styles.readOnly}>
-              <span className={styles.readOnlyLabel}>Current email</span>
-              <span>{email}</span>
-            </div>
-            <Form method="post" className={styles.actionForm}>
-              <input type="hidden" name="intent" value="email" />
-              <Field
-                label="New email"
-                name="newEmail"
-                type="email"
-                autoComplete="email"
-                defaultValue={emailForm?.values.newEmail}
-                error={emailForm?.errors.newEmail}
-              />
-              <Field
-                label="Current password"
-                name="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                error={emailForm?.errors.currentPassword}
-              />
-              <Button type="submit" variant="primary" isPending={isSavingEmail}>
-                {isSavingEmail ? "Saving…" : "Save email"}
-              </Button>
-            </Form>
-          </section>
-        )}
+        <section className={styles.section} aria-labelledby="account-email-heading">
+          <h2 className={styles.sectionTitle} id="account-email-heading">
+            Email
+          </h2>
+          {pendingEmail && (
+            <Message
+              tone="success"
+              title={`We sent a link to ${pendingEmail}. It works for 24 hours.`}
+            />
+          )}
+          {emailForm?.formError && <Message tone="error" title={emailForm.formError} />}
+          <div className={styles.readOnly}>
+            <span className={styles.readOnlyLabel}>Current email</span>
+            <span>{email}</span>
+          </div>
+          <Form method="post" className={styles.actionForm}>
+            <input type="hidden" name="intent" value="email" />
+            <Field
+              label="New email"
+              name="newEmail"
+              type="email"
+              autoComplete="email"
+              defaultValue={emailForm?.values.newEmail}
+              error={emailForm?.errors.newEmail}
+            />
+            <Field
+              label="Current password"
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              error={emailForm?.errors.currentPassword}
+            />
+            <Button type="submit" variant="primary" isPending={isSavingEmail}>
+              {emailOn
+                ? isSavingEmail
+                  ? "Sending…"
+                  : "Send a confirmation link"
+                : isSavingEmail
+                  ? "Saving…"
+                  : "Save email"}
+            </Button>
+          </Form>
+        </section>
         <section className={styles.section} aria-labelledby="account-password-heading">
           <h2 className={styles.sectionTitle} id="account-password-heading">
             Password

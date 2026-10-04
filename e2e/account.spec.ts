@@ -1,6 +1,7 @@
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
+import { messagesTo, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createAdmin, deleteTestUser, setRole, type TestUser } from "./helpers/users.ts";
 
@@ -70,15 +71,16 @@ function randomIp(): string {
 }
 
 async function savePassword(page: Page, current: string, next: string): Promise<void> {
-  await page.getByLabel("Current password").fill(current);
-  await page.getByLabel("New password").fill(next);
+  const section = page.getByRole("region", { name: "Password", exact: true });
+  await section.getByLabel("Current password").fill(current);
+  await section.getByLabel("New password").fill(next);
   // Waits for the answer: a repeated attempt shows the same message as the one
   // before it, so asserting on the page alone could pass on the stale one.
   const answered = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" && response.url().includes("/admin/account"),
   );
-  await page.getByRole("button", { name: "Save password" }).click();
+  await section.getByRole("button", { name: "Save password" }).click();
   await answered;
 }
 
@@ -135,7 +137,9 @@ test("a wrong current password is refused below its field and changes nothing", 
     await page.goto("/admin/account");
     await savePassword(page, "not the password", NEW_PASSWORD);
 
-    const field = page.getByLabel("Current password");
+    const field = page
+      .getByRole("region", { name: "Password", exact: true })
+      .getByLabel("Current password");
     await expect(page.getByText("That's not your current password.")).toBeVisible();
     await expect(field).toHaveAttribute("aria-invalid", "true");
 
@@ -297,5 +301,117 @@ test("with email off, a wrong current password is refused below its field and ch
     }
   } finally {
     await deleteTestUser(user.email);
+  }
+});
+
+// Email on: the primary server sends through Mailpit.
+async function requestLink(page: Page, newEmail: string, password: string): Promise<void> {
+  const section = page.getByRole("region", { name: "Email", exact: true });
+  await section.getByLabel("New email").fill(newEmail);
+  await section.getByLabel("Current password").fill(password);
+  const answered = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().includes("/admin/account"),
+  );
+  await section.getByRole("button", { name: "Send a confirmation link" }).click();
+  await answered;
+}
+
+test("with email on, a link goes to the new address and nothing changes yet", async ({
+  page,
+  browser,
+}) => {
+  const user = createAdmin("Link Sender");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    await page.goto("/admin/account");
+    await requestLink(page, newEmail, user.password);
+    await expect(page).toHaveURL("/admin/account?saved=link");
+    const [text] = await waitForMail(newEmail, 1);
+    expect(text).toContain("/confirm-email?token=");
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: `We sent a link to ${newEmail}. It works for 24 hours.` }),
+    ).toBeVisible();
+
+    const fresh = await browser.newContext({
+      extraHTTPHeaders: { "X-Forwarded-For": randomIp() },
+    });
+    try {
+      const other = await fresh.newPage();
+      await other.goto("/admin/login");
+      await other.getByLabel("Email").fill(newEmail);
+      await other.getByLabel("Password").fill(user.password);
+      await other.getByRole("button", { name: "Log in" }).click();
+      await expect(other.getByText("That email and password don’t match.")).toBeVisible();
+      await logIn(other, user);
+    } finally {
+      await fresh.close();
+    }
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email on, a fourth request for one address is refused and sends nothing", async ({
+  page,
+}) => {
+  const user = createAdmin("Link Limit");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    await page.goto("/admin/account");
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await requestLink(page, newEmail, user.password);
+      await expect(page).toHaveURL("/admin/account?saved=link");
+      await page.goto("/admin/account");
+    }
+    await waitForMail(newEmail, 3);
+    await requestLink(page, newEmail, user.password);
+    await expect(page.getByText("Too many emails to that address. Try again later.")).toBeVisible();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(await messagesTo(newEmail)).toHaveLength(3);
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email on, the current address is refused below the field and nothing is sent", async ({
+  page,
+}) => {
+  const user = createAdmin("Same Email On");
+  try {
+    await logIn(page, user);
+    await page.goto("/admin/account");
+    await requestLink(page, user.email, user.password);
+    const section = page.getByRole("region", { name: "Email", exact: true });
+    await expect(section.getByText("That's already your email.")).toBeVisible();
+    await expect(section.getByLabel("New email")).toHaveValue(user.email);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(await messagesTo(user.email)).toHaveLength(0);
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email on, another account's address is refused below the field and nothing is sent", async ({
+  page,
+}) => {
+  const user = createAdmin("Taker On");
+  const other = createAdmin("Holder On");
+  try {
+    await logIn(page, user);
+    await page.goto("/admin/account");
+    await requestLink(page, other.email, user.password);
+    const section = page.getByRole("region", { name: "Email", exact: true });
+    await expect(section.getByText("That email is already used by another account.")).toBeVisible();
+    await expect(section.getByLabel("New email")).toHaveValue(other.email);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(await messagesTo(other.email)).toHaveLength(0);
+  } finally {
+    await deleteTestUser(user.email);
+    await deleteTestUser(other.email);
   }
 });

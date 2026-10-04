@@ -36,3 +36,6 @@ export const resendLimits = createResendLimits();
 
 // Reset requests count apart from "Send it again", with the same limits.
 export const resetRequestLimits = createResendLimits();
+
+// Email-change requests count apart from the others, with the same limits.
+export const emailChangeLimits = createResendLimits();

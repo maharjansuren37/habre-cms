@@ -4,8 +4,10 @@ import {
   passwordCheckSlots,
 } from "#app/features/auth/login-rate-limit.server.ts";
 import { hashPassword, verifyPassword } from "#app/features/auth/password.server.ts";
+import { issueEmailToken } from "#app/features/signup/email-tokens.server.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import { EMAIL_CHANGE_LIFETIME_HOURS } from "./email-change-email.ts";
 
 /** Sets the signed-in person's own name. `userId` is the session's, never the form's. */
 export async function changeName(userId: string, name: string): Promise<void> {
@@ -102,6 +104,57 @@ export async function changeEmailNow(
     if (isUniqueViolation(error, "users_email_key")) return { ok: false, reason: "taken" };
     throw error;
   }
+}
+
+/** True when another account (not this one) already uses `email`. */
+export async function isEmailTakenByAnother(userId: string, email: string): Promise<boolean> {
+  const rows = await sql`select 1 from users where email = ${email} and id <> ${userId}`;
+  return rows.length > 0;
+}
+
+/**
+ * Starts an email change (email on): uses up the person's earlier link and
+ * issues one for `newEmail`, in one transaction with the user's row locked
+ * first (F-243's order). Returns the token for the caller to email after the
+ * commit. Nothing about the account changes.
+ */
+export async function requestEmailChange(
+  userId: string,
+  newEmail: string,
+): Promise<{ token: string; name: string }> {
+  return sql.begin(async (tx) => {
+    const [user] = await tx<{ id: string; name: string }[]>`
+      select id, name from users where id = ${userId} for update`;
+    await tx`
+      update email_tokens set used_at = now()
+      where user_id = ${userId} and purpose = 'email_change' and used_at is null`;
+    const token = await issueEmailToken(
+      tx,
+      userId,
+      "email_change",
+      EMAIL_CHANGE_LIFETIME_HOURS * 60 * 60 * 1000,
+      newEmail,
+    );
+    return { token, name: user.name };
+  });
+}
+
+/** The address of the person's live email-change link, or null. */
+export async function findPendingEmailChange(userId: string): Promise<string | null> {
+  const [row] = await sql<{ newEmail: string }[]>`
+    select new_email as "newEmail" from email_tokens
+    where user_id = ${userId} and purpose = 'email_change'
+      and used_at is null and expires_at > now()
+    order by created_at desc
+    limit 1`;
+  return row?.newEmail ?? null;
+}
+
+/** Uses up the person's unused email-change links, after a send that failed. */
+export async function cancelEmailChange(userId: string): Promise<void> {
+  await sql`
+    update email_tokens set used_at = now()
+    where user_id = ${userId} and purpose = 'email_change' and used_at is null`;
 }
 
 const UNIQUE_VIOLATION = "23505";
