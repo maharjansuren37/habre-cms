@@ -227,10 +227,13 @@ not tidying; it is what keeps the open list true.
       and spend. Sends signup verification, password reset and contact-form
       notifications. Its free tier (3,000 a month, 100 a day) covers the beta;
       upgrade to Pro (US$20) if a batch of invites hits the daily cap. Also add
-      its SPF, DKIM and DMARC records for the sending domain. **Blocks item
-      15b** - signup cannot verify anyone without it - and item 19. Test
-      credentials are enough to build. `open` (rescope review, 2026-10-01;
-      provider chosen, architect, 2026-10-01)
+      its SPF, DKIM and DMARC records for the sending domain, which sits on
+      the platform domain still to be bought. **No longer blocks building
+      15b**: development and CI send to Mailpit. Needed before signup is
+      turned on in production (`SMTP_URL`, `EMAIL_FROM`; item 15b's
+      production needs) and by item 19. `open` (rescope review, 2026-10-01;
+      provider chosen, architect, 2026-10-01; narrowed to deploy, spec 15b,
+      2026-10-04)
 
 - [ ] **Three AI provider accounts, each with an API key and a monthly spend
       limit: Anthropic (primary), then OpenAI and OpenRouter (fallbacks)**
@@ -278,10 +281,14 @@ not tidying; it is what keeps the open list true.
       which carries item 14a's destructive migration. `open` (owner,
       2026-10-02)
 
-- [ ] **Approve deleting every page and post at the v1 deploy** - decision.
-      Item 14a1's migration `0009` deletes every entry and empties the menu,
-      and cannot be rolled back by symlink. The content is test data and
-      needs no backup (owner, 2026-10-02); this line is only the deploy's yes.
-      Blocks nothing now; needed by the v1 `deploy`. `open` (spec, 2026-10-02)
+- [ ] **Approve deleting every page and post, every image and every account
+      at the v1 deploy** - decision. Item 14a1's migration `0009` deletes
+      every entry and empties the menu. Item 15b's `0012` then deletes every
+      user, membership and media row, because v1 starts with no accounts
+      (owner, 2026-10-04); `create-admin` makes the first admin afterwards.
+      Neither migration can be rolled back by symlink. The content is test
+      data and needs no backup (owner, 2026-10-02); this line is only the
+      deploy's yes. Blocks nothing now; needed by the v1 `deploy`. `open`
+      (spec, 2026-10-02; widened, spec 15b, 2026-10-04)
 
 ## Done

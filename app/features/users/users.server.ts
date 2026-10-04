@@ -77,8 +77,8 @@ export async function createUser({
   try {
     const user = await sql.begin(async (tx) => {
       const [created] = await tx<User[]>`
-        insert into users (email, name, password_hash)
-        values (${email}, ${name}, ${passwordHash})
+        insert into users (email, name, password_hash, email_verified_at)
+        values (${email}, ${name}, ${passwordHash}, now())
         returning id, email, name, token_version as "tokenVersion"
       `;
       await tx`

@@ -49,7 +49,8 @@ export async function createSiteAdmin(siteId: string, name = "Site Admin"): Prom
   await withDatabase(async (sql) => {
     await sql.begin(async (tx) => {
       const [user] = await tx<{ id: string }[]>`
-        insert into users (email, name, password_hash) values (${email}, ${name}, ${hash})
+        insert into users (email, name, password_hash, email_verified_at)
+        values (${email}, ${name}, ${hash}, now())
         returning id
       `;
       await tx`insert into site_members (site_id, user_id, role) values (${siteId}, ${user.id}, 'admin')`;
