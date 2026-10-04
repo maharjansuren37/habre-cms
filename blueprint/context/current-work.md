@@ -104,7 +104,7 @@ row records this (spec, 2026-10-05); Step 2 marks it **built**.
   name at the shell's foot; a blank name is refused below the field with
   "Enter a name." and the field keeps what was typed; signed out,
   `/admin/account` leads to sign-in and back to it.
-- [ ] **Step 3 - change password** - `changePassword(userId, currentPassword,
+- [x] **Step 3 - change password** - `changePassword(userId, currentPassword,
   newHash)` in one transaction (`for update` on the user), the limiter and
   slot handling in the action, a new session cookie. *Done when:*
   `e2e/account.spec.ts`: signed in in two browser contexts, changing the

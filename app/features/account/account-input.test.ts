@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isAccountFormBodyAllowed, parseAccountIntent, parseAccountName } from "./account-input.ts";
+import {
+  isAccountFormBodyAllowed,
+  parseAccountIntent,
+  parseAccountName,
+  parseAccountPassword,
+} from "./account-input.ts";
 
 test("the three forms are told apart by their intent", () => {
   for (const intent of ["name", "email", "password"] as const) {
@@ -36,4 +41,40 @@ test("a form body over 8 KB, or with no valid length, is refused", () => {
   assert.equal(isAccountFormBodyAllowed(new Headers({ "Content-Length": "9000" })), false);
   assert.equal(isAccountFormBodyAllowed(new Headers()), false);
   assert.equal(isAccountFormBodyAllowed(new Headers({ "Content-Length": "abc" })), false);
+});
+
+test("a current and a long enough new password are accepted untrimmed", () => {
+  assert.deepEqual(parseAccountPassword(" old pass ", "  a new passphrase  "), {
+    ok: true,
+    currentPassword: " old pass ",
+    newPassword: "  a new passphrase  ",
+  });
+});
+
+test("a missing current password is refused beside its field", () => {
+  for (const value of ["", null, undefined, new File([], "x")]) {
+    const result = parseAccountPassword(value, "a new passphrase");
+    assert.deepEqual(result, {
+      ok: false,
+      errors: { currentPassword: "Enter your current password." },
+    });
+  }
+});
+
+test("a new password under 12 characters is refused beside its field", () => {
+  const result = parseAccountPassword("old", "short");
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.errors.currentPassword, undefined);
+    assert.match(result.errors.newPassword ?? "", /12/);
+  }
+});
+
+test("both fields can be refused at once", () => {
+  const result = parseAccountPassword("", "short");
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.currentPassword);
+    assert.ok(result.errors.newPassword);
+  }
 });

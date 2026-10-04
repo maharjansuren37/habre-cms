@@ -35,7 +35,9 @@ export type SecurityEvent =
   | { event: "role_changed"; userId: string; fromRole: Role; toRole: Role; actorId: string }
   | { event: "user_deactivated"; userId: string; actorId: string }
   | { event: "user_reactivated"; userId: string; actorId: string }
-  | { event: "password_reset"; userId: string; actorId: string };
+  | { event: "password_reset"; userId: string; actorId: string }
+  | { event: "password_changed"; userId: string }
+  | { event: "account_password_refused"; userId: string; ip: string };
 
 export function logSecurityEvent(entry: SecurityEvent): void {
   console.warn(JSON.stringify(entry));
