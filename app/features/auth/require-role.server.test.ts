@@ -6,7 +6,7 @@ import { userContext } from "./user-context.ts";
 
 function contextFor(role: "admin" | "editor" | "author") {
   const context = new RouterContextProvider();
-  context.set(userContext, { id: "u1", email: "a@b.c", name: "A", role });
+  context.set(userContext, { id: "u1", email: "a@b.c", name: "A", role, siteId: "s1" });
   return context;
 }
 

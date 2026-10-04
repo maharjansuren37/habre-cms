@@ -29,7 +29,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, context }: Route.LoaderArgs) {
   // findMediaForUser returns null for someone else's upload, the same as for
   // an id that does not exist - existence stays private either way.
-  const media = await findMediaForUser(requireMediaId(params.id), context.get(userContext));
+  const actor = context.get(userContext);
+  const media = await findMediaForUser(actor.siteId, requireMediaId(params.id), actor);
   if (!media) throw data("Not Found", { status: 404 });
   return { media: { ...media, url: buildMediaUrl(env.R2_PUBLIC_URL, media.storageKey) } };
 }
@@ -43,7 +44,8 @@ export async function action({ params, context }: Route.ActionArgs) {
   // person already got what they asked for, and throwing here would tell
   // them the delete failed when it did not (F-74). The object is left behind
   // exactly the way an upload's own R2-then-row failure is (plan: "harmless").
-  const deleted = await deleteMedia(id, context.get(userContext));
+  const actor = context.get(userContext);
+  const deleted = await deleteMedia(actor.siteId, id, actor);
   if (!deleted) throw data("Not Found", { status: 404 });
   try {
     await deleteObject(deleted.storageKey);

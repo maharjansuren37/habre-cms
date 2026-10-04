@@ -1,9 +1,10 @@
 import { Link } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
+import { userContext } from "#app/features/auth/user-context.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import type { Route } from "./+types/user-list";
 import styles from "./user-list.module.css";
-import { listUsers, type User } from "./users.server.ts";
+import { listUsers, type Member } from "./users.server.ts";
 
 // Admin only (project-plan.md's routes table); the nav hides the link too
 // (admin-shell/layout.tsx) and a non-admin gets the same 404 an ownership
@@ -20,8 +21,8 @@ export function meta(_: Route.MetaArgs) {
   return [{ title: "Users - Habre CMS" }];
 }
 
-export async function loader(_: Route.LoaderArgs) {
-  return { users: await listUsers() };
+export async function loader({ context }: Route.LoaderArgs) {
+  return { users: await listUsers(context.get(userContext).siteId) };
 }
 
 export default function UserList({ loaderData }: Route.ComponentProps) {
@@ -41,7 +42,7 @@ export default function UserList({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function UserTable({ users }: { users: User[] }) {
+function UserTable({ users }: { users: Member[] }) {
   return (
     <div className={styles.list}>
       <table>

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
+import { siteOneId } from "./sites.ts";
 
 export const PASSWORD = "correct horse battery staple";
 
@@ -21,8 +22,10 @@ export function createAdmin(name = "E2E Admin"): TestUser {
  *  Exported for other helper modules (e.g. `media.ts`) - one pool-per-call
  *  pattern, not a shared connection. */
 export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): Promise<T> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error("DATABASE_URL is not set - browser tests need .env");
+  // The owner, not the app role: test setup and cleanup must not be limited by
+  // the row-level security the app runs under (D152).
+  const databaseUrl = process.env.DATABASE_OWNER_URL;
+  if (!databaseUrl) throw new Error("DATABASE_OWNER_URL is not set - browser tests need .env");
   const sql = postgres(databaseUrl, { max: 1 });
   try {
     return await run(sql);
@@ -33,7 +36,10 @@ export async function withDatabase<T>(run: (sql: postgres.Sql) => Promise<T>): P
 
 export function deactivateUser(email: string): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update users set deactivated_at = now() where email = ${email}`;
+    await sql`
+      update site_members set deactivated_at = now()
+      where user_id in (select id from users where email = ${email})
+    `;
   });
 }
 
@@ -46,6 +52,10 @@ export function revokeSessions(email: string): Promise<void> {
 /** Test cleanup only - the product deactivates users, never deletes them. */
 export function deleteTestUser(email: string): Promise<void> {
   return withDatabase(async (sql) => {
+    await deleteMemberRows(sql, email);
+    await sql`
+      delete from site_members where user_id in (select id from users where email = ${email})
+    `;
     await sql`delete from users where email = ${email}`;
   });
 }
@@ -53,8 +63,28 @@ export function deleteTestUser(email: string): Promise<void> {
 /** Test-only: create-admin makes admins, and some tests need another role. */
 export function setRole(email: string, role: "admin" | "editor" | "author"): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update users set role = ${role} where email = ${email}`;
+    await sql`
+      update site_members set role = ${role}
+      where user_id in (select id from users where email = ${email})
+    `;
   });
+}
+
+/** Test-only: removes the membership, leaving a user who belongs to no site. */
+export function removeMembership(email: string): Promise<void> {
+  return withDatabase(async (sql) => {
+    await deleteMemberRows(sql, email);
+    await sql`
+      delete from site_members where user_id in (select id from users where email = ${email})
+    `;
+  });
+}
+
+/** Entries and media reference their author's membership (0011, on delete restrict),
+ *  so a membership can go only after the rows made under it. */
+async function deleteMemberRows(sql: postgres.Sql, email: string): Promise<void> {
+  await sql`delete from entries where author_id in (select id from users where email = ${email})`;
+  await sql`delete from media where uploaded_by in (select id from users where email = ${email})`;
 }
 
 /** Test cleanup: entries reference their author, so they go first. */
@@ -108,11 +138,12 @@ export async function createDraftFor(
   // published needs one too, or anything ordering by it (item 4b's public
   // home) sees every seeded row tie at null.
   const publishedAt = options.publishedAt ?? (status === "published" ? new Date() : null);
+  const siteId = await siteOneId();
   let id = "";
   await withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into entries (type, title, slug, blocks, blocks_format, status, published_at, author_id)
-      select ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
+      insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+      select ${siteId}, ${type}, ${title}, ${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
              ${sql.json(blocks as never)}, 'v4', ${status}, ${publishedAt}, id
       from users where email = ${email}
       returning id

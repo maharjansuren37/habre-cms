@@ -4,6 +4,7 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import type { Route } from "./+types/post";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
+import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -11,14 +12,15 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const post = await findPublishedEntry("post", params.slug);
+  const siteId = await findPublicSiteId();
+  const post = await findPublishedEntry(siteId, "post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
   // never leaked by its status (item 4b's D-5; matches findEntryForUser's
   // own rule for ownership on the admin side).
   if (!post) throw data("Not Found", { status: 404 });
   // The view never reads these, so they stay off the wire (F-108).
   const { id: _id, isHomePage: _isHomePage, ...publicPost } = post;
-  return { post: publicPost, mediaById: await resolveDocumentMedia(post.document) };
+  return { post: publicPost, mediaById: await resolveDocumentMedia(siteId, post.document) };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {

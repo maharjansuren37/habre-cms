@@ -7,7 +7,7 @@ export type SecurityEvent =
   | { event: "login_succeeded"; userId: string; ip: string }
   | {
       event: "login_failed";
-      reason: "unknown_email" | "bad_password" | "deactivated";
+      reason: "unknown_email" | "bad_password" | "deactivated" | "no_membership";
       userId?: string;
       ip: string;
     }

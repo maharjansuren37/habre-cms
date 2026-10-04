@@ -35,13 +35,18 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const entry = await findEntryForUser("page", requirePageId(params.id), context.get(userContext));
+  const entry = await findEntryForUser(
+    context.get(userContext).siteId,
+    "page",
+    requirePageId(params.id),
+    context.get(userContext),
+  );
   if (!entry) throw data("Not Found", { status: 404 });
   const actor = context.get(userContext);
   return {
     entry,
-    mediaById: await resolveDocumentMedia(entry.document),
-    pages: await listLinkablePages(actor),
+    mediaById: await resolveDocumentMedia(actor.siteId, entry.document),
+    pages: await listLinkablePages(actor.siteId, actor),
   };
 }
 
@@ -80,6 +85,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const result = await saveEntry(
+    context.get(userContext).siteId,
     "page",
     id,
     { title: parsed.title, document: parsed.document },

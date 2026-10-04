@@ -38,11 +38,19 @@ async function createAdmin(): Promise<number> {
     return 1;
   }
 
+  // Site 1 is the oldest site; the first admin belongs to it.
+  const [site] = await sql<{ id: string }[]>`select id from sites order by created_at, id limit 1`;
+  if (!site) {
+    console.error("There is no site yet. Run `npm run db:migrate` first. Nothing was created.");
+    return 1;
+  }
+
   const result = await createUser({
     email: input.data.email,
     name: input.data.name,
     passwordHash: await hashPassword(input.data.password),
     role: "admin",
+    siteId: site.id,
   });
   if (!result.ok) {
     console.error("A user with that email already exists.");

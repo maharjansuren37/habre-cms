@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { buttonBlock, imageBlock, lineBlock, spaceBlock } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
+import { siteOneId } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -318,8 +319,9 @@ test("the chosen home page draws an image the same way", async ({ page }) => {
     { type: "page", status: "published" },
   );
   try {
+    const siteId = await siteOneId();
     await withDatabase(async (sql) => {
-      await sql`update site_settings set home_page_id = ${pageId} where id = 1`;
+      await sql`update site_settings set home_page_id = ${pageId} where site_id = ${siteId}`;
     });
     await page.goto("/");
     const main = page.getByRole("main");
@@ -330,8 +332,9 @@ test("the chosen home page draws an image the same way", async ({ page }) => {
     await expect(image).toHaveAttribute("fetchpriority", "high");
     await expect(main.getByRole("separator")).toHaveCount(1);
   } finally {
+    const siteId = await siteOneId();
     await withDatabase(async (sql) => {
-      await sql`update site_settings set home_page_id = null where id = 1`;
+      await sql`update site_settings set home_page_id = null where site_id = ${siteId}`;
     });
   }
 });

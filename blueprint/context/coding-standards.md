@@ -70,6 +70,24 @@ Written by `scaffold` on 2026-09-15, against the freshly scaffolded repository.
 - Resource routes (no UI) are `.ts` files exporting only `loader`/`action` and
   returning a `Response`.
 
+## Site-owned data (item 15a, D151)
+
+- Every query on a site-owned table (`entries`, `media`, `site_settings`, and
+  the ones later items add) runs inside `inSite(siteId, ...)` from
+  `app/lib/db.server.ts` **and** names `site_id` in its own `where` or insert.
+  These are D151's two guards: row-level security, then the query itself. One
+  alone is not enough.
+- Site-owned data functions take `siteId` as their first parameter. Admin routes
+  pass the member's `siteId` from `userContext`; public routes pass
+  `findPublicSiteId()` (until item 16 resolves it from the host).
+- Platform tables (`sites`, `site_members`, `users`) are outside row-level
+  security, so app code must still scope them by `site_id` wherever they
+  concern a site.
+- Two database URLs: the app runs as `habre_cms_app` (`DATABASE_URL`); migrations
+  and browser-spec setup connect as the owner `habre_cms`
+  (`DATABASE_OWNER_URL`). Browser specs that touch the database use the owner;
+  `e2e/site-isolation.spec.ts` checks the app role.
+
 ## Imports
 
 - Across directories: `#app/...` with the file extension

@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
+import { siteOneId } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -35,19 +36,21 @@ test.afterEach(async () => {
   await deleteTestUser(admin.email);
 });
 
-function storedHomePageId(): Promise<string | null> {
+async function storedHomePageId(): Promise<string | null> {
+  const siteId = await siteOneId();
   return withDatabase(async (sql) => {
     const [row] = await sql<{ homePageId: string | null }[]>`
-      select home_page_id as "homePageId" from site_settings where id = 1
+      select home_page_id as "homePageId" from site_settings where site_id = ${siteId}
     `;
     return row.homePageId;
   });
 }
 
-function storedSiteTitle(): Promise<string> {
+async function storedSiteTitle(): Promise<string> {
+  const siteId = await siteOneId();
   return withDatabase(async (sql) => {
     const [row] = await sql<{ siteTitle: string }[]>`
-      select site_title as "siteTitle" from site_settings where id = 1
+      select site_title as "siteTitle" from site_settings where site_id = ${siteId}
     `;
     return row.siteTitle;
   });
@@ -198,7 +201,10 @@ test("with a home page set, a post's All posts link still leads to the post list
       type: "page",
     },
   );
-  await withDatabase((sql) => sql`update site_settings set home_page_id = ${homeId} where id = 1`);
+  const siteId = await siteOneId();
+  await withDatabase(
+    (sql) => sql`update site_settings set home_page_id = ${homeId} where site_id = ${siteId}`,
+  );
 
   await page.goto(`/posts/${postSlug}`);
   await page.getByRole("link", { name: "All posts" }).click();

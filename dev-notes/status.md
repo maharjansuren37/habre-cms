@@ -444,6 +444,19 @@ no new migration shipped with item 4 (0001-0003 were already applied).
 
 ## Migrations
 
+- **Two database roles (item 15a, D152).** `npm run db:migrate` connects as the
+  owner `habre_cms` through `DATABASE_OWNER_URL`; the running app connects as
+  `habre_cms_app` through `DATABASE_URL`. The owner bypasses row-level
+  security, the app role does not.
+  **Before the first deploy that carries `0010`:** (1) run `db/roles.sql` once
+  on the server as `postgres`, with a newly generated password
+  (`psql -v ON_ERROR_STOP=1 -d habre_cms -v app_password=... -f db/roles.sql`);
+  (2) in `/etc/habre-cms/production.env` set `DATABASE_OWNER_URL` to today's
+  `DATABASE_URL` value, then point `DATABASE_URL` at `habre_cms_app` with that
+  password; (3) rehearse `0010` and `0011` on a restored production backup -
+  both carry real rows. **Once `0011` has run, a symlink rollback is
+  impossible** - the previous release reads `users.role` - the same as `0009`.
+  Take a backup first.
 - **2026-09-30, production:** `0007_blocks_v3.sql` (item 10) applied at
   22:20 UTC by `db/migrate.ts` from the not-yet-live release
   `/srv/habre-cms/releases/135bd1d`, run as `habre_cms` against
@@ -608,8 +621,9 @@ nobody knowing how to do it.** Write it down here.
 **The `e2e` job, by hand** (needs Docker; Node 26; no `.env` needed):
 
     docker run -d --name ci-db -e POSTGRES_PASSWORD=ci-superuser-password -p 127.0.0.1:5433:5432 postgres:16-alpine
-    docker exec -i -e POSTGRES_USER=postgres -e HABRE_DB_PASSWORD=ci-app-password ci-db sh -s < db/dev/init.sh
-    export DATABASE_URL=postgres://habre_cms:ci-app-password@127.0.0.1:5433/habre_cms
+    docker exec -i -e POSTGRES_USER=postgres -e HABRE_DB_PASSWORD=ci-app-password -e HABRE_APP_DB_PASSWORD=ci-app-role-password ci-db sh -s < db/dev/init.sh
+    export DATABASE_OWNER_URL=postgres://habre_cms:ci-app-password@127.0.0.1:5433/habre_cms
+    export DATABASE_URL=postgres://habre_cms_app:ci-app-role-password@127.0.0.1:5433/habre_cms
     npm run db:migrate
     export JWT_SECRET=$(openssl rand -base64 32) R2_ACCOUNT_ID=ci R2_ACCESS_KEY_ID=ci \
       R2_SECRET_ACCESS_KEY=ci R2_BUCKET=ci R2_PUBLIC_URL=https://r2.invalid E2E_SKIP_R2=1 CI=1

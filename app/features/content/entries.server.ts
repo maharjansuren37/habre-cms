@@ -1,7 +1,8 @@
+import type { TransactionSql } from "postgres";
 import { BLOCKS_FORMAT_V4, type Document } from "#app/features/blocks/document.ts";
 import type { LinkablePage } from "#app/features/blocks/document-nodes.ts";
 import type { Role } from "#app/features/users/roles.ts";
-import { sql } from "#app/lib/db.server.ts";
+import { inSite, sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
 import type { DocumentInput } from "./entry-input.ts";
 import type { EntryListQuery } from "./entry-list-query.ts";
@@ -64,16 +65,27 @@ function ownedBy(actor: Actor) {
   return actor.role === "author" ? sql`and e.author_id = ${actor.id}` : sql``;
 }
 
-export async function findEntryForUser(
+async function findEntryIn(
+  tx: TransactionSql,
+  siteId: string,
   type: EntryType,
   id: string,
   actor: Actor,
 ): Promise<Entry | null> {
-  const [row] = await sql<EntryRow[]>`
+  const [row] = await tx<EntryRow[]>`
     select ${entryColumns} from entries e
-    where e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
+    where e.site_id = ${siteId} and e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
   `;
   return row ? toEntry(row) : null;
+}
+
+export async function findEntryForUser(
+  siteId: string,
+  type: EntryType,
+  id: string,
+  actor: Actor,
+): Promise<Entry | null> {
+  return inSite(siteId, (tx) => findEntryIn(tx, siteId, type, id, actor));
 }
 
 /**
@@ -86,24 +98,28 @@ function storedContent(input: DocumentInput) {
 }
 
 export async function createDraft(
+  siteId: string,
   type: EntryType,
   input: DocumentInput,
   authorId: string,
 ): Promise<Entry> {
   const base = slugFromTitle(input.title, type);
-  // Only addresses that could collide with this one, not the whole table.
-  const taken = await sql<{ slug: string }[]>`
-    select slug from entries where type = ${type} and slug like ${`${base}%`}
+  return inSite(siteId, async (tx) => {
+    // Only addresses that could collide with this one, in this site, not the whole table.
+    const taken = await tx<{ slug: string }[]>`
+    select slug from entries
+    where site_id = ${siteId} and type = ${type} and slug like ${`${base}%`}
   `;
-  // A page can never take an address a route already answers to, or one
-  // reserved for a route that does not exist yet (item 6a) - folded into the
-  // same free-address search a title collision already goes through, so
-  // "Admin" becomes /admin-2 with no separate refusal.
-  const reserved = type === "page" ? RESERVED_PAGE_SLUGS : [];
-  const slug = nextFreeSlug(base, [...taken.map((row) => row.slug), ...reserved]);
+    // A page can never take an address a route already answers to, or one
+    // reserved for a route that does not exist yet (item 6a) - folded into the
+    // same free-address search a title collision already goes through, so
+    // "Admin" becomes /admin-2 with no separate refusal.
+    const reserved = type === "page" ? RESERVED_PAGE_SLUGS : [];
+    const slug = nextFreeSlug(base, [...taken.map((row) => row.slug), ...reserved]);
 
-  const [row] = await sql<EntryRow[]>`
+    const [row] = await tx<EntryRow[]>`
     insert into entries ${sql({
+      site_id: siteId,
       type,
       title: input.title,
       slug,
@@ -113,7 +129,8 @@ export async function createDraft(
     })}
     returning ${entryColumns}
   `;
-  return toEntry(row);
+    return toEntry(row);
+  });
 }
 
 export type UpdateResult =
@@ -148,6 +165,7 @@ function transitionUpdate(transition: StatusTransition | undefined) {
  * unpublish, not only ever touch a draft (F-40).
  */
 export async function saveEntry(
+  siteId: string,
   type: EntryType,
   id: string,
   input: DocumentInput,
@@ -156,7 +174,8 @@ export async function saveEntry(
   transition?: StatusTransition,
 ): Promise<UpdateResult> {
   const stored = storedContent(input);
-  const [row] = await sql<EntryRow[]>`
+  return inSite(siteId, async (tx) => {
+    const [row] = await tx<EntryRow[]>`
     update entries e set
       title = ${input.title},
       blocks = ${stored.blocks},
@@ -164,18 +183,20 @@ export async function saveEntry(
       version = version + 1,
       updated_at = now()
       ${transitionUpdate(transition)}
-    where e.id = ${id} and e.version = ${version} and e.type = ${type} ${ownedBy(actor)}
+    where e.site_id = ${siteId} and e.id = ${id} and e.version = ${version}
+      and e.type = ${type} ${ownedBy(actor)}
       -- Only over a row this build can read: a tab opened before a format change
       -- would otherwise replace newer content with the old format (F-46). Such a
       -- row changes nothing here, and findEntryForUser below refuses it loudly.
       and e.blocks_format = any(${readableFormats(type)})
     returning ${entryColumns}
   `;
-  if (row) return { ok: true, entry: toEntry(row) };
+    if (row) return { ok: true, entry: toEntry(row) };
 
-  // No row changed: either this person cannot see it at all, or its version moved.
-  const existing = await findEntryForUser(type, id, actor);
-  return existing ? { ok: false, reason: "stale" } : { ok: false, reason: "not_found" };
+    // No row changed: either this person cannot see it at all, or its version moved.
+    const existing = await findEntryIn(tx, siteId, type, id, actor);
+    return existing ? { ok: false, reason: "stale" } : { ok: false, reason: "not_found" };
+  });
 }
 
 /** One row of the list - lighter than `Entry`, since the list never needs `blocks`. */
@@ -198,6 +219,7 @@ export type EntryList = {
 };
 
 export async function listEntries(
+  siteId: string,
   type: EntryType,
   actor: Actor,
   query: EntryListQuery,
@@ -209,24 +231,30 @@ export async function listEntries(
   const statusFilter = query.status === "all" ? sql`` : sql`and e.status = ${query.status}`;
   const searchFilter = query.q === "" ? sql`` : sql`and e.title ilike ${`%${query.q}%`}`;
 
-  const [rows, totalRows, statusCounts] = await Promise.all([
-    sql<EntrySummary[]>`
+  // The three queries queue on the transaction's one connection: still correct,
+  // no longer concurrent - fine at this scale.
+  const [rows, totalRows, statusCounts] = await inSite(siteId, (tx) =>
+    Promise.all([
+      tx<EntrySummary[]>`
       select e.id, e.title, e.slug, e.status, u.name as "authorName", e.updated_at as "updatedAt"
       from entries e join users u on u.id = e.author_id
-      where e.type = ${type} ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+      where e.site_id = ${siteId} and e.type = ${type} ${ownedBy(actor)} ${statusFilter}
+        ${searchFilter}
       order by e.updated_at desc
       limit ${PAGE_SIZE} offset ${(query.page - 1) * PAGE_SIZE}
     `,
-    sql<{ total: number }[]>`
+      tx<{ total: number }[]>`
       select count(*)::int as total from entries e
-      where e.type = ${type} ${ownedBy(actor)} ${statusFilter} ${searchFilter}
+      where e.site_id = ${siteId} and e.type = ${type} ${ownedBy(actor)} ${statusFilter}
+        ${searchFilter}
     `,
-    sql<{ status: "draft" | "published"; count: number }[]>`
+      tx<{ status: "draft" | "published"; count: number }[]>`
       select status, count(*)::int as count from entries e
-      where e.type = ${type} ${ownedBy(actor)}
+      where e.site_id = ${siteId} and e.type = ${type} ${ownedBy(actor)}
       group by status
     `,
-  ]);
+    ]),
+  );
 
   const draft = statusCounts.find((row) => row.status === "draft")?.count ?? 0;
   const published = statusCounts.find((row) => row.status === "published")?.count ?? 0;
@@ -244,14 +272,19 @@ export async function listEntries(
 /** The deleted entry's own title, for the list's success message - or `null`
  *  when there was nothing this actor could delete (not found, or not theirs). */
 export async function deleteEntry(
+  siteId: string,
   type: EntryType,
   id: string,
   actor: Actor,
 ): Promise<{ title: string } | null> {
-  const [row] = await sql<{ title: string }[]>`
-    delete from entries e where e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ title: string }[]>`
+    delete from entries e
+    where e.site_id = ${siteId} and e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
     returning title
-  `;
+  `,
+  );
   return row ?? null;
 }
 
@@ -264,24 +297,34 @@ export type PublicPostSummary = { title: string; slug: string; publishedAt: Date
  * `published_at`, not `updated_at` (item 4b's D-3) - an unrelated copy-edit
  * must never reorder the public list.
  */
-export async function listPublishedPosts(limit: number): Promise<PublicPostSummary[]> {
-  return sql<PublicPostSummary[]>`
+export async function listPublishedPosts(
+  siteId: string,
+  limit: number,
+): Promise<PublicPostSummary[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<PublicPostSummary[]>`
     select title, slug, published_at as "publishedAt"
     from entries
-    where type = 'post' and status = 'published'
+    where site_id = ${siteId} and type = 'post' and status = 'published'
     order by published_at desc
     limit ${limit}
-  `;
+  `,
+  );
 }
 
 /** Whether `/`'s placeholder should link to `/posts` - only asked when no
  *  home page is shown, so a page at `/` costs no extra query (item 9's D-12). */
-export async function hasPublishedPosts(): Promise<boolean> {
-  const [row] = await sql<{ exists: boolean }[]>`
+export async function hasPublishedPosts(siteId: string): Promise<boolean> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ exists: boolean }[]>`
     select exists(
-      select 1 from entries where type = 'post' and status = 'published'
+      select 1 from entries
+      where site_id = ${siteId} and type = 'post' and status = 'published'
     ) as "exists"
-  `;
+  `,
+  );
   return row.exists;
 }
 
@@ -294,10 +337,14 @@ export type NavPageOption = {
   status: "draft" | "published";
 };
 
-export async function listPagesForNav(): Promise<NavPageOption[]> {
-  return sql<NavPageOption[]>`
-    select id, title, slug, status from entries where type = 'page' order by title
-  `;
+export async function listPagesForNav(siteId: string): Promise<NavPageOption[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<NavPageOption[]>`
+    select id, title, slug, status from entries
+    where site_id = ${siteId} and type = 'page' order by title
+  `,
+  );
 }
 
 /**
@@ -305,24 +352,32 @@ export async function listPagesForNav(): Promise<NavPageOption[]> {
  * ones the Pages list shows this person (`ownedBy` - an author's own, an
  * editor's and an admin's all of them), drafts included, with no body.
  */
-export async function listLinkablePages(actor: Actor): Promise<LinkablePage[]> {
-  return sql<LinkablePage[]>`
+export async function listLinkablePages(siteId: string, actor: Actor): Promise<LinkablePage[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<LinkablePage[]>`
     select e.id, e.title, e.slug, e.status from entries e
-    where e.type = 'page' ${ownedBy(actor)}
+    where e.site_id = ${siteId} and e.type = 'page' ${ownedBy(actor)}
     order by e.title
-  `;
+  `,
+  );
 }
 
 /** Published pages among the given ids, for resolving a saved menu's page
  *  links at render time - an id whose page is unpublished or deleted is
  *  simply absent from the result (D61's same silent-degrade rule). */
 export async function findPublishedPageSlugs(
+  siteId: string,
   ids: string[],
 ): Promise<{ id: string; slug: string }[]> {
   if (ids.length === 0) return [];
-  return sql<{ id: string; slug: string }[]>`
-    select id, slug from entries where type = 'page' and status = 'published' and id = any(${ids})
-  `;
+  return inSite(
+    siteId,
+    (tx) => tx<{ id: string; slug: string }[]>`
+    select id, slug from entries
+    where site_id = ${siteId} and type = 'page' and status = 'published' and id = any(${ids})
+  `,
+  );
 }
 
 /** One published entry's full content, for its own page. */
@@ -351,22 +406,35 @@ export type PublishedPage = PublicPage & { id: string; isHomePage: boolean };
  * missing slug get the same answer, so an entry's existence is never leaked by
  * its status (the same rule `findEntryForUser` applies for ownership).
  */
-export async function findPublishedEntry(type: "post", slug: string): Promise<PublishedPost | null>;
-export async function findPublishedEntry(type: "page", slug: string): Promise<PublishedPage | null>;
 export async function findPublishedEntry(
+  siteId: string,
+  type: "post",
+  slug: string,
+): Promise<PublishedPost | null>;
+export async function findPublishedEntry(
+  siteId: string,
+  type: "page",
+  slug: string,
+): Promise<PublishedPage | null>;
+export async function findPublishedEntry(
+  siteId: string,
   type: EntryType,
   slug: string,
 ): Promise<PublishedPost | PublishedPage | null> {
   // isHomePage rides on this query rather than a second settings read on every
   // public page request - only a page can be one (the settings action's check).
-  const [row] = await sql<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
     select e.id, e.title, e.blocks, e.blocks_format as "blocksFormat",
       e.published_at as "publishedAt", u.name as "authorName",
-      coalesce(e.id = (select home_page_id from site_settings where id = 1), false)
+      coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
         as "isHomePage"
     from entries e join users u on u.id = e.author_id
-    where e.type = ${type} and e.status = 'published' and e.slug = ${slug}
-  `;
+    where e.site_id = ${siteId} and e.type = ${type} and e.status = 'published'
+      and e.slug = ${slug}
+  `,
+  );
   if (!row) return null;
   const { blocks, blocksFormat, ...rest } = row;
   assertKnownFormat(slug, type, blocksFormat);
@@ -379,15 +447,18 @@ export async function findPublishedEntry(
  * One query: the settings row joined to the entry, rather than a settings read
  * followed by an entry read on every public home request.
  */
-export async function findHomePage(): Promise<PublicPage | null> {
-  const [row] = await sql<(PublicEntryRow & { slug: string })[]>`
+export async function findHomePage(siteId: string): Promise<PublicPage | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<(PublicEntryRow & { slug: string })[]>`
     select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
       e.published_at as "publishedAt", u.name as "authorName"
     from site_settings s
-      join entries e on e.id = s.home_page_id
+      join entries e on e.id = s.home_page_id and e.site_id = s.site_id
       join users u on u.id = e.author_id
-    where s.id = 1 and e.type = 'page' and e.status = 'published'
-  `;
+    where s.site_id = ${siteId} and e.type = 'page' and e.status = 'published'
+  `,
+  );
   if (!row) return null;
   const { blocks, blocksFormat, slug, ...page } = row;
   assertKnownFormat(slug, "page", blocksFormat);

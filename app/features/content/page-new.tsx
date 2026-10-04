@@ -25,7 +25,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   return {
     document: emptyDocument(),
     mediaById: {},
-    pages: await listLinkablePages(context.get(userContext)),
+    pages: await listLinkablePages(context.get(userContext).siteId, context.get(userContext)),
   };
 }
 
@@ -47,7 +47,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data({ problem: { kind: "invalid" as const, message: form.message } }, { status: 400 });
 
   const user = context.get(userContext);
-  const entry = await createDraft("page", { title: form.title, document: form.document }, user.id);
+  const entry = await createDraft(
+    user.siteId,
+    "page",
+    { title: form.title, document: form.document },
+    user.id,
+  );
   // The address is chosen here, so the editor moves to the saved page's own URL.
   return redirect(`/admin/pages/${entry.id}`);
 }

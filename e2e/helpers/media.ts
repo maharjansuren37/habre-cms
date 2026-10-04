@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { APIRequestContext } from "@playwright/test";
+import { siteOneId } from "./sites.ts";
 import { withDatabase } from "./users.ts";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "..", "..", "app/features/media/fixtures");
@@ -75,9 +76,10 @@ export function insertTestMediaRow(options: {
   const { uploadedBy, altText = "A test image", width = 640, height = 480 } = options;
   const key = `e2e-test/${randomUUID()}.jpg`;
   return withDatabase(async (sql) => {
+    const siteId = await siteOneId();
     const [row] = await sql<{ id: string }[]>`
-      insert into media (storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
-      select ${key}, ${`${key.slice(9)}`}, 'image/jpeg', 1, ${width}, ${height}, ${altText}, id
+      insert into media (site_id, storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
+      select ${siteId}, ${key}, ${`${key.slice(9)}`}, 'image/jpeg', 1, ${width}, ${height}, ${altText}, id
       from users where email = ${uploadedBy}
       returning id
     `;

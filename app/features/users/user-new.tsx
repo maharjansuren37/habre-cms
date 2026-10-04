@@ -2,6 +2,7 @@ import { data, Form, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { hashPassword } from "#app/features/auth/password.server.ts";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
+import { userContext } from "#app/features/auth/user-context.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import fieldStyles from "#app/lib/ui/field.module.css";
 import { Field } from "#app/lib/ui/field.tsx";
@@ -33,7 +34,7 @@ function stringField(form: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   if (!isUserFormBodyAllowed(request.headers)) {
     throw data("Request too large", { status: 413 });
   }
@@ -65,6 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
     name: parsed.data.name,
     passwordHash: await hashPassword(parsed.data.password),
     role: parsed.data.role,
+    siteId: context.get(userContext).siteId,
   });
   if (!result.ok) {
     const fieldErrors: NewUserFieldErrors = { email: "That email is already in use." };

@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
+import { siteOneId } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -117,8 +118,9 @@ test("a menu row whose page was deleted says so beside its select (F-95)", async
     type: "page",
   });
   const items = [{ label: "Gone", pageId: goneId }];
+  const siteId = await siteOneId();
   await withDatabase(async (sql) => {
-    await sql`update site_settings set navigation = ${sql.json(items)} where id = 1`;
+    await sql`update site_settings set navigation = ${sql.json(items)} where site_id = ${siteId}`;
     await sql`delete from entries where id = ${goneId}`;
   });
 

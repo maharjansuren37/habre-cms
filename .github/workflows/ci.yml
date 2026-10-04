@@ -51,7 +51,10 @@ jobs:
           --health-retries 10
     env:
       CI_DB_PASSWORD: ci-app-password
-      DATABASE_URL: postgres://habre_cms:ci-app-password@127.0.0.1:5432/habre_cms
+      CI_APP_DB_PASSWORD: ci-app-role-password
+      # The app connects as habre_cms_app; migrations and test setup as the owner.
+      DATABASE_URL: postgres://habre_cms_app:ci-app-role-password@127.0.0.1:5432/habre_cms
+      DATABASE_OWNER_URL: postgres://habre_cms:ci-app-password@127.0.0.1:5432/habre_cms
       # The app refuses to start without all five R2 values. These cannot
       # authenticate anywhere, and the tests that upload skip themselves with
       # `test.skip(skipWithoutStorage)` (F-17: CI holds no storage credentials
@@ -75,15 +78,16 @@ jobs:
       - name: Install from lockfile
         run: npm ci --no-audit --no-fund
 
-      - name: Create the app's database role (as development and production have it)
-        # The same script compose.yaml runs, so the app connects as a role that
-        # owns its database and is not a superuser.
+      - name: Create the database roles (as development and production have them)
+        # The same script compose.yaml runs: the owner role, then db/roles.sql
+        # makes the app role that connects without owning anything.
         run: sh db/dev/init.sh
         env:
           PGHOST: 127.0.0.1
           PGPASSWORD: ci-superuser-password
           POSTGRES_USER: postgres
           HABRE_DB_PASSWORD: ${{ env.CI_DB_PASSWORD }}
+          HABRE_APP_DB_PASSWORD: ${{ env.CI_APP_DB_PASSWORD }}
 
       - name: Migrate
         run: npm run db:migrate

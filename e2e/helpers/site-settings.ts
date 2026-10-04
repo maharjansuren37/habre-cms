@@ -1,3 +1,4 @@
+import { siteOneId } from "./sites.ts";
 import { withDatabase } from "./users.ts";
 
 const DEFAULT_SITE_TITLE = "Habre CMS";
@@ -15,6 +16,7 @@ const DEFAULT_SITE_TITLE = "Habre CMS";
  */
 export function resetSiteSettings(): Promise<void> {
   return withDatabase(async (sql) => {
-    await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null, navigation = '[]'::jsonb, home_page_id = null where id = 1`;
+    const siteId = await siteOneId();
+    await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null, navigation = '[]'::jsonb, home_page_id = null where site_id = ${siteId}`;
   });
 }
