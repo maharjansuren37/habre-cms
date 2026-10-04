@@ -129,7 +129,7 @@ the front door of platform v1 and the first time Habre sends email.
     - Submitting with an invalid address and a short password shows "2 things to fix", each error beside its field linked by `aria-describedby`, and the name, email and address kept (journey 8).
   - **The host-split server**, signup off: `/signup` answers 404.
   - At 390 px and 1280 px, the page matches the mockup's layout. Screenshots are kept for `verify`.
-- [ ] **Step 7 - Creating the account and site** - add `app/features/signup/signup.server.ts`. `createSignup` generates the site's UUID in the app and runs one `inSite(siteId, …)` transaction that:
+- [x] **Step 7 - Creating the account and site** - add `app/features/signup/signup.server.ts`. `createSignup` generates the site's UUID in the app and runs one `inSite(siteId, …)` transaction that:
   - inserts the site;
   - inserts the user, with `email_verified_at` null;
   - inserts the admin membership;
@@ -367,6 +367,14 @@ caller decides what the person sees. It never logs the address or the text.
     reports the first rule it breaks (step 5).
   - `isPlatformPath` in `content-security-policy.ts` is the one test for
     admin-host paths, used by both the CSP area and host routing (step 4).
+  - The signup transaction inserts the site, then uses up the invite, then
+    inserts the user. Without a valid code the invite error comes before any
+    email check, so only an invited person learns that an email is taken,
+    which is the condition the plain-email decision above rests on (step 7).
+  - The per-IP signup limit counts every POST that reaches the form, valid
+    or not, and is never reset by a success. 429 reads "Too many attempts.
+    Wait an hour, then try again." The "Log in" link for a taken email sits
+    in the error summary, since `Field` takes text only (step 7).
 
 ## Production needs
 
