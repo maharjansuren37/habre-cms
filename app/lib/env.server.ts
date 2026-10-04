@@ -5,6 +5,7 @@ import {
   requireEmailForSignup,
   requireEmailPair,
 } from "#app/lib/email-env.server.ts";
+import { limitsEnvFields } from "#app/lib/limits-env.server.ts";
 
 // Everything the web app reads. server/app.ts imports this, so the production
 // server refuses to start with a missing or invalid variable. Later items add
@@ -29,8 +30,15 @@ const envSchema = databaseEnvSchema
     // Signup and email (item 15b): the switch and the SMTP settings. The rule
     // that signup needs email is in email-env.server.ts.
     ...emailEnvFields,
+    // The storage limit (item 15d), parsed to bytes or null. Renamed below.
+    ...limitsEnvFields,
   })
   .superRefine(requireEmailForSignup)
-  .superRefine(requireEmailPair);
+  .superRefine(requireEmailPair)
+  // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit.
+  .transform(({ STORAGE_LIMIT_MB, ...rest }) => ({
+    ...rest,
+    STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
+  }));
 
 export const env = parseEnv(envSchema, process.env);

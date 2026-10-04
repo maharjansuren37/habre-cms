@@ -20,3 +20,7 @@
 ## features/15c-password-reset
 
 - [ ] Nothing new to install. `SMTP_URL` and `EMAIL_FROM` now go together - one alone stops startup (D272) - and setting both (the 15b line above) also turns on password reset by email (D271).
+
+## features/15d-storage-cap
+
+- [ ] `STORAGE_LIMIT_MB` is optional: unset gives 500 MB. Set it in `/etc/habre-cms/production.env` only if the owner picks another Free number (`needs-you.md`, *Free plan limits*); an invalid value stops startup. No migration.

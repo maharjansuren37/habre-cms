@@ -96,3 +96,41 @@ export function testMediaFilename(id: string): Promise<string> {
     return row.filename;
   });
 }
+
+/** The per-file upload cap in bytes (10 MB), the size `fillTestStorage` gives each row. */
+export const TEN_MB = 10_485_760;
+
+/**
+ * Test-only: `rows` media rows of 10 MB each on one site, with no R2 object
+ * behind them, so storage-limit tests fill a site in one insert and run in CI.
+ * `uploadedBy` is a test user's email. `deleteSite` removes the rows.
+ */
+export function fillTestStorage(siteId: string, uploadedBy: string, rows: number): Promise<void> {
+  return withDatabase(async (sql) => {
+    const inserted = await sql`
+      insert into media (site_id, storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
+      select ${siteId}, 'e2e-test/' || u.uuid || '.jpg', u.uuid || '.jpg', 'image/jpeg', ${TEN_MB}, 640, 480, 'A test image', users.id
+      from users, (select gen_random_uuid()::text as uuid from generate_series(1, ${rows}::int)) u
+      where users.email = ${uploadedBy}
+      returning id
+    `;
+    if (inserted.length !== rows) throw new Error(`no user ${uploadedBy} to own the test rows`);
+  });
+}
+
+/** Test-only: how many media rows a site has. */
+export function countSiteMedia(siteId: string): Promise<number> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ total: number }[]>`
+      select count(*)::int as total from media where site_id = ${siteId}
+    `;
+    return row.total;
+  });
+}
+
+/** Test-only: deletes one of a site's media rows, as deleting an image does. */
+export function deleteOneTestMediaRow(siteId: string): Promise<void> {
+  return withDatabase(async (sql) => {
+    await sql`delete from media where id = (select id from media where site_id = ${siteId} limit 1)`;
+  });
+}

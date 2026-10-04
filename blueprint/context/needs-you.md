@@ -129,7 +129,8 @@ not tidying; it is what keeps the open list true.
       from item 14c2, a section tile's drag announcements - "Hero: drop as
       section 2 of 4.", release to cancel, added, cancelled; from item 15c,
       `/forgot-password` with its neutral reply, `/reset-password` with its
-      field error and expired state, and login's "Forgot your password?" link).
+      field error and expired state, and login's "Forgot your password?" link;
+      from item 15d, Media's storage meter, its full line and the refusal).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -138,7 +139,8 @@ not tidying; it is what keeps the open list true.
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
-      widened, item 14c2; widened, spec 15c, 2026-10-04)
+      widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
+      2026-10-04)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -252,8 +254,10 @@ not tidying; it is what keeps the open list true.
       instances can be reclaimed when idle; pay-as-you-go removes that); pick
       the AI model from item 18's measured cost and quality; re-check Stripe's
       Australian fees (D149); ask your accountant about GST-inclusive prices.
-      Starting points are in D150. Blocks nothing now; needed by item 21 (and
-      the AI cap's number by item 18). `open` (rescope review, 2026-10-01)
+      Starting points are in D150. Item 15d reads the storage number from
+      `STORAGE_LIMIT_MB` (500 MB when unset). Blocks nothing now; needed by
+      item 21 (the AI cap's number by item 18, the storage number by the v1
+      deploy if not 500 MB). `open` (rescope review, 2026-10-01)
 
 - [ ] **Terms of service and a privacy policy** - decision; legal text only
       you can stand behind, ideally checked by someone qualified. Public signup

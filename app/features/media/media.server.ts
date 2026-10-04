@@ -98,6 +98,20 @@ export async function listMedia(siteId: string, page: number): Promise<MediaList
   };
 }
 
+/**
+ * Usage is computed, never counted: the sum of the site's media sizes.
+ * `::float8` comes back as a JS number (a bigint sum would be a string); exact up to 2^53 bytes.
+ */
+export async function storageUsed(siteId: string): Promise<number> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ used: number }[]>`
+    select coalesce(sum(byte_size), 0)::float8 as used from media where site_id = ${siteId}
+  `,
+  );
+  return row?.used ?? 0;
+}
+
 export type MediaSummaryRow = {
   id: string;
   storageKey: string;

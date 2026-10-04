@@ -113,7 +113,7 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
   - [x] 15a. **Sites and memberships** - `site_id` on every site-owned table, row-level security, the owner and app database roles (D152), today's installation as site 1 (D162), the admin scoped by membership; no signup
   - [x] 15b. **Signup** - the email module, signup with verification (D161), invites, and choosing an address
   - [x] 15c. **Password reset by email**
-  - [ ] 15d. **Storage cap per site** (D150)
+  - [x] 15d. **Storage cap per site** (D150)
   - [ ] 15e. **Your account** - change your name, email and password; delete your account (design.md *Screens*)
 - [ ] 16. **Sites on their own subdomains** - each site's public site served at `<name>.<sites domain>` (D153)
 - [ ] 17. **SEO basics** - title and description per page and post, social image, `sitemap.xml` and `robots.txt` per site; one main address per site, the others redirecting to it, with a canonical link; nothing indexed until a site publishes; the site's language on every page (D173)
