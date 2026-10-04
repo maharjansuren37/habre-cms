@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-04, `main` after `7756a09`.
+Generated 2026-10-04, `main` after `4b8a16a`.
 
 ## What this is
 
@@ -46,10 +46,11 @@ old content removed (`0009`); sites and memberships (15a) - `site_id` and
 row-level security, owner and app database roles, today's install as site 1
 (`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, choosing
 the site's address, login refuses unconfirmed accounts; `0012` deletes every
-account (D261); password reset by email (15c).
+account (D261); password reset by email (15c); a storage cap per site
+(15d) - `STORAGE_LIMIT_MB`, 500 MB unless set, an upload past it refused,
+the space used shown on Media (D284-D289).
 
-**Platform v1 (queued):** a storage cap per site and your account
-(15d-15e); sites on their own subdomains; SEO basics; optimised images (17b);
+**Platform v1 (queued):** your account (15e); sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -145,10 +146,9 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 and 15a-15c done; 15d-21 queued; nothing in flight.
-  18 splits when spec'd. Last shipped: 15c
-  (`blueprint/history/features/15c-password-reset.md`).
-- **Next:** `spec` item 15d, the storage cap per site (D150) - usage is the
-  sum of a site's media sizes, and an upload past the cap is refused, never
-  the published site (plan *Data rules*).
+- **Plan:** items 1-14 and 15a-15d done; 15e-21 queued; nothing in flight.
+  18 splits when spec'd. Last shipped: 15d
+  (`blueprint/history/features/15d-storage-cap.md`).
+- **Next:** `spec` item 15e, your account - change your name, email and
+  password, and delete your account (design.md *Screens*).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

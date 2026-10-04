@@ -72,3 +72,7 @@ File: e2e/document-editor.spec.ts:670; app/features/blocks/ (block toolbar posit
 
 ### F-231 [P2] open - Signup's concurrent-signup test can take both password slots and make another worker's login answer 503
 File: e2e/signup.spec.ts ("two signups at once"); playwright.config.ts:15 (`workers: 2`)
+
+
+### F-251 [P2] open - Two browser tests fail intermittently in CI under the full suite
+File: e2e/block-toolbar.spec.ts:687; e2e/sites.spec.ts:56
