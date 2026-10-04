@@ -2,8 +2,8 @@
 
 **From build plan:** item 15c
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-04, 083986a07e34 (autopilot), every done-when proven except CI on the pull request, which needs a push (`ship`). Proof: `npm run verify` pass, 483 unit tests; full `npm run test:e2e` 324 passed locally with real R2, none skipped (16 in `password-reset.spec.ts`); the three step-3 mutations each seen red (the `used_at` guard only together with the live-link check, see Decisions); security log from the e2e server output shows `password_reset_requested` x15, `password_reset_completed` x4, `reset_rate_limited` ip and email, each with ids only and no email or token; p95 of 20 local reset completions 366 ms (median 230 ms), under the 1 s bar
+**Reviewed:** 2026-10-04, 083986a07e34, current, every lens (independent `reviewer`, inside autopilot) - 0 blocking; 5 P3 raised (F-243 to F-247), none repaired
 
 ## Goal
 
