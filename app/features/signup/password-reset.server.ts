@@ -56,38 +56,52 @@ class ResetRefused extends Error {}
  * Uses the token, sets the new password and ends every other session, in one
  * transaction. The token update is the only place a token is used: its `where`
  * makes "once" and "within an hour" atomic. Returns null (and uses nothing up)
- * when the token is dead or the user can no longer log in.
+ * when the token is dead or the user can no longer log in. The email comes
+ * back so the caller can lift the login lock on it.
  */
 export async function completeReset(
   token: string,
   passwordHash: string,
-): Promise<{ userId: string; tokenVersion: number } | null> {
+): Promise<{ userId: string; email: string; tokenVersion: number } | null> {
+  const tokenHash = hashEmailToken(token);
   try {
     return await sql.begin(async (tx) => {
-      const [used] = await tx<{ userId: string }[]>`
-        update email_tokens set used_at = now()
-        where token_hash = ${hashEmailToken(token)} and purpose = 'reset'
-          and used_at is null and expires_at > now()
-        returning user_id as "userId"
+      // The user's row is locked before any of their tokens, the same order
+      // as issueResetToken, so a reset and a new request cannot deadlock (F-243).
+      const [owner] = await tx<{ userId: string }[]>`
+        select user_id as "userId" from email_tokens
+        where token_hash = ${tokenHash} and purpose = 'reset'
       `;
-      if (!used) throw new ResetRefused();
-      const [user] = await tx<{ tokenVersion: number }[]>`
-        update users
-        set password_hash = ${passwordHash}, token_version = token_version + 1, updated_at = now()
-        where id = ${used.userId}
+      if (!owner) throw new ResetRefused();
+      const [user] = await tx<{ email: string }[]>`
+        select email from users
+        where id = ${owner.userId}
           and email_verified_at is not null
           and exists (
             select 1 from site_members m
             where m.user_id = users.id and m.deactivated_at is null
           )
-        returning token_version as "tokenVersion"
+        for update
       `;
       if (!user) throw new ResetRefused();
+      const [used] = await tx`
+        update email_tokens set used_at = now()
+        where token_hash = ${tokenHash} and purpose = 'reset'
+          and used_at is null and expires_at > now()
+        returning id
+      `;
+      if (!used) throw new ResetRefused();
+      const [updated] = await tx<{ tokenVersion: number }[]>`
+        update users
+        set password_hash = ${passwordHash}, token_version = token_version + 1, updated_at = now()
+        where id = ${owner.userId}
+        returning token_version as "tokenVersion"
+      `;
       await tx`
         update email_tokens set used_at = now()
-        where user_id = ${used.userId} and purpose = 'reset' and used_at is null
+        where user_id = ${owner.userId} and purpose = 'reset' and used_at is null
       `;
-      return { userId: used.userId, tokenVersion: user.tokenVersion };
+      return { userId: owner.userId, email: user.email, tokenVersion: updated.tokenVersion };
     });
   } catch (error) {
     if (error instanceof ResetRefused) return null;

@@ -1,5 +1,8 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
-import { passwordCheckSlots } from "#app/features/auth/login-rate-limit.server.ts";
+import {
+  emailLoginLimiter,
+  passwordCheckSlots,
+} from "#app/features/auth/login-rate-limit.server.ts";
 import { hashPassword } from "#app/features/auth/password.server.ts";
 import { serializeSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { signSessionToken } from "#app/features/auth/session-token.server.ts";
@@ -77,6 +80,9 @@ export async function action({ request }: Route.ActionArgs) {
     { userId: done.userId, tokenVersion: done.tokenVersion },
     env.JWT_SECRET,
   );
+  // The reset proved the person holds the mailbox, so failed logins before it
+  // no longer lock them out (F-244).
+  emailLoginLimiter.reset(done.email);
   logSecurityEvent({ event: "password_reset_completed", userId: done.userId });
   return redirect("/admin", { headers: { "Set-Cookie": await serializeSessionCookie(session) } });
 }

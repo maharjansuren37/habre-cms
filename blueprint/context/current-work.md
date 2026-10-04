@@ -281,6 +281,10 @@ single-use link that lasts an hour, and a completed reset bumps
   - the pull request's CI run is green on both jobs, with
     `password-reset.spec.ts` run in `e2e`.
 
+- [x] **Repair F-243 - A reset completing at the same moment as a new link request can deadlock** - `completeReset` takes the user's row lock first, as `issueResetToken` does: it reads the token's `user_id` unlocked, locks that user `for update` only while they are confirmed with an active membership, then runs the guarded token update unchanged. *Done when:* both functions lock the user before any reset token; the password-reset browser tests still pass. No test can force the interleaving, so `review` closes it on reading.
+- [x] **Repair F-244 - A completed reset does not clear login's per-email lockout** - `completeReset` returns the email; a successful reset calls `emailLoginLimiter.reset(email)`. *Done when:* a browser test from the finding's reproduction - five failed logins for the email, then a reset, then a login with the new password in a fresh context - logs in, and fails with the repair reverted.
+- [x] **Repair F-246 - Two claims untested** - (a) the Decision on the `used_at` guard extends to `expires_at > now()`, which the live-link check before scrypt masks in the same way; (b) journey 7 asserts that context B shows its own site's title in the admin shell, after a reload, as well as after the redirect. *Done when:* the journey-7 assertion is seen failing against a wrong title and passing against the right one.
+
 ## Files and areas
 
 - `app/lib/email-env.server.ts` (+ `email-env.server.test.ts`) - `isEmailOn`,
@@ -380,7 +384,16 @@ single-use link that lasts an hour, and a completed reset bumps
     live-link check before scrypt.** Dropping it alone turned no test red: a
     used link is refused before `completeReset` runs, so only two submits at
     once could reach it. With both removed, "a link works once" failed. No
-    concurrent-submit test was added (step 3).
+    concurrent-submit test was added (step 3). **The same holds for
+    `expires_at > now()`** in the same update: the live-link check refuses an
+    expired link first, so the guard covers only a link that expires between
+    the check and the save. Its test is the expired-link test, which exercises
+    the pre-check (F-246).
+  - **F-245 accepted (owner, 2026-10-04):** someone can keep a person from
+    resetting. With only the newest link live and 3 requests an hour per
+    email, 3 requests an hour for that email burn each link the person gets
+    and use up their own limit. Accepted for the invite-only beta. Revisit
+    if it is seen in the security log (`reset_rate_limited` scope `email`).
   - When both password-hash slots are taken, the reset form shows "Busy, try
     again in a minute." with the link kept, and nothing is logged (step 3).
   - `completeReset` rolls back by throwing inside the transaction, so a

@@ -30,7 +30,12 @@ test.beforeEach(async ({ page }) => {
 async function newAdmin() {
   const siteId = await createSite("reset");
   sites.push(siteId);
-  return createSiteAdmin(siteId, "Lena Novak");
+  const admin = await createSiteAdmin(siteId, "Lena Novak");
+  const [settings] = await withDatabase(
+    (sql) => sql<{ title: string }[]>`
+      select site_title as title from site_settings where site_id = ${siteId}`,
+  );
+  return { ...admin, siteTitle: settings.title };
 }
 
 async function ask(page: Page, email: string) {
@@ -245,6 +250,15 @@ test("journey 7: forgot, reset, signed in here and out everywhere else", async (
     await choose(b, NEW_PASSWORD);
     await b.waitForURL("**/admin/posts");
     await expect(b.getByRole("heading", { level: 1 })).toBeVisible();
+    // Their own site, after the redirect and again on a full page load (F-246).
+    await expect(
+      b.getByRole("complementary").getByText(admin.siteTitle, { exact: true }),
+    ).toBeVisible();
+    await b.reload();
+    await expect(b).toHaveURL(/\/admin\/posts$/);
+    await expect(
+      b.getByRole("complementary").getByText(admin.siteTitle, { exact: true }),
+    ).toBeVisible();
   } finally {
     // keep b open until the checks below
   }
@@ -390,4 +404,32 @@ test("the login page links to the reset page; with email off it asks for an admi
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);
+});
+
+// F-244: completing a reset proves the person holds the mailbox, so it lifts
+// the per-email login lock that their failed attempts set.
+test("a completed reset lifts the login lock on that email", async ({ page, browser, baseURL }) => {
+  const admin = await newAdmin();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await loginAttempt(page, admin.email, "not the password at all");
+    await expect(page.getByText("That email and password don’t match.")).toBeVisible();
+  }
+  await loginAttempt(page, admin.email, admin.password);
+  await expect(page.getByText("Too many attempts.")).toBeVisible();
+
+  await page.goto(await linkFor(page, admin.email));
+  await choose(page, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+
+  const fresh = await browser.newContext({
+    baseURL,
+    extraHTTPHeaders: { "X-Forwarded-For": randomIp() },
+  });
+  try {
+    const other = await fresh.newPage();
+    await loginAttempt(other, admin.email, NEW_PASSWORD);
+    await expect(other).toHaveURL(/\/admin\/posts$/);
+  } finally {
+    await fresh.close();
+  }
 });

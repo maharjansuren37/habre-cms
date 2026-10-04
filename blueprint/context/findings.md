@@ -74,19 +74,19 @@ File: e2e/document-editor.spec.ts:670; app/features/blocks/ (block toolbar posit
 File: e2e/signup.spec.ts ("two signups at once"); playwright.config.ts:15 (`workers: 2`)
 
 
-### F-243 [P3] open - A reset completing at the same moment as a new link request can deadlock, and one side answers 500
+### F-243 [P3] fixed - A reset completing at the same moment as a new link request can deadlock, and one side answers 500
 File: app/features/signup/password-reset.server.ts (`completeReset`, `issueResetToken`)
 
 
-### F-244 [P3] open - A completed reset does not clear login's per-email lockout
+### F-244 [P3] closed - A completed reset does not clear login's per-email lockout
 File: app/features/signup/reset-password.tsx (action, success path); app/features/auth/login.tsx (`emailLoginLimiter`)
 
 
-### F-245 [P3] open - Anyone can keep a person from resetting their password
+### F-245 [P3] accepted - Anyone can keep a person from resetting their password
 File: app/features/signup/forgot-password.tsx; app/features/signup/password-reset.server.ts (`issueResetToken`); spec Decisions
 
 
-### F-246 [P3] open - Two of the spec's claims are untested: the completion's expiry guard, and journey 7's "own site"
+### F-246 [P3] fixed - Two of the spec's claims are untested: the completion's expiry guard, and journey 7's "own site"
 File: app/features/signup/password-reset.server.ts (`completeReset`, `expires_at > now()`); e2e/password-reset.spec.ts (journey 7)
 
 
