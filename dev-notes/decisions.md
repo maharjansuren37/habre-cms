@@ -3347,3 +3347,56 @@ Costs: one extra read.
 Beats: leaving the 15-minute lock - the reset proved the person holds the
 mailbox.
 Costs: none; the per-IP limit is untouched.
+
+## D284 - One storage limit setting for every site until billing (2026-10-04)
+
+**Chose:** `STORAGE_LIMIT_MB` - 500 by default (D150), any whole number of MB,
+`none` to remove it; anything else stops startup naming the variable. The app
+reads it as `env.STORAGE_LIMIT_BYTES` (`number | null`). Every site gets it
+until item 21 adds the paid plan's limit beside it.
+Beats: a per-site column in `sites` (a migration for a value nothing can set
+before billing); a constant in code (a self-hosted copy could not raise or
+remove it, D148).
+Costs: no per-site exception until item 21.
+
+## D285 - Storage MB means 1,048,576 bytes (2026-10-04)
+
+**Chose:** binary MB for the storage limit and its wording, the same unit as
+the 10 MB upload cap.
+Beats: decimal MB, which would make the two caps disagree.
+Costs: a limit of "500 MB" is 524,288,000 bytes, not 500,000,000.
+
+## D286 - Storage is checked before R2, with no lock (2026-10-04)
+
+**Chose:** the upload action sums the site's `media.byte_size` (computed, never
+counted) once the file's real size is known and it is a valid image, before
+anything reaches R2 or the database.
+Beats: a row lock or a reservation, which costs code for a 10 MB overshoot at
+most.
+Costs: two uploads at once can each pass the limit by one file.
+
+## D287 - An upload past the storage limit is refused with 413 (2026-10-04)
+
+**Chose:** status 413 and the error banner naming the limit, like the per-file
+cap: the request is larger than the site has room for.
+Beats: 403 (not a permission) and 507 (WebDAV's).
+Costs: none.
+
+## D288 - The usage meter is a native `<meter>` (2026-10-04)
+
+**Chose:** `app/lib/ui/meter.tsx`, a `<meter>` with a visible `<label>` and the
+"... used" text as its description, drawn as the mock's `.meter`; with no
+limit, the text alone and no meter. Home reuses it.
+Beats: the mock's `div role="img"` - coding-standards' semantic HTML rule,
+ARIA only where no native element exists.
+Costs: the bar is styled per engine (`::-webkit-meter-*`, `::-moz-meter-bar`).
+
+## D289 - Storage usage rounds down, the limit rounds up (2026-10-04)
+
+**Chose:** whole MB, then GB to one decimal; usage rounded down, the limit
+rounded up (`formatStorage`, `formatStorageLimit`), and a full site's usage
+rounded up too - so usage never reads as equal to a limit it has not reached,
+nor below a limit it has (F-249, F-250).
+Beats: rounding both down ("1.9 GB of 1.9 GB" with room left); rounding to
+nearest ("2 GB of 2 GB" with room left).
+Costs: a 2000 MB limit reads "2 GB" though it is 1.95 GB.

@@ -443,6 +443,9 @@ alone did not show which page was current (WCAG 1.4.1).
   `:has()`).
 - **Admin Home** - site card, account button, page header, "ready" panel with
   a half-size site preview, suggestion links, usage meter.
+  The usage meter is built (item 15d) as a native `<meter>` with a visible
+  label, `app/lib/ui/meter.tsx`, drawn as the mock's `.meter` - not its
+  `div role="img"`, because ARIA is for where no native element exists.
 - **Sections and columns** - `.page-flow` (the container), `.sec`, `.cols`,
   `.col`; shared by the canvas and the site.
 - **Blocks** - `.display`, `.lede`, `.quote`, `.rule`, `.spacer`, and a photo

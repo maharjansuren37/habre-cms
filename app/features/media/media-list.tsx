@@ -4,9 +4,11 @@ import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
+import { Meter } from "#app/lib/ui/meter.tsx";
 import type { Route } from "./+types/media-list";
 import { mediaBannerRedirect, readMediaBanner } from "./banner.ts";
-import { insertMedia, listMedia } from "./media.server.ts";
+import { formatFileSize } from "./file-size.ts";
+import { insertMedia, listMedia, storageUsed } from "./media.server.ts";
 import {
   altTextSchema,
   detectImage,
@@ -19,6 +21,7 @@ import { parseMediaListPage } from "./media-list-query.ts";
 import { buildMediaUrl } from "./media-url.ts";
 import { uploadObject } from "./r2.server.ts";
 import { generateStorageKey } from "./storage-key.ts";
+import { fitsStorage, formatStorageLimit, storageSummary } from "./storage-limit.ts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Media - Habre CMS" }];
@@ -53,6 +56,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     totalPages: list.totalPages,
     page,
     banner,
+    storage: storageSummary(await storageUsed(actor.siteId), env.STORAGE_LIMIT_BYTES),
   };
 }
 
@@ -97,6 +101,17 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data({ problem: "This file is not a JPEG, PNG, WebP or GIF image." }, { status: 400 });
   }
 
+  // Before R2 and before any row. No lock: two uploads at once can each pass by one file (accepted).
+  const limit = env.STORAGE_LIMIT_BYTES;
+  if (limit !== null && !fitsStorage(await storageUsed(actor.siteId), buffer.byteLength, limit)) {
+    return data(
+      {
+        problem: `This image would take your site past its ${formatStorageLimit(limit)} of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.`,
+      },
+      { status: 413 },
+    );
+  }
+
   const storageKey = generateStorageKey(actor.siteId, detected.extension);
   // R2 object first, then the row (the plan's data rule) - a failure between
   // leaves a harmless orphaned object.
@@ -117,13 +132,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   return mediaBannerRedirect("uploaded", filename.data);
 }
 
-function formatByteSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(bytes < 1024 * 1024 ? 0 : 1)} ${bytes < 1024 * 1024 ? "KB" : "MB"}`;
-}
-
 export default function MediaList({ loaderData, actionData }: Route.ComponentProps) {
-  const { media, total, totalPages, page, banner } = loaderData;
+  const { media, total, totalPages, page, banner, storage } = loaderData;
   const navigation = useNavigation();
   const isUploading = navigation.state === "submitting" && navigation.formAction === "/admin/media";
 
@@ -141,6 +151,23 @@ export default function MediaList({ loaderData, actionData }: Route.ComponentPro
       )}
       {actionData?.problem && (
         <Message tone="error" title={actionData.problem} className={styles.banner} />
+      )}
+      <Meter
+        label="Storage"
+        text={
+          storage.limitText
+            ? `${storage.usedText} of ${storage.limitText} used`
+            : `${storage.usedText} used`
+        }
+        value={storage.value}
+        max={storage.max}
+        className={styles.storage}
+      />
+      {storage.isFull && (
+        <p className={styles.full}>
+          Your site has used all of its {storage.limitText} of storage. Delete images you no longer
+          use to upload more.
+        </p>
       )}
       <Form method="post" encType="multipart/form-data" className={styles.uploadForm}>
         <Field
@@ -175,7 +202,7 @@ export default function MediaList({ loaderData, actionData }: Route.ComponentPro
               />
               <p className={styles.filename}>{item.filename}</p>
               <p className={styles.meta}>
-                {item.width}×{item.height} · {formatByteSize(item.byteSize)}
+                {item.width}×{item.height} · {formatFileSize(item.byteSize)}
               </p>
               <p className={styles.meta}>
                 {item.uploadedByName} · {new Date(item.createdAt).toLocaleDateString()}
