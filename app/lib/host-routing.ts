@@ -1,13 +1,11 @@
+import { isPlatformPath } from "./content-security-policy.ts";
+
 const GET_OR_HEAD = new Set(["GET", "HEAD"]);
 
 export type HostRoutingDecision =
   | { readonly kind: "allow" }
   | { readonly kind: "redirect"; readonly to: string }
   | { readonly kind: "not-found" };
-
-function isAdminPath(pathname: string): boolean {
-  return pathname === "/admin" || pathname.startsWith("/admin/");
-}
 
 /**
  * Decides what to do with a request before any route runs (D22): an admin
@@ -51,14 +49,14 @@ export function resolveHostRouting(request: {
     if (pathname === "/") {
       return canRedirect ? { kind: "redirect", to: "/admin" } : { kind: "not-found" };
     }
-    if (isAdminPath(pathname)) return { kind: "allow" };
+    if (isPlatformPath(pathname)) return { kind: "allow" };
     return canRedirect
       ? { kind: "redirect", to: `${publicOrigin}${pathname}${search}` }
       : { kind: "not-found" };
   }
 
   if (requestHost === publicHost) {
-    if (isAdminPath(pathname)) {
+    if (isPlatformPath(pathname)) {
       return canRedirect
         ? { kind: "redirect", to: `${adminOrigin}${pathname}${search}` }
         : { kind: "not-found" };

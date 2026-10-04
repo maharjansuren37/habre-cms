@@ -114,3 +114,38 @@ test("refuses a request whose host matches neither", () => {
     kind: "not-found",
   });
 });
+
+test("allows /signup, the pages under it and /verify on the admin host", () => {
+  for (const pathname of ["/signup", "/signup/sent", "/verify"]) {
+    assert.deepEqual(decide({ pathname, requestHost: HOSTS.adminHost }), { kind: "allow" });
+  }
+});
+
+test("redirects /signup and /verify on the public host to the admin host, query string included", () => {
+  assert.deepEqual(
+    decide({ pathname: "/verify", search: "?token=abc", requestHost: HOSTS.publicHost }),
+    { kind: "redirect", to: "https://cms.surenmaharjan.fyi/verify?token=abc" },
+  );
+  assert.deepEqual(
+    decide({ method: "HEAD", pathname: "/signup/sent", requestHost: HOSTS.publicHost }),
+    { kind: "redirect", to: "https://cms.surenmaharjan.fyi/signup/sent" },
+  );
+});
+
+test("refuses a POST to /signup or /verify on the public host rather than redirecting it", () => {
+  for (const pathname of ["/signup", "/verify"]) {
+    assert.deepEqual(decide({ method: "POST", pathname, requestHost: HOSTS.publicHost }), {
+      kind: "not-found",
+    });
+  }
+});
+
+test("treats /signupx and /verify/x as public paths", () => {
+  for (const pathname of ["/signupx", "/verify/x"]) {
+    assert.deepEqual(decide({ pathname, requestHost: HOSTS.publicHost }), { kind: "allow" });
+    assert.deepEqual(decide({ pathname, requestHost: HOSTS.adminHost }), {
+      kind: "redirect",
+      to: `https://surenmaharjan.fyi${pathname}`,
+    });
+  }
+});

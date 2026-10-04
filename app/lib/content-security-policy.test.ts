@@ -59,3 +59,12 @@ test("/admin and paths under it are admin; everything else is public", () => {
   assert.equal(areaForPath("/"), "public");
   assert.equal(areaForPath("/posts/hello"), "public");
 });
+
+test("/signup, the pages under it and /verify are admin; near misses are public (15b)", () => {
+  assert.equal(areaForPath("/signup"), "admin");
+  assert.equal(areaForPath("/signup/sent"), "admin");
+  assert.equal(areaForPath("/verify"), "admin");
+  assert.equal(areaForPath("/signupx"), "public");
+  assert.equal(areaForPath("/verify/x"), "public");
+  assert.equal(areaForPath("/verifying"), "public");
+});

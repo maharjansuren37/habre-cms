@@ -90,3 +90,17 @@
       (`docker compose exec`, no secret printed). Blocks step 1's done-when of
       item 15a (`npm run test:e2e` and `db:migrate` locally); CI needs nothing
       from you. `done` - all three names present in `.env`, `db/roles.sql` run, app connects as `habre_cms_app`, full `npm run test:e2e` 263 passed (build, 2026-10-04)
+
+## features/15b-signup
+
+- [x] **Decide what a second press of Confirm my email shows** - decision.
+      Item 15b's spec says both "Confirm pressed twice shows the expired-or-used
+      state" and "a user who is already confirmed is told so"; a used link can
+      only reach a confirmed account, so one of them has to give. Built:
+      "Your email is already confirmed" with Log in. The other way is one
+      condition in `app/features/signup/verify.tsx`. Blocks `ship` of 15b
+      (its verify line counts it as differing). `done` - kept "already confirmed", spec updated (owner, ship, 2026-10-04)
+- [x] **Push `feature/signup` so CI runs on it** - approval; pushing is a
+      separate yes. Item 15b's step 10 done-when is a green CI run on the pull
+      request with `signup.spec.ts` running in the `e2e` job's new Mailpit
+      service; nothing local can show that. Blocks `ship` of 15b. `done` - pushed, PR #33, CI green (ship, 2026-10-04)

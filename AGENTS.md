@@ -166,8 +166,10 @@ Or just ask in plain language - "spec the next item", "run the review".
 - Other installed versions (from `package-lock.json`): `postgres` 3.4.9, Zod 4.6.5,
   `isbot` 5.2.2, `@remix-run/node-fetch-server` 0.14.2,
   TipTap 3.31.4 (`@tiptap/core`, `pm`, `react`, `starter-kit`, `extensions`), `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
-  Playwright 1.63.0 (Chromium 153), Biome 2.5.13. Development database:
-  PostgreSQL 16.15 (`postgres:16-alpine`).
+  Playwright 1.63.0 (Chromium 153), Biome 2.5.13, `nodemailer` 10.0.14,
+  `@types/nodemailer` 8.0.2. Development database: PostgreSQL 16.15
+  (`postgres:16-alpine`). Development and CI email: Mailpit
+  (`axllent/mailpit:v1.31.4`).
 - **React Router 8 is newer than an agent's training can be trusted on.** Its docs
   ship inside the package and are the authority for this version:
   `node_modules/react-router/docs/` (`start/framework/`, `how-to/`,
@@ -225,8 +227,13 @@ rather than guessing.
 All run from the repository root. First time: `npm install`, copy `.env.example`
 to `.env` and fill it in, `npx playwright install chromium`.
 
-- Database (development): `docker compose up -d` - PostgreSQL 16 on
-  `127.0.0.1:5432`; then `npm run db:migrate` (connects as the owner, `DATABASE_OWNER_URL`; the app and `create-admin` use the app role, `DATABASE_URL`)
+- Database and email (development): `docker compose up -d` - PostgreSQL 16 on
+  `127.0.0.1:5432` and Mailpit, which catches the email the app sends (SMTP on
+  `127.0.0.1:1025`, web UI and API on http://127.0.0.1:8025); then `npm run db:migrate` (connects as the owner, `DATABASE_OWNER_URL`; the app and `create-admin` use the app role, `DATABASE_URL`)
+- Operator commands: `npm run create-admin -- --email you@example.org --name "Your Name"`
+  (password on stdin; a confirmed admin of site 1) and
+  `npm run create-invite -- --note "for Lena"` (prints a single-use signup code
+  once; only its hash is stored). Both connect as the app role, `DATABASE_URL`.
 - Dev: `npm run dev` (http://127.0.0.1:3000, Vite HMR)
 - Build: `npm run build` (output in `build/`)
 - Start (production build): `npm start` (http://127.0.0.1:3000)
@@ -263,8 +270,8 @@ figure of speech.
 
 | Environment | What it is for | Config comes from | Holds real data |
 |---|---|---|---|
-| `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally. **The web app requires `DATABASE_URL`, `APP_URL` (`http://127.0.0.1:3000`) and `JWT_SECRET` (32+ chars, generated locally); `DATABASE_URL` is the app role `habre_cms_app`; `DATABASE_OWNER_URL` is the owner `habre_cms`, required by `db:migrate` and read by the browser tests' helpers (the web app never requires it); `create-admin` requires only `DATABASE_URL`** | no |
-| `ci` | GitHub Actions, `.github/workflows/ci.yml`, on pull requests and pushes to `main`, two jobs: `verify` (`npm ci` then `npm run verify`) and `e2e` (a `postgres:16-alpine` service, the owner and app roles made by `db/dev/init.sh` and `db/roles.sql`, `npm run db:migrate`, then `npm run test:e2e` in Chromium). **`e2e` skips the browser tests that upload to R2** - each calls `test.skip(skipWithoutStorage)` (`E2E_SKIP_R2=1`; CI holds no storage credentials, F-17) - they run only locally. **Runner `ubuntu-24.04`, Node pinned to `26`** - React Router 8 needs >= 22.22 and `engines` needs >= 26; do not float to `lts/*` or `latest`. Actions pinned to commit SHAs. | nothing - no `.env`, no repository secrets. `verify` needs nothing; `e2e` sets throwaway database passwords, `DATABASE_URL` (app role `habre_cms_app`) and `DATABASE_OWNER_URL` (owner `habre_cms`), a per-run `JWT_SECRET` and fake `R2_*` values in the workflow itself | no |
+| `development` | local work on the dev machine; Node 26, PostgreSQL 16 in Docker (`compose.yaml`, volume `habre_cms_dev_db`) | `.env` at the repo root (gitignored; names in `.env.example`), loaded by `node --env-file-if-exists`; dev-only database passwords generated locally. **The web app requires `DATABASE_URL`, `APP_URL` (`http://127.0.0.1:3000`) and `JWT_SECRET` (32+ chars, generated locally); `DATABASE_URL` is the app role `habre_cms_app`; `DATABASE_OWNER_URL` is the owner `habre_cms`, required by `db:migrate` and read by the browser tests' helpers (the web app never requires it); `create-admin` requires only `DATABASE_URL`**. Signup (item 15b): `SIGNUP_MODE` (`off` by default, `invite`, `open`); when it is not `off` the app also requires `SMTP_URL` (`smtp://127.0.0.1:1025`, Mailpit) and `EMAIL_FROM` | no |
+| `ci` | GitHub Actions, `.github/workflows/ci.yml`, on pull requests and pushes to `main`, two jobs: `verify` (`npm ci` then `npm run verify`) and `e2e` (a `postgres:16-alpine` service and a Mailpit service, `axllent/mailpit:v1.31.4` on ports 1025 and 8025, the owner and app roles made by `db/dev/init.sh` and `db/roles.sql`, `npm run db:migrate`, then `npm run test:e2e` in Chromium). **`e2e` skips the browser tests that upload to R2** - each calls `test.skip(skipWithoutStorage)` (`E2E_SKIP_R2=1`; CI holds no storage credentials, F-17) - they run only locally. **Runner `ubuntu-24.04`, Node pinned to `26`** - React Router 8 needs >= 22.22 and `engines` needs >= 26; do not float to `lts/*` or `latest`. Actions pinned to commit SHAs. | nothing - no `.env`, no repository secrets. `verify` needs nothing; `e2e` sets throwaway database passwords, `DATABASE_URL` (app role `habre_cms_app`) and `DATABASE_OWNER_URL` (owner `habre_cms`), a per-run `JWT_SECRET` and fake `R2_*` values in the workflow itself; `playwright.config.ts` gives the primary test server `SIGNUP_MODE=invite`, `SMTP_URL=smtp://127.0.0.1:1025` and `EMAIL_FROM`, and the host-split server `SIGNUP_MODE=off` | no |
 | `production` | **Server provisioned 2026-09-16, live; the release running now is recorded in `dev-notes/status.md`** (D21 - the only hosted environment, no staging). Set up by `deploy/setup-server.sh`; files reach it with `rsync` over SSH (the server has no `git`). Releases in `/srv/habre-cms/releases/`, `current` symlink points at the one running. `ocwebserver` (Oracle Cloud VPS, Ubuntu 24.04): systemd `habre-cms.service` as user `habre_cms` from `/srv/habre-cms`, on `127.0.0.1`; Caddy proxies `https://cms.surenmaharjan.fyi`; PostgreSQL 16 on the same box, localhost only. **Built locally or in CI, never on the server.** | `/etc/habre-cms/production.env` on the server, mode 600, owned by `habre_cms`, loaded by the systemd unit. `DATABASE_URL` (app role `habre_cms_app`) and `DATABASE_OWNER_URL` (owner `habre_cms`, used by `db:migrate`) both live here, their passwords and `JWT_SECRET` generated there by the setup script (a server set up before item 15a needs the one-time manual change in item 15a's spec); R2 values entered by the owner. Never in the repository. Nightly `pg_dump` to a private R2 bucket. | **yes** |
 
 Add a row per environment as it comes into existence. For each, say **where its

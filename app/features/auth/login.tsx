@@ -1,4 +1,5 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
+import { serializePendingEmailCookie } from "#app/features/signup/pending-email-cookie.server.ts";
 import { findUserByEmail } from "#app/features/users/users.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -27,7 +28,7 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   if (await findSessionUser(request)) throw redirect("/admin");
-  return null;
+  return { signupOpen: env.SIGNUP_MODE !== "off" };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -72,6 +73,17 @@ export async function action({ request }: Route.ActionArgs) {
     passwordCheckSlots.release();
   }
   if (!user) return data({ credentialsRefused: true, email: form.email }, { status: 400 });
+
+  // A correct password on an account whose email is not confirmed signs no one
+  // in: it goes to "Check your email", where a new link can be asked for. It
+  // counts as a success for the limiters - the password was right.
+  if (!user.emailVerifiedAt) {
+    emailLoginLimiter.reset(form.email);
+    ipLoginLimiter.forgive(ipKey);
+    return redirect("/signup/sent", {
+      headers: { "Set-Cookie": await serializePendingEmailCookie(user.email) },
+    });
+  }
 
   const token = await signSessionToken(
     { userId: user.id, tokenVersion: user.tokenVersion },
@@ -120,10 +132,15 @@ async function checkCredentials(email: string, password: string, ip: string) {
     logSecurityEvent({ event: "login_failed", reason: "deactivated", userId: user.id, ip });
     return null;
   }
+  // Last, so a deactivated or memberless account is refused as before. The
+  // caller sends this user to "Check your email" instead of signing them in.
+  if (!user.emailVerifiedAt) {
+    logSecurityEvent({ event: "login_failed", reason: "unverified", userId: user.id, ip });
+  }
   return user;
 }
 
-export default function Login({ actionData }: Route.ComponentProps) {
+export default function Login({ actionData, loaderData }: Route.ComponentProps) {
   const isSubmitting = useNavigation().state === "submitting";
   const fieldErrors = actionData && "fieldErrors" in actionData ? actionData.fieldErrors : {};
 
@@ -179,6 +196,11 @@ export default function Login({ actionData }: Route.ComponentProps) {
         </Form>
 
         <p className={styles.help}>Forgot your password? Ask an admin of this site to reset it.</p>
+        {loaderData.signupOpen && (
+          <p className={styles.help}>
+            New to Habre? <Link to="/signup">Create your website</Link>
+          </p>
+        )}
       </main>
     </div>
   );

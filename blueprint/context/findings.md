@@ -65,3 +65,10 @@ File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-edit
 ### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
 File: app/features/blocks/document-editor.module.css:49, :323
 
+
+### F-230 [P2] open - The block toolbar can overhang a 390px viewport after a resize, failing the editor's stacking test
+File: e2e/document-editor.spec.ts:670; app/features/blocks/ (block toolbar positioning)
+
+
+### F-231 [P2] open - Signup's concurrent-signup test can take both password slots and make another worker's login answer 503
+File: e2e/signup.spec.ts ("two signups at once"); playwright.config.ts:15 (`workers: 2`)

@@ -29,13 +29,15 @@ brand colour; one of three style presets; light only unless the owner turns
 dark mode on (Pro). The only Habre mark is a "Made with Habre" footer link,
 which the paid plan removes.
 
-Mockups (throwaway): `prototypes/signup.html`, `start.html` (onboarding step
+Mockups (throwaway): `start.html` (onboarding step
 1), `start-brand.html` (step 3, Make it yours), `home.html` (admin Home),
 `editor.html` and `editor.html#heading` (two states), `site-home.html` (a
 published site), `components.html` (every component, both scopes). Tokens:
 `prototypes/theme.css`; components: `prototypes/components.css`. Checks:
 `prototypes/checks/contrast.mjs` (`shoot.mjs` removed with item 13b; the
 browser suite's 390px tests and `e2e/contrast.spec.ts` check the real app).
+`signup.html` was removed with item 15b: the built `/signup` is now the
+signup layout.
 
 ## Where the tokens land
 
@@ -180,8 +182,8 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 
 | Screen | | |
 |---|---|---|
-| Sign up | applies | **mocked** (`signup.html`), with the address-taken error and suggestions |
-| Check your email, then the emailed link signs you in (D161) | applies | item 15; the signup layout |
+| Sign up | applies | **built** (item 15b, `/signup`), with the address-taken error and suggestions |
+| Check your email, then the emailed link signs you in (D161) | applies | **built** (item 15b), the signup layout: `/signup/sent` - "Check your email", Send it again, "We couldn't send the email" as the kit's `Message`; `/verify` - "Confirm your email" with one Confirm my email button (D251), and its expired-or-used and already-confirmed states (D269). Each a heading, one paragraph, a `Message` for an error, one primary button |
 | Sign in | applies | item 15; the signup layout. Its error never says which half was wrong |
 | Sign out | applies | account menu, every signed-in page |
 | Forgot password -> email -> reset -> signed in | applies | item 15; the signup layout |

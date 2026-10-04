@@ -850,6 +850,8 @@ browser suite green.
     choosing an address.
   - **15c. Password reset by email.**
   - **15d. Storage cap per site.**
+  - **15e. Your account** - name, email, password, delete account; public
+    signup makes delete-account a requirement (design.md *Screens*).
 - **16** - host resolution, `site_domains` (`surenmaharjan.fyi`), the wildcard
   certificate, `suspend-site`.
 - **17** - SEO: the tags, sitemap and robots files; one main address per

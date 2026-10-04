@@ -49,6 +49,13 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Catches the email signup sends (item 15b); e2e/helpers/mail.ts reads it
+      # through the API on 8025. Same tag as compose.yaml.
+      mailpit:
+        image: axllent/mailpit:v1.31.4
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       CI_DB_PASSWORD: ci-app-password
       CI_APP_DB_PASSWORD: ci-app-role-password

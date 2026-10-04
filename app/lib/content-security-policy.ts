@@ -1,8 +1,22 @@
 export type PolicyArea = "public" | "admin";
 
-/** Admin screens get the admin policy; everything else is the public site. */
+/**
+ * Paths that belong to the admin host: `/admin` and under it, `/signup` and
+ * under it, and `/verify` exactly (15b, until item 16 adds the platform host).
+ */
+export function isPlatformPath(pathname: string): boolean {
+  return (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/signup" ||
+    pathname.startsWith("/signup/") ||
+    pathname === "/verify"
+  );
+}
+
+/** Admin and platform screens get the admin policy; everything else is the public site. */
 export function areaForPath(pathname: string): PolicyArea {
-  return pathname === "/admin" || pathname.startsWith("/admin/") ? "admin" : "public";
+  return isPlatformPath(pathname) ? "admin" : "public";
 }
 
 /**

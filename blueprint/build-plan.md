@@ -111,9 +111,10 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
     - [x] 14c2. **Dragging a section tile** - a section drop slot between sections, its gap and ghost, and the announcements
 - [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
   - [x] 15a. **Sites and memberships** - `site_id` on every site-owned table, row-level security, the owner and app database roles (D152), today's installation as site 1 (D162), the admin scoped by membership; no signup
-  - [ ] 15b. **Signup** - the email module, signup with verification (D161), invites, and choosing an address
+  - [x] 15b. **Signup** - the email module, signup with verification (D161), invites, and choosing an address
   - [ ] 15c. **Password reset by email**
   - [ ] 15d. **Storage cap per site** (D150)
+  - [ ] 15e. **Your account** - change your name, email and password; delete your account (design.md *Screens*)
 - [ ] 16. **Sites on their own subdomains** - each site's public site served at `<name>.<sites domain>` (D153)
 - [ ] 17. **SEO basics** - title and description per page and post, social image, `sitemap.xml` and `robots.txt` per site; one main address per site, the others redirecting to it, with a canonical link; nothing indexed until a site publishes; the site's language on every page (D173)
 - [ ] 17b. **Optimised images** - each upload resized on the server into WebP sizes and a social-image JPEG, without camera details, the upload itself not kept; pages pick the size they show; objects cached for a year; media uploaded before it resized by a server command (D174)

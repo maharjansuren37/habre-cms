@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { nextFreeSlug, slugFromTitle } from "./slug.ts";
+import { nextFreeSlug, RESERVED_PAGE_SLUGS, slugFromTitle } from "./slug.ts";
 
 test("a title becomes lowercase words joined by hyphens", () => {
   assert.equal(slugFromTitle("Hello, World!", "post"), "hello-world");
@@ -36,4 +36,11 @@ test("numbering a taken address keeps it within the length limit", () => {
   const slug = nextFreeSlug(base, [base]);
   assert.ok(slug.length <= 80, `expected at most 80 characters, got ${slug.length}`);
   assert.match(slug, /-2$/);
+});
+
+test("a page titled Signup or Verify gets the numbered address, as the reserved slugs do", () => {
+  for (const title of ["Signup", "Verify"]) {
+    const base = slugFromTitle(title, "page");
+    assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
+  }
 });

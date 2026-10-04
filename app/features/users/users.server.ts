@@ -16,7 +16,11 @@ export type Membership = { siteId: string; role: Role; deactivatedAt: Date | nul
 /** A user and their membership, or `null` when they belong to no site. */
 export type UserWithMembership = User & { membership: Membership | null };
 
-export type UserWithPasswordHash = UserWithMembership & { passwordHash: string };
+export type UserWithPasswordHash = UserWithMembership & {
+  passwordHash: string;
+  /** Null until the person has confirmed their email (item 15b). */
+  emailVerifiedAt: Date | null;
+};
 
 /** A user who has a membership: what the Users screens list and edit. */
 export type Member = User & Membership;
@@ -77,8 +81,8 @@ export async function createUser({
   try {
     const user = await sql.begin(async (tx) => {
       const [created] = await tx<User[]>`
-        insert into users (email, name, password_hash)
-        values (${email}, ${name}, ${passwordHash})
+        insert into users (email, name, password_hash, email_verified_at)
+        values (${email}, ${name}, ${passwordHash}, now())
         returning id, email, name, token_version as "tokenVersion"
       `;
       await tx`
@@ -98,8 +102,9 @@ export async function createUser({
 
 /** For login only: the one query that returns the password hash. */
 export async function findUserByEmail(email: string): Promise<UserWithPasswordHash | null> {
-  const [row] = await sql<(UserRow & { passwordHash: string })[]>`
-    select ${memberColumns}, u.password_hash as "passwordHash"
+  const [row] = await sql<(UserRow & { passwordHash: string; emailVerifiedAt: Date | null })[]>`
+    select ${memberColumns}, u.password_hash as "passwordHash",
+      u.email_verified_at as "emailVerifiedAt"
     from users u
     left join site_members m on m.user_id = u.id
     where u.email = ${email}

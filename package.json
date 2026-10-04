@@ -19,6 +19,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "node --env-file-if-exists=.env db/migrate.ts",
     "create-admin": "node --env-file-if-exists=.env scripts/create-admin.ts",
+    "create-invite": "node --env-file-if-exists=.env scripts/create-invite.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "image-size": "2.0.4",
     "isbot": "5.2.2",
     "jose": "6.2.12",
+    "nodemailer": "10.0.14",
     "postgres": "3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -44,6 +46,7 @@
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
     "@types/node": "26.5.1",
+    "@types/nodemailer": "8.0.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "typescript": "7.0.2",
