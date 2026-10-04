@@ -21,6 +21,7 @@ export default [
   route("signup/sent", "features/signup/signup-sent.tsx"),
   route("verify", "features/signup/verify.tsx"),
   route("forgot-password", "features/signup/forgot-password.tsx"),
+  route("reset-password", "features/signup/reset-password.tsx"),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.ts"),
     route("admin/posts", "features/content/post-list.tsx"),

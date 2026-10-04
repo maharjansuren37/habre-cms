@@ -1,5 +1,6 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
 import { messagesTo, tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
@@ -179,6 +180,213 @@ test("an invalid email is explained beside the field and the typed value is kept
 
 test("with email off, /forgot-password is Not Found", async ({ request }) => {
   const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/forgot-password`, {
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(404);
+});
+
+const NEW_PASSWORD = "a brand new passphrase 42";
+const EXPIRED = "This link has expired or was already used.";
+
+/** Asks for a link as the admin and returns the reset path (with token) from the email. */
+async function linkFor(page: Page, email: string, count = 1): Promise<string> {
+  await ask(page, email);
+  const mails = await waitForMail(email, count);
+  const rows = await tokensFor(email);
+  const live = rows.find((row) => row.used === null);
+  const token = mails
+    .map((text) => tokenFromMail(text, "/reset-password"))
+    .find((t) => sha256(t) === live?.hash);
+  if (!token) throw new Error("no live token in the emails");
+  return `/reset-password?token=${token}`;
+}
+
+async function choose(page: Page, password: string) {
+  await page.getByLabel("New password").fill(password);
+  await page.getByRole("button", { name: "Save and log in" }).click();
+}
+
+async function loginAttempt(page: Page, email: string, password: string) {
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+}
+
+test("journey 7: forgot, reset, signed in here and out everywhere else", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const admin = await newAdmin();
+  await logIn(page, admin);
+
+  const other = await browser.newContext({
+    baseURL,
+    extraHTTPHeaders: { "X-Forwarded-For": randomIp() },
+  });
+  const b = await other.newPage();
+  try {
+    await b.goto("/admin/login");
+    await b.getByRole("link", { name: "Forgot your password?" }).click();
+    await expect(b).toHaveURL(/\/forgot-password$/);
+    await b.getByLabel("Email").fill(admin.email);
+    await b.getByRole("button", { name: "Send me a link" }).click();
+    const [mail] = await waitForMail(admin.email, 1);
+    const token = tokenFromMail(mail, "/reset-password");
+    await b.goto(`/reset-password?token=${token}`);
+    await expect(b.getByRole("heading", { level: 1 })).toHaveText("Choose a new password");
+    await expect(b.getByRole("main")).toHaveCount(1);
+    await expect(b).toHaveTitle("Choose a new password - Habre");
+    await expect(b.getByLabel("New password")).toHaveAttribute("autocomplete", "new-password");
+    await expect(b.getByLabel("New password")).toHaveAccessibleDescription(
+      "At least 12 characters",
+    );
+    await choose(b, NEW_PASSWORD);
+    await b.waitForURL("**/admin/posts");
+    await expect(b.getByRole("heading", { level: 1 })).toBeVisible();
+  } finally {
+    // keep b open until the checks below
+  }
+
+  await page.goto("/admin/posts");
+  await expect(page).toHaveURL(/\/admin\/login/);
+  await other.close();
+
+  await loginAttempt(page, admin.email, admin.password);
+  await expect(page.getByText("That email and password don’t match.")).toBeVisible();
+  await loginAttempt(page, admin.email, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+});
+
+test("a scanner opening the link does not use it up", async ({ page, playwright, baseURL }) => {
+  const admin = await newAdmin();
+  const link = await linkFor(page, admin.email);
+  const scanner = await playwright.request.newContext({ baseURL });
+  const scanned = await scanner.get(link);
+  expect(scanned.status()).toBe(200);
+  await scanner.dispose();
+  expect((await tokensFor(admin.email)).filter((r) => r.used === null)).toHaveLength(1);
+
+  await page.goto(link);
+  await choose(page, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+});
+
+test("a link works once", async ({ page, baseURL }) => {
+  const admin = await newAdmin();
+  const link = await linkFor(page, admin.email);
+  await page.goto(link);
+  await choose(page, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+  await page.context().clearCookies();
+
+  const again = await page.goto(link);
+  expect(again?.status()).toBe(200);
+  await expect(page.getByText(EXPIRED)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ask for a new link" })).toHaveAttribute(
+    "href",
+    "/forgot-password",
+  );
+  // A second submit with the same token (form posted directly) is refused too.
+  const resp = await page.request.post("/reset-password", {
+    headers: { Origin: baseURL ?? "" },
+    form: { token: link.split("token=")[1], password: "another passphrase 99" },
+  });
+  expect(await resp.text()).toContain(EXPIRED);
+
+  await loginAttempt(page, admin.email, "another passphrase 99");
+  await expect(page.getByText("That email and password don’t match.")).toBeVisible();
+  await loginAttempt(page, admin.email, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+});
+
+test("only the newest link works", async ({ page }) => {
+  const admin = await newAdmin();
+  await ask(page, admin.email);
+  const [first] = await waitForMail(admin.email, 1);
+  const second = await linkFor(page, admin.email, 2);
+  await page.goto(`/reset-password?token=${tokenFromMail(first, "/reset-password")}`);
+  await expect(page.getByText(EXPIRED)).toBeVisible();
+  await page.goto(second);
+  await expect(page.getByLabel("New password")).toBeVisible();
+});
+
+test("an expired link shows the expired state and changes nothing", async ({ page, baseURL }) => {
+  const admin = await newAdmin();
+  const link = await linkFor(page, admin.email);
+  await page.goto(link);
+  await expect(page.getByLabel("New password")).toBeVisible();
+  await withDatabase(async (sql) => {
+    await sql`
+      update email_tokens set expires_at = now() - interval '1 minute'
+      where user_id = (select id from users where email = ${admin.email})`;
+  });
+  await page.reload();
+  await expect(page.getByText(EXPIRED)).toBeVisible();
+
+  // The form was loaded while the link was live; posting it now is refused.
+  const resp = await page.request.post("/reset-password", {
+    headers: { Origin: baseURL ?? "" },
+    form: { token: link.split("token=")[1], password: NEW_PASSWORD },
+  });
+  expect(await resp.text()).toContain(EXPIRED);
+  await loginAttempt(page, admin.email, admin.password);
+  await page.waitForURL("**/admin/posts");
+});
+
+test("a membership deactivated after the request refuses the reset", async ({ page }) => {
+  const admin = await newAdmin();
+  const link = await linkFor(page, admin.email);
+  const hashOf = () =>
+    withDatabase(
+      (sql) =>
+        sql<{ h: string }[]>`select password_hash as h from users where email = ${admin.email}`,
+    ).then(([row]) => row.h);
+  const before = await hashOf();
+  await page.goto(link);
+  await withDatabase(async (sql) => {
+    await sql`
+      update site_members set deactivated_at = now()
+      where user_id = (select id from users where email = ${admin.email})`;
+  });
+  await choose(page, NEW_PASSWORD);
+  await expect(page.getByText(EXPIRED)).toBeVisible();
+  expect(await hashOf()).toBe(before);
+  expect((await tokensFor(admin.email)).filter((r) => r.used === null)).toHaveLength(1);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("a short password is explained beside the field and the link still works", async ({
+  page,
+}) => {
+  const admin = await newAdmin();
+  const link = await linkFor(page, admin.email);
+  await page.goto(link);
+  await choose(page, "short");
+  const field = page.getByLabel("New password");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(
+    "At least 12 characters Use at least 12 characters for the password.",
+  );
+  await choose(page, NEW_PASSWORD);
+  await page.waitForURL("**/admin/posts");
+});
+
+test("the login page links to the reset page; with email off it asks for an admin", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/admin/login");
+  await expect(page.getByRole("link", { name: "Forgot your password?" })).toHaveAttribute(
+    "href",
+    "/forgot-password",
+  );
+  await page.goto(`http://localhost:${HOST_SPLIT_PORT}/admin/login`);
+  await expect(page.getByText("Ask an admin of this site to reset it")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Forgot your password?" })).toHaveCount(0);
+  const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/reset-password`, {
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);

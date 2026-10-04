@@ -187,7 +187,7 @@ single-use link that lasts an hour, and a completed reset bumps
   - The host-split server (email off): `/forgot-password` answers 404.
   - Screenshots at 390 px and 1280 px are kept for `verify`.
 
-- [ ] **Step 3 - Choosing the new password**
+- [x] **Step 3 - Choosing the new password**
   - `password-reset.server.ts` gains two functions.
     - `isResetTokenLive(token)`, read only: an unused, unexpired `reset` token
       with this hash exists.
@@ -376,6 +376,16 @@ single-use link that lasts an hour, and a completed reset bumps
   - The reset screenshots in `blueprint/reference/15c/` were taken once. The
     browser tests do not write them, so a test run never changes the
     repository (step 2).
+  - **The `used_at is null` guard in `completeReset` is backed up by the
+    live-link check before scrypt.** Dropping it alone turned no test red: a
+    used link is refused before `completeReset` runs, so only two submits at
+    once could reach it. With both removed, "a link works once" failed. No
+    concurrent-submit test was added (step 3).
+  - When both password-hash slots are taken, the reset form shows "Busy, try
+    again in a minute." with the link kept, and nothing is logged (step 3).
+  - `completeReset` rolls back by throwing inside the transaction, so a
+    refused reset leaves the link unused. The deactivated-member test checks
+    that (step 3).
 
 ## Production needs
 
