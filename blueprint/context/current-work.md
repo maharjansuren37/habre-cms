@@ -121,7 +121,7 @@ single-use link that lasts an hour, and a completed reset bumps
 
   `npm run verify` passes.
 
-- [ ] **Step 2 - Asking for a reset link**
+- [x] **Step 2 - Asking for a reset link**
   - Add `app/features/signup/reset-email.ts`, a pure function like
     `verification-email.ts`. It returns:
     - subject "Reset your Habre password";
@@ -369,6 +369,13 @@ single-use link that lasts an hour, and a completed reset bumps
   password-hash slots with login and signup.
 - **Reset lives in `app/features/signup/`,** as plan section 6 places it
   ("`signup` (signup, email verification, password reset)").
+- **Settled while building (autopilot, 2026-10-04):**
+  - `/forgot-password` keeps the typed email in the field after every answer,
+    the neutral reply and a 429 included. A 429 reads "Too many requests, wait
+    an hour." / "Then ask for a link again." (step 2).
+  - The reset screenshots in `blueprint/reference/15c/` were taken once. The
+    browser tests do not write them, so a test run never changes the
+    repository (step 2).
 
 ## Production needs
 
