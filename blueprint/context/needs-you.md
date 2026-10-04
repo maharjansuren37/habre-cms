@@ -291,4 +291,18 @@ not tidying; it is what keeps the open list true.
       deploy's yes. Blocks nothing now; needed by the v1 `deploy`. `open`
       (spec, 2026-10-02; widened, spec 15b, 2026-10-04)
 
+- [ ] **Decide what a second press of Confirm my email shows** - decision.
+      Item 15b's spec says both "Confirm pressed twice shows the expired-or-used
+      state" and "a user who is already confirmed is told so"; a used link can
+      only reach a confirmed account, so one of them has to give. Built:
+      "Your email is already confirmed" with Log in. The other way is one
+      condition in `app/features/signup/verify.tsx`. Blocks `ship` of 15b
+      (its verify line counts it as differing). `open` (verify, 2026-10-04)
+
+- [ ] **Push `feature/signup` so CI runs on it** - approval; pushing is a
+      separate yes. Item 15b's step 10 done-when is a green CI run on the pull
+      request with `signup.spec.ts` running in the `e2e` job's new Mailpit
+      service; nothing local can show that. Blocks `ship` of 15b. `open`
+      (verify, 2026-10-04)
+
 ## Done

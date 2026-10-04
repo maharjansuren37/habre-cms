@@ -73,3 +73,7 @@ File: e2e/document-editor.spec.ts:670; app/features/blocks/ (block toolbar posit
 ### F-231 [P2] open - Signup's concurrent-signup test can take both password slots and make another worker's login answer 503
 File: e2e/signup.spec.ts ("two signups at once"); playwright.config.ts:15 (`workers: 2`)
 
+
+### F-232 [P3] open - "Check your email" says "We sent a link" above "We couldn't send the email"
+File: app/features/signup/signup-sent.tsx (the `failed` state)
+
