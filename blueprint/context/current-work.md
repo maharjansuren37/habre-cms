@@ -88,7 +88,7 @@ the front door of platform v1 and the first time Habre sends email.
   - `npm run create-admin` makes a confirmed admin of site 1, who can log in.
   - As the app role, `insert` and `select` on `email_tokens` and `invites` succeed. The default privileges from `db/roles.sql` cover the new tables.
   - `npm run verify` and the full `npm run test:e2e` pass unchanged.
-- [ ] **Step 2 - The email module and the switches** - install `nodemailer` and `@types/nodemailer`, each pinned exactly (D156). Add `app/lib/email.server.ts` exporting `sendEmail({ to, subject, text })`, with a transport made once from `SMTP_URL` and 10-second connection, greeting and socket timeouts. `env.server.ts` gains:
+- [x] **Step 2 - The email module and the switches** - install `nodemailer` and `@types/nodemailer`, each pinned exactly (D156). Add `app/lib/email.server.ts` exporting `sendEmail({ to, subject, text })`, with a transport made once from `SMTP_URL` and 10-second connection, greeting and socket timeouts. `env.server.ts` gains:
   - `SIGNUP_MODE`, default `off`;
   - `SMTP_URL`, `smtps://` or `smtp://`, where `smtp://` is accepted only for a loopback host such as `127.0.0.1`, `localhost` or `::1`, because a plain connection over the internet would carry sign-in links in clear;
   - `EMAIL_FROM`.
