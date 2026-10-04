@@ -2,8 +2,8 @@
 
 **From build plan:** item 15a
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-04, bbc4647cea74, 9 of 9 steps' done-whens proven - steps 3-8 by Playwright against the production build (full `npm run test:e2e` 284 passed + 1 known pre-existing flake, document-editor.spec.ts:670, which passed alone and also fails ~1 in 8 on step 2's commit; `sites.spec.ts` + `site-isolation.spec.ts` 22 passed; real R2, none skipped); steps 1, 2 and 8's database claims by psql/postgres.js as the app role and owner (step 2's pre-0011 checks at build, superseded by 0011); step 9 by 200 timed requests per route (p95 3.1-4.0 ms); no human check needed (no screen changed)
+**Reviewed:** 2026-10-04, bbc4647cea74, current (7517dc3..aba064d), every lens, reviewer subagent - 0 blocking; 1 new P2 (F-218), 8 new P3 (F-219-F-227), 1 unverified (F-228); typecheck, lint, 414 unit tests green
 
 ## Goal
 
