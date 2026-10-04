@@ -145,7 +145,7 @@ field, input kept, except the password) and **6** (signed out,
   - the admin can still open and save the post;
   - the public post answers 200 with its date and no author name;
   - `/` still shows the home page.
-- [ ] **Step 3 - the confirm screen and leaving** -
+- [x] **Step 3 - the confirm screen and leaving** -
   `features/account/account-delete.tsx` (route `admin/account/delete` in the
   shell layout), `account-delete-input.ts` (+ test: the fields, `expect`, the
   address comparison, the body cap), and in `account.server.ts`
@@ -333,6 +333,19 @@ field, input kept, except the password) and **6** (signed out,
   be checked nowhere else. It deletes only its own rows and puts site 1's
   `home_page_id` back, but shares that row with `home-page.spec.ts` (F-103).
   Site deletion stays off site 1, as *Testing* says.
+- **Afterwards the person lands on `/admin/login?deleted=1`** (build, Step 3):
+  the app's sign-in route is `admin/login`; `/login` in this spec means it.
+- **`findDeletion(siteId, userId)` and `deleteAccount(siteId, userId, expect)`
+  take the session's `siteId` first** (build, Step 3), as the coding standards
+  ask of site-owned data functions; `inSite` needs it.
+- **A refused or changed POST answers 409** with the message on the page
+  (build, Step 3).
+- **The transaction runs inside `withCurrentPassword`'s callback**, as 15e1's
+  email change does (build, Step 3): a wrong password counts even when the
+  case is refused, and a right one never does.
+- **The password field behaves as 15e1's do** (build, Step 3): uncontrolled,
+  so the browser keeps what was typed after a refusal. Journey 8's "except
+  the password" is not enforced here, nor in 15e1.
 - **`DELETED_ACCOUNT` lives in `app/lib/deleted-account.ts`** (build, Step 2):
   browser components show it, so it cannot sit in a `.server.ts` file.
 - **The public byline shows only the date for a deleted author; the admin

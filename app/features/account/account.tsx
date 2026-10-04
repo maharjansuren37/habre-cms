@@ -1,4 +1,4 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { clientIp, rateLimitKeyForIp } from "#app/features/auth/client-ip.ts";
 import { serializeSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { signSessionToken } from "#app/features/auth/session-token.server.ts";
@@ -10,6 +10,7 @@ import { sendEmail } from "#app/lib/email.server.ts";
 import { isEmailOn } from "#app/lib/email-env.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
@@ -308,6 +309,19 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
               {isSavingPassword ? "Saving…" : "Save password"}
             </Button>
           </Form>
+        </section>
+        <section className={styles.section} aria-labelledby="account-delete-heading">
+          <h2 className={styles.sectionTitle} id="account-delete-heading">
+            Delete account
+          </h2>
+          <p className={styles.hint}>
+            Deleting your account signs you out everywhere and can't be undone.
+          </p>
+          <div>
+            <Link to="/admin/account/delete" className={buttonStyles.button}>
+              Delete your account
+            </Link>
+          </div>
         </section>
       </div>
     </>

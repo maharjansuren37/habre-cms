@@ -1,3 +1,4 @@
+import type { Sql, TransactionSql } from "postgres";
 import {
   emailLoginLimiter,
   LOGIN_BLOCK_MINUTES,
@@ -6,8 +7,9 @@ import {
 import { hashPassword, verifyPassword } from "#app/features/auth/password.server.ts";
 import { hashEmailToken } from "#app/features/signup/email-token-hash.ts";
 import { issueEmailToken } from "#app/features/signup/email-tokens.server.ts";
-import { sql } from "#app/lib/db.server.ts";
+import { inSite, sql } from "#app/lib/db.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import type { DeletionCase, DeletionExpect } from "./account-delete-input.ts";
 import { EMAIL_CHANGE_LIFETIME_HOURS } from "./email-change-email.ts";
 
 /** Sets the signed-in person's own name. `userId` is the session's, never the form's. */
@@ -223,6 +225,67 @@ export async function confirmEmailChange(
     if (isUniqueViolation(error, "users_email_key")) return { ok: false, state: "taken" };
     throw error;
   }
+}
+
+type DeletionFacts = { address: string; case: DeletionCase };
+
+/**
+ * Which case this member is in, read with `db` (the pool, or a transaction that
+ * already holds the locks). Step 3 knows two: a member who is not the site's last
+ * active admin leaves; the last active admin is `refused` until Step 4 can take
+ * the site. Null when the person has no membership on the site any more.
+ */
+async function readDeletionFacts(
+  db: Sql | TransactionSql,
+  siteId: string,
+  userId: string,
+): Promise<DeletionFacts | null> {
+  const [row] = await db<{ address: string; role: string; deactivatedAt: Date | null }[]>`
+    select s.subdomain as address, m.role, m.deactivated_at as "deactivatedAt"
+    from site_members m
+    join sites s on s.id = m.site_id
+    where m.site_id = ${siteId} and m.user_id = ${userId}`;
+  if (!row) return null;
+  const [others] = await db<{ count: number }[]>`
+    select count(*)::int as count from site_members
+    where site_id = ${siteId} and role = 'admin' and deactivated_at is null
+      and user_id <> ${userId}`;
+  const isLastActiveAdmin = row.role === "admin" && !row.deactivatedAt && others.count === 0;
+  return { address: row.address, case: isLastActiveAdmin ? "refused" : "leave" };
+}
+
+/** What the confirm screen shows: the site's address and which case applies. */
+export async function findDeletion(siteId: string, userId: string): Promise<DeletionFacts | null> {
+  return readDeletionFacts(sql, siteId, userId);
+}
+
+export type DeleteAccountResult = { ok: true } | { ok: false; reason: "changed" | "refused" };
+
+/**
+ * Deletes the signed-in person's own account when they are leaving a site that
+ * keeps going. One transaction: the site's row is locked first, then the user's
+ * (15e1's confirm locks the user and never the site, so no cycle), and the case
+ * is worked out again. A case other than the one the form was loaded as deletes
+ * nothing. The membership goes before the user (`site_members.user_id` restricts);
+ * its foreign keys null the author and uploader of their entries and media, and
+ * `email_tokens` cascade from the user. `userId` and `siteId` are the session's.
+ */
+export async function deleteAccount(
+  siteId: string,
+  userId: string,
+  expect: DeletionExpect,
+): Promise<DeleteAccountResult> {
+  return inSite(siteId, async (tx): Promise<DeleteAccountResult> => {
+    await tx`select id from sites where id = ${siteId} for update`;
+    await tx`select id from users where id = ${userId} for update`;
+    const facts = await readDeletionFacts(tx, siteId, userId);
+    if (!facts) return { ok: false, reason: "changed" };
+    if (facts.case === "refused") return { ok: false, reason: "refused" };
+    if (facts.case !== "leave" || expect !== "leave") return { ok: false, reason: "changed" };
+    await tx`delete from site_members where site_id = ${siteId} and user_id = ${userId}`;
+    await tx`delete from users where id = ${userId}`;
+    return { ok: true };
+  });
 }
 
 const UNIQUE_VIOLATION = "23505";

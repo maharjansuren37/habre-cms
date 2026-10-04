@@ -1,0 +1,29 @@
+/* Media's delete confirmation shape (media-delete.module.css): a short question
+   that keeps the admin shell, with its fields. */
+.confirm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--size-measure);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
