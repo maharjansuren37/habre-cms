@@ -1,9 +1,16 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { expect, type Page, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { messagesTo, waitForMail } from "./helpers/mail.ts";
+import { messagesTo, tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
-import { createAdmin, deleteTestUser, setRole, type TestUser } from "./helpers/users.ts";
+import {
+  createAdmin,
+  deactivateUser,
+  deleteTestUser,
+  setRole,
+  type TestUser,
+  withDatabase,
+} from "./helpers/users.ts";
 
 test.beforeEach(async ({ page }) => {
   // Failed logins are rate-limited per IP; see auth.spec.ts.
@@ -414,4 +421,193 @@ test("with email on, another account's address is refused below the field and no
     await deleteTestUser(user.email);
     await deleteTestUser(other.email);
   }
+});
+
+// Step 6: /confirm-email, through Mailpit.
+const NOT_USED = "This link has expired or was already used.";
+
+async function emailOf(userEmail: string): Promise<string | undefined> {
+  const rows = await withDatabase(
+    (sql) => sql<{ email: string }[]>`select email from users where email = ${userEmail}`,
+  );
+  return rows[0]?.email;
+}
+
+function changeTokensFor(userEmail: string) {
+  return withDatabase(
+    (sql) => sql<{ used: Date | null }[]>`
+      select t.used_at as used from email_tokens t join users u on u.id = t.user_id
+      where u.email = ${userEmail} and t.purpose = 'email_change' order by t.created_at`,
+  );
+}
+
+async function linkTo(page: Page, newEmail: string, password: string, nth: number) {
+  await page.goto("/admin/account");
+  await requestLink(page, newEmail, password);
+  await expect(page).toHaveURL("/admin/account?saved=link");
+  const texts = await waitForMail(newEmail, nth);
+  return `/confirm-email?token=${tokenFromMail(texts[0], "/confirm-email")}`;
+}
+
+async function signIn(browser: Browser, email: string, password: string): Promise<string> {
+  const context = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": randomIp() } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/admin/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await page.waitForLoadState("networkidle");
+    return page.url();
+  } finally {
+    await context.close();
+  }
+}
+
+test("confirming changes the email only on the button, then tells the old address", async ({
+  page,
+  browser,
+}) => {
+  const user = createAdmin("Confirmer");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    const link = await linkTo(page, newEmail, user.password, 1);
+    await page.goto(link);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Confirm your new email" }),
+    ).toBeVisible();
+    expect(await emailOf(user.email)).toBe(user.email);
+
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page).toHaveURL("/admin/account?saved=email");
+    await expect(page.getByRole("status")).toContainText(`Your email is now ${newEmail}.`);
+    expect(await emailOf(user.email)).toBeUndefined();
+
+    expect(await signIn(browser, newEmail, user.password)).toMatch(/\/admin\/posts$/);
+    expect(await signIn(browser, user.email, user.password)).toMatch(/\/admin\/login/);
+
+    const [notice] = await waitForMail(user.email, 1);
+    expect(notice).toContain("The email address for your Habre account was just changed.");
+    expect(notice).not.toContain(newEmail);
+  } finally {
+    await deleteTestUser(newEmail);
+    await deleteTestUser(user.email);
+  }
+});
+
+test("the same link a second time shows the expired state", async ({ page }) => {
+  const user = createAdmin("Twice");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    const link = await linkTo(page, newEmail, user.password, 1);
+    await page.goto(link);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page).toHaveURL("/admin/account?saved=email");
+
+    await page.goto(link);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page.getByText(NOT_USED)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to Your account" })).toHaveAttribute(
+      "href",
+      "/admin/account",
+    );
+    expect(await emailOf(newEmail)).toBe(newEmail);
+  } finally {
+    await deleteTestUser(newEmail);
+    await deleteTestUser(user.email);
+  }
+});
+
+test("a link older than the newest shows the expired state and changes nothing", async ({
+  page,
+}) => {
+  const user = createAdmin("Older Link");
+  const first = `e2e-${randomUUID()}@example.test`;
+  const second = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    const oldLink = await linkTo(page, first, user.password, 1);
+    await linkTo(page, second, user.password, 1);
+    await page.goto(oldLink);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page.getByText(NOT_USED)).toBeVisible();
+    expect(await emailOf(user.email)).toBe(user.email);
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("an address taken in between shows the taken state and uses nothing up", async ({ page }) => {
+  const user = createAdmin("Late Taker");
+  const other = createAdmin("Early Bird");
+  const wanted = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    const link = await linkTo(page, wanted, user.password, 1);
+    await withDatabase(
+      (sql) => sql`update users set email = ${wanted} where email = ${other.email}`,
+    );
+    await page.goto(link);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page.getByText("That email is now used by another account.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to Your account" })).toBeVisible();
+    expect(await emailOf(user.email)).toBe(user.email);
+    expect((await changeTokensFor(user.email)).map((row) => row.used)).toEqual([null]);
+  } finally {
+    await deleteTestUser(user.email);
+    await deleteTestUser(wanted);
+  }
+});
+
+test("a link used after the member was deactivated shows expired and uses nothing up", async ({
+  page,
+}) => {
+  const user = createAdmin("Deactivated Later");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    const link = await linkTo(page, newEmail, user.password, 1);
+    await deactivateUser(user.email);
+    await page.goto(link);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page.getByText(NOT_USED)).toBeVisible();
+    expect(await emailOf(user.email)).toBe(user.email);
+    expect((await changeTokensFor(user.email)).map((row) => row.used)).toEqual([null]);
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("a reset link requested before the change stops working", async ({ page }) => {
+  const user = createAdmin("Reset First");
+  const newEmail = `e2e-${randomUUID()}@example.test`;
+  try {
+    await logIn(page, user);
+    await page.goto("/forgot-password");
+    await page.getByLabel("Email").fill(user.email);
+    await page.getByRole("button", { name: "Send me a link" }).click();
+    const [resetMail] = await waitForMail(user.email, 1);
+    const resetToken = tokenFromMail(resetMail, "/reset-password");
+
+    const link = await linkTo(page, newEmail, user.password, 1);
+    await page.goto(link);
+    await page.getByRole("button", { name: "Confirm new email" }).click();
+    await expect(page).toHaveURL("/admin/account?saved=email");
+    await waitForMail(user.email, 2);
+
+    await page.goto(`/reset-password?token=${resetToken}`);
+    await expect(page.getByText(NOT_USED)).toBeVisible();
+  } finally {
+    await deleteTestUser(newEmail);
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email off, /confirm-email is Not Found", async ({ request }) => {
+  const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/confirm-email?token=x`, {
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(404);
 });

@@ -60,7 +60,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const saved = new URL(request.url).searchParams.get("saved");
   const emailOn = isEmailOn(env);
   let savedMessage: string | null = null;
-  if (saved === "email" && !emailOn) savedMessage = savedEmailMessage(user.email);
+  if (saved === "email") savedMessage = savedEmailMessage(user.email);
   else if (saved !== null && Object.hasOwn(SAVED_MESSAGE, saved))
     savedMessage = SAVED_MESSAGE[saved];
   const pendingEmail = emailOn ? await findPendingEmailChange(user.id) : null;

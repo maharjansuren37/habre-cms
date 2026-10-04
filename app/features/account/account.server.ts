@@ -4,6 +4,7 @@ import {
   passwordCheckSlots,
 } from "#app/features/auth/login-rate-limit.server.ts";
 import { hashPassword, verifyPassword } from "#app/features/auth/password.server.ts";
+import { hashEmailToken } from "#app/features/signup/email-token-hash.ts";
 import { issueEmailToken } from "#app/features/signup/email-tokens.server.ts";
 import { sql } from "#app/lib/db.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -155,6 +156,73 @@ export async function cancelEmailChange(userId: string): Promise<void> {
   await sql`
     update email_tokens set used_at = now()
     where user_id = ${userId} and purpose = 'email_change' and used_at is null`;
+}
+
+class ConfirmRefused extends Error {
+  state: "expired" | "taken";
+  constructor(state: "expired" | "taken") {
+    super(state);
+    this.state = state;
+  }
+}
+
+/**
+ * Makes the token's new address the account's email, in one transaction. The
+ * user's row is locked before any of their tokens (F-243's order), and the
+ * token update is the only place the token is used. Every refusal throws, so
+ * the transaction rolls back and nothing is used up; the catch is outside
+ * `sql.begin` because a unique violation aborts the transaction and must
+ * propagate out. A deactivated member is `expired`, like a dead link.
+ */
+export async function confirmEmailChange(
+  token: string,
+): Promise<
+  | { ok: true; userId: string; oldEmail: string; newEmail: string; name: string }
+  | { ok: false; state: "expired" | "taken" }
+> {
+  const tokenHash = hashEmailToken(token);
+  try {
+    return await sql.begin(async (tx) => {
+      const [owner] = await tx<{ userId: string }[]>`
+        select user_id as "userId" from email_tokens
+        where token_hash = ${tokenHash} and purpose = 'email_change'`;
+      if (!owner) throw new ConfirmRefused("expired");
+      const [user] = await tx<{ email: string; name: string }[]>`
+        select email, name from users
+        where id = ${owner.userId}
+          and exists (
+            select 1 from site_members m
+            where m.user_id = users.id and m.deactivated_at is null
+          )
+        for update`;
+      if (!user) throw new ConfirmRefused("expired");
+      const [used] = await tx<{ newEmail: string }[]>`
+        update email_tokens set used_at = now()
+        where token_hash = ${tokenHash} and purpose = 'email_change'
+          and used_at is null and expires_at > now()
+        returning new_email as "newEmail"`;
+      if (!used) throw new ConfirmRefused("expired");
+      await tx`
+        update users
+        set email = ${used.newEmail}, email_verified_at = now(), updated_at = now()
+        where id = ${owner.userId}`;
+      await tx`
+        update email_tokens set used_at = now()
+        where user_id = ${owner.userId} and purpose in ('email_change', 'reset')
+          and used_at is null`;
+      return {
+        ok: true,
+        userId: owner.userId,
+        oldEmail: user.email,
+        newEmail: used.newEmail,
+        name: user.name,
+      } as const;
+    });
+  } catch (error) {
+    if (error instanceof ConfirmRefused) return { ok: false, state: error.state };
+    if (isUniqueViolation(error, "users_email_key")) return { ok: false, state: "taken" };
+    throw error;
+  }
 }
 
 const UNIQUE_VIOLATION = "23505";

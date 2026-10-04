@@ -13,7 +13,8 @@ export function isPlatformPath(pathname: string): boolean {
     pathname.startsWith("/signup/") ||
     pathname === "/verify" ||
     pathname === "/forgot-password" ||
-    pathname === "/reset-password"
+    pathname === "/reset-password" ||
+    pathname === "/confirm-email"
   );
 }
 

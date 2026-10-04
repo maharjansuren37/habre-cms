@@ -137,7 +137,7 @@ row records this (spec, 2026-10-05); Step 2 marks it **built**.
   refused with "Too many emails to that address. Try again later." and sends
   nothing; the current address and another account's are refused below the
   field here too, with nothing sent; `email-change-email.test.ts` passes.
-- [ ] **Step 6 - `/confirm-email` and the notice** - `confirm-email.tsx`
+- [x] **Step 6 - `/confirm-email` and the notice** - `confirm-email.tsx`
   (route added to `app/routes.ts` and to `areaForPath` in
   `app/lib/content-security-policy.ts` as an admin-host page),
   `confirmEmailChange(token)` (one transaction: lock the user first, as

@@ -34,10 +34,10 @@ export async function waitForMail(email: string, count = 1): Promise<string[]> {
 }
 
 /** The token in the first link of an email's text. `path` is the link's path:
- *  `/verify` or `/reset-password`. */
+ *  `/verify`, `/reset-password` or `/confirm-email`. */
 export function tokenFromMail(
   text: string,
-  path: "/verify" | "/reset-password" = "/verify",
+  path: "/verify" | "/reset-password" | "/confirm-email" = "/verify",
 ): string {
   const match = new RegExp(`${path}\\?token=([A-Za-z0-9_-]+)`).exec(text);
   if (!match) throw new Error(`no ${path} link in the email`);
