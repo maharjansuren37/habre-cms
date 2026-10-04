@@ -1,6 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { serializePendingEmailCookie } from "#app/features/signup/pending-email-cookie.server.ts";
 import { findUserByEmail } from "#app/features/users/users.server.ts";
+import { isEmailOn } from "#app/lib/email-env.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -28,7 +29,7 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   if (await findSessionUser(request)) throw redirect("/admin");
-  return { signupOpen: env.SIGNUP_MODE !== "off" };
+  return { signupOpen: env.SIGNUP_MODE !== "off", resetByEmail: isEmailOn(env) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -195,7 +196,13 @@ export default function Login({ actionData, loaderData }: Route.ComponentProps) 
           </Button>
         </Form>
 
-        <p className={styles.help}>Forgot your password? Ask an admin of this site to reset it.</p>
+        <p className={styles.help}>
+          {loaderData.resetByEmail ? (
+            <Link to="/forgot-password">Forgot your password?</Link>
+          ) : (
+            "Forgot your password? Ask an admin of this site to reset it."
+          )}
+        </p>
         {loaderData.signupOpen && (
           <p className={styles.help}>
             New to Habre? <Link to="/signup">Create your website</Link>

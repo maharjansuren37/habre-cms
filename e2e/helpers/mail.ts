@@ -33,9 +33,13 @@ export async function waitForMail(email: string, count = 1): Promise<string[]> {
   );
 }
 
-/** The verify token in the first link of an email's text. */
-export function tokenFromMail(text: string): string {
-  const match = /\/verify\?token=([A-Za-z0-9_-]+)/.exec(text);
-  if (!match) throw new Error("no verify link in the email");
+/** The token in the first link of an email's text. `path` is the link's path:
+ *  `/verify` or `/reset-password`. */
+export function tokenFromMail(
+  text: string,
+  path: "/verify" | "/reset-password" = "/verify",
+): string {
+  const match = new RegExp(`${path}\\?token=([A-Za-z0-9_-]+)`).exec(text);
+  if (!match) throw new Error(`no ${path} link in the email`);
   return match[1];
 }

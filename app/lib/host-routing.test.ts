@@ -149,3 +149,22 @@ test("treats /signupx and /verify/x as public paths", () => {
     });
   }
 });
+
+test("treats /forgot-password and /reset-password like admin paths on both hosts", () => {
+  for (const pathname of ["/forgot-password", "/reset-password"]) {
+    assert.deepEqual(decide({ pathname, requestHost: HOSTS.adminHost }), { kind: "allow" });
+    assert.deepEqual(decide({ pathname, search: "?token=abc", requestHost: HOSTS.publicHost }), {
+      kind: "redirect",
+      to: `https://cms.surenmaharjan.fyi${pathname}?token=abc`,
+    });
+    assert.deepEqual(decide({ method: "POST", pathname, requestHost: HOSTS.publicHost }), {
+      kind: "not-found",
+    });
+  }
+});
+
+test("treats /forgot-passwords as a public path", () => {
+  assert.deepEqual(decide({ pathname: "/forgot-passwords", requestHost: HOSTS.publicHost }), {
+    kind: "allow",
+  });
+});

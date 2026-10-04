@@ -3238,3 +3238,112 @@ deactivation checks, logged `login_failed` `unverified`, and sent to
 (its token is 256 random bits).
 Beats: checking first - it would change the existing refusals.
 Costs: a session issued some other way would skip the check; none exists.
+
+## D271 - Password reset by email is on exactly when email is configured (2026-10-04)
+
+**Chose:** `/forgot-password` and `/reset-password` exist when `SMTP_URL` and
+`EMAIL_FROM` are both set (`isEmailOn`), whatever `SIGNUP_MODE` is; otherwise
+both are Not Found and login keeps "Ask an admin of this site to reset it".
+Beats: tying reset to signup - a self-hosted copy with `create-admin`
+accounts and SMTP should have reset; plan *Switches* already said so.
+Costs: none known; item 19 and 15e read the same switch.
+
+## D272 - `SMTP_URL` and `EMAIL_FROM` are set together or not at all (2026-10-04)
+
+**Chose:** one without the other stops startup, naming the missing one.
+Beats: accepting one alone, which would silently leave reset off on a server
+meant to have email.
+Costs: a new startup refusal; production has neither today.
+
+## D273 - Only an account that can log in is sent a reset link (2026-10-04)
+
+**Chose:** a confirmed user with an active membership; everyone else gets the
+same reply and no email.
+Beats: any account - a deactivated member could not sign in afterwards, and
+an unconfirmed one confirms through Send it again, which signs them in.
+Costs: an unconfirmed person who forgot their password must find Send it
+again; F-233 (signup off strands them) stays open.
+
+## D274 - The reset link opens a form; only its POST uses the link (2026-10-04)
+
+**Chose:** GET checks the link read-only and shows the form or the expired
+state; the POST sets the password. As `/verify` does (D251).
+Beats: using the link on GET - mail scanners open links first.
+Costs: one extra read per page view.
+
+## D275 - A completed reset signs this browser in and every other session out (2026-10-04)
+
+**Chose:** one transaction uses the link, sets the password, bumps
+`token_version` and uses up the account's other reset links; the person lands
+on `/admin`. A refusal throws inside the transaction, so the link stays
+unused. Answers journey 7.
+Beats: landing on login, or keeping other sessions.
+Costs: no "password changed" message - the admin has no flash mechanism.
+
+## D276 - A reset request does not wait for the mail server (2026-10-04)
+
+**Chose:** the reply returns before the send; a failure is logged
+`email_send_failed` `purpose: "reset"`. As D268, and plan *Failure modes*.
+Beats: awaiting it - a real account would answer slower and reveal itself.
+Costs: a real account still costs one small transaction more (F-238's gap);
+accepted under the rate limits.
+
+## D277 - Reset limits: 5 an hour per IP, 3 per email, own counters (2026-10-04)
+
+**Chose:** reset requests are counted apart from Send it again, at the same
+limits. The completion has no per-IP limit (256-bit token), checks the link
+before any scrypt work and shares login's two password-hash slots.
+Beats: sharing resend's counters, which would let one flow block the other.
+Costs: see D281.
+
+## D278 - Reset lives in `app/features/signup/` (2026-10-04)
+
+**Chose:** the pages and data functions sit beside signup and verify, as plan
+section 6 places them.
+Beats: a new feature directory for four files sharing signup's tokens,
+layout and limits.
+Costs: `signup` now means "signed-out account flows".
+
+## D279 - The reset pages' small rules (2026-10-04)
+
+**Chose:** `/forgot-password` keeps the typed email after every answer; a 429
+reads "Too many requests, wait an hour."; with both password slots taken the
+reset form says "Busy, try again in a minute.", keeps the link and logs
+nothing. Reference screenshots are taken once, never by the browser tests, so
+a test run does not change the repository.
+Beats: unstated defaults.
+Costs: none.
+
+## D280 - The completion's `used_at` and `expires_at` guards are backed by the live-link check (2026-10-04)
+
+**Chose:** keep both guards in `completeReset`'s token update, though the
+live-link check before scrypt refuses a used or expired link first; the guards
+cover only two submits at once or a link that expires mid-request.
+Beats: a concurrent-submit test - no test forces the interleaving.
+Costs: dropping either guard alone turns no test red.
+
+## D281 - Someone can keep a person from resetting; accepted (owner, 2026-10-04)
+
+**Chose:** accept F-245: with only the newest link live and 3 requests an hour
+per email, 3 requests an hour for one email burn each link its owner gets and
+use up their limit.
+Beats: keeping two links live, or burning links only on requests that pass
+the limit - not worth it for an invite-only beta.
+Costs: a targeted person cannot reset while it lasts; revisit if
+`reset_rate_limited` scope `email` appears in the security log.
+
+## D282 - Reset code locks the user before their tokens (2026-10-04)
+
+**Chose:** `completeReset` reads the token's user unlocked, locks the user
+`for update`, then uses the token - the same order as `issueResetToken`
+(F-243).
+Beats: locking the token first, which could deadlock against a request for
+the same email and answer 500.
+Costs: one extra read.
+
+## D283 - A completed reset lifts the login lock on that email (2026-10-04)
+
+**Chose:** a successful reset calls `emailLoginLimiter.reset(email)` (F-244).
+Beats: leaving the 15-minute lock - the reset proved the person holds the
+mailbox.
+Costs: none; the per-IP limit is untouched.

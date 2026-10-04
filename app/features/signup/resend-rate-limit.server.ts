@@ -33,3 +33,6 @@ export function createResendLimits({ now }: Options = {}) {
 }
 
 export const resendLimits = createResendLimits();
+
+// Reset requests count apart from "Send it again", with the same limits.
+export const resetRequestLimits = createResendLimits();

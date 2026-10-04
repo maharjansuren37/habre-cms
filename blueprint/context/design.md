@@ -186,7 +186,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 | Check your email, then the emailed link signs you in (D161) | applies | **built** (item 15b), the signup layout: `/signup/sent` - "Check your email", Send it again, "We couldn't send the email" as the kit's `Message`; `/verify` - "Confirm your email" with one Confirm my email button (D251), and its expired-or-used and already-confirmed states (D269). Each a heading, one paragraph, a `Message` for an error, one primary button |
 | Sign in | applies | item 15; the signup layout. Its error never says which half was wrong |
 | Sign out | applies | account menu, every signed-in page |
-| Forgot password -> email -> reset -> signed in | applies | item 15; the signup layout |
+| Forgot password -> email -> reset -> signed in | applies | **built** (item 15c), the signup layout, only when email is configured: `/forgot-password` - "Reset your password", Email, Send me a link, the same success `Message` for every address, Back to log in; `/reset-password` - "Choose a new password", one New password field with its hint, Save and log in, signing in and ending every other session; its expired-or-used state with "Ask for a new link". Login's "Forgot your password?" links to it |
 | Session expired -> sign in -> back where you were | applies | existing behaviour, kept |
 | Not allowed (403) | **not applicable** | a refusal is a 404 by design (D69) |
 | Your account: name, email, password, delete account | applies | deferred to item 15 - public signup makes delete-account a requirement |

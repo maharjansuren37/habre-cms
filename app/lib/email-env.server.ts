@@ -60,4 +60,34 @@ export function requireEmailForSignup(
   }
 }
 
-export const emailEnvSchema = z.object(emailEnvFields).superRefine(requireEmailForSignup);
+// One of the two alone is a half-configured setup (mail that cannot be sent, or
+// a sender with nowhere to send), so it stops startup. Names the missing one.
+export function requireEmailPair(
+  env: { SMTP_URL?: string | undefined; EMAIL_FROM?: string | undefined },
+  ctx: z.RefinementCtx,
+): void {
+  const hasUrl = env.SMTP_URL !== undefined;
+  const hasFrom = env.EMAIL_FROM !== undefined;
+  if (hasUrl === hasFrom) return;
+  const missing = hasUrl ? "EMAIL_FROM" : "SMTP_URL";
+  const present = hasUrl ? "SMTP_URL" : "EMAIL_FROM";
+  ctx.addIssue({
+    code: "custom",
+    path: [missing],
+    message: `${missing} is required when ${present} is set`,
+  });
+}
+
+export const emailEnvSchema = z
+  .object(emailEnvFields)
+  .superRefine(requireEmailForSignup)
+  .superRefine(requireEmailPair);
+
+// Email is on only when both settings are present; password reset by email
+// (item 15c) turns on and off with it.
+export function isEmailOn(env: {
+  SMTP_URL?: string | undefined;
+  EMAIL_FROM?: string | undefined;
+}): boolean {
+  return Boolean(env.SMTP_URL) && Boolean(env.EMAIL_FROM);
+}

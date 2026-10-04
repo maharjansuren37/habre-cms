@@ -68,3 +68,10 @@ test("/signup, the pages under it and /verify are admin; near misses are public 
   assert.equal(areaForPath("/verify/x"), "public");
   assert.equal(areaForPath("/verifying"), "public");
 });
+
+test("/forgot-password and /reset-password are admin; near misses are public (15c)", () => {
+  assert.equal(areaForPath("/forgot-password"), "admin");
+  assert.equal(areaForPath("/reset-password"), "admin");
+  assert.equal(areaForPath("/forgot-passwords"), "public");
+  assert.equal(areaForPath("/reset-password/x"), "public");
+});

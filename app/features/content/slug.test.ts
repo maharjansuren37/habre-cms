@@ -44,3 +44,10 @@ test("a page titled Signup or Verify gets the numbered address, as the reserved 
     assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
   }
 });
+
+test("a page titled Forgot password or Reset password gets the numbered address", () => {
+  for (const title of ["Forgot password", "Reset password"]) {
+    const base = slugFromTitle(title, "page");
+    assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
+  }
+});
