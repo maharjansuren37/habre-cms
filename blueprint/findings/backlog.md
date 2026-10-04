@@ -334,3 +334,47 @@ File: db/migrations/0011_site_isolation.sql; app/features/content/entries.server
 
 ### F-229 [P3] open - The media and settings `afterEach` in `sites.spec.ts` can leave site 3 behind after a failed setup
 File: e2e/sites.spec.ts:305-312
+
+
+### F-232 [P3] open - "Check your email" says "We sent a link" above "We couldn't send the email"
+File: app/features/signup/signup-sent.tsx (the `failed` state)
+
+
+### F-233 [P3] open - Turning signup off strands unconfirmed accounts: login sends them to a 404
+File: app/features/auth/login.tsx:83; app/features/signup/signup-sent.tsx:23; app/features/signup/verify.tsx:21
+
+
+### F-234 [P3] open - An email send failure is logged with no cause
+File: app/features/signup/signup.tsx:114; app/features/signup/signup-sent.tsx:69
+
+
+### F-235 [P3] open - `SMTP_URL`'s query string can switch off TLS checks, getting round the never-in-clear rule
+File: app/lib/email-env.server.ts:17
+
+
+### F-236 [P3] open - One valid invite can probe any number of emails for an account; in `open` mode, anyone can
+File: app/features/signup/signup.server.ts:77-85,126
+
+
+### F-237 [P3] open - Account pre-hijacking: an invited signup can register someone else's email with a password the attacker knows
+File: app/features/signup/verify.tsx:57-85
+
+
+### F-238 [P3] unverified - Send it again may answer measurably slower for an unconfirmed account
+File: app/features/signup/signup-sent.tsx:62; app/features/signup/resend.server.ts
+
+
+### F-239 [P3] open - The signup error summary is not a list, and focus does not move to it
+File: app/features/signup/signup.tsx:148-160
+
+
+### F-240 [P3] open - Two signup e2e assertions are weaker than they read
+File: e2e/signup.spec.ts:98, :404
+
+
+### F-241 [P3] open - Plan section 5 does not record the new pins
+File: blueprint/project-plan.md:131-178
+
+
+### F-242 [P3] open - Failed invite codes leave no security event
+File: app/features/signup/signup.server.ts:117

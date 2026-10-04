@@ -111,7 +111,7 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
     - [x] 14c2. **Dragging a section tile** - a section drop slot between sections, its gap and ghost, and the announcements
 - [ ] 15. **Sign up and sites** - public signup with email verification creates a site and makes the person its admin; each site's content, media, settings and members are its own; password reset by email; each site's media storage capped from the first signup (D150)
   - [x] 15a. **Sites and memberships** - `site_id` on every site-owned table, row-level security, the owner and app database roles (D152), today's installation as site 1 (D162), the admin scoped by membership; no signup
-  - [ ] 15b. **Signup** - the email module, signup with verification (D161), invites, and choosing an address
+  - [x] 15b. **Signup** - the email module, signup with verification (D161), invites, and choosing an address
   - [ ] 15c. **Password reset by email**
   - [ ] 15d. **Storage cap per site** (D150)
   - [ ] 15e. **Your account** - change your name, email and password; delete your account (design.md *Screens*)

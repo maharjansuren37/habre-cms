@@ -3064,3 +3064,177 @@ it until item 16, and site 1 stays on its own domain.
 Beats: no other candidate was proposed; the owner may change it before 16.
 Costs: changing it later is an update to one row, but any link handed out on
 the subdomain would break.
+
+## D251 - The emailed link opens a confirm page; a POST confirms (2026-10-04)
+
+**Chose:** `GET /verify` shows "Confirm your email" and changes nothing;
+pressing Confirm my email (a POST) uses the token, confirms and signs in.
+Beats: confirming on GET - mail scanners (Outlook's Safe Links among them)
+open links first and would use up a single-use link. D161 holds: one press.
+Costs: one extra click for the person.
+
+## D252 - Email is configured by `SMTP_URL` plus `EMAIL_FROM`; plain `smtp://` only to loopback (2026-10-04)
+
+**Chose:** one URL (`smtps://user:pass@host:port`) and a sender; `smtp://` is
+refused unless the host is `127.0.0.1`, `localhost` or `::1`. Blank values
+count as unset; `EMAIL_FROM` takes `Name <address>` or a bare address.
+Beats: separate host, port, user and password variables - four values for
+one secret, in a form no provider documents.
+Costs: a provider without implicit TLS on 465 needs STARTTLS support we have
+not added.
+
+## D253 - `SIGNUP_MODE` defaults to `off`; turning it on without email stops startup (2026-10-04)
+
+**Chose:** `off` | `invite` | `open`, default `off`; `invite` or `open` with
+no `SMTP_URL` or `EMAIL_FROM` fails at startup naming the variable.
+Beats: defaulting on, or failing at the first signup - a self-hosted copy or
+today's production would change behaviour with no new variable.
+Costs: an operator must set three values to open signup.
+
+## D254 - Mailpit catches development and CI email (2026-10-04)
+
+**Chose:** `axllent/mailpit` pinned, in `compose.yaml` and as a CI service;
+browser tests read its API by recipient.
+Beats: nodemailer's JSON transport (exercises no SMTP) and Resend test keys
+(an account and network access from CI).
+Costs: one more container locally and in CI; Resend itself is first
+exercised at deploy.
+
+## D255 - Plain-text emails in v1 (2026-10-04)
+
+**Chose:** every email is `text` only.
+Beats: HTML email - escaping, rendering and testing across mail clients.
+Costs: no branding until the emails need it.
+
+## D256 - Signup says plainly that an email is in use; Send it again stays neutral (2026-10-04)
+
+**Chose:** signup shows "An account with this email already exists" with Log
+in (the link in the error summary, since `Field` takes text only); the resend
+form answers the same for every address.
+Beats: a neutral signup reply plus an email - a person who mistyped gets no
+explanation.
+Costs: an invited person can learn whether an email has an account (F-236).
+It rests on the beta being invite-only and signup rate-limited per IP.
+
+## D257 - Site address rules (2026-10-04)
+
+**Chose:** 3-63 characters, lowercase letters, digits and hyphens, no hyphen
+first or last, not `xn--`, not in the reserved list (15b spec, *Data and
+contracts*); the first rule broken is reported. Suggestions: the name joined,
+then `-site`, `-web`, `-2`..`-9`; the server keeps the first two free.
+Beats: allowing one- and two-letter names - they stay free for later.
+Costs: the reserved list is fixed in code; adding a name later cannot reclaim
+an address already taken.
+
+## D258 - A new site's title is its address until onboarding (2026-10-04)
+
+**Chose:** `site_settings.site_title` = the address at signup; item 18 sets a
+real one.
+Beats: asking for a title on the signup form - one more field at the front
+door.
+Costs: new sites read as their address until the owner renames them.
+
+## D259 - Invite codes: 12 characters from a 30-letter alphabet, hashed, single use (2026-10-04)
+
+**Chose:** `2-9` and `A-Z` without `I L O U`, shown as three groups of four,
+normalised (trim, uppercase, no spaces or dashes), stored as SHA-256, used
+once by `update ... where used_at is null returning id`.
+Beats: storing the code (a database read leaks every invite) and Crockford's
+exact alphabet (keeps `U`, which reads as `V`).
+Costs: about 59 bits, not 60 - still impractical to guess under the per-IP
+limit.
+
+## D260 - Rate limits for signup and resend (2026-10-04)
+
+**Chose:** signup 10 attempts an hour per IP, counting every POST and never
+reset by success, sharing login's two password-hash slots (503 when busy);
+resend 5 an hour per IP and 3 an hour per email, refused attempts not counted.
+Beats: per-IP only - one address could be flooded from many IPs, through
+Resend's 100-a-day free cap.
+Costs: in-memory limiters reset on restart, as login's do.
+
+## D261 - v1 starts with no accounts (2026-10-04)
+
+**Chose:** migration 0012 deletes every user, membership, entry and media row
+and empties every menu, keeping sites and settings; `create-admin` makes the
+first admin afterwards.
+Beats: backfilling today's users as confirmed - nothing from the single-site
+build needs to survive.
+Costs: not reversible; R2 objects are left unreferenced; it needs its own yes
+at the v1 deploy.
+
+## D262 - Users made by an admin or `create-admin` are confirmed when created (2026-10-04)
+
+**Chose:** `createUser` sets `email_verified_at = now()`; only signup inserts
+an unconfirmed user. The column has no default.
+Beats: emailing them a link - the admin vouches for them, as today.
+Costs: an admin who mistypes an address creates a confirmed account at it.
+
+## D263 - The verification email is sent inside the request, after the commit (2026-10-04)
+
+**Chose:** send after the transaction commits, 10-second SMTP timeouts;
+a failure lands on "We couldn't send the email" with Send it again.
+Beats: a background send - there is no queue (D154 keeps the one in-process
+job for AI), and the person must be told at once.
+Costs: a slow mail server slows the signup response.
+
+## D264 - Only the newest verification link works (2026-10-04)
+
+**Chose:** Send it again marks the user's unused verify tokens used before
+issuing a new one. On `/signup/sent` the pending-email cookie wins over a
+typed address.
+Beats: several live links - an old email in the inbox would still sign in.
+Costs: a person who opens the older email gets the expired-or-used state.
+
+## D265 - `/signup*` and `/verify` are admin-host paths until item 16 (2026-10-04)
+
+**Chose:** `isPlatformPath` in `content-security-policy.ts` is the one test,
+used by the CSP area and by host routing; `signup` and `verify` are reserved
+page slugs.
+Beats: serving them on the public host - they need the session cookie, which
+is host-only on the admin host.
+Costs: item 16 moves them to the platform host.
+
+## D266 - Confirming lands on `/admin` until item 18 (2026-10-04)
+
+**Chose:** the confirm POST redirects to `/admin`.
+Beats: a placeholder `/start`.
+Costs: a new owner lands on an empty admin with no guidance until 18.
+
+## D267 - The signup transaction inserts the site, uses the invite, then inserts the user (2026-10-04)
+
+**Chose:** that order inside one `inSite(newSiteId, ...)` transaction, the
+site's UUID generated in the app.
+Beats: user first - without a valid code the invite error now comes before
+any email check, so only an invited person learns an email is taken (D256).
+Costs: an invalid code also hides every other server-side error on that
+submit.
+
+## D268 - Send it again does not wait for the mail server (2026-10-04)
+
+**Chose:** the resend reply returns before the send finishes; a failure is
+logged as `email_send_failed` and the reply stays neutral.
+Beats: awaiting it - a real unconfirmed account would answer slower than a
+missing one and reveal itself.
+Costs: a failed resend is invisible to the person; only signup shows the
+send failure.
+
+## D269 - A used link on a confirmed account shows "already confirmed" (owner, 2026-10-04)
+
+**Chose:** Confirm pressed twice shows "Your email is already confirmed" with
+Log in; the expired-or-used state covers unknown, expired and superseded
+links.
+Beats: the expired-or-used state for a second press - a link reaches a
+confirmed account only once used, so "already confirmed" would be
+unreachable.
+Costs: a used link confirms whether its account exists; reverting is one
+`used_at is null` condition in `verify.tsx`.
+
+## D270 - Login checks confirmation last; sessions come only from login and `/verify` (2026-10-04)
+
+**Chose:** an unconfirmed user is refused after the password, membership and
+deactivation checks, logged `login_failed` `unverified`, and sent to
+`/signup/sent`; `requireUser` does not re-check; `/verify` has no rate limit
+(its token is 256 random bits).
+Beats: checking first - it would change the existing refusals.
+Costs: a session issued some other way would skip the check; none exists.
