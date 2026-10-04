@@ -2,7 +2,6 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
-import { resetSiteSettings } from "./helpers/site-settings.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -279,25 +278,25 @@ test.describe("media and settings belong to one site", () => {
   let siteOneAuthor: TestUser;
   let mediaId: string;
   let siteTwoTitle: string;
+  // The "other site" in the settings checks: a third site, not site 1, whose
+  // settings row every spec file shares (F-218, F-103).
+  let otherSiteId: string;
+  let otherSiteTitle: string;
   const extraMedia: string[] = [];
 
-  const siteOneTitle = () =>
+  const titleOf = (id: string) =>
     withDatabase(async (sql) => {
       const [row] = await sql<{ title: string }[]>`
-        select s.site_title as title from site_settings s
-        join sites t on t.id = s.site_id order by t.created_at, t.id limit 1
+        select site_title as title from site_settings where site_id = ${id}
       `;
       return row.title;
     });
 
   test.beforeEach(async () => {
     siteId = await createSite("media");
-    siteTwoTitle = await withDatabase(async (sql) => {
-      const [row] = await sql<{ title: string }[]>`
-        select site_title as title from site_settings where site_id = ${siteId}
-      `;
-      return row.title;
-    });
+    siteTwoTitle = await titleOf(siteId);
+    otherSiteId = await createSite("other");
+    otherSiteTitle = await titleOf(otherSiteId);
     siteAdmin = await createSiteAdmin(siteId);
     siteOneAuthor = createAdmin("Site One Uploader");
     mediaId = await insertTestMediaRow({ uploadedBy: siteOneAuthor.email, altText: "Site one" });
@@ -306,10 +305,10 @@ test.describe("media and settings belong to one site", () => {
   test.afterEach(async () => {
     await deleteTestMedia(mediaId);
     for (const id of extraMedia.splice(0)) await deleteTestMedia(id);
-    await resetSiteSettings();
     await deleteEntriesBy(siteOneAuthor.email);
     await deleteTestUser(siteOneAuthor.email);
     await deleteSite(siteId);
+    await deleteSite(otherSiteId);
   });
 
   test("a site-2 admin's media library and picker show none of another site's images", async ({
@@ -340,35 +339,25 @@ test.describe("media and settings belong to one site", () => {
   });
 
   test("a site-2 admin's Settings shows their own title, not another site's", async ({ page }) => {
-    await withDatabase(async (sql) => {
-      await sql`update site_settings set site_title = 'Site one only title' where site_id = (
-        select id from sites order by created_at, id limit 1)`;
-    });
     await signIn(page, siteAdmin);
     await page.goto("/admin/settings");
 
     await expect(page.getByLabel("Site title")).toHaveValue(siteTwoTitle);
-    await expect(page.getByText("Site one only title")).toHaveCount(0);
+    await expect(page.getByText(otherSiteTitle)).toHaveCount(0);
   });
 
   test("saving a site-2 admin's Settings leaves another site's title unchanged", async ({
     page,
   }) => {
-    const before = await siteOneTitle();
+    const before = await titleOf(otherSiteId);
     await signIn(page, siteAdmin);
     await page.goto("/admin/settings");
     await page.getByLabel("Site title").fill("Renamed second site");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Settings updated.")).toBeVisible();
 
-    expect(await siteOneTitle()).toBe(before);
-    const own = await withDatabase(async (sql) => {
-      const [row] = await sql<{ title: string }[]>`
-        select site_title as title from site_settings where site_id = ${siteId}
-      `;
-      return row.title;
-    });
-    expect(own).toBe("Renamed second site");
+    expect(await titleOf(otherSiteId)).toBe(before);
+    expect(await titleOf(siteId)).toBe("Renamed second site");
   });
 
   test("a new upload is stored under its site's prefix and renders on a published page", async ({

@@ -54,7 +54,7 @@ File: e2e/content-security-policy.spec.ts:133; app/features/blocks/document-edit
 ### F-204 [P2] fixed - Screen readers may read the editor's empty-text hints as content
 File: app/features/blocks/document-editor.module.css:49, :323
 
-### F-218 [P2] open - `sites.spec.ts` writes site 1's shared settings row, so specs running alongside can fail
+### F-218 [P2] fixed - `sites.spec.ts` writes site 1's shared settings row, so specs running alongside can fail
 File: e2e/sites.spec.ts:309,344,357-364
 
 ### F-219 [P3] open - The isolation spec never tests the pooled-connection claim or cross-site update and delete
