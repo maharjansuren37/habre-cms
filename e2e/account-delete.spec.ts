@@ -2,8 +2,11 @@ import { randomInt } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
-import { insertTestMediaRow } from "./helpers/media.ts";
+import { messagesTo, waitForMail } from "./helpers/mail.ts";
+import { insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
+import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import { deactivateUser, setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Every test makes its own site and users, never site 1 (no test deletes or
@@ -357,4 +360,66 @@ test("two admins of one site deleting at once leave exactly one of them deleted"
   } finally {
     await second.close();
   }
+});
+
+test("the other members of a deleted site are emailed, the person who deleted it is not", async ({
+  page,
+}) => {
+  await makeSoleAdminSite();
+  await logIn(page, admin);
+  await page.goto("/admin/account/delete");
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL("/admin/login?deleted=1");
+
+  const [text] = await waitForMail(editor.email);
+  expect(text).toContain(`Your site ${subdomain} was deleted by its admin.`);
+  expect(text).toMatch(/^Hi The,/);
+  expect(await messagesTo(admin.email)).toEqual([]);
+});
+
+test("with email off, deleting a site with a member sends nothing and still succeeds", async ({
+  page,
+}) => {
+  const off = `http://localhost:${HOST_SPLIT_PORT}`;
+  await makeSoleAdminSite();
+  await page.goto(`${off}/admin/login`);
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL("**/admin/posts");
+  await page.goto(`${off}/admin/account/delete`);
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL(`${off}/admin/login?deleted=1`);
+  expect(await leftOfSite([admin.email, deactivated.email, editor.email])).toMatchObject({
+    sites: 0,
+    users: 0,
+  });
+  // A short pause, so a message that should not exist has time to arrive.
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  expect(await messagesTo(editor.email)).toEqual([]);
+});
+
+test("a deleted site's image answers 404 at its public URL", async ({ page }) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
+  await makeSoleAdminSite();
+  await logIn(page, admin);
+  const origin = new URL(page.url()).origin;
+  const uploaded = await uploadTestMedia(page.request, origin, "1x1.png", "Soon gone");
+  const key = await withDatabase(async (sql) => {
+    const [row] = await sql<{ key: string }[]>`
+      select storage_key as key from media where id = ${uploaded.id}`;
+    return row.key;
+  });
+  expect(key.startsWith(`sites/${siteId}/`)).toBe(true);
+  const url = `${process.env.R2_PUBLIC_URL}/${key}`;
+  expect((await fetch(url)).status).toBe(200);
+
+  await page.goto("/admin/account/delete");
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL("/admin/login?deleted=1");
+  // The removal is not awaited by the response, so poll.
+  await expect.poll(async () => (await fetch(url)).status, { timeout: 15_000 }).toBe(404);
 });

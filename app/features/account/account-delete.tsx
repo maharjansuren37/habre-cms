@@ -2,6 +2,10 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
 import { serializeClearedSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { deleteObject } from "#app/features/media/r2.server.ts";
+import { sendEmail } from "#app/lib/email.server.ts";
+import { isEmailOn } from "#app/lib/email-env.server.ts";
+import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -25,6 +29,7 @@ import {
   parseDeleteExpect,
   parseDeleteForm,
 } from "./account-delete-input.ts";
+import { notifyMembers, removeStorageObjects } from "./site-deleted-cleanup.ts";
 
 /** "1 post", "2 posts". */
 function plural(count: number, word: string): string {
@@ -96,6 +101,19 @@ export async function action({ request, context }: Route.ActionArgs) {
     siteId: user.siteId,
     siteDeleted: gate.value.siteDeleted,
   });
+  // After the commit, and not awaited: the person is not kept waiting for R2 or
+  // the mail server. Both functions catch everything, so nothing can reject.
+  const { storageKeys, otherMembers, address } = gate.value;
+  void removeStorageObjects(storageKeys, deleteObject, console.error);
+  if (isEmailOn(env)) {
+    void notifyMembers(otherMembers, address, sendEmail, () =>
+      logSecurityEvent({
+        event: "email_send_failed",
+        purpose: "site_deleted_notice",
+        userId: user.id,
+      }),
+    );
+  }
   // A fixed flag, never text from the URL.
   return redirect("/admin/login?deleted=1", {
     headers: { "Set-Cookie": await serializeClearedSessionCookie() },

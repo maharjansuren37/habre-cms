@@ -205,7 +205,7 @@ field, input kept, except the password) and **6** (signed out,
     over 20 deletions on the development machine against the production
     build, is under **1 s at p95** (quality-bar *Admin saves*; R2 is not
     awaited).
-- [ ] **Step 5 - after the commit: R2 and the members' notice** -
+- [x] **Step 5 - after the commit: R2 and the members' notice** -
   `site-deleted-notice.ts` (+ test: the address, plain text, no markup from
   a name), the send after commit for every other member when email is on,
   and the R2 removals after commit with each failure logged.
@@ -353,6 +353,14 @@ field, input kept, except the password) and **6** (signed out,
   transaction as "changed".
 - **`insertTestMediaRow` takes an optional `siteId`** (build, Step 4), so a
   test site can hold media without R2; site 1 stays the default.
+- **The after-commit work lives in `site-deleted-cleanup.ts`** (build, Step 5):
+  `removeStorageObjects` and `notifyMembers` take R2, the mailer and the logger
+  as parameters and never reject. No browser test can read the server's log,
+  so its unit test proves "a failed R2 delete is logged, not raised".
+- **The members' notices are not awaited either** (build, Step 5), unlike
+  15e1's email-changed notice: the person deleting is signed out and cannot
+  be told of a failure. A failure logs `email_send_failed` with the
+  deleter's `userId`. Deactivated members are told too.
 - **`DELETED_ACCOUNT` lives in `app/lib/deleted-account.ts`** (build, Step 2):
   browser components show it, so it cannot sit in a `.server.ts` file.
 - **The public byline shows only the date for a deleted author; the admin

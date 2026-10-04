@@ -26,7 +26,7 @@ export type SecurityEvent =
   | { event: "email_change_rate_limited"; scope: "ip" | "email"; ip: string }
   | {
       event: "email_send_failed";
-      purpose: "verify" | "reset" | "email_change" | "email_changed_notice";
+      purpose: "verify" | "reset" | "email_change" | "email_changed_notice" | "site_deleted_notice";
       userId: string;
     }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
