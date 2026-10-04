@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-04, `main` after `5bc2877`.
+Generated 2026-10-04, `main` after `d565518`.
 
 ## What this is
 
@@ -35,23 +35,21 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not yet deployed:** React Router 8.4.0 (13); the new look
+**Built for v1, not yet deployed** (deploy steps in
+`blueprint/production-pending.md`): React Router 8.4.0 (13); the new look
 (13b, `design.md`, D181-D190) - stone and rust admin in light and dark, Inter
-self-hosted, public sites neutral and light only (D168); the new editor's
-first part (14a1) - TipTap on one v4 document per entry, sections of 1-3
-columns, text styles, lists, quote, links, undo, the public renderer;
-Editor.js and all old content removed (migration `0009`); image, button,
-line and space blocks, the palette and settings panel (14a2); the block
-toolbar - moves, Text style, Delete, announced (14a3); the admin CSP
-without inline styles or `data:` images; drag and drop and Duplicate (14b);
-ready-made sections as templates of ordinary blocks (14c1, 14c2); sites and memberships
-(15a) - `site_id` and row-level security on site-owned tables, owner and
-app database roles, today's install as site 1, the admin scoped by
-membership (migrations `0010`-`0011`; deploy steps in
-`blueprint/production-pending.md`).
+self-hosted, public sites neutral and light only (D168); the new editor
+(14a1-14c2) - TipTap on one v4 document per entry, sections of 1-3 columns,
+text, image, button, line and space blocks, the palette, settings panel,
+block toolbar, drag and drop, ready-made sections as templates; Editor.js and
+old content removed (`0009`); sites and memberships (15a) - `site_id` and
+row-level security, owner and app database roles, today's install as site 1
+(`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, choosing
+the site's address, login refuses unconfirmed accounts; `0012` deletes every
+account (D261).
 
-**Platform v1 (queued):** signup with email verification, one isolated site per
-signup; sites on their own subdomains; SEO basics; optimised images (17b);
+**Platform v1 (queued):** password reset, a storage cap per site and your
+account (15c-15e); sites on their own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -75,8 +73,10 @@ constraint** - each new runtime dependency is a recorded decision.
 - `jose` JWT + scrypt, **no auth library** (D6); Zod at every trust boundary.
 - TipTap 3.31.4, pinned exactly (D197); R2 via `aws4fetch`; Biome;
   `node:test`; Playwright.
+- `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
+  and CI (D254).
 - **v1 adds, pinned when installed:** `@anthropic-ai/sdk`
-  and `openai` (D155), `nodemailer` (D156), `sharp` (D174), `stripe` (D160).
+  and `openai` (D155), `sharp` (D174), `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -119,7 +119,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 - **Every admin request loads the user and membership**; the role comes from
   the database, never the token (D6); `requireRole` refuses with 404 (D69).
 - CSRF: origin check. Site hosts accept one POST, `/_contact`.
-- The emailed link verifies and signs in; nothing works before it (D161).
+- The emailed link opens a confirm page; pressing Confirm verifies and signs
+  in (D161, D251). Login refuses an unconfirmed account.
 
 ### Integrations
 
@@ -142,9 +143,9 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 and 15a done; 15b-21 queued; nothing in flight.
-  18 splits when spec'd. Last shipped: 15a
-  (`blueprint/history/features/15a-sites-and-memberships.md`).
-- **Next:** `spec` item 15b, signup (needs Resend test credentials -
-  `needs-you.md`).
+- **Plan:** items 1-14, 15a and 15b done; 15c-21 queued; nothing in flight.
+  18 splits when spec'd. Last shipped: 15b
+  (`blueprint/history/features/15b-signup.md`).
+- **Next:** `spec` item 15c, password reset by email - reuses 15b's
+  `email_tokens` and `sendEmail`; Mailpit covers it, no Resend account needed.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

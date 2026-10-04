@@ -167,8 +167,12 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   with its own Zod schema and renderer (D169).
 - **Media:** `aws4fetch` **1.0.20** for R2's S3 API; `image-size` **2.0.4**;
   from item 17b `sharp` for resizing, pinned when installed (D174).
+- **Email:** `nodemailer` **10.0.14** over SMTP (D156), `@types/nodemailer`
+  **8.0.2**, both pinned exactly. Development and CI send to Mailpit
+  (`axllent/mailpit:v1.31.4`), a local SMTP catcher (D254); production uses
+  Resend over SMTP.
 - **Installed with their item, not at scaffold:** `jose` (item 1), TipTap (item
-  14a1), `aws4fetch` and `image-size` (item 5) - so
+  14a1), `aws4fetch` and `image-size` (item 5), `nodemailer` (item 15b) - so
   no package sits in `package.json` with nothing calling it. Versions above stay
   the pins.
 - **Testing:** `node:test` (built in) for unit tests; `@playwright/test`
