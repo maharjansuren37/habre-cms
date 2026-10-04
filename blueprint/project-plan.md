@@ -474,10 +474,12 @@ Shared tables, `site_id` on site-owned tables (D151). Site-owned tables, in
 - ***entries*** - as today plus `site_id`; `slug` unique per site and type;
   from item 14 `blocks` holds one document per entry, `blocks_format` `v4`
   (D169); `seo_title`, `seo_description`,
-  `social_image_media_id` (item 17)
+  `social_image_media_id` (item 17); `author_id` is null once the person
+  deleted their account (item 15e2)
 - ***media*** - as today plus `site_id`; `storage_key` under `sites/<site id>/`;
   from item 17b `variants` - each size's width, height, type, bytes and
-  storage key (D174)
+  storage key (D174); `uploaded_by` is null once the person deleted their
+  account (item 15e2)
 - ***site_settings*** - one row per site, keyed by `site_id`: as today plus
   `site_description` and `language` (a language tag, default `en`, for
   `<html lang>`) (item 17, D173); `brand_color` (`#rrggbb`, empty for the neutral
@@ -591,8 +593,10 @@ no counters to drift.
   section's column count, from item 17b. The first image on a page loads at
   once with `fetchpriority="high"`, the rest lazily (item 14a).
 - **Delete media:** remove the row first, then the object.
-- **Memberships are deactivated, never deleted** - authorship stays intact and
-  nothing needs reassigning.
+- **Memberships are deactivated, not deleted, by admins** - authorship stays
+  intact. Only deleting your own account deletes a membership (item 15e2):
+  its entries and media keep their rows with a null author, shown as
+  "Deleted account"; the last active admin's deletion deletes the site.
 - **The server's disk holds no state but the database.** No local uploads, no
   config edited by hand on the server (D9).
 - **Limits refuse the action, never the published site** (D150). An upload past

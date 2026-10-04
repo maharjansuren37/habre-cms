@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-05, `main` after `4bccf20`.
+Generated 2026-10-05, `main` after `f74a2bf`.
 
 ## What this is
 
@@ -108,7 +108,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 - **Images (D174):** resized on the server with `sharp` into WebP sizes; pages
   pick the size they show.
 - **Data rules:** version check on save; R2 objects before the media row;
-  members deactivated, never deleted; no state on disk (D9); a limit refuses
+  admins deactivate members, never delete them - only deleting your own
+  account does (15e2); no state on disk (D9); a limit refuses
   the action, never the published site (D150); AI use is a monthly credit
   allowance (D164); **AI output is untrusted, writes drafts only**.
 
@@ -145,10 +146,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 and 15a-15e1 done; 15e2-21 queued; nothing in
-  flight. 18 splits when spec'd. Last shipped: 15e1
+- **Plan:** items 1-14 and 15a-15e1 done; 15e2 in flight
+  (`current-work.md`); 16-21 queued. 18 splits when spec'd. Last shipped: 15e1
   (`blueprint/history/features/15e1-your-account.md`).
-- **Next:** `spec` item 15e2, delete your account - the last active admin
-  takes the site and everything on it; anyone else is erased and leaves,
-  their content credited to "Deleted account".
+- **Next:** `build` item 15e2, delete your account (spec'd 2026-10-05).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
