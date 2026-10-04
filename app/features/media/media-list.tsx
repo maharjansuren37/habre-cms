@@ -1,5 +1,6 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { DELETED_ACCOUNT } from "#app/lib/deleted-account.ts";
 import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
@@ -205,7 +206,8 @@ export default function MediaList({ loaderData, actionData }: Route.ComponentPro
                 {item.width}×{item.height} · {formatFileSize(item.byteSize)}
               </p>
               <p className={styles.meta}>
-                {item.uploadedByName} · {new Date(item.createdAt).toLocaleDateString()}
+                {item.uploadedByName ?? DELETED_ACCOUNT} ·{" "}
+                {new Date(item.createdAt).toLocaleDateString()}
               </p>
               {item.canDelete && (
                 <Link className={styles.delete} to={`/admin/media/${item.id}/delete`}>

@@ -19,7 +19,7 @@ type EntryBase = {
   title: string;
   slug: string;
   status: "draft" | "published";
-  authorId: string;
+  authorId: string | null;
   version: number;
   updatedAt: Date;
 };
@@ -205,7 +205,7 @@ export type EntrySummary = {
   title: string;
   slug: string;
   status: "draft" | "published";
-  authorName: string;
+  authorName: string | null;
   updatedAt: Date;
 };
 
@@ -237,7 +237,7 @@ export async function listEntries(
     Promise.all([
       tx<EntrySummary[]>`
       select e.id, e.title, e.slug, e.status, u.name as "authorName", e.updated_at as "updatedAt"
-      from entries e join users u on u.id = e.author_id
+      from entries e left join users u on u.id = e.author_id
       where e.site_id = ${siteId} and e.type = ${type} ${ownedBy(actor)} ${statusFilter}
         ${searchFilter}
       order by e.updated_at desc
@@ -384,7 +384,7 @@ export async function findPublishedPageSlugs(
 type PublicBase = {
   title: string;
   publishedAt: Date;
-  authorName: string;
+  authorName: string | null;
 };
 export type PublicPost = PublicBase & { document: Document };
 export type PublicPage = PublicBase & { document: Document };
@@ -430,7 +430,7 @@ export async function findPublishedEntry(
       e.published_at as "publishedAt", u.name as "authorName",
       coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
         as "isHomePage"
-    from entries e join users u on u.id = e.author_id
+    from entries e left join users u on u.id = e.author_id
     where e.site_id = ${siteId} and e.type = ${type} and e.status = 'published'
       and e.slug = ${slug}
   `,
@@ -455,7 +455,7 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
       e.published_at as "publishedAt", u.name as "authorName"
     from site_settings s
       join entries e on e.id = s.home_page_id and e.site_id = s.site_id
-      join users u on u.id = e.author_id
+      left join users u on u.id = e.author_id
     where s.site_id = ${siteId} and e.type = 'page' and e.status = 'published'
   `,
   );

@@ -127,7 +127,7 @@ field, input kept, except the password) and **6** (signed out,
     deleting a membership that has an entry and a media row leaves both rows
     with a null author or uploader and their `site_id` unchanged;
   - `npm run verify` passes.
-- [ ] **Step 2 - "Deleted account" in every read** - `entries.server.ts`'s
+- [x] **Step 2 - "Deleted account" in every read** - `entries.server.ts`'s
   `listEntries`, `findPublishedEntry` (the slug query) and `findHomePage`,
   and `media.server.ts`'s `listMedia` and `findMediaForUser`, left-join
   `users`. `authorId`, `uploadedBy` and the name fields become nullable in
@@ -328,6 +328,13 @@ field, input kept, except the password) and **6** (signed out,
   site), and a background job (D154 runs only AI).
 - **A deleted site's address is free again at once.** Beat: holding it
   (needs a table, and nothing yet serves addresses - item 16).
+- **`e2e/deleted-account.spec.ts` runs on site 1** (build, Step 2): the public
+  post and `/` are served only from the oldest site until item 16, so they can
+  be checked nowhere else. It deletes only its own rows and puts site 1's
+  `home_page_id` back, but shares that row with `home-page.spec.ts` (F-103).
+  Site deletion stays off site 1, as *Testing* says.
+- **`DELETED_ACCOUNT` lives in `app/lib/deleted-account.ts`** (build, Step 2):
+  browser components show it, so it cannot sit in a `.server.ts` file.
 - **The public byline shows only the date for a deleted author; the admin
   shows "Deleted account".** Beat: "Deleted account" on a customer's public
   post.

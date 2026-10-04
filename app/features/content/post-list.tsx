@@ -1,5 +1,6 @@
 import { Link, redirect } from "react-router";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { DELETED_ACCOUNT } from "#app/lib/deleted-account.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
 import fieldStyles from "#app/lib/ui/field.module.css";
@@ -167,7 +168,7 @@ function PostTable({ posts, query }: { posts: EntrySummary[]; query: EntryListQu
                   {STATUS_LABEL[post.status]}
                 </span>
               </td>
-              <td className={styles.colAuthor}>{post.authorName}</td>
+              <td className={styles.colAuthor}>{post.authorName ?? DELETED_ACCOUNT}</td>
               <td className={`${styles.colUpdated} ${styles.muted}`}>
                 {formatUpdatedAt(post.updatedAt)}
               </td>
