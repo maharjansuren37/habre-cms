@@ -1,9 +1,9 @@
 import { createHash, randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createInvite, deleteInvites, hashInvite, randomAddress } from "./helpers/invites.ts";
-import { tokenFromMail, waitForMail } from "./helpers/mail.ts";
+import { messagesTo, tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
-import { deleteSite } from "./helpers/sites.ts";
+import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
 function randomIp(): string {
@@ -114,6 +114,8 @@ test("a signup creates the site, the admin membership and settings, and sends on
   await fillSignup(page, { name: "Lena Novak", email, address, code });
 
   await expect(page).toHaveURL(/\/signup\/sent/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your email");
+  await expect(page.getByRole("main")).toContainText(`We sent a link to ${email}`);
   const rows = await withDatabase(async (sql) => {
     const [site] = await sql<{ id: string }[]>`select id from sites where subdomain = ${address}`;
     const [user] = await sql<
@@ -339,4 +341,109 @@ test("with signup off, /signup is Not Found", async ({ request }) => {
     maxRedirects: 0,
   });
   expect(final.status()).toBe(404);
+});
+
+const NEUTRAL = (email: string) => `If ${email} is waiting to be confirmed, we’ve sent a new link.`;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+test("/signup/sent without the cookie asks for the email; ?failed=1 says the send failed", async ({
+  page,
+}) => {
+  await page.goto("/signup/sent");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your email");
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send it again" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  await page.goto("/signup/sent?failed=1");
+  await expect(page.getByRole("alert")).toContainText("We couldn’t send the email");
+});
+
+test("Send it again sends a second email and only the newest link stays valid", async ({
+  page,
+}) => {
+  const { email, address, code } = await newSignup();
+  await fillSignup(page, { name: "Lena Novak", email, address, code });
+  await expect(page).toHaveURL(/\/signup\/sent/);
+  const [first] = await waitForMail(email, 1);
+
+  await page.getByRole("button", { name: "Send it again" }).click();
+  await expect(page.getByRole("status")).toContainText(NEUTRAL(email));
+  const mails = await waitForMail(email, 2);
+  const second = mails.find((text) => text !== first);
+  if (!second) throw new Error("no second email");
+
+  const rows = await withDatabase(
+    (sql) => sql<{ hash: string; used: Date | null; live: boolean }[]>`
+      select t.token_hash as hash, t.used_at as used, t.expires_at > now() as live
+      from email_tokens t join users u on u.id = t.user_id
+      where u.email = ${email} and t.purpose = 'verify'`,
+  );
+  expect(rows).toHaveLength(2);
+  const byHash = new Map(rows.map((row) => [row.hash, row]));
+  // Until step 9 builds /verify, "no longer confirms" is read from the row.
+  expect(byHash.get(sha256(tokenFromMail(first)))?.used).not.toBeNull();
+  const newest = byHash.get(sha256(tokenFromMail(second)));
+  expect(newest?.used).toBeNull();
+  expect(newest?.live).toBe(true);
+});
+
+test("the reply is the same for no account, an unconfirmed one and a confirmed one", async ({
+  browser,
+}) => {
+  const ask = async (email: string) => {
+    const context = await browser.newContext({
+      extraHTTPHeaders: { "X-Forwarded-For": randomIp() },
+    });
+    const page = await context.newPage();
+    await page.goto("/signup/sent");
+    await page.getByLabel("Email").fill(email);
+    await page.getByRole("button", { name: "Send it again" }).click();
+    const reply = await page.getByRole("status").innerText();
+    await context.close();
+    return reply;
+  };
+  const none = `e2e-none-${randomInt(1e9)}@example.test`;
+  // A confirmed account: createSiteAdmin inserts its user as confirmed.
+  const confirmedAddress = randomAddress();
+  tracked.addresses.push(confirmedAddress);
+  const { email: confirmed } = await createSiteAdmin(await createSite(confirmedAddress));
+
+  const noneReply = await ask(none);
+  const confirmedReply = await ask(confirmed);
+  expect(noneReply).toContain(NEUTRAL(none));
+  expect(confirmedReply).toContain(NEUTRAL(confirmed));
+  expect(noneReply.replace(none, "X")).toBe(confirmedReply.replace(confirmed, "X"));
+
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  expect(await messagesTo(none)).toHaveLength(0);
+  expect(await messagesTo(confirmed)).toHaveLength(0);
+});
+
+test("the fourth resend for one email in an hour is refused, from four different addresses", async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  const { email, address, code } = await newSignup();
+  await fillSignup(page, { name: "Lena Novak", email, address, code });
+  await expect(page).toHaveURL(/\/signup\/sent/);
+  const resend = () =>
+    request.post("/signup/sent", {
+      headers: { Origin: baseURL ?? "", "X-Forwarded-For": randomIp() },
+      form: { email },
+      maxRedirects: 0,
+    });
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    expect((await resend()).status()).toBe(200);
+  }
+  const refused = await resend();
+  expect(refused.status()).toBe(429);
+  expect(await refused.text()).toContain("Too many requests, wait an hour");
+
+  // The signup email and three resends; a fifth never arrives.
+  expect(await waitForMail(email, 4)).toHaveLength(4);
 });

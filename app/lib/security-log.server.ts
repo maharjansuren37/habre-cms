@@ -15,6 +15,8 @@ export type SecurityEvent =
   | { event: "logout"; userId: string }
   | { event: "signup_created"; userId: string; siteId: string; ip: string }
   | { event: "signup_rate_limited"; scope: "ip" | "server"; ip: string }
+  | { event: "verification_resent"; userId: string }
+  | { event: "resend_rate_limited"; scope: "ip" | "email"; ip: string }
   | { event: "email_send_failed"; purpose: "verify"; userId: string }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
   | {

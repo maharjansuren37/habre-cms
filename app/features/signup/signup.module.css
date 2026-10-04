@@ -151,3 +151,9 @@
     var(--color-surface) var(--space-8) calc(var(--space-8) * 1.5)
   );
 }
+
+/* The pages with no aside ("Check your email", the confirm page): one column
+ * at every width. */
+.single {
+  grid-template-columns: 1fr;
+}

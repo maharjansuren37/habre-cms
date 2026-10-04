@@ -151,7 +151,7 @@ the front door of platform v1 and the first time Habre sends email.
     - **The per-IP limit:** the 11th signup attempt from one `X-Forwarded-For` within the hour answers 429, and no account is created.
   - With Mailpit stopped, a signup lands on "We couldn't send the email" with Send it again. `verify` checks this by hand; CI's Mailpit service cannot be stopped mid-run.
   - **Timing (quality bar, admin saves):** `verify` times 20 local signups against Mailpit, and the p95 is under 1 s server-side.
-- [ ] **Step 8 - Check your email, and Send it again** - add `app/features/signup/signup-sent.tsx` at `/signup/sent`. It shows "We sent a link to <email>" from the signed pending-email cookie (`createCookie`, `JWT_SECRET` as its secret, httpOnly, SameSite=Lax, 1 day), or an email field when the cookie is absent. With `?failed=1` it shows the error `Message`. **Send it again** gives the same answer every time: "If <email> is waiting to be confirmed, we've sent a new link." Behind that answer, for an unconfirmed user only, it marks their unused verify tokens used, issues a new one and sends it. It is limited to 5 an hour per IP and 3 an hour per email, and logs `verification_resent` `{userId}` or `email_send_failed`. *Done when:*
+- [x] **Step 8 - Check your email, and Send it again** - add `app/features/signup/signup-sent.tsx` at `/signup/sent`. It shows "We sent a link to <email>" from the signed pending-email cookie (`createCookie`, `JWT_SECRET` as its secret, httpOnly, SameSite=Lax, 1 day), or an email field when the cookie is absent. With `?failed=1` it shows the error `Message`. **Send it again** gives the same answer every time: "If <email> is waiting to be confirmed, we've sent a new link." Behind that answer, for an unconfirmed user only, it marks their unused verify tokens used, issues a new one and sends it. It is limited to 5 an hour per IP and 3 an hour per email, and logs `verification_resent` `{userId}` or `email_send_failed`. *Done when:*
   - **Playwright, sending it again:**
     - after signup, Send it again puts a second email in Mailpit;
     - the first email's link no longer confirms;
@@ -375,6 +375,13 @@ caller decides what the person sees. It never logs the address or the text.
     or not, and is never reset by a success. 429 reads "Too many attempts.
     Wait an hour, then try again." The "Log in" link for a taken email sits
     in the error summary, since `Field` takes text only (step 7).
+  - **Send it again does not wait for the mail server.** Waiting would make
+    a real unconfirmed account answer slower than a missing one, and reveal
+    it. A failed resend is logged as `email_send_failed` and the reply stays
+    neutral. Only signup itself shows "We couldn't send the email" (step 8).
+  - On `/signup/sent` the pending-email cookie wins over a typed address; the
+    email field shows only when there is no cookie. A refused resend is not
+    counted, so a block cannot extend itself (step 8).
 
 ## Production needs
 
