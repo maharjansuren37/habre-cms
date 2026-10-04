@@ -76,3 +76,7 @@ File: e2e/signup.spec.ts ("two signups at once"); playwright.config.ts:15 (`work
 
 ### F-251 [P2] open - Two browser tests fail intermittently in CI under the full suite
 File: e2e/block-toolbar.spec.ts:687; e2e/sites.spec.ts:56
+
+
+### F-252 [P2] open - The confirm test's sign-in helper reads the URL before the login answers, so "the old address no longer signs in" can pass vacuously
+File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488

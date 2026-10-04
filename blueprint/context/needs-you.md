@@ -130,7 +130,9 @@ not tidying; it is what keeps the open list true.
       section 2 of 4.", release to cancel, added, cancelled; from item 15c,
       `/forgot-password` with its neutral reply, `/reset-password` with its
       field error and expired state, and login's "Forgot your password?" link;
-      from item 15d, Media's storage meter, its full line and the refusal).
+      from item 15d, Media's storage meter, its full line and the refusal;
+      from item 15e1, Your account's three forms, their banners and field
+      errors, the shell's Your account link, and `/confirm-email`).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -140,7 +142,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04)
+      2026-10-04; widened, spec 15e1, 2026-10-05)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch

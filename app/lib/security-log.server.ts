@@ -21,7 +21,14 @@ export type SecurityEvent =
   | { event: "password_reset_requested"; userId: string }
   | { event: "password_reset_completed"; userId: string }
   | { event: "reset_rate_limited"; scope: "ip" | "email"; ip: string }
-  | { event: "email_send_failed"; purpose: "verify" | "reset"; userId: string }
+  | { event: "email_changed"; userId: string }
+  | { event: "email_change_requested"; userId: string }
+  | { event: "email_change_rate_limited"; scope: "ip" | "email"; ip: string }
+  | {
+      event: "email_send_failed";
+      purpose: "verify" | "reset" | "email_change" | "email_changed_notice";
+      userId: string;
+    }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
   | {
       event: "request_refused";
@@ -35,7 +42,9 @@ export type SecurityEvent =
   | { event: "role_changed"; userId: string; fromRole: Role; toRole: Role; actorId: string }
   | { event: "user_deactivated"; userId: string; actorId: string }
   | { event: "user_reactivated"; userId: string; actorId: string }
-  | { event: "password_reset"; userId: string; actorId: string };
+  | { event: "password_reset"; userId: string; actorId: string }
+  | { event: "password_changed"; userId: string }
+  | { event: "account_password_refused"; userId: string; ip: string };
 
 export function logSecurityEvent(entry: SecurityEvent): void {
   console.warn(JSON.stringify(entry));

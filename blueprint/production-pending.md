@@ -24,3 +24,8 @@
 ## features/15d-storage-cap
 
 - [ ] `STORAGE_LIMIT_MB` is optional: unset gives 500 MB. Set it in `/etc/habre-cms/production.env` only if the owner picks another Free number (`needs-you.md`, *Free plan limits*); an invalid value stops startup. No migration.
+
+## features/15e1-your-account
+
+- [ ] Migration `0013_email_change.sql` (additive; runs with the v1 deploy's other migrations).
+- [ ] No new environment variables. The confirmation link and the old-address notice need email on in production (`SMTP_URL`, `EMAIL_FROM` - the Resend line in `needs-you.md`); without it an email change is immediate.

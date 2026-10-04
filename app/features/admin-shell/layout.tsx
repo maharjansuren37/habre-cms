@@ -1,4 +1,4 @@
-import { Form, NavLink, Outlet, useNavigation } from "react-router";
+import { Form, Link, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
@@ -90,6 +90,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <div>
             <p>{user.name}</p>
             <p className={styles.role}>{ROLE_NAMES[user.role]}</p>
+            <Link to="/admin/account" className={styles.account}>
+              Your account
+            </Link>
           </div>
           <Form method="post" action="/admin/logout">
             <Button

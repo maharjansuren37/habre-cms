@@ -22,6 +22,7 @@ export default [
   route("verify", "features/signup/verify.tsx"),
   route("forgot-password", "features/signup/forgot-password.tsx"),
   route("reset-password", "features/signup/reset-password.tsx"),
+  route("confirm-email", "features/account/confirm-email.tsx"),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.ts"),
     route("admin/posts", "features/content/post-list.tsx"),
@@ -33,6 +34,7 @@ export default [
     route("admin/media/picker", "features/media/media-picker.ts"),
     route("admin/media/:id/delete", "features/media/media-delete.tsx"),
     route("admin/settings", "features/settings/settings.tsx"),
+    route("admin/account", "features/account/account.tsx"),
     route("admin/users", "features/users/user-list.tsx"),
     route("admin/users/new", "features/users/user-new.tsx"),
     route("admin/users/:id", "features/users/user-edit.tsx"),

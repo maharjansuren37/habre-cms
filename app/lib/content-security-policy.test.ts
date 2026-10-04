@@ -75,3 +75,9 @@ test("/forgot-password and /reset-password are admin; near misses are public (15
   assert.equal(areaForPath("/forgot-passwords"), "public");
   assert.equal(areaForPath("/reset-password/x"), "public");
 });
+
+test("/confirm-email is admin; near misses are public (15e1)", () => {
+  assert.equal(areaForPath("/confirm-email"), "admin");
+  assert.equal(areaForPath("/confirm-email/x"), "public");
+  assert.equal(areaForPath("/confirm-emails"), "public");
+});

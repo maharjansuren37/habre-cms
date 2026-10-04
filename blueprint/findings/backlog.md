@@ -389,3 +389,43 @@ File: app/features/signup/password-reset.server.ts (`completeReset`, `expires_at
 
 ### F-247 [P3] open - The reset form gives password managers no username to save the new password against
 File: app/features/signup/reset-password.tsx (the form)
+
+
+### F-253 [P3] open - Your account's forms keep what was typed after a successful save, including both passwords
+File: app/features/account/account.tsx:257-310
+
+
+### F-254 [P3] open - `changePassword` holds a pool connection and the user's row lock across two scrypt runs
+File: app/features/account/account.server.ts:29-42
+
+
+### F-255 [P3] open - A blocked or busy current-password check on Your account logs no security event
+File: app/features/account/account.server.ts:66 (`withCurrentPassword`)
+
+
+### F-256 [P3] open - The old-address notice tells the reader to reply, which only helps if `EMAIL_FROM` is a monitored inbox
+File: app/features/account/email-changed-notice.ts:18
+
+
+### F-257 [P3] open - The `saved=email` banner names whoever is signed in, not the account that confirmed
+File: app/features/account/account.tsx:63; app/features/account/confirm-email.tsx:61
+
+
+### F-258 [P3] open - Your account's card draws an empty divider above the Name section
+File: app/features/account/account.tsx:224; app/features/users/user-form.module.css:42-47
+
+
+### F-259 [P3] open - "Back to Your account" sits flush against the error message on `/confirm-email`'s expired and taken states
+File: app/features/account/confirm-email.tsx:100-114; app/features/signup/signup.module.css:22-25
+
+
+### F-260 [P3] open - A failed confirmation-link send and the per-IP send limit have no test
+File: e2e/account.spec.ts (none); app/features/account/account.tsx:150-169
+
+
+### F-261 [P3] open - `issueEmailToken`'s optional `newEmail` type-checks pairings the database refuses
+File: app/features/signup/email-tokens.server.ts:16-22
+
+
+### F-262 [P3] open - `isPlatformPath`'s doc comment does not list `/confirm-email`
+File: app/lib/content-security-policy.ts:3-7
