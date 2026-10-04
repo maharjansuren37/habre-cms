@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   isAccountFormBodyAllowed,
+  parseAccountEmail,
   parseAccountIntent,
   parseAccountName,
   parseAccountPassword,
@@ -77,4 +78,37 @@ test("both fields can be refused at once", () => {
     assert.ok(result.errors.currentPassword);
     assert.ok(result.errors.newPassword);
   }
+});
+
+test("a new email is trimmed and lowercased, with the password kept as typed", () => {
+  assert.deepEqual(parseAccountEmail("  New@Example.org ", " pw ", "me@example.org"), {
+    ok: true,
+    newEmail: "new@example.org",
+    currentPassword: " pw ",
+  });
+});
+
+test("an invalid address is refused with the email rule's message, and the typed value is returned", () => {
+  assert.deepEqual(parseAccountEmail("not an address", "pw", "me@example.org"), {
+    ok: false,
+    errors: { newEmail: "Enter an email address like name@example.org." },
+    typed: "not an address",
+  });
+});
+
+test("the current address is refused after trimming and lowercasing", () => {
+  assert.deepEqual(parseAccountEmail("  ME@Example.org ", "pw", "me@example.org"), {
+    ok: false,
+    errors: { newEmail: "That's already your email." },
+    typed: "  ME@Example.org ",
+  });
+});
+
+test("a missing current password is refused, beside any email error", () => {
+  assert.deepEqual(parseAccountEmail("new@example.org", "", "me@example.org"), {
+    ok: false,
+    errors: { currentPassword: "Enter your current password." },
+    typed: "new@example.org",
+  });
+  assert.deepEqual(parseAccountEmail("nope", null, "me@example.org").ok, false);
 });

@@ -21,6 +21,7 @@ export type SecurityEvent =
   | { event: "password_reset_requested"; userId: string }
   | { event: "password_reset_completed"; userId: string }
   | { event: "reset_rate_limited"; scope: "ip" | "email"; ip: string }
+  | { event: "email_changed"; userId: string }
   | { event: "email_send_failed"; purpose: "verify" | "reset"; userId: string }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
   | {

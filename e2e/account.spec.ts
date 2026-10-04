@@ -1,7 +1,8 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { createAdmin, deleteTestUser, setRole } from "./helpers/users.ts";
+import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
+import { createAdmin, deleteTestUser, setRole, type TestUser } from "./helpers/users.ts";
 
 test.beforeEach(async ({ page }) => {
   // Failed logins are rate-limited per IP; see auth.spec.ts.
@@ -18,7 +19,7 @@ test("an author changes their name from the shell link", async ({ page }) => {
     await expect(page).toHaveURL("/admin/account");
     await expect(page.getByRole("heading", { level: 1, name: "Your account" })).toBeVisible();
 
-    await page.getByLabel("Name").fill("After Name");
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill("After Name");
     await page.getByRole("button", { name: "Save name" }).click();
 
     await expect(page).toHaveURL("/admin/account?saved=name");
@@ -35,10 +36,10 @@ test("a blank name is refused below the field and what was typed is kept", async
   try {
     await logIn(page, user);
     await page.goto("/admin/account");
-    await page.getByLabel("Name").fill("   ");
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill("   ");
     await page.getByRole("button", { name: "Save name" }).click();
 
-    const field = page.getByLabel("Name");
+    const field = page.getByRole("textbox", { name: "Name", exact: true });
     await expect(page.getByText("Enter a name.")).toBeVisible();
     await expect(field).toHaveAttribute("aria-invalid", "true");
     await expect(field).toHaveValue("   ");
@@ -181,6 +182,120 @@ test("five wrong current passwords lock the check, even for the right one", asyn
     await expect(other).toHaveURL("/admin/account");
   } finally {
     await otherContext.close();
+    await deleteTestUser(user.email);
+  }
+});
+
+// Email off: the server on HOST_SPLIT_PORT has no SMTP, so a change is immediate.
+const OFF = `http://localhost:${HOST_SPLIT_PORT}`;
+
+async function logInOff(page: Page, email: string, password: string): Promise<void> {
+  await page.goto(`${OFF}/admin/login`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+}
+
+async function saveEmail(page: Page, newEmail: string, password: string): Promise<void> {
+  const section = page.getByRole("region", { name: "Email", exact: true });
+  await section.getByLabel("New email").fill(newEmail);
+  await section.getByLabel("Current password").fill(password);
+  const answered = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().includes("/admin/account"),
+  );
+  await section.getByRole("button", { name: "Save email" }).click();
+  await answered;
+}
+
+async function openOff(page: Page, user: TestUser): Promise<void> {
+  await logInOff(page, user.email, user.password);
+  await page.waitForURL("**/admin/posts");
+  await page.goto(`${OFF}/admin/account`);
+}
+
+test("with email off, a new email takes effect at once and the old one stops signing in", async ({
+  page,
+}) => {
+  const user = createAdmin("Email Mover");
+  const newEmail = `moved-${randomInt(1e9)}@example.test`;
+  try {
+    await openOff(page, user);
+    await saveEmail(page, newEmail, user.password);
+    await expect(page).toHaveURL(`${OFF}/admin/account?saved=email`);
+    await expect(page.getByRole("status")).toContainText(`Your email is now ${newEmail}.`);
+
+    await page.getByRole("button", { name: "Log out" }).click();
+    await page.waitForURL("**/admin/login");
+    await logInOff(page, user.email, user.password);
+    await expect(page.getByText("That email and password don’t match.")).toBeVisible();
+    await logInOff(page, newEmail, user.password);
+    await expect(page).toHaveURL(`${OFF}/admin/posts`);
+  } finally {
+    await deleteTestUser(newEmail);
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email off, the current address is refused below the field and the input kept", async ({
+  page,
+}) => {
+  const user = createAdmin("Same Email");
+  try {
+    await openOff(page, user);
+    const typed = user.email.toUpperCase();
+    await saveEmail(page, typed, user.password);
+    const section = page.getByRole("region", { name: "Email", exact: true });
+    await expect(section.getByText("That's already your email.")).toBeVisible();
+    await expect(section.getByLabel("New email")).toHaveAttribute("aria-invalid", "true");
+    await expect(section.getByLabel("New email")).toHaveValue(typed);
+  } finally {
+    await deleteTestUser(user.email);
+  }
+});
+
+test("with email off, another account's address is refused below the field and the input kept", async ({
+  page,
+}) => {
+  const user = createAdmin("Taker");
+  const other = createAdmin("Holder");
+  try {
+    await openOff(page, user);
+    await saveEmail(page, other.email, user.password);
+    const section = page.getByRole("region", { name: "Email", exact: true });
+    await expect(section.getByText("That email is already used by another account.")).toBeVisible();
+    await expect(section.getByLabel("New email")).toHaveValue(other.email);
+  } finally {
+    await deleteTestUser(user.email);
+    await deleteTestUser(other.email);
+  }
+});
+
+test("with email off, a wrong current password is refused below its field and changes nothing", async ({
+  page,
+  browser,
+}) => {
+  const user = createAdmin("Wrong Pw Email");
+  const newEmail = `unchanged-${randomInt(1e9)}@example.test`;
+  try {
+    await openOff(page, user);
+    await saveEmail(page, newEmail, "not the password");
+    const section = page.getByRole("region", { name: "Email", exact: true });
+    await expect(section.getByText("That's not your current password.")).toBeVisible();
+    await expect(section.getByLabel("Current password")).toHaveAttribute("aria-invalid", "true");
+    await expect(section.getByLabel("New email")).toHaveValue(newEmail);
+
+    const fresh = await browser.newContext({
+      extraHTTPHeaders: { "X-Forwarded-For": randomIp() },
+    });
+    try {
+      const other = await fresh.newPage();
+      await logInOff(other, user.email, user.password);
+      await expect(other).toHaveURL(`${OFF}/admin/posts`);
+    } finally {
+      await fresh.close();
+    }
+  } finally {
     await deleteTestUser(user.email);
   }
 });

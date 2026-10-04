@@ -1,4 +1,5 @@
 import {
+  emailSchema,
   isUserFormBodyAllowed,
   nameSchema,
   newPasswordSchema,
@@ -43,6 +44,42 @@ export function parseAccountPassword(current: unknown, next: unknown): PasswordR
     return { ok: false, errors };
   }
   return { ok: true, currentPassword: current, newPassword: parsed.data };
+}
+
+export type EmailErrors = { newEmail?: string; currentPassword?: string };
+
+export type EmailResult =
+  | { ok: true; newEmail: string; currentPassword: string }
+  | { ok: false; errors: EmailErrors; typed: string };
+
+/**
+ * The email form: the new address by `emailSchema` (trimmed, lowercased) and
+ * not the one the person already has, and a current password, kept as typed.
+ * A refusal carries the address as typed, to show again.
+ */
+export function parseAccountEmail(
+  newEmail: unknown,
+  currentPassword: unknown,
+  currentEmail: string,
+): EmailResult {
+  const typed = typeof newEmail === "string" ? newEmail : "";
+  const errors: EmailErrors = {};
+  const parsed = emailSchema.safeParse(typed);
+  if (!parsed.success) errors.newEmail = parsed.error.issues[0]?.message;
+  else if (parsed.data === currentEmail.toLowerCase())
+    errors.newEmail = "That's already your email.";
+  if (typeof currentPassword !== "string" || currentPassword === "") {
+    errors.currentPassword = "Enter your current password.";
+  }
+  if (
+    errors.newEmail ||
+    errors.currentPassword ||
+    !parsed.success ||
+    typeof currentPassword !== "string"
+  ) {
+    return { ok: false, errors, typed };
+  }
+  return { ok: true, newEmail: parsed.data, currentPassword };
 }
 
 /** The same 8 KB cap as the Users forms. */

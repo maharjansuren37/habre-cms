@@ -115,7 +115,7 @@ row records this (spec, 2026-10-05); Step 2 marks it **built**.
   bring "Too many attempts." and a sixth with the right password is refused
   too; and the action's server time for a password save, over 20 saves on the
   development machine, is under **1 s at p95** (quality-bar *Admin saves*).
-- [ ] **Step 4 - change email, the checks and email off** -
+- [x] **Step 4 - change email, the checks and email off** -
   `account-input.ts` gains the email rule (`emailSchema`, not the current
   one); `changeEmailNow(userId, newEmail)` catches `users_email_key`. *Done
   when:* `e2e/account.spec.ts` on the email-off server (`HOST_SPLIT_PORT`,
