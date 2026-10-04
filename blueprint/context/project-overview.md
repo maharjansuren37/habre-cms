@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-04, `main` after `4b8a16a`.
+Generated 2026-10-05, `main` after `4bccf20`.
 
 ## What this is
 
@@ -23,7 +23,6 @@ itself.
 - **Tiers** are what a site pays for: limits and services, never a level
   (D175). Free $0, Launch $19, Growth $59, Scale $179, Enterprise custom -
   **provisional**, revised by measured use. v1 sells Free and Launch.
-- Items 1-12 built a single-site CMS; it is live and is the base of Level 1.
 - **Free and open source to self-host**; the hosted service is what is sold.
 - **Principles** (`blueprint/context/principles.md`): simple by default; **AI
   suggests, the user applies**.
@@ -47,10 +46,10 @@ row-level security, owner and app database roles, today's install as site 1
 (`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, choosing
 the site's address, login refuses unconfirmed accounts; `0012` deletes every
 account (D261); password reset by email (15c); a storage cap per site
-(15d) - `STORAGE_LIMIT_MB`, 500 MB unless set, an upload past it refused,
-the space used shown on Media (D284-D289).
+(15d, `STORAGE_LIMIT_MB`, D284-D289); Your account (15e1) - name, password,
+and an email confirmed from a link to the new address (D290-D296).
 
-**Platform v1 (queued):** your account (15e); sites on their own subdomains; SEO basics; optimised images (17b);
+**Platform v1 (queued):** delete your account (15e2); own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -146,9 +145,10 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 and 15a-15d done; 15e-21 queued; nothing in flight.
-  18 splits when spec'd. Last shipped: 15d
-  (`blueprint/history/features/15d-storage-cap.md`).
-- **Next:** `spec` item 15e, your account - change your name, email and
-  password, and delete your account (design.md *Screens*).
+- **Plan:** items 1-14 and 15a-15e1 done; 15e2-21 queued; nothing in
+  flight. 18 splits when spec'd. Last shipped: 15e1
+  (`blueprint/history/features/15e1-your-account.md`).
+- **Next:** `spec` item 15e2, delete your account - the last active admin
+  takes the site and everything on it; anyone else is erased and leaves,
+  their content credited to "Deleted account".
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
