@@ -291,3 +291,46 @@ File: app/features/blocks/block-drag.client.tsx (`covered`: `elementFromPoint` i
 
 ### F-217 [P3] open - design.md's Announcements bullet does not record the 300 ms hold while auto-scrolling
 File: blueprint/context/design.md ("Built in item 14b", *Announcements*)
+
+### F-219 [P3] open - The isolation spec never tests the pooled-connection claim or cross-site update and delete
+File: e2e/site-isolation.spec.ts
+
+
+### F-220 [P3] open - Production instructions put the app-role password on the psql command line
+File: dev-notes/status.md:453; blueprint/context/current-work.md (Notes)
+
+
+### F-221 [P3] open - The documented by-hand run of CI's `e2e` job fails at the new roles step
+File: dev-notes/status.md:624
+
+
+### F-222 [P3] open - `setup-server.sh` writes the env file before checking `roles.sql` is present
+File: deploy/setup-server.sh:108,122-145,168,174-178
+
+
+### F-223 [P3] open - The web process is given the owner's database credentials
+File: deploy/setup-server.sh:139-141
+
+
+### F-224 [P3] open - The app role can write `schema_migrations`
+File: db/roles.sql:24,30
+
+
+### F-225 [P3] open - The isolation spec's `afterAll` assumes its setup succeeded
+File: e2e/site-isolation.spec.ts:57-63
+
+
+### F-226 [P3] open - The member-creating function kept the name `createUser`; the spec says `createMember(siteId, ...)`
+File: app/features/users/users.server.ts:73
+
+
+### F-227 [P3] open - "A 2-column section ... stacks at 390px" fails about 1 run in 8
+File: e2e/document-editor.spec.ts:670-692 (assertion at :689)
+
+
+### F-228 [P3] unverified - Deleting the chosen home page or the logo's image through the app under row-level security is untested
+File: db/migrations/0011_site_isolation.sql; app/features/content/entries.server.ts (deleteEntry); app/features/media/media.server.ts (deleteMedia)
+
+
+### F-229 [P3] open - The media and settings `afterEach` in `sites.spec.ts` can leave site 3 behind after a failed setup
+File: e2e/sites.spec.ts:305-312

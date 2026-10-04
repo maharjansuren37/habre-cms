@@ -2954,3 +2954,113 @@ local run as "every test passes, none skipped".
 Beats: a test count - it was wrong three times in a row (26, 27, really 5
 calls), because every item that adds a test changes it.
 Costs: a reader wanting the number has to grep for it.
+
+## D239 - Site ids are UUIDs (2026-10-04)
+
+**Chose:** `sites.id` is `uuid default gen_random_uuid()`; "site 1" is a name
+for today's installation, not its id.
+Beats: an integer id, which would show in URLs and R2 keys how many sites
+exist, and break 0001's id convention.
+Costs: ids are long in logs and test output.
+
+## D240 - The app role is created by `db/roles.sql` as the superuser, not by a migration (2026-10-04)
+
+**Chose:** `habre_cms_app` is made by an idempotent psql script run as the
+superuser, with `ALTER DEFAULT PRIVILEGES FOR ROLE habre_cms` so later tables
+are granted without a migration naming the role.
+Beats: giving the owner `CREATEROLE` so a migration could make it - a power
+the schema owner never otherwise needs.
+Costs: one by-hand step outside `db:migrate` on every existing database (dev
+machine, production at the v1 deploy).
+
+## D241 - `DATABASE_URL` stays the app's; the owner gets `DATABASE_OWNER_URL` (2026-10-04)
+
+**Chose:** the web app's variable keeps its name and now names the app role;
+a new `DATABASE_OWNER_URL` is read only by `db:migrate` and the browser
+tests' helpers.
+Beats: renaming both, which would change every environment's web config.
+Costs: the same name now means a different role than before item 15a; every
+`.env` and `production.env` needs the one-time change.
+
+## D242 - Row-level security without `FORCE` (2026-10-04)
+
+**Chose:** `entries`, `media` and `site_settings` enable row-level security
+but do not force it, so the owner bypasses it.
+Beats: `FORCE`, which would hide rows from migrations, backups and the test
+helpers.
+Costs: anything connecting as the owner sees every site; the app must never
+connect as the owner (D152).
+
+## D243 - A transaction-local `app.site_id`, set only by `inSite` (2026-10-04)
+
+**Chose:** `inSite(siteId, run)` opens a transaction and runs
+`set_config('app.site_id', siteId, true)`; the policy reads it with
+`nullif(current_setting('app.site_id', true), '')::uuid`, so no site means no
+rows.
+Beats: a session-level `SET`, which a pooled connection carries into the next
+request, and one database role per site.
+Costs: every site-owned read is a transaction, and `Promise.all` inside it
+runs one query at a time on its connection.
+
+## D244 - Site-owned data functions take `siteId` first, and their queries name `site_id` too (2026-10-04)
+
+**Chose:** every function in the site-owned data modules takes `siteId` as
+its first parameter and filters or inserts `site_id` itself, inside `inSite`
+- two guards, the query and row-level security.
+Beats: putting the site on `Actor`, which public queries do not have.
+Costs: every call site passes the site, and each query repeats a filter the
+policy already applies.
+
+## D245 - One membership per user, enforced by `unique (user_id)` (2026-10-04)
+
+**Chose:** `site_members` has `unique (user_id)` in v1 (D159), so "the
+user's membership" is one row by construction.
+Beats: enforcing it only in code.
+Costs: Level 2's multiple sites per person needs a migration dropping the
+index and every lookup that assumes one row.
+
+## D246 - Authors and uploaders are members of the row's site, by composite foreign keys (2026-10-04)
+
+**Chose:** `entries (site_id, author_id)` and `media (site_id, uploaded_by)`
+reference `site_members (site_id, user_id)`; memberships are deactivated,
+never deleted, so authorship survives.
+Beats: the old foreign keys to `users`, which let a site's row name another
+site's member.
+Costs: a membership can never be deleted while its rows exist; deleting a
+test site removes rows in dependency order.
+
+## D247 - Tenancy migrated as expand then contract, 0010 then 0011 (2026-10-04)
+
+**Chose:** 0010 adds `sites`, `site_members` and `site_id` with a temporary
+default; 0011 adds the membership foreign keys, drops the defaults,
+`users.role`, `users.deactivated_at` and `site_settings.id`, and enables
+row-level security.
+Beats: one migration, which would break the app and the suite mid-item.
+Costs: neither rolls back by symlink once 0011 has run; both need a rehearsal
+on a restored production backup before the v1 deploy (D163).
+
+## D248 - The public host serves the oldest site until item 16 (2026-10-04)
+
+**Chose:** `findPublicSiteId()` returns the site with the earliest
+`created_at`; item 16 replaces it with a lookup by host.
+Beats: an environment variable naming a site id - one more production value
+for 16 to remove.
+Costs: a site created with an earlier timestamp would take over the public
+host; nothing makes one before 16.
+
+## D249 - New uploads go under `sites/<site id>/`; existing R2 objects keep their keys (2026-10-04)
+
+**Chose:** `generateStorageKey(siteId, ext)` returns
+`sites/<siteId>/<uuid>.<ext>`; no migration moves old objects.
+Beats: moving objects in a migration - a script outside a transaction against
+a live bucket, for media 0009 already orphaned from content.
+Costs: two key shapes live side by side; `storage_key` stays unique across
+all sites.
+
+## D250 - Site 1's subdomain is `surenmaharjan` (2026-10-04)
+
+**Chose:** 0010 creates site 1 with subdomain `surenmaharjan`; nothing serves
+it until item 16, and site 1 stays on its own domain.
+Beats: no other candidate was proposed; the owner may change it before 16.
+Costs: changing it later is an update to one row, but any link handed out on
+the subdomain would break.

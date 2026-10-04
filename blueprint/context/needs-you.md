@@ -285,14 +285,3 @@ not tidying; it is what keeps the open list true.
       Blocks nothing now; needed by the v1 `deploy`. `open` (spec, 2026-10-02)
 
 ## Done
-
-- [x] **Two database URLs in your local `.env`, for item 15a** -
-      credentials; it is your secrets file, so no agent writes to it. Add
-      `DEV_APP_DB_PASSWORD` (generate one, e.g. `openssl rand -base64 24`);
-      add `DATABASE_OWNER_URL` set to today's `DATABASE_URL` value (the
-      `habre_cms` owner); then change `DATABASE_URL` to the new app role,
-      `postgres://habre_cms_app:<DEV_APP_DB_PASSWORD>@127.0.0.1:5432/habre_cms`.
-      After that an agent can run `db/roles.sql` against the existing volume
-      (`docker compose exec`, no secret printed). Blocks step 1's done-when of
-      item 15a (`npm run test:e2e` and `db:migrate` locally); CI needs nothing
-      from you. `done` - all three names present in `.env`, `db/roles.sql` run, app connects as `habre_cms_app`, full `npm run test:e2e` 263 passed (build, 2026-10-04)
