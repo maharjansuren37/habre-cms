@@ -105,6 +105,11 @@
   font-size: var(--text-xs);
 }
 
+.account {
+  display: inline-block;
+  margin-top: var(--space-1);
+}
+
 /* Two classes, so it wins over the button's own margin whatever the CSS order.
  * The ghost button keeps its padding for its hover background; the negative
  * margin lines its label up with the name above. */

@@ -33,6 +33,7 @@ export default [
     route("admin/media/picker", "features/media/media-picker.ts"),
     route("admin/media/:id/delete", "features/media/media-delete.tsx"),
     route("admin/settings", "features/settings/settings.tsx"),
+    route("admin/account", "features/account/account.tsx"),
     route("admin/users", "features/users/user-list.tsx"),
     route("admin/users/new", "features/users/user-new.tsx"),
     route("admin/users/:id", "features/users/user-edit.tsx"),

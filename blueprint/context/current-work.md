@@ -94,7 +94,7 @@ row records this (spec, 2026-10-05); Step 2 marks it **built**.
   `npm run db:migrate` applies it on the development database; in `psql` an
   `email_change` row without `new_email`, and a `reset` row with one, are each
   refused by a check; `npm run verify` passes.
-- [ ] **Step 2 - the page, the name, the shell link** - `features/account/`:
+- [x] **Step 2 - the page, the name, the shell link** - `features/account/`:
   `account.tsx` (route `admin/account` in the shell layout),
   `account-input.ts` (+ test: which form was sent, the name rule, the body
   cap), `account.server.ts` (`changeName(userId, name)`). The shell's foot
