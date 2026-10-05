@@ -3464,3 +3464,126 @@ and the current password, and D159's add-member already tells an admin.
 "Too many emails to that address. Try again later." and nothing is sent.
 Beats: no limit (the page would email any inbox from your own account).
 Costs: in-memory, so a restart resets it, like the resend limits.
+
+## D297 - Deleting your account is immediate, with no grace period or restore (2026-10-05)
+
+**Chose:** the account goes when the form is submitted (owner, 2026-10-05).
+The safeguards are the confirm screen naming what goes, the current password,
+and for the last admin the typed address.
+Beats: a 30-day schedule (a sweeper, a restore path and a pending state
+everywhere, for an invite-only beta).
+Costs: a mistake cannot be undone. Deleted data survives only in the nightly
+backups until they age out.
+
+## D298 - A member who leaves keeps their content on the site, credited to "Deleted account" (2026-10-05)
+
+**Chose:** `entries.author_id` and `media.uploaded_by` are nullable, and their
+composite foreign keys to `site_members` set only that column to null
+(`0014`). One `DELETED_ACCOUNT` label in `app/lib/deleted-account.ts`, which is
+not `.server.ts` because browser components show it.
+Beats: a placeholder "Deleted account" user per site (a fake row that can sign
+in, a fake email, and one per site to create).
+Costs: every read of an author or uploader must handle null. The five queries
+that inner-joined `users` are now left joins.
+
+## D299 - The public byline shows only the date for a deleted author (2026-10-05)
+
+**Chose:** the public post drops the name and its separator; the admin shows
+"Deleted account".
+Beats: "Deleted account" on a customer's public post.
+Costs: the admin and the public site describe the same post differently.
+
+## D300 - The last active admin's deletion takes the site and every member's account (2026-10-05)
+
+**Chose:** one transaction deletes `site_settings`, `entries`, `media`,
+`site_members`, every member's `users` row and the `sites` row, in that order
+(owner, 2026-10-05). With email on, each other member is told, deactivated
+members included.
+Beats: keeping their accounts (no site, cannot sign in, and their email is
+stuck until Level 2).
+Costs: one person's decision deletes other people's accounts. It rests on
+`site_members`' `unique (user_id)` (D159), so at Level 2 a member of several
+sites must keep their account and lose only this membership.
+
+## D301 - `deleteAccount` is the one place a site is deleted (2026-10-05)
+
+**Chose:** every later site-owned table and service adds its cleanup there:
+`site_domains` (16), image variants' R2 keys (17b), `ai_runs` (18),
+`contact_submissions` (19) and cancelling the Stripe subscription (21).
+Memberships and users are deleted only there; everywhere else they are
+deactivated (D159).
+Beats: a cleanup spread across features.
+Costs: each later item must remember to extend it.
+
+## D302 - The last admin of the oldest site cannot delete their account until item 16 (2026-10-05)
+
+**Chose:** the confirm screen shows a refusal with no form, and a POST is
+refused (409) the same way (owner, 2026-10-05).
+Beats: allowing it. Until item 16 the public domain serves the oldest site
+(`findPublicSiteId`), so deleting it would put a stranger's site on it.
+Costs: that admin must promote another member first.
+
+## D303 - The last admin types the site's address; everyone gives their current password, checked like a login (2026-10-05)
+
+**Chose:** 15e1's `withCurrentPassword` gate: one password slot, and a wrong
+password counts against `emailLoginLimiter` (owner, 2026-10-05). The address
+is trimmed and compared case-insensitively. It is checked against the loader's
+address before the limiter.
+Beats: the password alone (a whole site goes).
+Costs: one more field for the last admin.
+
+## D304 - The form carries the case it was loaded as, and the transaction re-checks it under a lock on the site row (2026-10-05)
+
+**Chose:** a hidden `expect=leave|site`. The transaction locks the site row,
+then the user row, and refuses with 409 "Something changed on your site."
+when the case differs. The screen's loader reruns after a 409
+(`shouldRevalidate`, F-263), so the person sees the new case.
+Beats: no lock (two simultaneous deletions orphan the site, and a page loaded
+as leaving could delete a site without the address typed).
+Costs: a residual race with a role change in another tab (backlog F-267).
+
+## D305 - The password slot is released before the deletion runs (2026-10-05)
+
+**Chose:** `withCurrentPassword` only verifies; `deleteAccount` runs after it
+returns (repair F-265). A wrong password counts even when the case is refused,
+and a right one never does.
+Beats: running the transaction inside the slot, which let a deletion waiting
+on the site lock hold one of the two password slots.
+Costs: none found.
+
+## D306 - R2 removals and the members' notices run after the commit and are not awaited (2026-10-05)
+
+**Chose:** `site-deleted-cleanup.ts`'s `removeStorageObjects` and
+`notifyMembers` take R2, the mailer and the logger as parameters and never
+reject. Each R2 failure is logged with its key; a notice failure logs
+`email_send_failed` (`site_deleted_notice`) with the deleter's `userId`.
+Beats: awaiting them (seconds for a full site, and the person deleting is
+signed out and cannot be told of a failure); a background job (D154 runs
+only AI).
+Costs: a failed R2 delete leaves objects under `sites/<id>/` until a later
+sweep (17b or a script).
+
+## D307 - A deleted site's address is free again at once (2026-10-05)
+
+**Chose:** nothing holds it.
+Beats: holding it (needs a table, and nothing serves addresses until item 16).
+Costs: someone else can take a recently deleted site's address.
+
+## D308 - Account deletion: smaller build choices (2026-10-05)
+
+**Chose:**
+- afterwards the person lands on `/admin/login?deleted=1`, a fixed flag, with
+  a `role="status"` banner;
+- `findDeletion(siteId, userId)` and `deleteAccount(siteId, userId, expect)`
+  take the session's `siteId` first, as site-owned data functions do;
+- a refused or changed POST answers 409 with the message on the page;
+- the password field stays uncontrolled, as in 15e1, so journey 8's "except
+  the password" is not enforced;
+- the confirm screen names every other member, active or deactivated, ordered
+  by name, as "A, B and C";
+- `insertTestMediaRow` takes an optional `siteId`;
+- `e2e/deleted-account.spec.ts` runs on site 1, because the public post and
+  `/` are served only from the oldest site until item 16. It restores
+  `home_page_id`, but shares that row with `home-page.spec.ts` (F-103).
+Beats: the alternatives recorded in the 15e2 archive.
+Costs: the site-1 spec adds to F-103's shared-row risk.

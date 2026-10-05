@@ -29,3 +29,9 @@
 
 - [ ] Migration `0013_email_change.sql` (additive; runs with the v1 deploy's other migrations).
 - [ ] No new environment variables. The confirmation link and the old-address notice need email on in production (`SMTP_URL`, `EMAIL_FROM` - the Resend line in `needs-you.md`); without it an email change is immediate.
+
+## features/15e2-delete-your-account
+
+- [ ] Migration `0014_deleted_accounts.sql` (additive: relaxes two columns; runs with the v1 deploy's other migrations). The release cannot be rolled back by symlink once a deleted author exists.
+- [ ] No new environment variables. The members' notice needs email on in production (`SMTP_URL`, `EMAIL_FROM` - the Resend line in `needs-you.md`); without it, members are not told.
+- [ ] The privacy policy (`needs-you.md`) says deleted accounts stay in the nightly backups until they age out (7 days locally per `deploy/backup-db.sh`; the R2 bucket's retention is not known).
