@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { resolveHostRouting } from "./host-routing.ts";
+import { classifyHost, resolveHostRouting } from "./host-routing.ts";
 
 const HOSTS = {
   publicHost: "surenmaharjan.fyi",
@@ -167,4 +167,130 @@ test("treats /forgot-passwords as a public path", () => {
   assert.deepEqual(decide({ pathname: "/forgot-passwords", requestHost: HOSTS.publicHost }), {
     kind: "allow",
   });
+});
+
+const PLATFORM = "https://app.habre.ai";
+const SITES = "https://habre.page";
+
+function classify(requestHost: string, pathname: string, method = "GET", search = "") {
+  return classifyHost({
+    method,
+    pathname,
+    search,
+    requestHost,
+    platformOrigin: PLATFORM,
+    sitesOrigin: SITES,
+  });
+}
+
+test("the platform host allows the platform paths", () => {
+  for (const path of ["/admin", "/admin/posts", "/signup", "/verify", "/confirm-email"]) {
+    assert.deepEqual(classify("app.habre.ai", path), { kind: "allow" }, path);
+  }
+});
+
+test("/ on the platform host redirects to /admin, and a POST there is not found", () => {
+  assert.deepEqual(classify("app.habre.ai", "/"), { kind: "redirect", to: "/admin" });
+  assert.deepEqual(classify("app.habre.ai", "/", "HEAD"), { kind: "redirect", to: "/admin" });
+  assert.deepEqual(classify("app.habre.ai", "/", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+  });
+});
+
+test("a public path on the platform host is not found, unlogged", () => {
+  assert.deepEqual(classify("app.habre.ai", "/posts/x"), { kind: "not-found", foreignHost: false });
+});
+
+test("a host under the sites domain is looked up by its label", () => {
+  assert.deepEqual(classify("lena.habre.page", "/posts/x"), { kind: "subdomain", label: "lena" });
+  assert.deepEqual(classify("lena.habre.page", "/"), { kind: "subdomain", label: "lena" });
+});
+
+test("the bare sites host and a two-label name under it are not found, unlogged", () => {
+  assert.deepEqual(classify("habre.page", "/"), { kind: "not-found", foreignHost: false });
+  assert.deepEqual(classify("a.b.habre.page", "/"), { kind: "not-found", foreignHost: false });
+});
+
+test("a label that is not a valid subdomain is not found, unlogged", () => {
+  assert.deepEqual(classify("-x.habre.page", "/"), { kind: "not-found", foreignHost: false });
+  assert.deepEqual(classify("a_b.habre.page", "/"), { kind: "not-found", foreignHost: false });
+});
+
+test("any other host is looked up as an own domain, lowercased", () => {
+  assert.deepEqual(classify("surenmaharjan.fyi", "/"), {
+    kind: "domain",
+    host: "surenmaharjan.fyi",
+  });
+  assert.deepEqual(classify("SurenMaharjan.FYI", "/posts/x"), {
+    kind: "domain",
+    host: "surenmaharjan.fyi",
+  });
+});
+
+test("upper-case hosts match the platform and sites hosts", () => {
+  assert.deepEqual(classify("APP.Habre.AI", "/admin"), { kind: "allow" });
+  assert.deepEqual(classify("Lena.HABRE.page", "/"), { kind: "subdomain", label: "lena" });
+});
+
+test("a platform path on a site host redirects to the platform for GET and HEAD, keeping the query", () => {
+  assert.deepEqual(classify("lena.habre.page", "/admin/posts", "GET", "?status=draft"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/admin/posts?status=draft",
+  });
+  assert.deepEqual(classify("surenmaharjan.fyi", "/signup", "HEAD"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/signup",
+  });
+});
+
+test("a POST to a platform path on a site host is not found, logged only for a foreign host", () => {
+  assert.deepEqual(classify("lena.habre.page", "/admin/posts", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+  });
+  assert.deepEqual(classify("surenmaharjan.fyi", "/admin/posts", "POST"), {
+    kind: "not-found",
+    foreignHost: true,
+  });
+});
+
+test("/healthz answers on the platform host, a site host and an unknown host", () => {
+  for (const host of ["app.habre.ai", "lena.habre.page", "habre.page", "unknown.example"]) {
+    assert.deepEqual(classify(host, "/healthz"), { kind: "allow" }, host);
+  }
+});
+
+test("the sites host's port is part of the match", () => {
+  const local = (requestHost: string) =>
+    classifyHost({
+      method: "GET",
+      pathname: "/",
+      search: "",
+      requestHost,
+      platformOrigin: "http://127.0.0.1:3100",
+      sitesOrigin: "http://localhost:3100",
+    });
+  assert.deepEqual(local("surenmaharjan.localhost:3100"), {
+    kind: "subdomain",
+    label: "surenmaharjan",
+  });
+  assert.deepEqual(local("127.0.0.1:3100"), { kind: "redirect", to: "/admin" });
+  // Another port is not under the sites domain: looked up whole, and misses.
+  assert.deepEqual(local("surenmaharjan.localhost:3200"), {
+    kind: "domain",
+    host: "surenmaharjan.localhost:3200",
+  });
+});
+
+test("the platform host is never read as a site, even when it sits under the sites domain", () => {
+  const nested = classifyHost({
+    method: "GET",
+    pathname: "/admin",
+    search: "",
+    requestHost: "app.localhost:3000",
+    platformOrigin: "http://app.localhost:3000",
+    sitesOrigin: "http://localhost:3000",
+  });
+  assert.deepEqual(nested, { kind: "allow" });
 });

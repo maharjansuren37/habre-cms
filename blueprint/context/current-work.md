@@ -116,7 +116,7 @@ that (D153).
   *Done when:* `npm run test:e2e` passes, and a grep for `goto("/` and
   `` goto(`/ `` finds only platform paths (`/admin`, `/signup`, `/verify`,
   `/forgot-password`, `/reset-password`, `/confirm-email`).
-- [ ] **Step 5 - The host classifier, pure** - `app/lib/host-routing.ts`
+- [x] **Step 5 - The host classifier, pure** - `app/lib/host-routing.ts`
   rewritten as one pure function. It takes the method, path, search, request
   host, platform origin and sites origin, and returns one of:
   - allow on the platform;
@@ -257,6 +257,12 @@ that (D153).
   answers 404 otherwise. This keeps D22's behaviour. A 404 for every admin
   path was the alternative, and it strands someone who types
   `<address>.habre.page/admin`.
+- **A platform path redirects from any non-platform host without a lookup**
+  (Step 5): the classifier never asks whether the host is a real site before
+  sending `/admin` to the platform, so an unknown host's GET `/admin` also
+  redirects. The target is always the platform origin, so it is not an open
+  redirect, and it keeps the classifier pure. A non-GET there is not found,
+  logged when the host is outside both domains.
 - **Only a host outside both domains is logged** as `wrong_host`. An unknown
   or suspended address under the sites domain is a normal 404: the wildcard
   sends every guessed name here, and logging each one would bury the real
