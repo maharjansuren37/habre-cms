@@ -170,3 +170,23 @@ test("the platform host with a trailing dot redirects to the bare platform, and 
   });
   assert.deepEqual(classify("app.habre.ai.", "/healthz"), { kind: "allow" });
 });
+
+test("/robots.txt is allowed on the platform host, and /sitemap.xml is still not found there", () => {
+  assert.deepEqual(classify("app.habre.ai", "/robots.txt"), { kind: "allow" });
+  assert.deepEqual(classify("app.habre.ai", "/sitemap.xml"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
+});
+
+test("/robots.txt on a site host is that site's, by subdomain or by own domain", () => {
+  assert.deepEqual(classify("lena.habre.page", "/robots.txt"), {
+    kind: "subdomain",
+    label: "lena",
+  });
+  assert.deepEqual(classify("lena.example", "/robots.txt"), {
+    kind: "domain",
+    host: "lena.example",
+  });
+});

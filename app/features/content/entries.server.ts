@@ -442,6 +442,27 @@ export async function findPublishedEntry(
 }
 
 /**
+ * Every published page and post of a site, for its sitemap (item 17): newest
+ * published first, at most 50,000 (the sitemap file's limit). `isHomePage` marks
+ * the published page `site_settings.home_page_id` points at.
+ */
+export async function listSitemapEntries(
+  siteId: string,
+): Promise<{ type: EntryType; slug: string; updatedAt: Date; isHomePage: boolean }[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<{ type: EntryType; slug: string; updatedAt: Date; isHomePage: boolean }[]>`
+    select e.type, e.slug, e.updated_at as "updatedAt",
+      (e.type = 'page' and e.id = s.home_page_id) as "isHomePage"
+    from entries e left join site_settings s on s.site_id = e.site_id
+    where e.site_id = ${siteId} and e.status = 'published'
+    order by e.published_at desc, e.slug
+    limit 50000
+  `,
+  );
+}
+
+/**
  * The page an admin chose for `/` (item 9), or `null` when none is set, it is
  * not published, or it is not a page - `/` then shows a placeholder (D-2).
  * One query: the settings row joined to the entry, rather than a settings read

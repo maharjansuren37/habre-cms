@@ -14,6 +14,8 @@ export default [
     route(":slug", "features/public-site/page.tsx"),
   ]),
   route("healthz", "features/public-site/healthz.ts"),
+  route("robots.txt", "features/seo/robots.ts"),
+  route("sitemap.xml", "features/seo/sitemap.ts"),
   route("admin/login", "features/auth/login.tsx"),
   route("admin/logout", "features/auth/logout.ts"),
   // Platform paths: served on the platform host only (item 16a, isPlatformPath).

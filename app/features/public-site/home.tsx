@@ -11,7 +11,10 @@ import listStyles from "./post-list.module.css";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   const title = loaderData?.kind === "page" ? loaderData.page.title : undefined;
-  return publicMeta(matches, { title, path: "/" });
+  const tags = publicMeta(matches, { title, path: "/" });
+  // The "being set up" placeholder is not for search engines (item 17).
+  if (loaderData?.kind === "placeholder") tags.push({ name: "robots", content: "noindex" });
+  return tags;
 }
 
 // `/` is always a landing page (D-12): the chosen page when there is one and

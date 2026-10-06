@@ -160,3 +160,155 @@ test("a published page's canonical link is its own path", async ({ request }) =>
     await deleteSite(site.id);
   }
 });
+
+// Step 3: robots.txt, sitemap.xml and noindex.
+const EMPTY_DOC = { type: "doc", content: [] };
+
+type SeedEntry = { type: "page" | "post"; slug: string; status: "draft" | "published" };
+
+/** Inserts entries as the owner and returns the page ids by slug. */
+async function seedEntries(siteId: string, authorEmail: string, entries: SeedEntry[]) {
+  return withDatabase(async (sql) => {
+    const ids: Record<string, string> = {};
+    for (const e of entries) {
+      const [row] = await sql<{ id: string }[]>`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+        select ${siteId}, ${e.type}, ${e.slug}, ${e.slug}, ${sql.json(EMPTY_DOC)}, 'v4', ${e.status},
+          ${e.status === "published" ? sql`now()` : null}, id
+        from users where email = ${authorEmail}
+        returning id
+      `;
+      ids[e.slug] = row.id;
+    }
+    return ids;
+  });
+}
+
+function locsOf(xml: string): string[] {
+  return [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+}
+
+test("the platform host's robots.txt disallows everything", async ({ request }) => {
+  const response = await request.get(`http://127.0.0.1:${PORT}/robots.txt`, { maxRedirects: 0 });
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toBe("text/plain; charset=utf-8");
+  const body = await response.text();
+  expect(body).toContain("User-agent: *");
+  expect(body).toContain("Disallow: /");
+  expect(body).not.toContain("Allow: /\n");
+  // Only robots.txt is new on the platform host.
+  const sitemap = await request.get(`http://127.0.0.1:${PORT}/sitemap.xml`, { maxRedirects: 0 });
+  expect(sitemap.status()).toBe(404);
+});
+
+test("a site's robots.txt allows everything and names its sitemap on the main address", async ({
+  request,
+}) => {
+  const site = await createSiteWithAddress("seo-robots");
+  try {
+    const response = await request.get(siteUrl("/robots.txt", site.address), { maxRedirects: 0 });
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("text/plain; charset=utf-8");
+    const body = await response.text();
+    expect(body).toContain("User-agent: *");
+    expect(body).toContain("Allow: /");
+    expect(body).not.toContain("Disallow");
+    expect(body).toContain(`Sitemap: http://${site.address}.localhost:${PORT}/sitemap.xml`);
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("the sitemap lists published pages and posts, the home page only as /, never a draft", async ({
+  request,
+}) => {
+  const site = await createSiteWithAddress("seo-map");
+  try {
+    const admin = await createSiteAdmin(site.id, "Seo Map");
+    const ids = await seedEntries(site.id, admin.email, [
+      { type: "page", slug: "front", status: "published" },
+      { type: "page", slug: "about", status: "published" },
+      { type: "page", slug: "secret", status: "draft" },
+      { type: "post", slug: "hello", status: "published" },
+      { type: "post", slug: "wip", status: "draft" },
+    ]);
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set home_page_id = ${ids.front} where site_id = ${site.id}`;
+    });
+    const response = await request.get(siteUrl("/sitemap.xml", site.address), { maxRedirects: 0 });
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/xml; charset=utf-8");
+    const xml = await response.text();
+    const origin = `http://${site.address}.localhost:${PORT}`;
+    expect([...locsOf(xml)].sort()).toEqual(
+      [`${origin}/`, `${origin}/about`, `${origin}/posts`, `${origin}/posts/hello`].sort(),
+    );
+    expect(xml).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("a site with nothing published has an empty sitemap and a noindex placeholder", async ({
+  request,
+}) => {
+  const site = await createSiteWithAddress("seo-empty");
+  try {
+    const admin = await createSiteAdmin(site.id, "Seo Empty");
+    await seedEntries(site.id, admin.email, [{ type: "page", slug: "draft", status: "draft" }]);
+    const sitemap = await request.get(siteUrl("/sitemap.xml", site.address), { maxRedirects: 0 });
+    expect(sitemap.status()).toBe(200);
+    expect(locsOf(await sitemap.text())).toEqual([]);
+
+    const home = await request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect(await home.text()).toMatch(/<meta[^>]*name="robots"[^>]*content="noindex"/);
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("a site with a published home page carries no noindex", async ({ request }) => {
+  const site = await createSiteWithAddress("seo-home");
+  try {
+    const admin = await createSiteAdmin(site.id, "Seo Home");
+    const ids = await seedEntries(site.id, admin.email, [
+      { type: "page", slug: "front", status: "published" },
+    ]);
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set home_page_id = ${ids.front} where site_id = ${site.id}`;
+    });
+    const home = await request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect(home.status()).toBe(200);
+    expect(await home.text()).not.toMatch(/name="robots"/);
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("a site with 1,000 published posts answers its sitemap in under 500 ms", async ({
+  request,
+}) => {
+  const site = await createSiteWithAddress("seo-big");
+  try {
+    const admin = await createSiteAdmin(site.id, "Seo Big");
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+        select ${site.id}, 'post', 'Post ' || n, 'post-' || n, ${sql.json(EMPTY_DOC)}, 'v4', 'published',
+          now() - (n || ' minutes')::interval, u.id
+        from generate_series(1, 1000) n, users u where u.email = ${admin.email}
+      `;
+    });
+    const url = siteUrl("/sitemap.xml", site.address);
+    await request.get(url); // warm-up: connection, query plan
+    const started = performance.now();
+    const response = await request.get(url);
+    const ms = performance.now() - started;
+    console.log(`sitemap with 1,000 posts: ${ms.toFixed(0)} ms`);
+    expect(response.status()).toBe(200);
+    expect(locsOf(await response.text())).toHaveLength(1001); // 1,000 posts and /posts
+    expect(ms).toBeLessThan(500);
+  } finally {
+    await deleteSite(site.id);
+  }
+});

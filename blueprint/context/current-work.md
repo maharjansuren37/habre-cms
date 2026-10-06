@@ -125,7 +125,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     page's canonical is its own path. The existing `host-routing` and `sites`
     browser specs still pass.
 
-- [ ] **Step 3 - `robots.txt`, `sitemap.xml` and `noindex`**:
+- [x] **Step 3 - `robots.txt`, `sitemap.xml` and `noindex`**:
   - Resource routes in `app/features/seo/`, listed in `app/routes.ts`;
     `classifyHost` allows `/robots.txt` on the platform host (and nothing
     else new there).

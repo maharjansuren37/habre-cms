@@ -52,7 +52,8 @@ export function classifyHost(request: {
         ? { kind: "redirect", to: `${platformOrigin}${pathname}${search}` }
         : { kind: "not-found", foreignHost: false, platformHost: true };
     }
-    if (isPlatformPath(pathname)) return { kind: "allow" };
+    // The one new public path here: the platform says it is not to be indexed.
+    if (isPlatformPath(pathname) || pathname === "/robots.txt") return { kind: "allow" };
     if (pathname === "/" && canRedirect) return { kind: "redirect", to: "/admin" };
     return { kind: "not-found", foreignHost: false, platformHost: true };
   }
