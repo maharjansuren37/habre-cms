@@ -149,7 +149,7 @@ that (D153).
   - **quality bar:** a site's home page on its subdomain, served by
     `npm start`, answers under 500 ms at p95 over 200 sequential requests,
     measured with `curl -w %{time_total}` and the p95 shown.
-- [ ] **Step 7 - Browser tests for every host rule** - `e2e/host-routing.spec.ts`
+- [x] **Step 7 - Browser tests for every host rule** - `e2e/host-routing.spec.ts`
   rewritten. *Done when:* `npm run test:e2e` passes with tests that show:
   - an unknown address and a site with `suspended_at` set answer 404;
   - on the proxied server, `X-Forwarded-Host: surenmaharjan.fyi` serves site
