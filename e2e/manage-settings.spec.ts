@@ -4,7 +4,7 @@ import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
-import { siteUrl } from "./helpers/sites.ts";
+import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -13,6 +13,7 @@ import {
   deleteTestUser,
   setRole,
   type TestUser,
+  withDatabase,
 } from "./helpers/users.ts";
 
 let admin: TestUser;
@@ -133,6 +134,8 @@ test("a logo id for a media row that does not exist gets a friendly error, not a
       siteTitle: "Doesn't matter",
       logoMediaId: "00000000-0000-0000-0000-000000000000",
       homePageId: "",
+      siteDescription: "",
+      language: "en",
     },
   });
   expect(response.status()).toBe(400);
@@ -157,4 +160,151 @@ test("an author gets 404 from /admin/settings, and Settings is not in their nav"
   await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
   const response = await page.goto("/admin/settings");
   expect(response?.status()).toBe(404);
+});
+
+// Item 17, step 4. These use a site of their own (F-103): a language changed on
+// site 1's shared settings row would fail every other spec reading its pages.
+async function withOwnSite(
+  run: (site: { id: string; address: string; admin: TestUser }) => Promise<void>,
+): Promise<void> {
+  const site = await createSiteWithAddress("seo-settings");
+  try {
+    const siteAdmin = await createSiteAdmin(site.id, "Own Site Admin");
+    await run({ ...site, admin: siteAdmin });
+  } finally {
+    await deleteSite(site.id);
+  }
+}
+
+function storedSeoSettings(siteId: string) {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ siteDescription: string; language: string }[]>`
+      select site_description as "siteDescription", language from site_settings
+      where site_id = ${siteId}
+    `;
+    return row;
+  });
+}
+
+test("choosing a language and a description saves both, and the site's pages and 404 speak that language", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, address, admin: siteAdmin }) => {
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    await page.getByLabel("Language").selectOption({ label: "Nepali" });
+    await page.getByLabel("Site description").fill("A small site about Kathmandu.");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Settings updated.")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel("Language")).toHaveValue("ne");
+    await expect(page.getByLabel("Site description")).toHaveValue("A small site about Kathmandu.");
+    expect(await storedSeoSettings(id)).toEqual({
+      siteDescription: "A small site about Kathmandu.",
+      language: "ne",
+    });
+
+    await page.goto(siteUrl("/", address));
+    await expect(page.locator("html")).toHaveAttribute("lang", "ne");
+    const missing = await page.goto(siteUrl("/no-such-page", address));
+    expect(missing?.status()).toBe(404);
+    await expect(page.locator("html")).toHaveAttribute("lang", "ne");
+
+    // The admin is not the site's page: it keeps the interface language.
+    await page.goto("/admin/settings");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  });
+});
+
+test("a language that is not in the list is refused beside the field, keeping the input and saving nothing", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, admin: siteAdmin }) => {
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    await page.getByLabel("Site description").fill("Kept after the refusal");
+    // A crafted value: the Nepali option is rewritten in the DOM, then chosen,
+    // so the real form posts `language=xx-evil`.
+    await page.locator('#language option[value="ne"]').evaluate((option) => {
+      (option as unknown as { value: string }).value = "xx-evil";
+    });
+    await page.getByLabel("Language").selectOption("xx-evil");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    const select = page.getByLabel("Language");
+    await expect(page.getByText("Choose a language from the list.")).toBeVisible();
+    await expect(select).toHaveAttribute("aria-invalid", "true");
+    await expect(select).toHaveAccessibleDescription(/Choose a language from the list\./);
+    await expect(page.getByLabel("Site description")).toHaveValue("Kept after the refusal");
+    expect(await storedSeoSettings(id)).toEqual({ siteDescription: "", language: "en" });
+  });
+});
+
+test("a 301-character description is refused beside the field, keeping the input and saving nothing", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, admin: siteAdmin }) => {
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    const tooLong = "d".repeat(301);
+    await page.getByLabel("Site description").fill(tooLong);
+    await page.getByLabel("Site title").fill("Title kept too");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    const field = page.getByLabel("Site description");
+    await expect(page.getByText("Site description can be up to 300 characters.")).toBeVisible();
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expect(field).toHaveAccessibleDescription(/up to 300 characters\.$/);
+    await expect(field).toHaveValue(tooLong);
+    await expect(page.getByLabel("Site title")).toHaveValue("Title kept too");
+    expect(await storedSeoSettings(id)).toEqual({ siteDescription: "", language: "en" });
+  });
+});
+
+test("a save without the description or language fields is refused as out of date and changes nothing", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, admin: siteAdmin }) => {
+    await withDatabase(
+      (sql) =>
+        sql`update site_settings set site_description = 'Keep me', language = 'ne' where site_id = ${id}`,
+    );
+    await logIn(page, siteAdmin);
+    const origin = new URL(page.url()).origin;
+    const post = (form: Record<string, string>) =>
+      page.request.post(`${origin}/admin/settings`, { headers: { Origin: origin }, form });
+
+    const noDescription = await post({
+      siteTitle: "Nope",
+      logoMediaId: "",
+      homePageId: "",
+      language: "en",
+    });
+    expect(noDescription.status()).toBe(400);
+    expect(await noDescription.text()).toContain("This form is out of date.");
+    const noLanguage = await post({
+      siteTitle: "Nope",
+      logoMediaId: "",
+      homePageId: "",
+      siteDescription: "",
+    });
+    expect(noLanguage.status()).toBe(400);
+    expect(await noLanguage.text()).toContain("This form is out of date.");
+    expect(await storedSeoSettings(id)).toEqual({ siteDescription: "Keep me", language: "ne" });
+  });
+});
+
+test("saving settings takes under a second", async ({ page }) => {
+  await withOwnSite(async ({ admin: siteAdmin }) => {
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    await page.getByLabel("Site description").fill("Timed save");
+    const started = Date.now();
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Settings updated.")).toBeVisible();
+    const elapsed = Date.now() - started;
+    console.log(`settings save, click to banner: ${elapsed} ms`);
+    expect(elapsed).toBeLessThan(1000);
+  });
 });

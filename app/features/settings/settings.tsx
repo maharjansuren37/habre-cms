@@ -14,6 +14,7 @@ import {
   type PickedMedia,
 } from "#app/features/media/media-picker-dialog.client.ts";
 import type { Route } from "./+types/settings";
+import { LANGUAGES } from "./languages.ts";
 import {
   applyNavIntent,
   draftRowsToNavItems,
@@ -27,7 +28,9 @@ import { saveSiteSettings } from "./settings.server.ts";
 import {
   homePageIdSchema,
   isSettingsFormBodyAllowed,
+  languageSchema,
   logoMediaIdSchema,
+  siteDescriptionSchema,
   siteTitleSchema,
 } from "./settings-input.ts";
 
@@ -57,6 +60,10 @@ type ActionResult = {
   draftRows: NavDraftRow[];
   siteTitle: string;
   homePageId: string;
+  siteDescription: string;
+  language: string;
+  /** Beside-the-field refusals; empty when there are none. */
+  errors: { siteDescription?: string; language?: string };
 };
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -70,7 +77,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   // select existed, or a scripted post, must not clear the home page (F-107).
   const rawHomePageId = form.get("homePageId");
   const submittedHomePageId = String(rawHomePageId ?? "");
+  // Absent, not just empty, for the same reason (F-107): a save that does not
+  // carry these fields must not blank the description or reset the language.
+  const rawDescription = form.get("siteDescription");
+  const rawLanguage = form.get("language");
+  const submittedDescription = String(rawDescription ?? "");
+  const submittedLanguage = String(rawLanguage ?? "");
   const rows = parseDraftRows(form);
+  const carried = {
+    draftRows: rows,
+    siteTitle: submittedTitle,
+    homePageId: submittedHomePageId,
+    siteDescription: submittedDescription,
+    language: submittedLanguage,
+    errors: {} as ActionResult["errors"],
+  };
 
   // Add/remove/move only rearrange what is already on the page - no
   // database write, so nothing below this needs validating yet.
@@ -78,19 +99,16 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (reshaped) {
     return {
       problem: null,
+      ...carried,
       draftRows: reshaped,
-      siteTitle: submittedTitle,
-      homePageId: submittedHomePageId,
     } satisfies ActionResult;
   }
 
-  if (rawHomePageId === null) {
+  if (rawHomePageId === null || rawDescription === null || rawLanguage === null) {
     return data(
       {
         problem: "This form is out of date. Reload the page and try again.",
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -101,9 +119,22 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(
       {
         problem: title.error.issues[0]?.message ?? "Enter a site title.",
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
+      } satisfies ActionResult,
+      { status: 400 },
+    );
+  }
+  const description = siteDescriptionSchema.safeParse(submittedDescription);
+  const language = languageSchema.safeParse(submittedLanguage);
+  if (!description.success || !language.success) {
+    return data(
+      {
+        problem: "Your changes were not saved.",
+        ...carried,
+        errors: {
+          siteDescription: description.error?.issues[0]?.message,
+          language: language.error?.issues[0]?.message,
+        },
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -122,9 +153,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(
       {
         problem: "That logo could not be saved. Choose it again.",
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -136,9 +165,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(
       {
         problem: navResult.message,
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -152,9 +179,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(
       {
         problem: "That home page could not be saved. Choose it again.",
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -165,6 +190,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     logoMediaId: logoId.data,
     homePageId: homePage.data,
     navigation: navResult.items,
+    siteDescription: description.data,
+    language: language.data,
   });
   // The logo or page was deleted after the checks above - the save rolled back
   // whole, so this is the same answer those checks give (F-106, F-110).
@@ -175,9 +202,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           saved === "logo-gone"
             ? "That logo could not be saved. Choose it again."
             : "That home page could not be saved. Choose it again.",
-        draftRows: rows,
-        siteTitle: submittedTitle,
-        homePageId: submittedHomePageId,
+        ...carried,
       } satisfies ActionResult,
       { status: 400 },
     );
@@ -213,6 +238,9 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   // actually saved.
   const draftRows = actionData ? actionData.draftRows : navItemsToDraftRows(settings.navigation);
   const siteTitleDefault = actionData ? actionData.siteTitle : settings.siteTitle;
+  const siteDescriptionDefault = actionData ? actionData.siteDescription : settings.siteDescription;
+  const languageDefault = actionData ? actionData.language : settings.language;
+  const errors = actionData?.errors ?? {};
   const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
@@ -296,6 +324,59 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             </Button>
           )}
         </fieldset>
+        <div className={styles.selectField}>
+          <label className={styles.navFieldLabel} htmlFor="siteDescription">
+            Site description
+          </label>
+          <textarea
+            id="siteDescription"
+            name="siteDescription"
+            defaultValue={siteDescriptionDefault}
+            rows={3}
+            className={styles.textarea}
+            aria-invalid={errors.siteDescription ? true : undefined}
+            aria-describedby={
+              errors.siteDescription
+                ? "siteDescription-hint siteDescription-error"
+                : "siteDescription-hint"
+            }
+          />
+          <p id="siteDescription-hint" className={styles.navHint}>
+            Shown in search results and when your site is shared. Up to 300 characters.
+          </p>
+          {errors.siteDescription && (
+            <p id="siteDescription-error" className={styles.fieldError}>
+              {errors.siteDescription}
+            </p>
+          )}
+        </div>
+        <div className={styles.selectField}>
+          <label className={styles.navFieldLabel} htmlFor="language">
+            Language
+          </label>
+          <select
+            id="language"
+            name="language"
+            defaultValue={languageDefault}
+            className={styles.select}
+            aria-invalid={errors.language ? true : undefined}
+            aria-describedby={errors.language ? "language-hint language-error" : "language-hint"}
+          >
+            {LANGUAGES.map((language) => (
+              <option key={language.tag} value={language.tag}>
+                {language.name}
+              </option>
+            ))}
+          </select>
+          <p id="language-hint" className={styles.navHint}>
+            The language your pages are written in.
+          </p>
+          {errors.language && (
+            <p id="language-error" className={styles.fieldError}>
+              {errors.language}
+            </p>
+          )}
+        </div>
         <div className={styles.selectField}>
           <label className={styles.navFieldLabel} htmlFor="homePageId">
             Home page

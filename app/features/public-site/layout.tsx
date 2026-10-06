@@ -50,6 +50,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   // Only what the header, footer and head tags need (F-108); never the whole row.
   return {
     settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl },
+    language: settings.language,
     navLinks,
     mainOrigin,
   };

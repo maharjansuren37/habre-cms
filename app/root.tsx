@@ -9,8 +9,10 @@ import {
   ScrollRestoration,
   useLocation,
   useRouteError,
+  useRouteLoaderData,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import type { loader as publicLayoutLoader } from "#app/features/public-site/layout.tsx";
 import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import { areaForPath } from "#app/lib/content-security-policy.ts";
@@ -110,8 +112,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const error = useRouteError();
   const onPlatform = isRouteErrorResponse(error) && error.data === PLATFORM_NOT_FOUND;
   const siteLook = areaForPath(pathname) === "public" && !onPlatform;
+  // The public layout's loader runs beside a child's 404, so its data is here
+  // for the public 404 too. Admin, platform and error pages outside a site stay `en`.
+  const publicData = useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout");
+  const lang = siteLook ? (publicData?.language ?? "en") : "en";
   return (
-    <html lang="en" data-surface={siteLook ? "site" : undefined}>
+    <html lang={lang} data-surface={siteLook ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

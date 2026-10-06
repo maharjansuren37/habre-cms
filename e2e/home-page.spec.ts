@@ -115,7 +115,13 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
   for (const homePageId of [postId, "00000000-0000-0000-0000-000000000000", "not-a-uuid"]) {
     const response = await page.request.post(`${origin}/admin/settings`, {
       headers: { Origin: origin },
-      form: { siteTitle: "Doesn't matter", logoMediaId: "", homePageId },
+      form: {
+        siteTitle: "Doesn't matter",
+        logoMediaId: "",
+        homePageId,
+        siteDescription: "",
+        language: "en",
+      },
     });
     expect(response.status()).toBe(400);
     expect(await response.text()).toContain("That home page could not be saved. Choose it again.");

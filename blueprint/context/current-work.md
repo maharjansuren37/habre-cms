@@ -149,7 +149,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     `/sitemap.xml` in **under 500 ms** (quality-bar, public pages), measured
     from the test.
 
-- [ ] **Step 4 - Site description and language in Settings, and
+- [x] **Step 4 - Site description and language in Settings, and
   `<html lang>`**:
   - `settings-input.ts`: `siteDescriptionSchema` (trimmed, <= 300, storable
     text) and `languageSchema` (one of the list); the list lives in one
@@ -275,6 +275,22 @@ pieces: field, textarea, select, the logo field's media picker, the error
   2026-10-06) - native, no script, out of the way of writing. Beat the
   block settings panel, which is block-only and script-driven.
 - **`og:image` is the original upload until item 17b.**
+- **Settled in build (autopilot, 2026-10-06):**
+  - The main origin is computed in root middleware and carried on
+    `siteContext` (`PublicSiteContext`); `find-site` stays free of the
+    environment (Step 2).
+  - The canonical path comes from the route's `slug` param, which the loader
+    matched exactly - loaders return no slug (`public-site.1`) (Step 2).
+  - Sitemap order: `/`, `/posts`, pages by slug, posts newest first; `/posts`
+    is dated by the newest post's `updated_at`; an empty site answers 200
+    with an empty `urlset` (Step 3).
+  - `robots.txt` tells the platform from a site by whether `siteContext` is
+    set; React Router 8.4's context has no `has()`, so it catches the
+    throw (Step 3).
+  - The language list is 68 base left-to-right tags (`languages.ts`); a
+    unit test keeps right-to-left tags out (Step 4).
+  - A settings save missing `siteDescription` or `language` is "out of
+    date", as a missing `homePageId` is (F-107's rule) (Step 4).
 
 ## Production needs
 

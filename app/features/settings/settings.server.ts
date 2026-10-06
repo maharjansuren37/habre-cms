@@ -9,6 +9,8 @@ export type SiteSettings = {
   logoUrl: string | null;
   navigation: NavItem[];
   homePageId: string | null;
+  siteDescription: string;
+  language: string;
 };
 
 /**
@@ -31,11 +33,14 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         storageKey: string | null;
         navigation: unknown;
         homePageId: string | null;
+        siteDescription: string;
+        language: string;
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", s.navigation as "navigation",
-      s.home_page_id as "homePageId"
+      s.home_page_id as "homePageId", s.site_description as "siteDescription",
+      s.language as "language"
     from site_settings s
     left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
     where s.site_id = ${siteId}
@@ -47,6 +52,8 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
     logoUrl: row.storageKey ? buildMediaUrl(r2PublicUrl, row.storageKey) : null,
     navigation: parseStoredNavigation(row.navigation),
     homePageId: row.homePageId,
+    siteDescription: row.siteDescription,
+    language: row.language,
   };
 }
 
@@ -97,6 +104,20 @@ async function updateHomePage(
   `;
 }
 
+/** Another F-40 sibling: only the site's description and language (item 17). */
+async function updateSeoDefaults(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  input: { siteDescription: string; language: string },
+): Promise<void> {
+  await tx`
+    update site_settings
+    set site_description = ${input.siteDescription}, language = ${input.language},
+      updated_at = now()
+    where site_id = ${siteId}
+  `;
+}
+
 export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
 
 /**
@@ -113,6 +134,8 @@ export async function saveSiteSettings(
     logoMediaId: string | null;
     homePageId: string | null;
     navigation: NavItem[];
+    siteDescription: string;
+    language: string;
   },
 ): Promise<SaveSettingsResult> {
   try {
@@ -120,6 +143,7 @@ export async function saveSiteSettings(
       await updateSiteIdentity(tx, siteId, input);
       await updateHomePage(tx, siteId, input.homePageId);
       await updateNavigation(tx, siteId, input.navigation);
+      await updateSeoDefaults(tx, siteId, input);
     });
     return "saved";
   } catch (error) {
