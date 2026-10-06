@@ -84,3 +84,59 @@ File: e2e/account-delete.spec.ts:337-362
 
 ### F-269 [P2] fixed - A client-sent `Forwarded: host=` header may override the pinned `X-Forwarded-Host`, and the host now picks the site and the platform
 File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
+
+### F-298 [P2] open - An animated WebP is flattened to its first frame, and a long one is refused as over 40 megapixels
+File: app/features/media/optimise-image.server.ts:44-45
+
+
+### F-299 [P2] open - The "upload itself is not kept" browser assertions cannot fail
+File: e2e/media-optimise.spec.ts:105-107
+
+
+### F-300 [P2] open - The refusal for an upload that only fails the storage limit after resizing has no test
+File: app/features/media/media-list.tsx:151
+
+
+### F-301 [P3] open - optimise-media's GIF branch can re-create an object for a row deleted meanwhile
+File: scripts/optimise-media.ts:52-60
+
+
+### F-302 [P3] open - optimise-media leaves the old original public if deleting it fails, and never retries
+File: scripts/optimise-media.ts:89
+
+
+### F-303 [P3] open - optimise-media needs the whole web-app environment, not only DATABASE_URL
+File: scripts/optimise-media.ts:13-18; AGENTS.md *Commands*
+
+
+### F-304 [P3] open - The plan's dependency line does not record sharp 0.35.5
+File: blueprint/project-plan.md:168-169
+
+
+### F-305 [P3] open - The media delete log line no longer says which object failed
+File: app/features/media/media-delete.tsx:54
+
+
+### F-306 [P3] open - The phone-viewport srcset checks fail only on a 2400 pick
+File: e2e/image-srcset.spec.ts:123
+
+
+### F-307 [P3] open - media-optimise.spec leaves R2 objects behind when it fails partway
+File: e2e/media-optimise.spec.ts:22-24
+
+
+### F-308 [P3] open - Each upload decodes the original five times
+File: app/features/media/optimise-image.server.ts:49,56
+
+
+### F-309 [P2] unverified - Peak memory resizing a 40-megapixel image on the 954 MB server is unmeasured
+File: app/features/media/optimise-image.server.ts (MAX_INPUT_PIXELS)
+
+
+### F-310 [P2] unverified - sharp's prebuilt x64 binary needs x86-64-v2, which the server is not checked for
+File: deploy/setup-server.sh:47
+
+
+### F-311 [P3] unverified - A year-long immutable cache may keep serving deleted images from a CDN edge
+File: app/features/media/r2.server.ts (IMMUTABLE_CACHE_CONTROL)
+

@@ -2,8 +2,8 @@
 
 **From build plan:** item 17b
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-07, 8f127d2d22f3, 5 of 5 proven (Step 1's timing from a synthetic 24 MP JPEG, not a camera photo)
+**Reviewed:** 2026-10-07, 8f127d2d22f3, current, every lens (reviewer subagent) - 0 blocking; F-298-F-311 recorded
 
 ## Goal
 
