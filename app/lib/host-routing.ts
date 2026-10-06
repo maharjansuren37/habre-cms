@@ -36,7 +36,8 @@ export function classifyHost(request: {
   const { method, pathname, search, platformOrigin } = request;
   // URL.host is already lowercase, port included. A fully qualified name's
   // trailing dot is the same host, so it is dropped before the port.
-  const host = request.requestHost.toLowerCase().replace(/\.(?=:\d+$|$)/, "");
+  const rawHost = request.requestHost.toLowerCase();
+  const host = rawHost.replace(/\.(?=:\d+$|$)/, "");
   const platformHost = new URL(platformOrigin).host;
   const sitesHost = new URL(request.sitesOrigin).host;
   const canRedirect = GET_OR_HEAD.has(method.toUpperCase());
@@ -44,6 +45,13 @@ export function classifyHost(request: {
   if (pathname === "/healthz") return { kind: "allow" };
 
   if (host === platformHost) {
+    // The platform is served only at its own host: a form posted from the
+    // dotted one carries an Origin the cross-site check refuses (F-278).
+    if (host !== rawHost) {
+      return canRedirect
+        ? { kind: "redirect", to: `${platformOrigin}${pathname}${search}` }
+        : { kind: "not-found", foreignHost: false, platformHost: true };
+    }
     if (isPlatformPath(pathname)) return { kind: "allow" };
     if (pathname === "/" && canRedirect) return { kind: "redirect", to: "/admin" };
     return { kind: "not-found", foreignHost: false, platformHost: true };

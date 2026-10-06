@@ -135,7 +135,6 @@ test("the platform host is never read as a site, even when it sits under the sit
 
 test("a trailing dot on the host is ignored, with or without a port", () => {
   assert.deepEqual(classify("lena.habre.page.", "/"), { kind: "subdomain", label: "lena" });
-  assert.deepEqual(classify("app.habre.ai.", "/admin"), { kind: "allow" });
   assert.deepEqual(classify("surenmaharjan.fyi.", "/"), {
     kind: "domain",
     host: "surenmaharjan.fyi",
@@ -151,4 +150,23 @@ test("a trailing dot on the host is ignored, with or without a port", () => {
     }),
     { kind: "subdomain", label: "lena" },
   );
+});
+
+test("the platform host with a trailing dot redirects to the bare platform, and a POST is not found", () => {
+  // A form posted from app.habre.ai. carries that Origin, which the cross-site
+  // check refuses (F-278), so the platform is only ever served at its own host.
+  assert.deepEqual(classify("app.habre.ai.", "/admin/posts", "GET", "?q=1"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/admin/posts?q=1",
+  });
+  assert.deepEqual(classify("app.habre.ai.", "/"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/",
+  });
+  assert.deepEqual(classify("app.habre.ai.", "/admin/login", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
+  assert.deepEqual(classify("app.habre.ai.", "/healthz"), { kind: "allow" });
 });

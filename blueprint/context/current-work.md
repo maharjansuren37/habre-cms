@@ -3,7 +3,7 @@
 **From build plan:** item 16a
 **Type:** Feature
 **Verified:** 2026-10-06, 40e7d8f02549, 9 of 10 proven, 1 could not verify (CI resolving `*.localhost` - the PR's first `e2e` run)
-**Reviewed:** 2026-10-06, 40e7d8f02549, current, every lens - 0 blocking
+**Reviewed:** 2026-10-06, abc3b4e96d01, current (986d402..91afeae, the P3 repairs), every lens - 0 blocking
 
 ## Goal
 
