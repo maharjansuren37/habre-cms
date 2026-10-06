@@ -237,10 +237,8 @@ export type DeletionFacts = {
 /**
  * Which case this member is in, read with `db` (a transaction from `inSite`;
  * entries and media are under row-level security). Not the site's last active
- * admin: leave. The last active admin of the oldest site (`findPublicSiteId`'s
- * rule, which the public domain serves until item 16): refused. Any other last
- * active admin takes the site. Null when the person has no membership on the
- * site any more.
+ * admin: leave. The last active admin takes the site. Null when the person has
+ * no membership on the site any more.
  */
 async function readDeletionFacts(
   db: TransactionSql,
@@ -257,10 +255,8 @@ async function readDeletionFacts(
     select count(*)::int as count from site_members
     where site_id = ${siteId} and role = 'admin' and deactivated_at is null
       and user_id <> ${userId}`;
-  const [oldest] = await db<{ id: string }[]>`
-    select id from sites order by created_at, id limit 1`;
   const isLastActiveAdmin = row.role === "admin" && !row.deactivatedAt && others.count === 0;
-  const kind = deletionCase({ isLastActiveAdmin, isOldestSite: oldest?.id === siteId });
+  const kind = deletionCase({ isLastActiveAdmin });
   if (kind !== "site") return { address: row.address, case: kind, site: null };
   const [counts] = await db<{ posts: number; pages: number; images: number }[]>`
     select
@@ -293,13 +289,12 @@ export type DeleteAccountResult =
       /** The other members of a deleted site, to be told after the commit (empty when leaving). */
       otherMembers: { name: string; email: string }[];
     }
-  | { ok: false; reason: "changed" | "refused" };
+  | { ok: false; reason: "changed" };
 
 /**
  * Deletes the signed-in person's own account, and the site with it when they
  * are its last active admin. **This is the one place a site is deleted.** Every
- * later site-owned table or service adds its own cleanup here: `site_domains`
- * (item 16), image variants' R2 keys (17b), `ai_runs` (18),
+ * later site-owned table or service adds its own cleanup here: image variants' R2 keys (17b), `ai_runs` (18),
  * `contact_submissions` (19) and cancelling the Stripe subscription (21).
  *
  * One transaction: the site's row is locked first, then the user's (15e1's
@@ -310,7 +305,7 @@ export type DeleteAccountResult =
  * uploader of their entries and media, and `email_tokens` cascade from the
  * user. Taking the site: settings, entries, media, memberships, every member's
  * user and the site row, in that order (settings' keys point at entries and
- * media). After the commit the caller removes the returned R2 keys and tells
+ * media; the site's domains go before the site, which they restrict). After the commit the caller removes the returned R2 keys and tells
  * the other members. `userId` and `siteId` are the session's.
  */
 export async function deleteAccount(
@@ -323,7 +318,6 @@ export async function deleteAccount(
     await tx`select id from users where id = ${userId} for update`;
     const facts = await readDeletionFacts(tx, siteId, userId);
     if (!facts) return { ok: false, reason: "changed" };
-    if (facts.case === "refused") return { ok: false, reason: "refused" };
     if (facts.case !== expect) return { ok: false, reason: "changed" };
     if (facts.case === "leave") {
       await tx`delete from site_members where site_id = ${siteId} and user_id = ${userId}`;
@@ -344,6 +338,7 @@ export async function deleteAccount(
     const media = await tx<{ storageKey: string }[]>`
       delete from media where site_id = ${siteId} returning storage_key as "storageKey"`;
     await tx`delete from site_members where site_id = ${siteId}`;
+    await tx`delete from site_domains where site_id = ${siteId}`;
     await tx`delete from users where id in ${tx(members.map((member) => member.id))}`;
     await tx`delete from sites where id = ${siteId}`;
     return {

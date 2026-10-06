@@ -1,12 +1,12 @@
 import { Link, useRouteLoaderData } from "react-router";
 import { findHomePage, hasPublishedPosts } from "#app/features/content/entries.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/home";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
 import listStyles from "./post-list.module.css";
-import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
@@ -17,8 +17,8 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 // `/` is always a landing page (D-12): the chosen page when there is one and
 // it is published; otherwise a placeholder, never the post list - an
 // unpublished or deleted home page never breaks the front door (D-2).
-export async function loader() {
-  const siteId = await findPublicSiteId();
+export async function loader({ context }: Route.LoaderArgs) {
+  const siteId = context.get(siteContext).id;
   const page = await findHomePage(siteId);
   if (page) {
     return {

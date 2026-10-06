@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -86,6 +87,30 @@ test("an editor can write, publish, edit and delete a page, entirely under /admi
   await page.waitForURL(/deleted=/);
   await expect(page.getByText('"About us" was deleted.')).toBeVisible();
   expect(await entryExists(id ?? "")).toBe(false);
+});
+
+test("View site leads from the admin to the published page on the site's own address", async ({
+  page,
+}) => {
+  await logIn(page, editor);
+  await page.goto("/admin/pages/new");
+  await page.getByPlaceholder("Page title").fill("Journey Two");
+  await writeBody(page, "Seen on the site.");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/\/admin\/pages\/[0-9a-f-]+$/);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await page.waitForURL(/published=/);
+
+  // The site card shows the address under the site name.
+  await expect(page.getByText("surenmaharjan.localhost:3100", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "View site" }).click();
+  await page.waitForURL(siteUrl("/"));
+
+  // Not set as the home page (that would change the shared site settings), so
+  // the page is reached at its own address on the same origin.
+  await page.goto(siteUrl("/journey-two"));
+  await expect(page.getByRole("heading", { level: 1, name: "Journey Two" })).toBeVisible();
+  await expect(page.getByText("Seen on the site.")).toBeVisible();
 });
 
 test("a page titled after a route address gets a non-colliding one instead", async ({ page }) => {

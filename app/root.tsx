@@ -8,56 +8,76 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useRouteError,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
-import { resolveHostRouting } from "#app/lib/host-routing.ts";
+import { classifyHost } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 
+// The body of the 404 root middleware throws for a public path on the
+// platform host, which Layout reads to leave the site look off (F-276).
+const PLATFORM_NOT_FOUND = "Not Found on the platform";
+
 // On the root route so every action, now and in later items, is covered
 // without having to remember it.
 export const middleware: Route.MiddlewareFunction[] = [
-  // Ahead of every other check (D22): an admin path on the wrong host, or the
-  // wrong host entirely, is resolved before touching auth, CSRF or a loader.
+  // Ahead of every other check (item 16a, D153): the host decides whether this
+  // is the platform or a site, and which site, before touching auth, CSRF or a
+  // loader. A site's request gets `siteContext`; the platform's does not.
   // `url`, not `request.url`: on a client-side navigation the request is for
   // `/admin.data`, which is not an admin path; `url` has the `.data` removed.
-  function routeByHost({ request, url }) {
-    const publicUrl = new URL(env.PUBLIC_URL);
-    const adminUrl = new URL(env.ADMIN_URL);
-    const decision = resolveHostRouting({
+  async function routeByHost({ request, url, context }) {
+    const decision = classifyHost({
       method: request.method,
       pathname: url.pathname,
       search: url.search,
       requestHost: url.host,
-      publicHost: publicUrl.host,
-      adminHost: adminUrl.host,
-      publicOrigin: publicUrl.origin,
-      adminOrigin: adminUrl.origin,
+      platformOrigin: new URL(env.PLATFORM_URL).origin,
+      sitesOrigin: new URL(env.SITES_URL).origin,
     });
+    if (decision.kind === "allow") return;
     if (decision.kind === "redirect") throw redirect(decision.to);
+
+    // Logged, like the cross-site refusal below (F-70), but only a host outside
+    // both domains: the wildcard sends every guessed name here, and an unknown
+    // address under the sites domain is a normal 404.
+    const refuse = (foreignHost: boolean, platformHost = false): never => {
+      if (foreignHost) {
+        logSecurityEvent({
+          event: "request_refused",
+          reason: "wrong_host",
+          method: request.method,
+          path: url.pathname,
+          host: url.host,
+          ip: clientIp(request.headers),
+        });
+      }
+      // The marker tells Layout this 404 is the platform's (F-276).
+      throw data(platformHost ? PLATFORM_NOT_FOUND : "Not Found", { status: 404 });
+    };
     if (decision.kind === "not-found") {
-      // Logged, like the cross-site refusal below (F-70). A host matching
-      // neither should be unreachable behind Caddy, so seeing one means the
-      // network assumption behind D22 has broken.
-      logSecurityEvent({
-        event: "request_refused",
-        reason: "wrong_host",
-        method: request.method,
-        path: url.pathname,
-        host: url.host,
-        ip: clientIp(request.headers),
-      });
-      throw data("Not Found", { status: 404 });
+      return refuse(decision.foreignHost, decision.platformHost);
     }
+
+    const site =
+      decision.kind === "subdomain"
+        ? await findSiteBySubdomain(decision.label)
+        : await findSiteByDomain(decision.host);
+    // A domain that is not in site_domains is a host nothing here serves.
+    if (!site) return refuse(decision.kind === "domain");
+    context.set(siteContext, site);
   },
   function refuseCrossSiteRequests({ request, url }) {
-    const adminOrigin = new URL(env.ADMIN_URL).origin;
-    if (!isAllowedRequest(request.method, request.headers, adminOrigin)) {
+    const platformOrigin = new URL(env.PLATFORM_URL).origin;
+    if (!isAllowedRequest(request.method, request.headers, platformOrigin)) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",
@@ -73,8 +93,14 @@ export const middleware: Route.MiddlewareFunction[] = [
 export function Layout({ children }: { children: React.ReactNode }) {
   // useLocation, not a loader: Layout also wraps the root ErrorBoundary.
   const { pathname } = useLocation();
+  // A public path's 404 on the platform host is the platform's own page, not a
+  // site's (F-276). Middleware refuses it before any loader runs, so the
+  // marker on the error is the only thing that knows the host.
+  const error = useRouteError();
+  const onPlatform = isRouteErrorResponse(error) && error.data === PLATFORM_NOT_FOUND;
+  const siteLook = areaForPath(pathname) === "public" && !onPlatform;
   return (
-    <html lang="en" data-surface={areaForPath(pathname) === "public" ? "site" : undefined}>
+    <html lang="en" data-surface={siteLook ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { PORT } from "./ports.ts";
 import { PASSWORD, type TestUser, withDatabase } from "./users.ts";
 
 let siteOne: string | undefined;
@@ -13,17 +14,22 @@ export async function siteOneId(): Promise<string> {
   return siteOne;
 }
 
-/** Makes a site and its settings row, and returns the site's id. The subdomain
- *  gets a random suffix so parallel workers never collide. */
-export function createSite(subdomain: string): Promise<string> {
+/** Makes a site and its settings row, and returns the site's id and its address
+ *  (subdomain). The subdomain gets a random suffix so parallel workers never collide. */
+export function createSiteWithAddress(subdomain: string): Promise<{ id: string; address: string }> {
   const unique = `${subdomain}-${randomUUID().slice(0, 8)}`;
   return withDatabase(async (sql) => {
     const [site] = await sql<{ id: string }[]>`
       insert into sites (subdomain) values (${unique}) returning id
     `;
     await sql`insert into site_settings (site_id, site_title) values (${site.id}, ${unique})`;
-    return site.id;
+    return { id: site.id, address: unique };
   });
+}
+
+/** Like `createSiteWithAddress`, for tests that only need the id. */
+export async function createSite(subdomain: string): Promise<string> {
+  return (await createSiteWithAddress(subdomain)).id;
 }
 
 // The app's own hash function, run by node (the e2e project cannot import app/),
@@ -59,7 +65,7 @@ export async function createSiteAdmin(siteId: string, name = "Site Admin"): Prom
   return { email, name, password: PASSWORD };
 }
 
-/** Test cleanup, in dependency order: settings, content, memberships and their users, the site. */
+/** Test cleanup, in dependency order: settings, content, memberships, domains, their users, the site. */
 export function deleteSite(siteId: string): Promise<void> {
   return withDatabase(async (sql) => {
     await sql.begin(async (tx) => {
@@ -71,8 +77,14 @@ export function deleteSite(siteId: string): Promise<void> {
       await tx`delete from entries where site_id = ${siteId}`;
       await tx`delete from media where site_id = ${siteId}`;
       await tx`delete from site_members where site_id = ${siteId}`;
+      await tx`delete from site_domains where site_id = ${siteId}`;
       if (userIds.length > 0) await tx`delete from users where id in ${tx(userIds)}`;
       await tx`delete from sites where id = ${siteId}`;
     });
   });
+}
+
+/** The URL of a public page: each site is served at `http://<address>.localhost:<port>`. */
+export function siteUrl(path: string, address = "surenmaharjan"): string {
+  return `http://${address}.localhost:${PORT}${path}`;
 }

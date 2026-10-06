@@ -11,7 +11,7 @@ import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import { deactivateUser, setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Every test makes its own site and users, never site 1 (no test deletes or
-// reshapes the oldest site, which the public-site specs read).
+// reshapes site 1, which the public-site specs read).
 let siteId: string;
 let subdomain: string;
 let admin: TestUser;
@@ -324,6 +324,26 @@ test("the right address and password delete the site, its members, and free its 
   siteId = reused;
 });
 
+test("the last admin of a site with a verified domain deletes it, and the domain goes too", async ({
+  page,
+}) => {
+  await makeSoleAdminSite();
+  const domain = `deleted-${randomInt(1_000_000)}.example`;
+  await withDatabase(async (sql) => {
+    await sql`insert into site_domains (domain, site_id, verified_at) values (${domain}, ${siteId}, now())`;
+  });
+  await logIn(page, admin);
+  await page.goto("/admin/account/delete");
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+  await expect(page).toHaveURL("/admin/login?deleted=1");
+  const left = await withDatabase(async (sql) => ({
+    sites: (await sql`select 1 from sites where id = ${siteId}`).length,
+    domains: (await sql`select 1 from site_domains where domain = ${domain}`).length,
+  }));
+  expect(left).toEqual({ sites: 0, domains: 0 });
+});
+
 test("a page loaded as leaving is refused once the other admin is deactivated", async ({
   page,
 }) => {
@@ -471,7 +491,7 @@ test("the other members of a deleted site are emailed, the person who deleted it
 test("with email off, deleting a site with a member sends nothing and still succeeds", async ({
   page,
 }) => {
-  const off = `http://localhost:${HOST_SPLIT_PORT}`;
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
   await makeSoleAdminSite();
   await page.goto(`${off}/admin/login`);
   await page.getByLabel("Email").fill(admin.email);

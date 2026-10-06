@@ -1,8 +1,11 @@
+import { Fragment } from "react";
 import { Form, Link, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
+import { findSubdomain } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
+import { siteOrigin, sitesHost } from "#app/lib/site-origin.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
@@ -12,21 +15,31 @@ export const middleware: Route.MiddlewareFunction[] = [requireUser];
 // The loader is what makes client-side navigations call the server, so the
 // middleware checks the user on those too (React Router middleware docs).
 export async function loader({ context }: Route.LoaderArgs) {
-  // "/" on this host redirects to /admin (D22), so the link has to be
-  // absolute on the public host rather than the site-relative "/" it used
-  // to be - env is server-only, so it crosses the loader boundary like `user`.
+  // The admin is on the platform host and a site is on its own address
+  // (D153), so the link has to be absolute. env is server-only, so the origin
+  // crosses the loader boundary like `user`.
   const user = context.get(userContext);
+  const subdomain = await findSubdomain(user.siteId);
   return {
     user,
-    publicUrl: env.PUBLIC_URL,
+    siteUrl: siteOrigin(subdomain, env.SITES_URL),
+    siteAddress: `${subdomain}.${sitesHost(env.SITES_URL)}`,
     settings: await getSiteSettings(user.siteId, env.R2_PUBLIC_URL),
   };
+}
+
+// Each label with the address from it onward, which is unique and so serves
+// as its key.
+function addressLabels(address: string) {
+  return address
+    .split(".")
+    .map((label, index, labels) => ({ label, rest: labels.slice(index).join(".") }));
 }
 
 const ROLE_NAMES = { admin: "Admin", editor: "Editor", author: "Author" } as const;
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { user, publicUrl, settings } = loaderData;
+  const { user, siteUrl, siteAddress, settings } = loaderData;
   const navigation = useNavigation();
   const isLoggingOut =
     navigation.state === "submitting" && navigation.formAction === "/admin/logout";
@@ -39,7 +52,21 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.siteLogo} />}
             {settings.siteTitle}
           </span>
-          <a href={publicUrl}>View site ↗</a>
+          <span className={styles.siteAddress}>
+            {/* A line break may fall after each dot, so a long address wraps
+                between its labels rather than mid-word (F-271). */}
+            {addressLabels(siteAddress).map(({ label, rest }) => (
+              <Fragment key={rest}>
+                {rest !== siteAddress && (
+                  <>
+                    .<wbr />
+                  </>
+                )}
+                {label}
+              </Fragment>
+            ))}
+          </span>
+          <a href={`${siteUrl}/`}>View site ↗</a>
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
             Settings in item 7a, Users in item 8 - each added here in ship

@@ -1,86 +1,142 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { HOST_SPLIT_PORT as PORT } from "./helpers/ports.ts";
-import { createAdmin, deleteTestUser } from "./helpers/users.ts";
+import { PORT, PROXIED_PORT } from "./helpers/ports.ts";
+import { createSiteWithAddress, deleteSite, siteOneId, siteUrl } from "./helpers/sites.ts";
+import { withDatabase } from "./helpers/users.ts";
 
-// Runs against the third web server (playwright.config.ts), started with
-// genuinely different PUBLIC_URL/ADMIN_URL hosts on one port - D22's own
-// answer to "browser tests need two local hostnames". Mostly uses the request
-// API rather than a browser: what is being tested is app/lib/host-routing.ts's
-// redirect and refusal decisions, not anything rendered. Logging in is the
-// exception, because only a browser makes the client-side `.data` requests
-// that reach host routing with a path the framework has not cleaned up.
-const PUBLIC = `http://127.0.0.1:${PORT}`;
-const ADMIN = `http://localhost:${PORT}`;
+// Item 16a's host rules: which host answers what. Root middleware decides
+// before any route runs, so these use the request API with `maxRedirects: 0`:
+// the subject is the status and the Location header of one request, and a
+// browser would follow the redirect and hide it. A site's address is a
+// `*.localhost` name, which Chromium and Node both resolve to the loopback.
+const PLATFORM = `http://127.0.0.1:${PORT}`;
+const PROXIED = `http://127.0.0.1:${PROXIED_PORT}`;
+const unknownAddress = () => `no-such-site-${randomUUID().slice(0, 8)}`;
 
-test("an admin path requested on the public host redirects to the admin host", async ({
-  request,
-}) => {
-  const response = await request.get(`${PUBLIC}/admin/posts`, { maxRedirects: 0 });
-  expect(response.status()).toBe(302);
-  expect(response.headers().location).toBe(`${ADMIN}/admin/posts`);
+test("an unknown address under the sites domain answers 404", async ({ request }) => {
+  const response = await request.get(siteUrl("/", unknownAddress()), { maxRedirects: 0 });
+  expect(response.status()).toBe(404);
 });
 
-test("a public path requested on the admin host redirects to the public host", async ({
+test("a site answers at its address until it is suspended, then answers 404", async ({
   request,
 }) => {
-  const response = await request.get(`${ADMIN}/posts/hello`, { maxRedirects: 0 });
-  expect(response.status()).toBe(302);
-  expect(response.headers().location).toBe(`${PUBLIC}/posts/hello`);
+  const site = await createSiteWithAddress("suspend");
+  try {
+    const before = await request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect(before.status()).toBe(200);
+    expect(await before.text()).toContain(site.address);
+
+    await withDatabase(async (sql) => {
+      await sql`update sites set suspended_at = now() where id = ${site.id}`;
+    });
+
+    const after = await request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect(after.status()).toBe(404);
+  } finally {
+    await deleteSite(site.id);
+  }
 });
 
-test("bare / on the admin host redirects to /admin, not to the public host", async ({
+test("a forwarded own domain serves the site it is verified for", async ({ request }) => {
+  const siteId = await siteOneId();
+  // Retried: manage-settings.spec.ts changes site 1's title on the other worker
+  // (F-103), so the title read and the request can straddle a change (F-272).
+  await expect(async () => {
+    const [settings] = await withDatabase(
+      (sql) =>
+        sql<{ title: string }[]>`
+          select site_title as title from site_settings where site_id = ${siteId}
+        `,
+    );
+    const response = await request.get(`${PROXIED}/`, {
+      headers: { "X-Forwarded-Host": "surenmaharjan.fyi", "X-Forwarded-Proto": "https" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain(settings.title);
+  }).toPass({ timeout: 10_000 });
+});
+
+test("a domain that is not verified answers 404, and serves once it is", async ({ request }) => {
+  const site = await createSiteWithAddress("domain");
+  const domain = `unverified-${randomUUID().slice(0, 8)}.example`;
+  const headers = { "X-Forwarded-Host": domain, "X-Forwarded-Proto": "https" };
+  try {
+    await withDatabase(async (sql) => {
+      await sql`insert into site_domains (domain, site_id) values (${domain}, ${site.id})`;
+    });
+    const unverified = await request.get(`${PROXIED}/`, { headers, maxRedirects: 0 });
+    expect(unverified.status()).toBe(404);
+
+    await withDatabase(async (sql) => {
+      await sql`update site_domains set verified_at = now() where domain = ${domain}`;
+    });
+    const verified = await request.get(`${PROXIED}/`, { headers, maxRedirects: 0 });
+    expect(verified.status()).toBe(200);
+    expect(await verified.text()).toContain(site.address);
+  } finally {
+    await withDatabase(async (sql) => {
+      await sql`delete from site_domains where domain = ${domain}`;
+    });
+    await deleteSite(site.id);
+  }
+});
+
+test("an admin path on a site host redirects to the same path on the platform", async ({
   request,
 }) => {
-  const response = await request.get(ADMIN, { maxRedirects: 0 });
+  const response = await request.get(siteUrl("/admin/posts"), { maxRedirects: 0 });
+  expect(response.status()).toBe(302);
+  expect(response.headers().location).toBe(`${PLATFORM}/admin/posts`);
+});
+
+test("a POST to an admin path on a site host answers 404", async ({ request }) => {
+  // The Origin is the site's own, so React Router's same-origin form check (which
+  // runs before middleware, and answers 400 otherwise) lets it through. The host
+  // rule then answers 404 before this project's cross-site check would run.
+  const response = await request.post(siteUrl("/admin/login"), {
+    headers: { Origin: siteUrl(""), "Content-Type": "application/x-www-form-urlencoded" },
+    data: "email=nobody@example.org&password=wrongpassword123",
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(404);
+});
+
+test("a public path on the platform host answers 404", async ({ request }) => {
+  const response = await request.get(`${PLATFORM}/posts/x`, { maxRedirects: 0 });
+  expect(response.status()).toBe(404);
+});
+
+// F-276: the page look comes from the host, not only the path. data-surface
+// is read after hydration, so the client render is checked as well.
+test("a public path's 404 on the platform host is in the platform's look", async ({ page }) => {
+  const response = await page.goto(`${PLATFORM}/posts/x`);
+  expect(response?.status()).toBe(404);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("html")).not.toHaveAttribute("data-surface", "site");
+});
+
+test("a 404 on a site host keeps the site's look", async ({ page }) => {
+  const response = await page.goto(siteUrl("/posts/no-such-post-f276"));
+  expect(response?.status()).toBe(404);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
+});
+
+test("the platform host's root redirects to the admin", async ({ request }) => {
+  const response = await request.get(`${PLATFORM}/`, { maxRedirects: 0 });
   expect(response.status()).toBe(302);
   expect(response.headers().location).toBe("/admin");
 });
 
-test("a POST to an admin path on the public host is refused rather than redirected", async ({
-  request,
-}) => {
-  const response = await request.post(`${PUBLIC}/admin/login`, {
-    maxRedirects: 0,
-    form: { email: "nobody@example.org", password: "wrong" },
+for (const [kind, url] of [
+  ["the platform host", () => `${PLATFORM}/healthz`],
+  ["a site host", () => siteUrl("/healthz")],
+  ["an unknown host", () => siteUrl("/healthz", unknownAddress())],
+] as const) {
+  test(`/healthz answers 200 on ${kind}`, async ({ request }) => {
+    const response = await request.get(url(), { maxRedirects: 0 });
+    expect(response.status()).toBe(200);
   });
-  expect(response.status()).toBe(404);
-});
-
-test("a request to a host that is neither is refused", async ({ request }) => {
-  const response = await request.get(`${PUBLIC}/`, {
-    headers: { Host: "evil.example" },
-    maxRedirects: 0,
-  });
-  expect(response.status()).toBe(404);
-});
-
-test("/healthz answers on both hosts without redirecting", async ({ request }) => {
-  const onPublic = await request.get(`${PUBLIC}/healthz`);
-  const onAdmin = await request.get(`${ADMIN}/healthz`);
-  expect(onPublic.status()).toBe(200);
-  expect(onAdmin.status()).toBe(200);
-});
-
-test("a client-side data request for /admin on the admin host stays on the admin host", async ({
-  request,
-}) => {
-  // What the browser fetches when it navigates to /admin without reloading.
-  const response = await request.get(`${ADMIN}/admin.data`, { maxRedirects: 0 });
-  const body = await response.text();
-  expect(body).toContain("/admin/login");
-  expect(body).not.toContain(PUBLIC);
-});
-
-test("logging in on the admin host lands on the posts list on the admin host", async ({ page }) => {
-  const user = createAdmin("Host Split Admin");
-  try {
-    await page.goto(`${ADMIN}/admin/login`);
-    await page.getByLabel("Email").fill(user.email);
-    await page.getByLabel("Password").fill(user.password);
-    await page.getByRole("button", { name: "Log in" }).click();
-    await expect(page).toHaveURL(`${ADMIN}/admin/posts`);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
-  } finally {
-    await deleteTestUser(user.email);
-  }
-});
+}

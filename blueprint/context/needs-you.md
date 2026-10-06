@@ -170,15 +170,25 @@ not tidying; it is what keeps the open list true.
       real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
       risk accepted, preflight, 2026-09-23)
 
-- [ ] **Fill `PUBLIC_URL`, `ADMIN_URL` and `JWT_SECRET` in your local `.env`** -
-      credentials; it is your secrets file, so no agent writes to it. Item 4c
-      splits the single `APP_URL` into two - set both to
-      `http://127.0.0.1:3000` for local development (equal origins mean the
-      app redirects nothing, per D22); generate the secret with the command in
-      `.env.example`. Blocks `npm run dev`, `npm start` and `npm run test:e2e`
-      locally (the server refuses to start without them); CI's `verify` needs
-      none of them. Production values are `host`'s. `open` (build, 2026-09-15;
-      reworded for the `APP_URL` split, spec, 2026-09-21)
+- [ ] **Check the first CI `e2e` run on item 16a's PR resolves `*.localhost`** -
+      manual verification; only a push makes CI run, and pushing is yours.
+      Locally Chromium and Playwright's `request` both reach
+      `http://<address>.localhost:3100` (item 16a, Step 1). If CI's run fails
+      on a `*.localhost` visit, the fallback is a `Host` header to
+      `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
+      `open` (verify, 2026-10-06)
+
+- [ ] **Fill `PLATFORM_URL`, `SITES_URL` and `JWT_SECRET` in your local `.env`** -
+      credentials; it is your secrets file, so no agent writes to it. Item 16a
+      replaces `PUBLIC_URL` and `ADMIN_URL` with `PLATFORM_URL`
+      (`http://app.localhost:3000`) and `SITES_URL` (`http://localhost:3000`);
+      a site is then at `http://<address>.localhost:3000`, site 1 at
+      `http://surenmaharjan.localhost:3000`. Generate the secret with the
+      command in `.env.example`. Blocks `npm run dev` and `npm start` locally
+      once item 16a's Step 3 lands (the server refuses to start without
+      them); the browser tests set their own. Production values are `host`'s.
+      `open` (build, 2026-09-15; reworded for the `APP_URL` split, spec,
+      2026-09-21; reworded for item 16a, spec, 2026-10-06)
 
 - [ ] **Choose a home page in production's Settings right after item 9 is
       deployed** - decision; which page is the site's front door is yours.

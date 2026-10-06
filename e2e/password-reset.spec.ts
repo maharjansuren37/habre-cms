@@ -184,7 +184,7 @@ test("an invalid email is explained beside the field and the typed value is kept
 });
 
 test("with email off, /forgot-password is Not Found", async ({ request }) => {
-  const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/forgot-password`, {
+  const response = await request.get(`http://127.0.0.1:${HOST_SPLIT_PORT}/forgot-password`, {
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);
@@ -397,10 +397,10 @@ test("the login page links to the reset page; with email off it asks for an admi
     "href",
     "/forgot-password",
   );
-  await page.goto(`http://localhost:${HOST_SPLIT_PORT}/admin/login`);
+  await page.goto(`http://127.0.0.1:${HOST_SPLIT_PORT}/admin/login`);
   await expect(page.getByText("Ask an admin of this site to reset it")).toBeVisible();
   await expect(page.getByRole("link", { name: "Forgot your password?" })).toHaveCount(0);
-  const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/reset-password`, {
+  const response = await request.get(`http://127.0.0.1:${HOST_SPLIT_PORT}/reset-password`, {
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);

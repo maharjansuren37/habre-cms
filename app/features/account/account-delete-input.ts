@@ -3,20 +3,15 @@ import { isUserFormBodyAllowed } from "#app/features/users/user-input.ts";
 /** What the confirm screen was loaded as: the form carries it back (`expect`). */
 export type DeletionExpect = "leave" | "site";
 
-/** Which of the three situations a person is in; `refused` has no form. */
-export type DeletionCase = "leave" | "site" | "refused";
+/** Which of the two situations a person is in. */
+export type DeletionCase = DeletionExpect;
 
 /**
  * Which case a member is in: not the site's last active admin leaves; the last
- * active admin of the oldest site is refused (the public domain serves it until
- * item 16); any other last active admin takes the site with them.
+ * active admin takes the site with them. Every site is the same.
  */
-export function deletionCase(facts: {
-  isLastActiveAdmin: boolean;
-  isOldestSite: boolean;
-}): DeletionCase {
-  if (!facts.isLastActiveAdmin) return "leave";
-  return facts.isOldestSite ? "refused" : "site";
+export function deletionCase(facts: { isLastActiveAdmin: boolean }): DeletionCase {
+  return facts.isLastActiveAdmin ? "site" : "leave";
 }
 
 const EXPECTS: readonly string[] = ["leave", "site"];

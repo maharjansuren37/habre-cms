@@ -58,7 +58,7 @@ export async function action({ request }: Route.ActionArgs) {
   const issued = await issueResetToken(email);
   if (issued) {
     logSecurityEvent({ event: "password_reset_requested", userId: issued.userId });
-    const message = resetEmail(env.ADMIN_URL, issued.token, issued.name);
+    const message = resetEmail(env.PLATFORM_URL, issued.token, issued.name);
     // Not awaited: the answer is the same for every address, and waiting for
     // the mail server would make a real account answer slower than a missing
     // one. A failed send is logged; the person asks again if nothing arrives.

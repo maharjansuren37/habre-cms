@@ -84,3 +84,7 @@ File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488
 
 ### F-264 [P2] open - The "two admins at once" test can pass without the site-row lock
 File: e2e/account-delete.spec.ts:337-362
+
+
+### F-269 [P2] unverified - A client-sent `Forwarded: host=` header may override the pinned `X-Forwarded-Host`, and the host now picks the site and the platform
+File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32

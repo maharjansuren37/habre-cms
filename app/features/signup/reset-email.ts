@@ -4,11 +4,11 @@
 export const RESET_LIFETIME_HOURS = 1;
 
 export function resetEmail(
-  adminUrl: string,
+  platformUrl: string,
   token: string,
   name?: string,
 ): { subject: string; text: string } {
-  const link = `${adminUrl.replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
+  const link = `${platformUrl.replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
   // First name only, and never a character a mail client could read as markup.
   const first = (name ?? "").replace(/[<>]/g, "").trim().split(/\s+/)[0] ?? "";
   const greeting = first ? `Hi ${first},` : "Hi,";

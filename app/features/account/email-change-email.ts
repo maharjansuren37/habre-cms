@@ -4,11 +4,11 @@
 export const EMAIL_CHANGE_LIFETIME_HOURS = 24;
 
 export function emailChangeEmail(
-  adminUrl: string,
+  platformUrl: string,
   token: string,
   name?: string,
 ): { subject: string; text: string } {
-  const link = `${adminUrl.replace(/\/+$/, "")}/confirm-email?token=${encodeURIComponent(token)}`;
+  const link = `${platformUrl.replace(/\/+$/, "")}/confirm-email?token=${encodeURIComponent(token)}`;
   // First name only, and never a character a mail client could read as markup.
   const first = (name ?? "").replace(/[<>]/g, "").trim().split(/\s+/)[0] ?? "";
   const greeting = first ? `Hi ${first},` : "Hi,";

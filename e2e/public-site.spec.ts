@@ -1,5 +1,6 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
 import { inSection, listItem, textDocument } from "./helpers/documents.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -30,7 +31,7 @@ test("/posts lists only published posts, newest first", async ({ page }) => {
   });
   await createDraftFor(author.email, "A Draft", textDocument(), { status: "draft" });
 
-  await page.goto("/posts");
+  await page.goto(siteUrl("/posts"));
   // Only this test's own titles: other specs publish posts of their own, and the
   // list shows every author's (F-86).
   await expect(page.getByRole("link", { name: "Older Published" })).toBeVisible();
@@ -40,7 +41,7 @@ test("/posts lists only published posts, newest first", async ({ page }) => {
 });
 
 test("with nothing published, /posts says so instead of showing a blank page", async ({ page }) => {
-  await page.goto("/posts");
+  await page.goto(siteUrl("/posts"));
   await expect(page.getByText("Nothing has been published yet.")).toBeVisible();
 });
 
@@ -51,7 +52,7 @@ test("with no home page chosen, / shows the placeholder under the site title, no
     status: "published",
   });
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByRole("heading", { level: 1, name: "Habre CMS" })).toBeVisible();
   await expect(page.getByText("This site is being set up.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Placeholder Spec Post" })).toHaveCount(0);
@@ -76,7 +77,7 @@ test("a published page and post ship no entry id and no settings beyond title, l
     ["/posts/lean-data-post", postId],
     ["/lean-data-page", pageId],
   ] as const) {
-    const response = await request.get(path);
+    const response = await request.get(siteUrl(path));
     expect(response.status()).toBe(200);
     const html = await response.text();
     expect(html).not.toContain(id);
@@ -125,7 +126,7 @@ test("a published post renders its blocks and inline formatting as real elements
     { status: "published" },
   );
 
-  await page.goto("/posts/rendered-post");
+  await page.goto(siteUrl("/posts/rendered-post"));
   await expect(page.getByRole("heading", { level: 1, name: "Rendered Post" })).toBeVisible();
   await expect(page.getByText("Plain para with")).toContainText("Plain para with bold and a link.");
   await expect(page.locator("main strong")).toHaveText("bold");
@@ -143,7 +144,7 @@ test("markup in a post's text renders as text on the public page, never runs", a
     { status: "published" },
   );
 
-  await page.goto("/posts/xss-check");
+  await page.goto(siteUrl("/posts/xss-check"));
   // D26/D28: the public renderer is JSX only, never dangerouslySetInnerHTML -
   // unlike the admin editor (F-33), there is no innerHTML step to exploit here.
   expect(await page.title()).not.toBe("XSS-FIRED");
@@ -156,12 +157,12 @@ test("a draft's URL 404s inside the public chrome, not root's bare error page", 
 }) => {
   await createDraftFor(author.email, "Hidden Draft", textDocument(), { status: "draft" });
 
-  const draftResponse = await page.goto("/posts/hidden-draft");
+  const draftResponse = await page.goto(siteUrl("/posts/hidden-draft"));
   expect(draftResponse?.status()).toBe(404);
   await expect(page.getByText("Page not found.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Habre CMS" })).toBeVisible();
 
-  const missingResponse = await page.goto("/posts/does-not-exist");
+  const missingResponse = await page.goto(siteUrl("/posts/does-not-exist"));
   expect(missingResponse?.status()).toBe(404);
   await expect(page.getByText("Page not found.")).toBeVisible();
 });
@@ -187,7 +188,7 @@ test("a published page renders its blocks at its own address", async ({ page }) 
     { status: "published", type: "page" },
   );
 
-  await page.goto("/rendered-page");
+  await page.goto(siteUrl("/rendered-page"));
   await expect(page.getByRole("heading", { level: 1, name: "Rendered Page" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "A heading" })).toBeVisible();
   await expect(page.locator("main li")).toHaveText(["item one", "item two"]);
@@ -201,7 +202,7 @@ test("markup in a page's text renders as text on the public page, never runs", a
     { status: "published", type: "page" },
   );
 
-  await page.goto("/page-xss-check");
+  await page.goto(siteUrl("/page-xss-check"));
   expect(await page.title()).not.toBe("XSS-FIRED");
   expect(await page.locator("main img").count()).toBe(0);
   await expect(page.getByText("use <img", { exact: false })).toBeVisible();
@@ -215,12 +216,12 @@ test("a draft page's URL 404s inside the public chrome, and so does an unclaimed
     type: "page",
   });
 
-  const draftResponse = await page.goto("/hidden-draft-page");
+  const draftResponse = await page.goto(siteUrl("/hidden-draft-page"));
   expect(draftResponse?.status()).toBe(404);
   await expect(page.getByText("Page not found.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Habre CMS" })).toBeVisible();
 
-  const missingResponse = await page.goto("/does-not-exist-either");
+  const missingResponse = await page.goto(siteUrl("/does-not-exist-either"));
   expect(missingResponse?.status()).toBe(404);
   await expect(page.getByText("Page not found.")).toBeVisible();
 });
@@ -245,9 +246,9 @@ test("public pages meet the quality bar's 500ms p95 (server-side)", async ({ req
     type: "page",
   });
 
-  const homeP95 = await measureP95(request, "/");
-  const postP95 = await measureP95(request, "/posts/timing-post");
-  const pageP95 = await measureP95(request, "/timing-page");
+  const homeP95 = await measureP95(request, siteUrl("/"));
+  const postP95 = await measureP95(request, siteUrl("/posts/timing-post"));
+  const pageP95 = await measureP95(request, siteUrl("/timing-page"));
   console.log(
     `p95: GET / = ${homeP95.toFixed(1)}ms, GET /posts/:slug = ${postP95.toFixed(1)}ms, GET /:slug = ${pageP95.toFixed(1)}ms`,
   );

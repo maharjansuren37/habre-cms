@@ -42,6 +42,18 @@ test("logging in from a protected page returns to that page", async ({ page }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
 });
 
+test("signed out, opening /admin/pages sends you to login and back to /admin/pages", async ({
+  page,
+}) => {
+  await page.goto("/admin/pages");
+  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fpages");
+
+  await logIn(page);
+
+  await expect(page).toHaveURL("/admin/pages");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pages");
+});
+
 test("a wrong password is refused without saying which part was wrong", async ({ page }) => {
   await page.goto("/admin/login");
   await logIn(page, user.email, "not the right password");

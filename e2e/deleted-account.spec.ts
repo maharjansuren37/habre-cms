@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { insertTestMediaRow } from "./helpers/media.ts";
-import { siteOneId } from "./helpers/sites.ts";
+import { siteOneId, siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -14,8 +14,8 @@ import {
   withDatabase,
 } from "./helpers/users.ts";
 
-// Site 1 on purpose: the public site serves only the oldest site until item 16,
-// so the public post and `/` can be checked nowhere else. site_settings'
+// Site 1, as before item 16a, when the public site served only the oldest
+// site; it could now move to a site of its own (D308). site_settings'
 // home_page_id is shared with home-page.spec.ts (F-103), so it is changed late
 // and put back at once.
 let admin: TestUser;
@@ -100,7 +100,7 @@ test("a deleted member's rows stay, shown as Deleted account, and stay public", 
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(async () => (await storedEntry(postId)).version).toBeGreaterThan(versionBefore);
 
-  const publicPost = await page.goto(`/posts/${postSlug}`);
+  const publicPost = await page.goto(siteUrl(`/posts/${postSlug}`));
   expect(publicPost?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1, name: postTitle })).toBeVisible();
   await expect(page.locator("time")).toBeVisible();
@@ -108,6 +108,6 @@ test("a deleted member's rows stay, shown as Deleted account, and stay public", 
   await expect(page.getByText("Deleted account")).toHaveCount(0);
   await expect(page.locator("main p").first()).not.toContainText("·");
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByText("Front door")).toBeVisible();
 });

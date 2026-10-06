@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -65,7 +66,7 @@ for (const [name, path] of [
 ] as const) {
   test(`${name} is in the site scope and stays light under a dark device`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await page.goto(path);
+    await page.goto(siteUrl(path));
     await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
     await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -272,7 +273,7 @@ test.describe("the public pages", () => {
       `/posts/a-published-post-about-gardens-${suffix}`,
       `/theme-sections-${suffix}`,
     ]) {
-      await page.goto(path);
+      await page.goto(siteUrl(path));
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
       expect(await sidewaysOverflow(page), path).toEqual([]);
     }

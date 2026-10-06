@@ -4,6 +4,7 @@ import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -59,7 +60,7 @@ test("an admin can set the site title and logo, and both reach the admin sidebar
 
   // The public home page: the same literal two other spec files check for the
   // default - restored the instant this assertion is done (afterEach is the backstop).
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByRole("link", { name: "Verify Settings Site" })).toBeVisible();
   await expect(page.locator("header img")).toBeVisible();
 });
@@ -81,15 +82,15 @@ test("every public page's browser title names the site, not the CMS (F-116)", as
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
 
-  await page.goto(`/posts/${slugOf(postTitle)}`);
+  await page.goto(siteUrl(`/posts/${slugOf(postTitle)}`));
   await expect(page).toHaveTitle(`${postTitle} - ${siteTitle}`);
-  await page.goto(`/${slugOf(pageTitle)}`);
+  await page.goto(siteUrl(`/${slugOf(pageTitle)}`));
   await expect(page).toHaveTitle(`${pageTitle} - ${siteTitle}`);
-  await page.goto("/posts");
+  await page.goto(siteUrl("/posts"));
   await expect(page).toHaveTitle(`Posts - ${siteTitle}`);
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page).toHaveTitle(siteTitle);
-  const response = await page.goto(`/no-such-page-${randomInt(1_000_000)}`);
+  const response = await page.goto(siteUrl(`/no-such-page-${randomInt(1_000_000)}`));
   expect(response?.status()).toBe(404);
   await expect(page).toHaveTitle(`Page not found - ${siteTitle}`);
 

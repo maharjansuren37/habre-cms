@@ -35,3 +35,9 @@
 - [ ] Migration `0014_deleted_accounts.sql` (additive: relaxes two columns; runs with the v1 deploy's other migrations). The release cannot be rolled back by symlink once a deleted author exists.
 - [ ] No new environment variables. The members' notice needs email on in production (`SMTP_URL`, `EMAIL_FROM` - the Resend line in `needs-you.md`); without it, members are not told.
 - [ ] The privacy policy (`needs-you.md`) says deleted accounts stay in the nightly backups until they age out (7 days locally per `deploy/backup-db.sh`; the R2 bucket's retention is not known).
+
+## features/16a-sites-by-host
+
+- [ ] Migration `0015_site_domains.sql` (additive; runs with the v1 deploy's other migrations). Seeds `surenmaharjan.fyi` for subdomain `surenmaharjan`.
+- [ ] `PLATFORM_URL` and `SITES_URL` in `/etc/habre-cms/production.env`, and `PUBLIC_URL` / `ADMIN_URL` removed from the systemd unit (this release's `deploy/habre-cms.service` no longer sets them). The values depend on the platform and sites domains still to be bought (`needs-you.md`).
+- [ ] DNS and certificates for the platform and sites domains, and the Caddy file - item 16b and `host`. Without them, nothing reaches the new hosts.

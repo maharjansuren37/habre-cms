@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
-import { siteOneId } from "./helpers/sites.ts";
+import { siteOneId, siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -52,7 +52,7 @@ test("an admin adds a page item and a URL item, reorders, removes one, and the h
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   const nav = page.getByRole("navigation", { name: "Site" });
   const links = nav.getByRole("link");
   await expect(links).toHaveCount(2);
@@ -76,14 +76,14 @@ test("an admin adds a page item and a URL item, reorders, removes one, and the h
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   const linksAfter = page.getByRole("navigation", { name: "Site" }).getByRole("link");
   await expect(linksAfter).toHaveCount(1);
   await expect(linksAfter.nth(0)).toHaveText("Docs");
 });
 
 test("an empty menu renders no navigation landmark", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByRole("navigation", { name: "Site" })).toHaveCount(0);
 });
 
@@ -96,7 +96,7 @@ test("unpublishing a linked page drops it from the header with no error", async 
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(
     page.getByRole("navigation", { name: "Site" }).getByRole("link", { name: "About" }),
   ).toBeVisible();
@@ -107,7 +107,7 @@ test("unpublishing a linked page drops it from the header with no error", async 
   await page.getByRole("button", { name: "Unpublish" }).click();
   await page.waitForURL(/unpublished=/);
 
-  const response = await page.goto("/");
+  const response = await page.goto(siteUrl("/"));
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("navigation", { name: "Site" })).toHaveCount(0);
 });

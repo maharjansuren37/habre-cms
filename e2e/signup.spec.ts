@@ -72,6 +72,16 @@ test("the signup page shows its five fields by label", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Create my website" })).toBeVisible();
 });
 
+test("the address field's description includes the sites domain suffix", async ({ page }) => {
+  await page.goto("/signup");
+
+  // The suffix is plain text after the input, and part of its accessible description.
+  await expect(page.getByText(".localhost:3100", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Your website’s address")).toHaveAccessibleDescription(
+    /\.localhost:3100/,
+  );
+});
+
 test("two errors are summarised, shown beside their fields, and the input is kept", async ({
   page,
 }) => {
@@ -335,13 +345,7 @@ test("with signup off, /signup is Not Found", async ({ request }) => {
   const response = await request.get(`http://127.0.0.1:${HOST_SPLIT_PORT}/signup`, {
     maxRedirects: 0,
   });
-  // The host-split server's admin host is `localhost`, so 127.0.0.1 (the public
-  // host) redirects a platform path there; follow it to the answer.
-  expect([302, 404]).toContain(response.status());
-  const final = await request.get(`http://localhost:${HOST_SPLIT_PORT}/signup`, {
-    maxRedirects: 0,
-  });
-  expect(final.status()).toBe(404);
+  expect(response.status()).toBe(404);
 });
 
 const NEUTRAL = (email: string) => `If ${email} is waiting to be confirmed, we’ve sent a new link.`;

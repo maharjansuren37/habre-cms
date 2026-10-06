@@ -28,11 +28,12 @@ Needs Node 26 and Docker.
     docker compose up -d        # development PostgreSQL 16
     npm run db:migrate
     npm run create-admin -- --email you@example.org --name "Your Name"
-    npm run dev                 # http://127.0.0.1:3000 - log in at /admin/login
+    npm run dev                 # log in at http://app.localhost:3000/admin/login;
+                                # site 1 is at http://surenmaharjan.localhost:3000
 
-In `.env`, the web app needs `DATABASE_URL`, `PUBLIC_URL` and `ADMIN_URL`
-(both `http://127.0.0.1:3000` locally; the real `https://` addresses in
-production - D22), `JWT_SECRET` (at least 32 characters - `.env.example`
+In `.env`, the web app needs `DATABASE_URL`, `PLATFORM_URL` and `SITES_URL`
+(`http://app.localhost:3000` and `http://localhost:3000` locally; the real
+`https://` origins in production), `JWT_SECRET` (at least 32 characters - `.env.example`
 has the command that generates one), and five `R2_*` variables for image
 uploads (a Cloudflare R2 bucket and API token - see `.env.example`). The
 server refuses to start without all of them. `db:migrate` and `create-admin`

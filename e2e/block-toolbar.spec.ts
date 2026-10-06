@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { imageBlock, lineBlock, type TestNode } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -233,7 +234,7 @@ test("an untouched column of a two-column section shows the hint, in the editor 
     status: "published",
   });
   expect(id).not.toBe("");
-  await page.goto("/public-hint");
+  await page.goto(siteUrl("/public-hint"));
   await expect(page.getByText("A", { exact: true })).toBeVisible();
   await expect(page.getByText(HINT)).toHaveCount(0);
   await expect(page.locator("[data-hint]")).toHaveCount(0);
@@ -445,7 +446,7 @@ test("journey 4: Main heading moves the page's one h1, announced, undone in one 
     doc(section([heading(2, "Welcome"), "Intro", heading(1, "Our work")])),
   );
 
-  await page.goto("/journey-four");
+  await page.goto(siteUrl("/journey-four"));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Our work"]);
   await expect(page.getByRole("heading", { name: "Journey Four" })).toHaveCount(0);
 });
@@ -455,7 +456,7 @@ test("a page with no main heading still shows its title as the h1", async ({ pag
     type: "page",
     status: "published",
   });
-  await page.goto("/title-shown");
+  await page.goto(siteUrl("/title-shown"));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Title Shown"]);
 });
 
@@ -655,7 +656,7 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
 
     await page.getByRole("button", { name: "Publish" }).click();
     await expect(page).toHaveURL(/\/admin\/pages\?/);
-    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await page.goto(siteUrl(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`));
     await expect(page.getByRole("main").getByRole("paragraph")).toHaveText(["Second", "First"]);
   });
 }

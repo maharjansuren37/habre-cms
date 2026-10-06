@@ -198,7 +198,7 @@ test("five wrong current passwords lock the check, even for the right one", asyn
 });
 
 // Email off: the server on HOST_SPLIT_PORT has no SMTP, so a change is immediate.
-const OFF = `http://localhost:${HOST_SPLIT_PORT}`;
+const OFF = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
 
 async function logInOff(page: Page, email: string, password: string): Promise<void> {
   await page.goto(`${OFF}/admin/login`);
@@ -606,7 +606,7 @@ test("a reset link requested before the change stops working", async ({ page }) 
 });
 
 test("with email off, /confirm-email is Not Found", async ({ request }) => {
-  const response = await request.get(`http://localhost:${HOST_SPLIT_PORT}/confirm-email?token=x`, {
+  const response = await request.get(`http://127.0.0.1:${HOST_SPLIT_PORT}/confirm-email?token=x`, {
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);

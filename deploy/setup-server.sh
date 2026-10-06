@@ -140,6 +140,8 @@ create_database_and_env_file() {
         "DATABASE_URL=postgres://$APP_ROLE:$NEW_APP_PASSWORD@127.0.0.1:5432/$DB_NAME" \
         "DATABASE_OWNER_URL=postgres://$APP_USER:$db_password@127.0.0.1:5432/$DB_NAME" \
         "JWT_SECRET=$jwt_secret" \
+        "# Item 16a - the platform and sites origins. Fill in once the domains exist:" \
+        "# PLATFORM_URL=" "# SITES_URL=" \
         "# Item 5 - images. Fill in once the R2 bucket and token exist:" \
         "# R2_ACCOUNT_ID=" "# R2_ACCESS_KEY_ID=" "# R2_SECRET_ACCESS_KEY=" \
         "# R2_BUCKET=" "# R2_PUBLIC_URL=" > "$ENV_FILE"

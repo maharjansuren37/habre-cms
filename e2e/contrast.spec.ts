@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { siteUrl } from "./helpers/sites.ts";
 
 // WCAG 2.x contrast of Habre's role tokens, measured on the real served app.
 // The pairs and minimums are those of prototypes/checks/contrast.mjs, except
@@ -101,11 +102,11 @@ test("Habre's scope meets contrast in dark mode", async ({ page }) => {
 });
 
 test("the site scope meets contrast in light mode", async ({ page }) => {
-  expect(await measure(page, "/", "light")).toEqual([]);
+  expect(await measure(page, siteUrl("/"), "light")).toEqual([]);
   await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
 });
 
 test("the site scope still meets contrast under a dark device", async ({ page }) => {
-  expect(await measure(page, "/", "dark")).toEqual([]);
+  expect(await measure(page, siteUrl("/"), "dark")).toEqual([]);
   await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
 });

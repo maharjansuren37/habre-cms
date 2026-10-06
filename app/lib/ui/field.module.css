@@ -56,3 +56,28 @@
 .error {
   color: var(--color-danger);
 }
+
+/* An input with fixed text after it: the site address (prototypes/components.css .input-group). */
+.inputGroup {
+  display: flex;
+  align-items: stretch;
+}
+
+.inputGroup .input {
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.addon {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-left: 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
