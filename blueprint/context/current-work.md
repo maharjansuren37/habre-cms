@@ -160,7 +160,7 @@ design.md's *Screens* (Admin shell row).
   - every `reverse_proxy` in the JSON deletes `Forwarded`;
   - the token's test value does not appear in the JSON (`grep -c` shows 0);
   - the command and output are shown.
-- [ ] **Step 4 - Prove the hosts through a local Caddy** - a throwaway run, not
+- [x] **Step 4 - Prove the hosts through a local Caddy** - a throwaway run, not
   committed. The Step 3 Caddy runs in Docker (`--network host`) in front of
   `npm start`. It loads a test main Caddyfile that imports a copy of the real
   file. The copy differs **only** in its `tls` lines (`tls internal` instead
