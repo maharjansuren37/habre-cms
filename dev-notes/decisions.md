@@ -322,6 +322,8 @@ in view.
 `app.<platform domain>` and sites to a separate sites domain. The reasoning
 above - separate origins for the admin and public pages - carries over and is
 strengthened by putting sites on a different registrable domain.
+Took effect with item 16a (2026-10-06, D309-D312): the platform and sites hosts
+replace the apex/`cms.` split.
 
 ## D23 - The Node listener is built directly, to trust Caddy's forwarded headers (2026-09-16)
 
@@ -3048,6 +3050,9 @@ for 16 to remove.
 Costs: a site created with an earlier timestamp would take over the public
 host; nothing makes one before 16.
 
+**Superseded by D311** (2026-10-06): item 16a resolves each request's site
+from its host; `findPublicSiteId` is deleted.
+
 ## D249 - New uploads go under `sites/<site id>/`; existing R2 objects keep their keys (2026-10-04)
 
 **Chose:** `generateStorageKey(siteId, ext)` returns
@@ -3523,6 +3528,9 @@ Beats: allowing it. Until item 16 the public domain serves the oldest site
 (`findPublicSiteId`), so deleting it would put a stranger's site on it.
 Costs: that admin must promote another member first.
 
+**Lifted by D318** (2026-10-06): once each site is served from its own host,
+the oldest site is no longer special.
+
 ## D303 - The last admin types the site's address; everyone gives their current password, checked like a login (2026-10-05)
 
 **Chose:** 15e1's `withCurrentPassword` gate: one password slot, and a wrong
@@ -3587,3 +3595,89 @@ Costs: someone else can take a recently deleted site's address.
   `home_page_id`, but shares that row with `home-page.spec.ts` (F-103).
 Beats: the alternatives recorded in the 15e2 archive.
 Costs: the site-1 spec adds to F-103's shared-row risk.
+
+## D309 - `PLATFORM_URL` and `SITES_URL` replace `ADMIN_URL` and `PUBLIC_URL` (2026-10-06)
+
+**Chose:** two new names, each an http(s) bare origin refused at startup
+otherwise, naming the variable (owner, 2026-10-06). A site's origin is
+`SITES_URL`'s scheme, then `<address>.`, then its host with its port.
+Beats: keeping the old names with new meanings.
+Costs: every environment's configuration changes, production's included.
+
+## D310 - No single-host fallback: a public path on the platform host answers 404 (2026-10-06)
+
+**Chose:** development and the browser suite use `127.0.0.1` for the platform
+and `<address>.localhost` for sites, so host lookup is always exercised
+(owner, 2026-10-06).
+Beats: serving the oldest site when the two URLs are equal - fewer test
+changes, but the main suite would never exercise host lookup.
+Costs: every public visit in the suite goes through `siteUrl`, and CI must
+resolve `*.localhost`.
+
+## D311 - The site is resolved once, in root middleware, into router context (2026-10-06)
+
+**Chose:** a pure host classifier (`app/lib/host-routing.ts`) and one indexed
+query set `siteContext` (`{ id, subdomain }`) before any route runs; public
+loaders read it and throw if it is unset.
+Beats: each loader looking up the host itself.
+Costs: the context is load-bearing for items 17 and 19.
+
+## D312 - A platform path on a site host redirects to the platform, without a lookup (2026-10-06)
+
+**Chose:** GET/HEAD redirect to the same path on the platform origin, anything
+else answers 404, keeping D22's behaviour. The classifier does not ask whether
+the host is a real site first, so an unknown host's `/admin` also redirects.
+Beats: a 404 for every admin path, which strands someone who types
+`<address>.habre.page/admin`.
+Costs: none worth naming; the target is always the platform origin, so it is
+not an open redirect.
+
+## D313 - Only a host outside both domains is logged as `wrong_host` (2026-10-06)
+
+**Chose:** an unknown or suspended address under the sites domain is a silent
+404.
+Beats: logging every miss - the wildcard sends every guessed name here and
+would bury the real signal.
+Costs: guessing at addresses leaves no trace in the app log (Caddy's access
+log still has it).
+
+## D314 - Own domains match on the full lowercased host, ports included (2026-10-06)
+
+**Chose:** no port stripping for `site_domains` lookups.
+Beats: stripping ports - production has none; a port only appears in a test.
+Costs: a test that wants an own domain sends it without a port
+(`X-Forwarded-Host`).
+
+## D315 - Links use the site's subdomain until item 17 (2026-10-06)
+
+**Chose:** View site and the site card use `siteOrigin(address, SITES_URL)`,
+even for a site with an own domain.
+Beats: linking to `surenmaharjan.fyi` now - the seed row exists in every
+environment, so development's View site would open production.
+Costs: site 1's links show its subdomain until item 17 picks a main address
+(D173).
+
+## D316 - `site_domains` is seeded for subdomain `surenmaharjan`, not "the oldest site" (2026-10-06)
+
+**Chose:** `0015` gives `surenmaharjan.fyi`, verified, to the site whose
+subdomain is `surenmaharjan`, when it exists.
+Beats: the oldest site - on a fresh install its name is chance.
+Costs: a self-hosted install gets no seed row, which is right.
+
+## D317 - `site_domains` restricts deletes; `deleteAccount` removes the rows (2026-10-06)
+
+**Chose:** `on delete restrict` on `site_id`, and the app role gets only
+`select, delete` (`roles.sql` re-applies the narrowing, F-270). Item 21 adds
+`insert` when it needs it.
+Beats: `on delete cascade` - the pattern 15e2 set makes every site table's
+removal explicit in `deleteAccount`.
+Costs: each new site table must be added to `deleteAccount` by hand.
+
+## D318 - The oldest site is ordinary (D302 lifted) (2026-10-06)
+
+**Chose:** the last active admin of any site can delete their account; the
+site and its domains go with it.
+Beats: keeping the refusal - once the public host no longer serves the oldest
+site, nothing makes it special.
+Costs: none; `e2e/deleted-account.spec.ts` can now move off site 1 (not done
+here, D308).
