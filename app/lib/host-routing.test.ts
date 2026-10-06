@@ -28,11 +28,16 @@ test("/ on the platform host redirects to /admin, and a POST there is not found"
   assert.deepEqual(classify("app.habre.ai", "/", "POST"), {
     kind: "not-found",
     foreignHost: false,
+    platformHost: true,
   });
 });
 
 test("a public path on the platform host is not found, unlogged", () => {
-  assert.deepEqual(classify("app.habre.ai", "/posts/x"), { kind: "not-found", foreignHost: false });
+  assert.deepEqual(classify("app.habre.ai", "/posts/x"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
 });
 
 test("a host under the sites domain is looked up by its label", () => {
@@ -126,4 +131,24 @@ test("the platform host is never read as a site, even when it sits under the sit
     sitesOrigin: "http://localhost:3000",
   });
   assert.deepEqual(nested, { kind: "allow" });
+});
+
+test("a trailing dot on the host is ignored, with or without a port", () => {
+  assert.deepEqual(classify("lena.habre.page.", "/"), { kind: "subdomain", label: "lena" });
+  assert.deepEqual(classify("app.habre.ai.", "/admin"), { kind: "allow" });
+  assert.deepEqual(classify("surenmaharjan.fyi.", "/"), {
+    kind: "domain",
+    host: "surenmaharjan.fyi",
+  });
+  assert.deepEqual(
+    classifyHost({
+      method: "GET",
+      pathname: "/",
+      search: "",
+      requestHost: "lena.localhost.:3100",
+      platformOrigin: "http://127.0.0.1:3100",
+      sitesOrigin: "http://localhost:3100",
+    }),
+    { kind: "subdomain", label: "lena" },
+  );
 });

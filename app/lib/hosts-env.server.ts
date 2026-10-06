@@ -13,8 +13,10 @@ function isBareOrigin(value: string): boolean {
 export const hostsEnvFields = {
   // The platform's origin (sign-in, signup, admin): checked against the Origin
   // of state-changing requests, and https here is what makes the session
-  // cookie Secure.
-  PLATFORM_URL: z.url({ protocol: /^https?$/ }),
+  // cookie Secure. Email links append paths to it, so it must be a bare origin.
+  PLATFORM_URL: z.url({ protocol: /^https?$/ }).refine(isBareOrigin, {
+    message: "PLATFORM_URL must be an origin with no path, query, fragment or credentials",
+  }),
   // The sites domain's origin. A site's origin is its scheme, `<address>.`,
   // then this host, so it must be a bare origin.
   SITES_URL: z.url({ protocol: /^https?$/ }).refine(isBareOrigin, {

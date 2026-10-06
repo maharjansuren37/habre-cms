@@ -43,6 +43,8 @@
 
 .siteAddress {
   color: var(--color-text-muted);
+  /* The fallback for one label too long for the line; the <wbr> after each
+     dot is where it breaks first. */
   overflow-wrap: anywhere;
 }
 

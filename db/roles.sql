@@ -30,3 +30,14 @@ alter default privileges for role habre_cms in schema public
   grant select, insert, update, delete on tables to habre_cms_app;
 alter default privileges for role habre_cms in schema public
   grant usage, select on sequences to habre_cms_app;
+
+-- Narrower grants a migration set, put back after the blanket grant above so a
+-- re-run (setup-server.sh refreshes grants) does not widen them (F-270).
+-- site_domains (0015): the app reads and deletes, never inserts or updates.
+do $$
+begin
+  if to_regclass('public.site_domains') is not null then
+    revoke insert, update on site_domains from habre_cms_app;
+  end if;
+end
+$$;

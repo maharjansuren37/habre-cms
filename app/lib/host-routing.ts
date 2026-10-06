@@ -10,7 +10,8 @@ export type HostClassification =
   | { readonly kind: "redirect"; readonly to: string }
   // foreignHost: outside both the platform host and the sites domain. Only
   // those are logged; a guessed name under the sites domain is a normal 404.
-  | { readonly kind: "not-found"; readonly foreignHost: boolean }
+  // platformHost: the 404 is the platform's, so it is not in a site's look.
+  | { readonly kind: "not-found"; readonly foreignHost: boolean; readonly platformHost?: true }
   | { readonly kind: "subdomain"; readonly label: string }
   | { readonly kind: "domain"; readonly host: string };
 
@@ -33,8 +34,9 @@ export function classifyHost(request: {
   sitesOrigin: string;
 }): HostClassification {
   const { method, pathname, search, platformOrigin } = request;
-  // URL.host is already lowercase, port included.
-  const host = request.requestHost.toLowerCase();
+  // URL.host is already lowercase, port included. A fully qualified name's
+  // trailing dot is the same host, so it is dropped before the port.
+  const host = request.requestHost.toLowerCase().replace(/\.(?=:\d+$|$)/, "");
   const platformHost = new URL(platformOrigin).host;
   const sitesHost = new URL(request.sitesOrigin).host;
   const canRedirect = GET_OR_HEAD.has(method.toUpperCase());
@@ -44,7 +46,7 @@ export function classifyHost(request: {
   if (host === platformHost) {
     if (isPlatformPath(pathname)) return { kind: "allow" };
     if (pathname === "/" && canRedirect) return { kind: "redirect", to: "/admin" };
-    return { kind: "not-found", foreignHost: false };
+    return { kind: "not-found", foreignHost: false, platformHost: true };
   }
 
   const underSites = host.endsWith(`.${sitesHost}`);

@@ -36,3 +36,11 @@ test("the refusal message never contains the value", () => {
 test("PLATFORM_URL must be an http(s) URL", () => {
   assert.throws(() => hostsEnvSchema.parse({ PLATFORM_URL: "nope", SITES_URL: "https://a.test" }));
 });
+
+test("a PLATFORM_URL with a path is refused naming PLATFORM_URL", () => {
+  assert.throws(
+    () =>
+      hostsEnvSchema.parse({ PLATFORM_URL: "https://app.habre.ai/x", SITES_URL: "https://a.test" }),
+    /PLATFORM_URL/,
+  );
+});

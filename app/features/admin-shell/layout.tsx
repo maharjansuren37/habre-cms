@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Form, Link, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
@@ -27,6 +28,14 @@ export async function loader({ context }: Route.LoaderArgs) {
   };
 }
 
+// Each label with the address from it onward, which is unique and so serves
+// as its key.
+function addressLabels(address: string) {
+  return address
+    .split(".")
+    .map((label, index, labels) => ({ label, rest: labels.slice(index).join(".") }));
+}
+
 const ROLE_NAMES = { admin: "Admin", editor: "Editor", author: "Author" } as const;
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
@@ -43,7 +52,20 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.siteLogo} />}
             {settings.siteTitle}
           </span>
-          <span className={styles.siteAddress}>{siteAddress}</span>
+          <span className={styles.siteAddress}>
+            {/* A line break may fall after each dot, so a long address wraps
+                between its labels rather than mid-word (F-271). */}
+            {addressLabels(siteAddress).map(({ label, rest }) => (
+              <Fragment key={rest}>
+                {rest !== siteAddress && (
+                  <>
+                    .<wbr />
+                  </>
+                )}
+                {label}
+              </Fragment>
+            ))}
+          </span>
           <a href={`${siteUrl}/`}>View site ↗</a>
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,

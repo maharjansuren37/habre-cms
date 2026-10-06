@@ -14,8 +14,9 @@ const FALLBACK: Record<EntryType, string> = { post: "post", page: "page" };
 // Addresses a page can never be handed, whether or not one is already taken in
 // the database - `admin` and `posts` are routes this app already answers,
 // `healthz` is the health check, and `api` is reserved for a route that does
-// not exist yet, so a page cannot claim it first (item 6a). `signup` and
-// `verify` are the platform paths on the admin host (item 15b).
+// not exist yet, so a page cannot claim it first (item 6a). The rest are the
+// platform paths: on a site host they redirect to the platform (item 16a), so
+// a page at one of them could never be seen.
 export const RESERVED_PAGE_SLUGS = [
   "admin",
   "posts",
@@ -25,6 +26,7 @@ export const RESERVED_PAGE_SLUGS = [
   "verify",
   "forgot-password",
   "reset-password",
+  "confirm-email",
 ] as const;
 
 export function slugFromTitle(title: string, type: EntryType): string {

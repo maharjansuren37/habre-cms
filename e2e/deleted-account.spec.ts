@@ -14,8 +14,8 @@ import {
   withDatabase,
 } from "./helpers/users.ts";
 
-// Site 1 on purpose: the public site serves only the oldest site until item 16,
-// so the public post and `/` can be checked nowhere else. site_settings'
+// Site 1, as before item 16a, when the public site served only the oldest
+// site; it could now move to a site of its own (D308). site_settings'
 // home_page_id is shared with home-page.spec.ts (F-103), so it is changed late
 // and put back at once.
 let admin: TestUser;

@@ -28,7 +28,8 @@ Needs Node 26 and Docker.
     docker compose up -d        # development PostgreSQL 16
     npm run db:migrate
     npm run create-admin -- --email you@example.org --name "Your Name"
-    npm run dev                 # http://127.0.0.1:3000 - log in at /admin/login
+    npm run dev                 # log in at http://app.localhost:3000/admin/login;
+                                # site 1 is at http://surenmaharjan.localhost:3000
 
 In `.env`, the web app needs `DATABASE_URL`, `PLATFORM_URL` and `SITES_URL`
 (`http://app.localhost:3000` and `http://localhost:3000` locally; the real

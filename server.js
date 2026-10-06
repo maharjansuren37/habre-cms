@@ -124,6 +124,7 @@ const server = createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(
-    `Server listening on http://${HOST}:${PORT} (${DEVELOPMENT ? "development" : "production"})`,
+    `Server listening on http://${HOST}:${PORT} (${DEVELOPMENT ? "development" : "production"}); ` +
+      `the platform is ${process.env.PLATFORM_URL}, sites are under ${process.env.SITES_URL}`,
   );
 });

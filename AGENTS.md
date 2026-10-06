@@ -234,9 +234,10 @@ to `.env` and fill it in, `npx playwright install chromium`.
   (password on stdin; a confirmed admin of site 1) and
   `npm run create-invite -- --note "for Lena"` (prints a single-use signup code
   once; only its hash is stored). Both connect as the app role, `DATABASE_URL`.
-- Dev: `npm run dev` (http://127.0.0.1:3000, Vite HMR)
+- Dev: `npm run dev` (Vite HMR; the platform at http://app.localhost:3000/admin,
+  site 1 at http://surenmaharjan.localhost:3000)
 - Build: `npm run build` (output in `build/`)
-- Start (production build): `npm start` (http://127.0.0.1:3000)
+- Start (production build): `npm start` (same addresses as `npm run dev`)
 - Typecheck: `npm run typecheck` (React Router typegen, then `tsc -b`)
 - Lint / format: `npm run lint` / `npm run format` (Biome)
 - Test: `npm test` (`node --test`, finds `**/*.test.ts`)

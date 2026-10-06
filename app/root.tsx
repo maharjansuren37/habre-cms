@@ -8,6 +8,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useRouteError,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
 import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
@@ -20,6 +21,10 @@ import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+
+// The body of the 404 root middleware throws for a public path on the
+// platform host, which Layout reads to leave the site look off (F-276).
+const PLATFORM_NOT_FOUND = "Not Found on the platform";
 
 // On the root route so every action, now and in later items, is covered
 // without having to remember it.
@@ -44,7 +49,7 @@ export const middleware: Route.MiddlewareFunction[] = [
     // Logged, like the cross-site refusal below (F-70), but only a host outside
     // both domains: the wildcard sends every guessed name here, and an unknown
     // address under the sites domain is a normal 404.
-    const refuse = (foreignHost: boolean): never => {
+    const refuse = (foreignHost: boolean, platformHost = false): never => {
       if (foreignHost) {
         logSecurityEvent({
           event: "request_refused",
@@ -55,9 +60,12 @@ export const middleware: Route.MiddlewareFunction[] = [
           ip: clientIp(request.headers),
         });
       }
-      throw data("Not Found", { status: 404 });
+      // The marker tells Layout this 404 is the platform's (F-276).
+      throw data(platformHost ? PLATFORM_NOT_FOUND : "Not Found", { status: 404 });
     };
-    if (decision.kind === "not-found") return refuse(decision.foreignHost);
+    if (decision.kind === "not-found") {
+      return refuse(decision.foreignHost, decision.platformHost);
+    }
 
     const site =
       decision.kind === "subdomain"
@@ -85,8 +93,14 @@ export const middleware: Route.MiddlewareFunction[] = [
 export function Layout({ children }: { children: React.ReactNode }) {
   // useLocation, not a loader: Layout also wraps the root ErrorBoundary.
   const { pathname } = useLocation();
+  // A public path's 404 on the platform host is the platform's own page, not a
+  // site's (F-276). Middleware refuses it before any loader runs, so the
+  // marker on the error is the only thing that knows the host.
+  const error = useRouteError();
+  const onPlatform = isRouteErrorResponse(error) && error.data === PLATFORM_NOT_FOUND;
+  const siteLook = areaForPath(pathname) === "public" && !onPlatform;
   return (
-    <html lang="en" data-surface={areaForPath(pathname) === "public" ? "site" : undefined}>
+    <html lang="en" data-surface={siteLook ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

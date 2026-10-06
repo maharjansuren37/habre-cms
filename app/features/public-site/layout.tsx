@@ -118,8 +118,8 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
     !isNotFound && import.meta.env.DEV && error instanceof Error ? error : undefined;
   // This layout's own loader still runs and succeeds alongside a child
   // throwing (React Router's loaders-run-in-parallel model) - loaderData is
-  // only missing if this loader itself is what failed, which reaching for
-  // env.SITES_URL and a primary-key read practically never does.
+  // only missing if this loader itself is what failed, which a primary-key
+  // read and the navigation lookup practically never do.
   const settings = loaderData?.settings ?? {
     siteTitle: FALLBACK_SITE_TITLE,
     logoUrl: null,

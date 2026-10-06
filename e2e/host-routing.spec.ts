@@ -40,18 +40,22 @@ test("a site answers at its address until it is suspended, then answers 404", as
 
 test("a forwarded own domain serves the site it is verified for", async ({ request }) => {
   const siteId = await siteOneId();
-  const [settings] = await withDatabase(
-    (sql) =>
-      sql<{ title: string }[]>`
-        select site_title as title from site_settings where site_id = ${siteId}
-      `,
-  );
-  const response = await request.get(`${PROXIED}/`, {
-    headers: { "X-Forwarded-Host": "surenmaharjan.fyi", "X-Forwarded-Proto": "https" },
-    maxRedirects: 0,
-  });
-  expect(response.status()).toBe(200);
-  expect(await response.text()).toContain(settings.title);
+  // Retried: manage-settings.spec.ts changes site 1's title on the other worker
+  // (F-103), so the title read and the request can straddle a change (F-272).
+  await expect(async () => {
+    const [settings] = await withDatabase(
+      (sql) =>
+        sql<{ title: string }[]>`
+          select site_title as title from site_settings where site_id = ${siteId}
+        `,
+    );
+    const response = await request.get(`${PROXIED}/`, {
+      headers: { "X-Forwarded-Host": "surenmaharjan.fyi", "X-Forwarded-Proto": "https" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain(settings.title);
+  }).toPass({ timeout: 10_000 });
 });
 
 test("a domain that is not verified answers 404, and serves once it is", async ({ request }) => {
@@ -102,6 +106,22 @@ test("a POST to an admin path on a site host answers 404", async ({ request }) =
 test("a public path on the platform host answers 404", async ({ request }) => {
   const response = await request.get(`${PLATFORM}/posts/x`, { maxRedirects: 0 });
   expect(response.status()).toBe(404);
+});
+
+// F-276: the page look comes from the host, not only the path. data-surface
+// is read after hydration, so the client render is checked as well.
+test("a public path's 404 on the platform host is in the platform's look", async ({ page }) => {
+  const response = await page.goto(`${PLATFORM}/posts/x`);
+  expect(response?.status()).toBe(404);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("html")).not.toHaveAttribute("data-surface", "site");
+});
+
+test("a 404 on a site host keeps the site's look", async ({ page }) => {
+  const response = await page.goto(siteUrl("/posts/no-such-post-f276"));
+  expect(response?.status()).toBe(404);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
 });
 
 test("the platform host's root redirects to the admin", async ({ request }) => {

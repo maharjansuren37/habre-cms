@@ -8,11 +8,9 @@ const sessionCookie = createCookie("habre_session", {
   sameSite: "lax",
   // "/", not "/admin": React Router fetches the admin home page's data from
   // /admin.data, which a /admin cookie path does not cover (found in item 1
-  // step 10 - the guard and login redirected each other in a loop). In
-  // development SITES_URL equals PLATFORM_URL, so the public paths on that one host
-  // receive it too but never read it; once the hostnames differ (production)
-  // the cookie is host-only (no Domain attribute) and never reaches the public
-  // site at all.
+  // step 10 - the guard and login redirected each other in a loop). The
+  // cookie is host-only (no Domain attribute), so it stays on the platform
+  // host and never reaches a site's host (item 16a).
   path: "/",
   maxAge: SESSION_LIFETIME_SECONDS,
   // https in production. Browser tests run the production build over http on
