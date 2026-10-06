@@ -77,7 +77,7 @@ that (D153).
   header, or the proxied server's `X-Forwarded-Host` - and says so in
   Decisions. The spec file is deleted before the step closes. CI's own
   evidence comes from the PR's first `e2e` run: `verify` names it.
-- [ ] **Step 2 - Migration `0015_site_domains`** (run through `migrate`):
+- [x] **Step 2 - Migration `0015_site_domains`** (run through `migrate`):
   - columns `domain` (text primary key, lowercase, checked like a hostname),
     `site_id` (references `sites`, `on delete restrict`), `verified_at`,
     `created_at`, and an index on `site_id`;
