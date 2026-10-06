@@ -1,6 +1,7 @@
 import type { TransactionSql } from "postgres";
 import { BLOCKS_FORMAT_V4, type Document } from "#app/features/blocks/document.ts";
 import type { LinkablePage } from "#app/features/blocks/document-nodes.ts";
+import { isForeignKeyViolation } from "#app/features/settings/settings.server.ts";
 import type { Role } from "#app/features/users/roles.ts";
 import { inSite, sql } from "#app/lib/db.server.ts";
 import { assertKnownFormat, readableFormats } from "./blocks-format.ts";
@@ -25,13 +26,26 @@ type EntryBase = {
 };
 
 /** A post or a page is one document (item 14a1, D169). */
-export type Entry = EntryBase & { type: EntryType; document: Document };
+export type Entry = EntryBase & {
+  type: EntryType;
+  /** `''` when not set (item 17). */
+  seoTitle: string;
+  seoDescription: string;
+  /** The image shared with the entry, and its file's key for the thumbnail
+   *  (only `findEntryForUser` resolves the key; null elsewhere). */
+  socialImageMediaId: string | null;
+  socialImageStorageKey: string | null;
+  document: Document;
+};
 
 /** Who is asking. Ownership is decided from this, never from the form. */
 export type Actor = { id: string; role: Role };
 
 const entryColumns = sql`
   id, type, title, slug, blocks,
+  seo_title as "seoTitle",
+  seo_description as "seoDescription",
+  social_image_media_id as "socialImageMediaId",
   blocks_format as "blocksFormat",
   status,
   author_id as "authorId",
@@ -42,6 +56,10 @@ const entryColumns = sql`
 /** What the columns above return; the format is checked, then reshaped. */
 type EntryRow = EntryBase & {
   type: EntryType;
+  seoTitle: string;
+  seoDescription: string;
+  socialImageMediaId: string | null;
+  socialImageStorageKey?: string | null;
   blocks: Document;
   blocksFormat: string;
 };
@@ -50,7 +68,7 @@ type EntryRow = EntryBase & {
  *  has already refused a format this build cannot read. */
 function toEntry({ blocks, blocksFormat, ...entry }: EntryRow): Entry {
   assertKnownFormat(entry.id, entry.type, blocksFormat);
-  return { ...entry, document: blocks };
+  return { ...entry, socialImageStorageKey: entry.socialImageStorageKey ?? null, document: blocks };
 }
 
 /**
@@ -73,7 +91,10 @@ async function findEntryIn(
   actor: Actor,
 ): Promise<Entry | null> {
   const [row] = await tx<EntryRow[]>`
-    select ${entryColumns} from entries e
+    select ${entryColumns},
+      (select m.storage_key from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey"
+    from entries e
     where e.site_id = ${siteId} and e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
   `;
   return row ? toEntry(row) : null;
@@ -97,14 +118,48 @@ function storedContent(input: DocumentInput) {
   return { blocks: sql.json(input.document as never), blocks_format: BLOCKS_FORMAT_V4 };
 }
 
+const SOCIAL_IMAGE_FK = "entries_social_image_media_id_fkey";
+
+/** Whether `id` is none, or a media row of this site (D151: `site_id` named). */
+async function isThisSitesImage(
+  tx: TransactionSql,
+  siteId: string,
+  id: string | null,
+): Promise<boolean> {
+  if (id === null) return true;
+  const rows = await tx`select 1 from media where site_id = ${siteId} and id = ${id}`;
+  return rows.length === 1;
+}
+
+/**
+ * A new draft, or `null` when its shared image is not this site's media (a
+ * crafted id, or the image deleted since the picker) - nothing is created.
+ */
 export async function createDraft(
   siteId: string,
   type: EntryType,
   input: DocumentInput,
   authorId: string,
-): Promise<Entry> {
+): Promise<Entry | null> {
   const base = slugFromTitle(input.title, type);
+  try {
+    return await insertDraft(siteId, type, input, authorId, base);
+  } catch (error) {
+    // The image was deleted between the check and the insert.
+    if (isForeignKeyViolation(error, SOCIAL_IMAGE_FK)) return null;
+    throw error;
+  }
+}
+
+async function insertDraft(
+  siteId: string,
+  type: EntryType,
+  input: DocumentInput,
+  authorId: string,
+  base: string,
+): Promise<Entry | null> {
   return inSite(siteId, async (tx) => {
+    if (!(await isThisSitesImage(tx, siteId, input.socialImageMediaId))) return null;
     // Only addresses that could collide with this one, in this site, not the whole table.
     const taken = await tx<{ slug: string }[]>`
     select slug from entries
@@ -122,6 +177,9 @@ export async function createDraft(
       site_id: siteId,
       type,
       title: input.title,
+      seo_title: input.seoTitle,
+      seo_description: input.seoDescription,
+      social_image_media_id: input.socialImageMediaId,
       slug,
       ...storedContent(input),
       status: "draft",
@@ -138,7 +196,9 @@ export type UpdateResult =
   // The entry moved on since this editor loaded it - someone else saved, or the
   // same person in another tab. Never resolved by overwriting.
   | { ok: false; reason: "stale" }
-  | { ok: false; reason: "not_found" };
+  | { ok: false; reason: "not_found" }
+  // The shared image is not this site's media, or was deleted since the picker.
+  | { ok: false; reason: "image_gone" };
 
 export type StatusTransition = "publish" | "unpublish";
 
@@ -174,10 +234,35 @@ export async function saveEntry(
   transition?: StatusTransition,
 ): Promise<UpdateResult> {
   const stored = storedContent(input);
+  try {
+    return await updateEntry(siteId, type, id, input, stored, version, actor, transition);
+  } catch (error) {
+    // The image was deleted between the check and the update.
+    if (isForeignKeyViolation(error, SOCIAL_IMAGE_FK)) return { ok: false, reason: "image_gone" };
+    throw error;
+  }
+}
+
+async function updateEntry(
+  siteId: string,
+  type: EntryType,
+  id: string,
+  input: DocumentInput,
+  stored: ReturnType<typeof storedContent>,
+  version: number,
+  actor: Actor,
+  transition: StatusTransition | undefined,
+): Promise<UpdateResult> {
   return inSite(siteId, async (tx) => {
+    if (!(await isThisSitesImage(tx, siteId, input.socialImageMediaId))) {
+      return { ok: false, reason: "image_gone" };
+    }
     const [row] = await tx<EntryRow[]>`
     update entries e set
       title = ${input.title},
+      seo_title = ${input.seoTitle},
+      seo_description = ${input.seoDescription},
+      social_image_media_id = ${input.socialImageMediaId},
       blocks = ${stored.blocks},
       blocks_format = ${stored.blocks_format},
       version = version + 1,
@@ -385,6 +470,11 @@ type PublicBase = {
   title: string;
   publishedAt: Date;
   authorName: string | null;
+  /** `''` when not set (item 17). */
+  seoTitle: string;
+  seoDescription: string;
+  /** The share image's file key, never its media id; null when none or gone. */
+  socialImageStorageKey: string | null;
 };
 export type PublicPost = PublicBase & { document: Document };
 export type PublicPage = PublicBase & { document: Document };
@@ -427,6 +517,9 @@ export async function findPublishedEntry(
     siteId,
     (tx) => tx<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
     select e.id, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.seo_title as "seoTitle", e.seo_description as "seoDescription",
+      (select m.storage_key from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
       e.published_at as "publishedAt", u.name as "authorName",
       coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
         as "isHomePage"
@@ -442,6 +535,27 @@ export async function findPublishedEntry(
 }
 
 /**
+ * Every published page and post of a site, for its sitemap (item 17): newest
+ * published first, at most 50,000 (the sitemap file's limit). `isHomePage` marks
+ * the published page `site_settings.home_page_id` points at.
+ */
+export async function listSitemapEntries(
+  siteId: string,
+): Promise<{ type: EntryType; slug: string; updatedAt: Date; isHomePage: boolean }[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<{ type: EntryType; slug: string; updatedAt: Date; isHomePage: boolean }[]>`
+    select e.type, e.slug, e.updated_at as "updatedAt",
+      (e.type = 'page' and e.id = s.home_page_id) as "isHomePage"
+    from entries e left join site_settings s on s.site_id = e.site_id
+    where e.site_id = ${siteId} and e.status = 'published'
+    order by e.published_at desc, e.slug
+    limit 50000
+  `,
+  );
+}
+
+/**
  * The page an admin chose for `/` (item 9), or `null` when none is set, it is
  * not published, or it is not a page - `/` then shows a placeholder (D-2).
  * One query: the settings row joined to the entry, rather than a settings read
@@ -452,6 +566,9 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
     siteId,
     (tx) => tx<(PublicEntryRow & { slug: string })[]>`
     select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.seo_title as "seoTitle", e.seo_description as "seoDescription",
+      (select m.storage_key from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
       e.published_at as "publishedAt", u.name as "authorName"
     from site_settings s
       join entries e on e.id = s.home_page_id and e.site_id = s.site_id

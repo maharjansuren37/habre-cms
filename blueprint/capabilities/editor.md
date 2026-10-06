@@ -28,3 +28,5 @@
 - **editor.26** - a touch on a palette tile never starts a drag; a tap on it adds its block after the selected one *Since:* fixes/drag-backlog-tidy
 - **editor.27** - after a drag is cancelled, the next click anywhere acts normally, even when the gesture ended in pointercancel *Since:* fixes/drag-backlog-tidy
 - **editor.28** - while the window auto-scrolls under a drag, a place is announced only once it has held for 300 ms, so no two announcements come under 300 ms apart *Since:* fixes/drag-backlog-tidy
+- **editor.29** - a page or post has a title in search results and a description under Search and sharing, saved with the entry *Since:* features/17-seo-basics
+- **editor.30** - a page or post can have an image when shared, chosen from this site's Media; another site's image is refused *Since:* features/17-seo-basics

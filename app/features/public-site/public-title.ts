@@ -5,7 +5,16 @@ const PUBLIC_LAYOUT_ID = "features/public-site/layout";
 // layout's ErrorBoundary falls back to.
 export const FALLBACK_SITE_TITLE = "Habre CMS";
 
-type PublicLayoutData = Awaited<ReturnType<typeof publicLayoutLoader>>;
+export type PublicLayoutData = Awaited<ReturnType<typeof publicLayoutLoader>>;
+
+type Matches = ReadonlyArray<{ id: string; loaderData?: unknown } | undefined>;
+
+/** The public layout's loader data from a `meta` function's `matches`, if it loaded. */
+export function publicLayoutData(matches: Matches): PublicLayoutData | undefined {
+  return matches.find((match) => match?.id === PUBLIC_LAYOUT_ID)?.loaderData as
+    | PublicLayoutData
+    | undefined;
+}
 
 /**
  * A public page's browser title, named for the site an admin set in
@@ -13,13 +22,7 @@ type PublicLayoutData = Awaited<ReturnType<typeof publicLayoutLoader>>;
  * alone. Reads the public layout's loader data from a `meta` function's
  * `matches`, the same route id `home.tsx` reads through `useRouteLoaderData`.
  */
-export function publicTitle(
-  matches: ReadonlyArray<{ id: string; loaderData?: unknown } | undefined>,
-  pageTitle?: string,
-): string {
-  const layoutData = matches.find((match) => match?.id === PUBLIC_LAYOUT_ID)?.loaderData as
-    | PublicLayoutData
-    | undefined;
-  const siteTitle = layoutData?.settings.siteTitle ?? FALLBACK_SITE_TITLE;
+export function publicTitle(matches: Matches, pageTitle?: string): string {
+  const siteTitle = publicLayoutData(matches)?.settings.siteTitle ?? FALLBACK_SITE_TITLE;
   return pageTitle ? `${pageTitle} - ${siteTitle}` : siteTitle;
 }

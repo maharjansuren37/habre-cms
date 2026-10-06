@@ -280,6 +280,9 @@ test("an author cannot publish or unpublish another author's post", async ({ pag
       form: {
         intent: "publish",
         title: "Not Yours To Publish",
+        seoTitle: "",
+        seoDescription: "",
+        socialImageMediaId: "",
         version: "1",
         blocks: JSON.stringify(textDocument()),
       },
@@ -304,6 +307,9 @@ test("a stale-version publish is refused rather than overwriting a concurrent ed
     form: {
       intent: "publish",
       title: "Racing Save",
+      seoTitle: "",
+      seoDescription: "",
+      socialImageMediaId: "",
       version: "999",
       blocks: JSON.stringify(textDocument()),
     },

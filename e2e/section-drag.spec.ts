@@ -17,8 +17,10 @@ import {
 // gap labelled where it will land, a ghost following the pointer, the place
 // announced, the ready-made section added there as one undo step.
 
-// Tall enough that the whole palette, the Sections group included, is on screen.
-test.use({ viewport: { width: 1280, height: 1000 } });
+// Tall enough that the whole palette, the Sections group included, is on screen,
+// and that the last section's drop place stays out of the auto-scroll zone below
+// the Search and sharing line.
+test.use({ viewport: { width: 1280, height: 1100 } });
 
 let editor: TestUser;
 let refusedByPolicy: string[];

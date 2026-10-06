@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isStorableText } from "#app/features/blocks/inline-runs.ts";
+import { isLanguageTag } from "./languages.ts";
 
 // Same bound as entries.title (0002_entries.sql) - a site title is the same
 // kind of short, plain-text field.
@@ -9,6 +10,21 @@ export const siteTitleSchema = z
   .min(1, { message: "Enter a site title." })
   .max(200, { message: "Site title can be up to 200 characters." })
   .refine(isStorableText, { message: "The site title has a character that cannot be stored." });
+
+// Same bound as entries.seo_description (0016_seo.sql). Empty is allowed: no
+// description is the default.
+export const siteDescriptionSchema = z
+  .string()
+  .trim()
+  .max(300, { message: "Site description can be up to 300 characters." })
+  .refine(isStorableText, {
+    message: "The site description has a character that cannot be stored.",
+  });
+
+// The app's list is the allowlist; the column's format check is only a backstop.
+export const languageSchema = z
+  .string()
+  .refine(isLanguageTag, { message: "Choose a language from the list." });
 
 // The picker only ever sends a real media id or nothing (Remove logo) - a
 // crafted request could send anything else, so this is checked, not trusted.

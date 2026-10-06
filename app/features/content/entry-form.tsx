@@ -3,6 +3,10 @@ import { Form, Link, useNavigation, useOutletContext, useSubmit } from "react-ro
 import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
 import type { DocumentMedia, LinkablePage } from "#app/features/blocks/document-nodes.ts";
+import {
+  openMediaPickerDialog,
+  type PickedMedia,
+} from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { isReadableDocumentContent } from "./editor-content.ts";
@@ -32,6 +36,11 @@ function addressFor(entryType: "post" | "page", slug: string): string {
 type EntryFormProps = {
   entryType: "post" | "page";
   title: string;
+  /** Search title and description (item 17); empty when not set. */
+  seoTitle: string;
+  seoDescription: string;
+  /** The image shared with the entry, its thumbnail address resolved; null for none. */
+  socialImage: { id: string; url: string } | null;
   /** Empty for an entry that has not been saved yet. */
   slug: string;
   /** The post or page's one document (item 14a1); a new entry's is empty. */
@@ -48,6 +57,9 @@ type EntryFormProps = {
 export function EntryForm({
   entryType,
   title,
+  seoTitle,
+  seoDescription,
+  socialImage: initialSocialImage,
   slug,
   document: initialDocument,
   mediaById,
@@ -68,6 +80,29 @@ export function EntryForm({
   const readEditor = useRef<(() => Promise<unknown>) | null>(null);
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
+  // The title as typed, so the search title field can show it as its placeholder.
+  const [titleNow, setTitleNow] = useState(title);
+  const [socialImage, setSocialImage] = useState<Pick<PickedMedia, "id" | "url"> | null>(
+    initialSocialImage,
+  );
+  // The picker closes before it hands back a pick, which restores focus to the
+  // button that opened it - the one this pick replaces (settings.tsx, F-76).
+  // Put focus on a button of the new state once it has rendered; not on mount.
+  const imageFieldRef = useRef<HTMLFieldSetElement>(null);
+  const imageMounted = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-runs on every change of the image, though the body only reads refs
+  useEffect(() => {
+    if (!imageMounted.current) {
+      imageMounted.current = true;
+      return;
+    }
+    imageFieldRef.current?.querySelector("button")?.focus();
+  }, [socialImage]);
+
+  function pickSocialImage(media: Pick<PickedMedia, "id" | "url">) {
+    setSocialImage({ id: media.id, url: media.url });
+    setUnsavedChanges(true);
+  }
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws Undo and Redo (in the top bar) and its palette.
@@ -230,12 +265,94 @@ export function EntryForm({
             defaultValue={title}
             placeholder={copy.titlePlaceholder}
             autoComplete="off"
-            onChange={() => setUnsavedChanges(true)}
+            onChange={(event) => {
+              setTitleNow(event.currentTarget.value);
+              setUnsavedChanges(true);
+            }}
           />
           <p className={styles.address}>
             Web address:{" "}
             <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
           </p>
+          <details className={styles.search}>
+            <summary className={styles.searchSummary}>Search and sharing</summary>
+            <div className={styles.searchBody}>
+              <div className={styles.searchField}>
+                <label className={styles.searchLabel} htmlFor="entry-seo-title">
+                  Title in search results
+                </label>
+                <input
+                  id="entry-seo-title"
+                  className={styles.searchInput}
+                  name="seoTitle"
+                  defaultValue={seoTitle}
+                  placeholder={titleNow.trim() === "" ? undefined : titleNow}
+                  autoComplete="off"
+                  aria-describedby="entry-seo-title-hint"
+                  onChange={() => setUnsavedChanges(true)}
+                />
+                <p id="entry-seo-title-hint" className={styles.searchHint}>
+                  Leave empty to use the title.
+                </p>
+              </div>
+              <div className={styles.searchField}>
+                <label className={styles.searchLabel} htmlFor="entry-seo-description">
+                  Description
+                </label>
+                <textarea
+                  id="entry-seo-description"
+                  className={styles.searchTextarea}
+                  name="seoDescription"
+                  defaultValue={seoDescription}
+                  rows={3}
+                  aria-describedby="entry-seo-description-hint"
+                  onChange={() => setUnsavedChanges(true)}
+                />
+                <p id="entry-seo-description-hint" className={styles.searchHint}>
+                  Shown under the title in search results and when shared. Up to 300 characters.
+                </p>
+              </div>
+              <input type="hidden" name="socialImageMediaId" value={socialImage?.id ?? ""} />
+              <fieldset className={styles.imageField} ref={imageFieldRef}>
+                <legend className={styles.searchLabel}>Image when shared</legend>
+                {socialImage ? (
+                  <div className={styles.imagePreview}>
+                    <img src={socialImage.url} alt="" className={styles.imageThumb} />
+                    <div className={styles.imageActions}>
+                      <Button
+                        type="button"
+                        variant="quiet"
+                        onClick={() =>
+                          openMediaPickerDialog("Choose an image to share", pickSocialImage)
+                        }
+                      >
+                        Change image
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="quiet"
+                        onClick={() => {
+                          setSocialImage(null);
+                          setUnsavedChanges(true);
+                        }}
+                      >
+                        Remove image
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      openMediaPickerDialog("Choose an image to share", pickSocialImage)
+                    }
+                  >
+                    Choose image
+                  </Button>
+                )}
+              </fieldset>
+            </div>
+          </details>
 
           {isEditorReady ? (
             <DocumentEditor

@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   homePageIdSchema,
   isSettingsFormBodyAllowed,
+  languageSchema,
   logoMediaIdSchema,
+  siteDescriptionSchema,
   siteTitleSchema,
 } from "./settings-input.ts";
 
@@ -69,4 +71,34 @@ test("settings body size refuses a missing Content-Length", () => {
 
 test("settings body size refuses a non-numeric Content-Length", () => {
   assert.equal(isSettingsFormBodyAllowed(withLength("lots")), false);
+});
+
+test("site description accepts exactly 300 characters", () => {
+  assert.equal(siteDescriptionSchema.safeParse("a".repeat(300)).success, true);
+});
+
+test("site description rejects 301 characters, saying so", () => {
+  const result = siteDescriptionSchema.safeParse("a".repeat(301));
+  assert.equal(result.success, false);
+  assert.equal(result.error?.issues[0]?.message, "Site description can be up to 300 characters.");
+});
+
+test("site description is trimmed, and may be empty", () => {
+  assert.equal(siteDescriptionSchema.parse("  About us  "), "About us");
+  assert.equal(siteDescriptionSchema.parse("   "), "");
+});
+
+test("site description rejects a character that cannot be stored", () => {
+  assert.equal(siteDescriptionSchema.safeParse("bad\u0000text").success, false);
+});
+
+test("language accepts a listed tag", () => {
+  assert.equal(languageSchema.safeParse("ne").success, true);
+});
+
+test("language rejects a tag that is not in the list", () => {
+  const result = languageSchema.safeParse("xx-evil");
+  assert.equal(result.success, false);
+  assert.equal(result.error?.issues[0]?.message, "Choose a language from the list.");
+  assert.equal(languageSchema.safeParse("ar").success, false);
 });

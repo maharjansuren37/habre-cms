@@ -1,13 +1,20 @@
 import { data, redirect } from "react-router";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
+import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/page";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
-import { publicTitle } from "./public-title.ts";
+import { splitPublicSeo } from "./public-seo.server.ts";
 
-export function meta({ loaderData, matches }: Route.MetaArgs) {
-  return [{ title: publicTitle(matches, loaderData?.page.title ?? "Page") }];
+export function meta({ loaderData, matches, params }: Route.MetaArgs) {
+  return publicMeta(matches, {
+    title: loaderData?.page.title ?? "Page",
+    path: `/${params.slug}`,
+    seoTitle: loaderData?.seo.title,
+    description: loaderData?.seo.description,
+    imageUrl: loaderData?.seo.imageUrl,
+  });
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {
@@ -20,8 +27,9 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
   // The view never reads these, so they stay off the wire (F-108).
-  const { id: _id, isHomePage: _isHomePage, ...publicPage } = page;
-  return { page: publicPage, mediaById: await resolveDocumentMedia(siteId, page.document) };
+  const { id: _id, isHomePage: _isHomePage, ...entry } = page;
+  const { rest: publicPage, seo } = splitPublicSeo(entry);
+  return { page: publicPage, seo, mediaById: await resolveDocumentMedia(siteId, page.document) };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {

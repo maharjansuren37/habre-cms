@@ -1,5 +1,6 @@
 import { Link, useRouteLoaderData } from "react-router";
 import { findHomePage, hasPublishedPosts } from "#app/features/content/entries.server.ts";
+import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/home";
 import { resolveDocumentMedia } from "./document-media.server.ts";
@@ -7,11 +8,22 @@ import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
 import listStyles from "./post-list.module.css";
-import { publicTitle } from "./public-title.ts";
+import { splitPublicSeo } from "./public-seo.server.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
-  if (loaderData?.kind === "page") return [{ title: publicTitle(matches, loaderData.page.title) }];
-  return [{ title: publicTitle(matches) }];
+  const title = loaderData?.kind === "page" ? loaderData.page.title : undefined;
+  const seo = loaderData?.kind === "page" ? loaderData.seo : undefined;
+  const tags = publicMeta(matches, {
+    title,
+    path: "/",
+    seoTitle: seo?.title,
+    description: seo?.description,
+    imageUrl: seo?.imageUrl,
+    siteDescriptionFallback: true,
+  });
+  // The "being set up" placeholder is not for search engines (item 17).
+  if (loaderData?.kind === "placeholder") tags.push({ name: "robots", content: "noindex" });
+  return tags;
 }
 
 // `/` is always a landing page (D-12): the chosen page when there is one and
@@ -21,9 +33,11 @@ export async function loader({ context }: Route.LoaderArgs) {
   const siteId = context.get(siteContext).id;
   const page = await findHomePage(siteId);
   if (page) {
+    const { rest, seo } = splitPublicSeo(page);
     return {
       kind: "page" as const,
-      page,
+      page: rest,
+      seo,
       mediaById: await resolveDocumentMedia(siteId, page.document),
     };
   }

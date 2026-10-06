@@ -56,3 +56,14 @@ test("a page titled Confirm email gets the numbered address", () => {
   const base = slugFromTitle("Confirm email", "page");
   assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
 });
+
+test("no address can be robots.txt or sitemap.xml, because an address never keeps a dot", () => {
+  for (const title of ["robots.txt", "sitemap.xml", "Robots.TXT", "sitemap . xml"]) {
+    for (const type of ["page", "post"] as const) {
+      const slug = slugFromTitle(title, type);
+      assert.doesNotMatch(slug, /\./, title);
+      assert.notEqual(slug, "robots.txt");
+      assert.notEqual(slug, "sitemap.xml");
+    }
+  }
+});

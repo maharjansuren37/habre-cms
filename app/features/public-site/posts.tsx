@@ -1,12 +1,12 @@
 import { listPublishedPosts } from "#app/features/content/entries.server.ts";
+import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/posts";
 import { POST_LIMIT, PostList } from "./post-list.tsx";
-import { publicTitle } from "./public-title.ts";
 
 // The post list's permanent address, whatever `/` shows (item 9's D-3).
 export function meta({ matches }: Route.MetaArgs) {
-  return [{ title: publicTitle(matches, "Posts") }];
+  return publicMeta(matches, { title: "Posts", path: "/posts", siteDescriptionFallback: true });
 }
 
 export async function loader({ context }: Route.LoaderArgs) {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Document } from "#app/features/blocks/document.ts";
+import { isStorableText } from "#app/features/blocks/inline-runs.ts";
 
 /**
  * The trust boundary for an entry's title; its document is `parseDocument`'s.
@@ -22,5 +23,30 @@ export const titleSchema = z
     message: "The title has a character that cannot be stored. Remove it and save again.",
   });
 
-/** A post or page: a title and one document (D169). */
-export type DocumentInput = { title: string; document: Document };
+// Same bounds as entries.seo_title and entries.seo_description (0016_seo.sql).
+// Empty is allowed: the entry's own title (or no description) is then used.
+export const seoTitleSchema = z
+  .string()
+  .trim()
+  .max(200, { message: "Title in search results can be up to 200 characters." })
+  .refine(isStorableText, {
+    message: "The title in search results has a character that cannot be stored.",
+  });
+
+export const seoDescriptionSchema = z
+  .string()
+  .trim()
+  .max(300, { message: "Description can be up to 300 characters." })
+  .refine(isStorableText, {
+    message: "The description has a character that cannot be stored.",
+  });
+
+/** A post or page: a title, its search title and description, and one document (D169). */
+export type DocumentInput = {
+  title: string;
+  seoTitle: string;
+  seoDescription: string;
+  /** This site's media row to show when shared, or null for none (item 17). */
+  socialImageMediaId: string | null;
+  document: Document;
+};

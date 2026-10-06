@@ -9,8 +9,10 @@ import {
   ScrollRestoration,
   useLocation,
   useRouteError,
+  useRouteLoaderData,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import type { loader as publicLayoutLoader } from "#app/features/public-site/layout.tsx";
 import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import { areaForPath } from "#app/lib/content-security-policy.ts";
@@ -18,6 +20,7 @@ import { env } from "#app/lib/env.server.ts";
 import { classifyHost } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import { mainHost, mainOrigin } from "#app/lib/site-origin.ts";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -73,7 +76,22 @@ export const middleware: Route.MiddlewareFunction[] = [
         : await findSiteByDomain(decision.host);
     // A domain that is not in site_domains is a host nothing here serves.
     if (!site) return refuse(decision.kind === "domain");
-    context.set(siteContext, site);
+
+    // One main address per site (D173): any other host of it sends a reader
+    // and a crawler there. Hosts compare without the scheme, which is Caddy's.
+    const main = mainHost(site, env.SITES_URL);
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      url.host.toLowerCase() !== main
+    ) {
+      // Cached a day at most: item 21 can take a domain away again, and a
+      // browser must not keep sending readers to its next owner.
+      throw redirect(`${mainOrigin(site, env.SITES_URL)}${url.pathname}${url.search}`, {
+        status: 301,
+        headers: { "Cache-Control": "max-age=86400" },
+      });
+    }
+    context.set(siteContext, { ...site, mainOrigin: mainOrigin(site, env.SITES_URL) });
   },
   function refuseCrossSiteRequests({ request, url }) {
     const platformOrigin = new URL(env.PLATFORM_URL).origin;
@@ -99,8 +117,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const error = useRouteError();
   const onPlatform = isRouteErrorResponse(error) && error.data === PLATFORM_NOT_FOUND;
   const siteLook = areaForPath(pathname) === "public" && !onPlatform;
+  // The public layout's loader runs beside a child's 404, so its data is here
+  // for the public 404 too. Admin, platform and error pages outside a site stay `en`.
+  const publicData = useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout");
+  const lang = siteLook ? (publicData?.language ?? "en") : "en";
   return (
-    <html lang="en" data-surface={siteLook ? "site" : undefined}>
+    <html lang={lang} data-surface={siteLook ? "site" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

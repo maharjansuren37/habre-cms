@@ -476,3 +476,9 @@ File: deploy/setup-server.sh:222-235 (`check_caddy_env`)
 
 ### F-294 [P3] open - The editor notice's client-side navigation check can pass on the shell's banner before the editor renders
 File: e2e/suspend-site.spec.ts:183-186
+
+### F-296 [P3] open - The main address's tie-break (earliest verified, then by name) has no test, though item 21 relies on it
+File: app/features/sites/find-site.server.ts:6-10
+
+### F-297 [P3] open - Content imports isForeignKeyViolation from the settings feature instead of app/lib
+File: app/features/content/entries.server.ts:4; app/features/settings/settings.server.ts:158

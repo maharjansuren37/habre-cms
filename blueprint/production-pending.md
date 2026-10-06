@@ -59,3 +59,9 @@
   `cms.surenmaharjan.fyi` to serve the admin, not redirect it.
 - [ ] **After the deploy:** `curl` a site subdomain and check that the certificate
   is the wildcard. That is the first proof the DNS challenge works.
+
+## features/17-seo-basics
+
+- [ ] Run migration `0016_seo.sql` (additive: `entries` gains `seo_title`, `seo_description`, `social_image_media_id`; `site_settings` gains `site_description`, `language`).
+- [ ] No new environment variables. With the v1 deploy's `SITES_URL` set to `https://<sites domain>`, site 1's subdomain answers a 301 to `surenmaharjan.fyi` - expected, not a fault (D327).
+- [ ] After the deploy, check a real share preview and the sitemap (`needs-you.md`).

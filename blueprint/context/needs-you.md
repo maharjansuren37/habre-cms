@@ -134,7 +134,9 @@ not tidying; it is what keeps the open list true.
       from item 15e1, Your account's three forms, their banners and field
       errors, the shell's Your account link, and `/confirm-email`; from item
       15e2, the Delete account section, `/admin/account/delete` in its three
-      states, and login's "Your account is deleted." banner).
+      states, and login's "Your account is deleted." banner; from item 17,
+      the editor's Search and sharing disclosure and its image picker, and
+      Settings' Site description and Language).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -144,7 +146,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -188,6 +190,14 @@ not tidying; it is what keeps the open list true.
       `surenmaharjan.fyi/` shows a "This site is being set up" placeholder
       instead of today's post list. Blocks nothing now; needed straight after
       `deploy` of item 9. `open` (spec, 2026-09-29)
+
+- [ ] **Check a real share preview and the sitemap after the v1 deploy** -
+      manual verification; no test reaches Facebook's, LinkedIn's or
+      Google's own fetchers. Paste a published page's address into a share
+      debugger (e.g. Facebook's Sharing Debugger) and Google Search
+      Console's URL inspection: the title, description and image show, and
+      `sitemap.xml` is read. Blocks nothing now; `preflight` names it after
+      the v1 deploy. `open` (spec 17, 2026-10-06)
 
 - [ ] **Make the `e2e` CI check required in GitHub branch protection** -
       access; a repository setting only you can change. Once the fix for F-17

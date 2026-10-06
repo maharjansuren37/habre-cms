@@ -1,13 +1,22 @@
 import { sql } from "#app/lib/db.server.ts";
 import type { PublicSite } from "./site-context.ts";
 
+// The main address's own domain (item 17, D173): the earliest verified, ties by
+// name - a scalar subquery on `site_domains_site_id_idx`, so still one query.
+const ownDomainSql = sql`(
+  select od.domain from site_domains od
+  where od.site_id = s.id and od.verified_at is not null
+  order by od.verified_at, od.domain limit 1
+)`;
+
 // Platform tables, outside row-level security, so no `inSite`. Each is one
 // query on a unique index: it runs on every site-host request. A suspended
 // site is not served (the caller answers 404).
 
 export async function findSiteBySubdomain(label: string): Promise<PublicSite | null> {
   const [row] = await sql<PublicSite[]>`
-    select id, subdomain from sites where subdomain = ${label} and suspended_at is null
+    select s.id, s.subdomain, ${ownDomainSql} as "ownDomain"
+    from sites s where s.subdomain = ${label} and s.suspended_at is null
   `;
   return row ?? null;
 }
@@ -15,7 +24,7 @@ export async function findSiteBySubdomain(label: string): Promise<PublicSite | n
 /** An own domain serves its site only once verified. */
 export async function findSiteByDomain(host: string): Promise<PublicSite | null> {
   const [row] = await sql<PublicSite[]>`
-    select s.id, s.subdomain
+    select s.id, s.subdomain, ${ownDomainSql} as "ownDomain"
     from site_domains d join sites s on s.id = d.site_id
     where d.domain = ${host} and d.verified_at is not null and s.suspended_at is null
   `;

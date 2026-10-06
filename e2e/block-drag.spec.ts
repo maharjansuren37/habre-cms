@@ -644,7 +644,8 @@ test("Ctrl+Z while dragging undoes the typing, cancels the drag, and the release
 // ---- Step 6: a phone, by touch ------------------------------------------------
 
 test.describe("at 390px by touch", () => {
-  test.use({ viewport: { width: 390, height: 800 }, hasTouch: true });
+  // A common phone height, tall enough that D's drop place stays out of the auto-scroll zone.
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   test("a touch drag on the grip moves a block to another section, without scrolling the page or overflowing it", async ({
     page,
