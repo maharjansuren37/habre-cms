@@ -6,7 +6,7 @@ import { POST_LIMIT, PostList } from "./post-list.tsx";
 
 // The post list's permanent address, whatever `/` shows (item 9's D-3).
 export function meta({ matches }: Route.MetaArgs) {
-  return publicMeta(matches, { title: "Posts", path: "/posts" });
+  return publicMeta(matches, { title: "Posts", path: "/posts", siteDescriptionFallback: true });
 }
 
 export async function loader({ context }: Route.LoaderArgs) {

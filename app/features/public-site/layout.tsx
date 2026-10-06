@@ -51,6 +51,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   return {
     settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl },
     language: settings.language,
+    siteDescription: settings.siteDescription,
     navLinks,
     mainOrigin,
   };

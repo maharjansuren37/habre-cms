@@ -11,7 +11,7 @@ export function PageBody({
   page,
   mediaById,
 }: {
-  page: PublicPage;
+  page: Pick<PublicPage, "title" | "document">;
   mediaById: Record<string, DocumentMedia>;
 }) {
   return (

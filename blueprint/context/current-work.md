@@ -189,7 +189,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     `socialImageMediaId` of another site's image is refused and nothing is
     saved; deleting the image from Media leaves the entry with none.
 
-- [ ] **Step 7 - Head tags on public pages**:
+- [x] **Step 7 - Head tags on public pages**:
   - The Step 2 helper also emits the tags in *In scope*, with the fallbacks
     in *Decisions*; `og:url` is the canonical; `og:image` is the image's
     absolute media URL; `twitter:card` is `summary_large_image` with an
@@ -299,6 +299,10 @@ pieces: field, textarea, select, the logo field's media picker, the error
     key; a 23503 on it is the same refusal, never a 500. `createDraft`
     returns `null` for it. Media delete does not refuse an image in use -
     the foreign key clears the entry's column (Step 6).
+  - `og:title` is the search title, else the entry's own title without the
+    site suffix, else the site title; a home page uses its own search
+    fields with the site description as fallback. Loaders return the share
+    image's URL (`public-seo.server.ts`), never its id or key (Step 7).
 
 ## Production needs
 

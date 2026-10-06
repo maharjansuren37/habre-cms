@@ -8,10 +8,19 @@ import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
 import { PageBody } from "./page-body.tsx";
 import listStyles from "./post-list.module.css";
+import { splitPublicSeo } from "./public-seo.server.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   const title = loaderData?.kind === "page" ? loaderData.page.title : undefined;
-  const tags = publicMeta(matches, { title, path: "/" });
+  const seo = loaderData?.kind === "page" ? loaderData.seo : undefined;
+  const tags = publicMeta(matches, {
+    title,
+    path: "/",
+    seoTitle: seo?.title,
+    description: seo?.description,
+    imageUrl: seo?.imageUrl,
+    siteDescriptionFallback: true,
+  });
   // The "being set up" placeholder is not for search engines (item 17).
   if (loaderData?.kind === "placeholder") tags.push({ name: "robots", content: "noindex" });
   return tags;
@@ -24,9 +33,11 @@ export async function loader({ context }: Route.LoaderArgs) {
   const siteId = context.get(siteContext).id;
   const page = await findHomePage(siteId);
   if (page) {
+    const { rest, seo } = splitPublicSeo(page);
     return {
       kind: "page" as const,
-      page,
+      page: rest,
+      seo,
       mediaById: await resolveDocumentMedia(siteId, page.document),
     };
   }

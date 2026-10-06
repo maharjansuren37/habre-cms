@@ -6,11 +6,16 @@ import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/post";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
+import { splitPublicSeo } from "./public-seo.server.ts";
 
 export function meta({ loaderData, matches, params }: Route.MetaArgs) {
   return publicMeta(matches, {
     title: loaderData?.post.title ?? "Post",
     path: `/posts/${params.slug}`,
+    type: "article",
+    seoTitle: loaderData?.seo.title,
+    description: loaderData?.seo.description,
+    imageUrl: loaderData?.seo.imageUrl,
   });
 }
 
@@ -22,8 +27,9 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // own rule for ownership on the admin side).
   if (!post) throw data("Not Found", { status: 404 });
   // The view never reads these, so they stay off the wire (F-108).
-  const { id: _id, isHomePage: _isHomePage, ...publicPost } = post;
-  return { post: publicPost, mediaById: await resolveDocumentMedia(siteId, post.document) };
+  const { id: _id, isHomePage: _isHomePage, ...entry } = post;
+  const { rest: publicPost, seo } = splitPublicSeo(entry);
+  return { post: publicPost, seo, mediaById: await resolveDocumentMedia(siteId, post.document) };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {

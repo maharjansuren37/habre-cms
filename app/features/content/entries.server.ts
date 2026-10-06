@@ -470,6 +470,11 @@ type PublicBase = {
   title: string;
   publishedAt: Date;
   authorName: string | null;
+  /** `''` when not set (item 17). */
+  seoTitle: string;
+  seoDescription: string;
+  /** The share image's file key, never its media id; null when none or gone. */
+  socialImageStorageKey: string | null;
 };
 export type PublicPost = PublicBase & { document: Document };
 export type PublicPage = PublicBase & { document: Document };
@@ -512,6 +517,9 @@ export async function findPublishedEntry(
     siteId,
     (tx) => tx<(PublicEntryRow & { id: string; isHomePage: boolean })[]>`
     select e.id, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.seo_title as "seoTitle", e.seo_description as "seoDescription",
+      (select m.storage_key from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
       e.published_at as "publishedAt", u.name as "authorName",
       coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
         as "isHomePage"
@@ -558,6 +566,9 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
     siteId,
     (tx) => tx<(PublicEntryRow & { slug: string })[]>`
     select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
+      e.seo_title as "seoTitle", e.seo_description as "seoDescription",
+      (select m.storage_key from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
       e.published_at as "publishedAt", u.name as "authorName"
     from site_settings s
       join entries e on e.id = s.home_page_id and e.site_id = s.site_id

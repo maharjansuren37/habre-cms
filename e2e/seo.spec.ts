@@ -542,3 +542,154 @@ test.describe("image when shared", () => {
     );
   });
 });
+
+// Step 7: head tags on public pages.
+async function metaOf(page: Page, url: string) {
+  const response = await page.goto(url);
+  const content = (selector: string) =>
+    page.locator(selector).evaluateAll((els) => els.map((el) => el.getAttribute("content")));
+  return {
+    status: response?.status(),
+    title: await page.title(),
+    description: await content('meta[name="description"]'),
+    ogTitle: await content('meta[property="og:title"]'),
+    ogDescription: await content('meta[property="og:description"]'),
+    ogUrl: await content('meta[property="og:url"]'),
+    ogSiteName: await content('meta[property="og:site_name"]'),
+    ogType: await content('meta[property="og:type"]'),
+    ogImage: await content('meta[property="og:image"]'),
+    twitterCard: await content('meta[name="twitter:card"]'),
+    canonical: await page
+      .locator('link[rel="canonical"]')
+      .evaluateAll((els) => els.map((el) => el.getAttribute("href"))),
+  };
+}
+
+test.describe("head tags", () => {
+  const SITE_TITLE = "Head Tags Site";
+  const SITE_DESCRIPTION = 'About us, "quoted" <b> & more';
+  let site: { id: string; address: string };
+  let postId: string;
+  let pageId: string;
+  let mediaId: string;
+  let storageKey: string;
+
+  test.beforeAll(async () => {
+    site = await createSiteWithAddress("seo-head");
+    const admin = await createSiteAdmin(site.id, "Seo Head");
+    mediaId = await insertTestMediaRow({ uploadedBy: admin.email, siteId: site.id });
+    const ids = await seedEntries(site.id, admin.email, [
+      { type: "post", slug: "full", status: "published" },
+      { type: "page", slug: "bare", status: "published" },
+      { type: "page", slug: "front", status: "published" },
+    ]);
+    postId = ids.full;
+    pageId = ids.bare;
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set site_title = ${SITE_TITLE}, site_description = ${SITE_DESCRIPTION}
+        where site_id = ${site.id}`;
+      await sql`update entries set seo_title = 'Search title', seo_description = ${'A "post" <b> & co'},
+        social_image_media_id = ${mediaId}, title = 'Full post' where id = ${postId}`;
+      await sql`update entries set title = 'Bare page' where id = ${pageId}`;
+      const [media] = await sql<{ storageKey: string }[]>`
+        select storage_key as "storageKey" from media where id = ${mediaId}
+      `;
+      storageKey = media.storageKey;
+    });
+  });
+
+  test.afterAll(async () => {
+    await deleteSite(site.id);
+  });
+
+  test("a post with all three fields set carries exactly its own tags", async ({ page }) => {
+    const url = siteUrl("/posts/full", site.address);
+    const tags = await metaOf(page, url);
+    expect(tags.status).toBe(200);
+    expect(tags.title).toBe("Search title");
+    expect(tags.description).toEqual(['A "post" <b> & co']);
+    expect(tags.ogTitle).toEqual(["Search title"]);
+    expect(tags.ogDescription).toEqual(['A "post" <b> & co']);
+    expect(tags.canonical).toEqual([url]);
+    expect(tags.ogUrl).toEqual([url]);
+    expect(tags.ogSiteName).toEqual([SITE_TITLE]);
+    expect(tags.ogType).toEqual(["article"]);
+    expect(tags.ogImage).toEqual([`${process.env.R2_PUBLIC_URL}/${storageKey}`]);
+    expect(tags.twitterCard).toEqual(["summary_large_image"]);
+  });
+
+  test("a page with none set has a suffixed title and no description or image", async ({
+    page,
+  }) => {
+    const tags = await metaOf(page, siteUrl("/bare", site.address));
+    expect(tags.title).toBe(`Bare page - ${SITE_TITLE}`);
+    expect(tags.description).toEqual([]);
+    expect(tags.ogDescription).toEqual([]);
+    expect(tags.ogImage).toEqual([]);
+    expect(tags.ogTitle).toEqual(["Bare page"]);
+    expect(tags.twitterCard).toEqual(["summary"]);
+    expect(tags.ogType).toEqual(["website"]);
+  });
+
+  test("the placeholder home and the post list fall back to the site description", async ({
+    page,
+  }) => {
+    // No home page is set yet: the placeholder.
+    const home = await metaOf(page, siteUrl("/", site.address));
+    expect(home.description).toEqual([SITE_DESCRIPTION]);
+    expect(home.ogDescription).toEqual([SITE_DESCRIPTION]);
+    expect(home.ogTitle).toEqual([SITE_TITLE]);
+    const posts = await metaOf(page, siteUrl("/posts", site.address));
+    expect(posts.description).toEqual([SITE_DESCRIPTION]);
+    expect(posts.title).toBe(`Posts - ${SITE_TITLE}`);
+    expect(posts.ogType).toEqual(["website"]);
+  });
+
+  test("a home page with no description of its own falls back; one with its own keeps it", async ({
+    page,
+  }) => {
+    const [front] = await withDatabase(async (sql) => {
+      const rows = await sql<{ id: string }[]>`
+        select id from entries where site_id = ${site.id} and slug = 'front'`;
+      await sql`update site_settings set home_page_id = ${rows[0].id} where site_id = ${site.id}`;
+      return rows;
+    });
+    try {
+      const fallback = await metaOf(page, siteUrl("/", site.address));
+      expect(fallback.description).toEqual([SITE_DESCRIPTION]);
+      await withDatabase(
+        (sql) => sql`update entries set seo_description = 'Home own' where id = ${front.id}`,
+      );
+      const own = await metaOf(page, siteUrl("/", site.address));
+      expect(own.description).toEqual(["Home own"]);
+    } finally {
+      await withDatabase(
+        (sql) => sql`update site_settings set home_page_id = null where site_id = ${site.id}`,
+      );
+    }
+  });
+
+  test("loader data and html hold no entry id and no share image id", async ({ request }) => {
+    for (const path of ["/posts/full", "/bare"]) {
+      const url = siteUrl(path, site.address);
+      const html = await (await request.get(url)).text();
+      const data = await (await request.get(`${url}.data`)).text();
+      for (const body of [html, data]) {
+        expect(body).not.toContain(postId);
+        expect(body).not.toContain(pageId);
+        expect(body).not.toContain(mediaId);
+      }
+      expect(data).toContain("imageUrl"); // the .data answer really carries the loader data
+    }
+  });
+
+  test("a missing page carries no canonical and no Open Graph tags", async ({ page }) => {
+    const tags = await metaOf(page, siteUrl("/no-such-page", site.address));
+    expect(tags.status).toBe(404);
+    expect(tags.canonical).toEqual([]);
+    expect(tags.ogTitle).toEqual([]);
+    expect(tags.ogUrl).toEqual([]);
+    expect(tags.ogType).toEqual([]);
+    expect(tags.description).toEqual([]);
+  });
+});
