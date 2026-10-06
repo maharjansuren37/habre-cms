@@ -1,10 +1,10 @@
 import { isRouteErrorResponse, Link, Outlet } from "react-router";
 import { findPublishedPageSlugs } from "#app/features/content/entries.server.ts";
 import { getSiteSettings, type SiteSettings } from "#app/features/settings/settings.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
-import { findPublicSiteId } from "./public-site.server.ts";
 import { FALLBACK_SITE_TITLE, publicTitle } from "./public-title.ts";
 
 type NavLink = { label: string; href: string };
@@ -43,8 +43,8 @@ export function meta({ error, matches }: Route.MetaArgs) {
   return [{ title: publicTitle(matches, isNotFound ? "Page not found" : "Something went wrong") }];
 }
 
-export async function loader() {
-  const siteId = await findPublicSiteId();
+export async function loader({ context }: Route.LoaderArgs) {
+  const siteId = context.get(siteContext).id;
   const settings = await getSiteSettings(siteId, env.R2_PUBLIC_URL);
   const navLinks = await resolveNavigation(siteId, settings.navigation);
   // Only what the header and footer show (F-108); never the whole row.

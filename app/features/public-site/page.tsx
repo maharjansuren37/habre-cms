@@ -1,17 +1,17 @@
 import { data, redirect } from "react-router";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/page";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
-import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   return [{ title: publicTitle(matches, loaderData?.page.title ?? "Page") }];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const siteId = await findPublicSiteId();
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const siteId = context.get(siteContext).id;
   const page = await findPublishedEntry(siteId, "page", params.slug);
   // A draft and a missing slug get the same answer - matches post.tsx's own
   // rule (item 4b's D-5), so a page's existence is never leaked by its status.

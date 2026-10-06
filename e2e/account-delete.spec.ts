@@ -471,7 +471,7 @@ test("the other members of a deleted site are emailed, the person who deleted it
 test("with email off, deleting a site with a member sends nothing and still succeeds", async ({
   page,
 }) => {
-  const off = `http://localhost:${HOST_SPLIT_PORT}`;
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
   await makeSoleAdminSite();
   await page.goto(`${off}/admin/login`);
   await page.getByLabel("Email").fill(admin.email);

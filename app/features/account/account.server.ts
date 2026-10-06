@@ -237,8 +237,8 @@ export type DeletionFacts = {
 /**
  * Which case this member is in, read with `db` (a transaction from `inSite`;
  * entries and media are under row-level security). Not the site's last active
- * admin: leave. The last active admin of the oldest site (`findPublicSiteId`'s
- * rule, which the public domain serves until item 16): refused. Any other last
+ * admin: leave. The last active admin of the oldest site (until item 16a's Step 9
+ * removes the case): refused. Any other last
  * active admin takes the site. Null when the person has no membership on the
  * site any more.
  */

@@ -130,7 +130,7 @@ that (D153).
   `host-routing.test.ts` covering every rule in *In scope*'s host list,
   including those two edge cases, upper-case hosts, the sites host's port and
   `/healthz` on each kind of host.
-- [ ] **Step 6 - Wire it: the site comes from the host** - root middleware
+- [x] **Step 6 - Wire it: the site comes from the host** - root middleware
   calls the classifier and runs one indexed query for a subdomain or domain
   lookup, refusing suspended sites and unverified domains. It sets
   `siteContext`. The public loaders (`layout`, `home`, `posts`, `post`,

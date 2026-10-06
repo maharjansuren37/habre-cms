@@ -1,18 +1,18 @@
 import { data, Link } from "react-router";
 import { renderDocument } from "#app/features/blocks/render.tsx";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/post";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
-import { findPublicSiteId } from "./public-site.server.ts";
 import { publicTitle } from "./public-title.ts";
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   return [{ title: publicTitle(matches, loaderData?.post.title ?? "Post") }];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const siteId = await findPublicSiteId();
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const siteId = context.get(siteContext).id;
   const post = await findPublishedEntry(siteId, "post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
   // never leaked by its status (item 4b's D-5; matches findEntryForUser's

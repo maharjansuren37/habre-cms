@@ -2,7 +2,13 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
-import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
+import {
+  createSite,
+  createSiteAdmin,
+  createSiteWithAddress,
+  deleteSite,
+  siteUrl,
+} from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -392,4 +398,46 @@ test.describe("media and settings belong to one site", () => {
       )
       .toBeGreaterThan(0);
   });
+});
+
+test("a site is served at its own address and shows only its own content", async ({
+  page,
+  request,
+}) => {
+  const tag = randomInt(1e9);
+  const { id: siteId, address } = await createSiteWithAddress("hosted");
+  const siteAdmin = await createSiteAdmin(siteId);
+  const siteOneAuthor = createAdmin("Host Test Author");
+  const siteOnePost = `Site one post ${tag}`;
+  const siteTwoPost = `Site two post ${tag}`;
+  try {
+    await createDraftFor(siteOneAuthor.email, siteOnePost, textDocument("One"), {
+      status: "published",
+    });
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status,
+          published_at, author_id)
+        select ${siteId}, 'post', ${siteTwoPost}, ${`site-two-post-${tag}`},
+          ${sql.json(textDocument("Two") as never)}, 'v4', 'published', now(), u.id
+        from users u where u.email = ${siteAdmin.email}
+      `;
+    });
+    const siteOneSlug = siteOnePost.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+    // The site's title is its address (createSite's default settings row).
+    await page.goto(siteUrl("/", address));
+    await expect(page.getByRole("banner")).toContainText(address);
+    await page.goto(siteUrl("/posts", address));
+    await expect(page.getByRole("link", { name: siteTwoPost })).toBeVisible();
+    await expect(page.getByRole("link", { name: siteOnePost })).toHaveCount(0);
+
+    // Site 1's post answers 404 on this site, and is there on site 1.
+    expect((await request.get(siteUrl(`/posts/${siteOneSlug}`, address))).status()).toBe(404);
+    expect((await request.get(siteUrl(`/posts/${siteOneSlug}`))).status()).toBe(200);
+  } finally {
+    await deleteEntriesBy(siteOneAuthor.email);
+    await deleteTestUser(siteOneAuthor.email);
+    await deleteSite(siteId);
+  }
 });

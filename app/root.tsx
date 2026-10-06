@@ -10,9 +10,11 @@ import {
   useLocation,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
+import { siteContext } from "#app/features/sites/site-context.ts";
 import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
-import { resolveHostRouting } from "#app/lib/host-routing.ts";
+import { classifyHost } from "#app/lib/host-routing.ts";
 import { isAllowedRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 
@@ -22,38 +24,48 @@ import "./app.css";
 // On the root route so every action, now and in later items, is covered
 // without having to remember it.
 export const middleware: Route.MiddlewareFunction[] = [
-  // Ahead of every other check (D22): an admin path on the wrong host, or the
-  // wrong host entirely, is resolved before touching auth, CSRF or a loader.
+  // Ahead of every other check (item 16a, D153): the host decides whether this
+  // is the platform or a site, and which site, before touching auth, CSRF or a
+  // loader. A site's request gets `siteContext`; the platform's does not.
   // `url`, not `request.url`: on a client-side navigation the request is for
   // `/admin.data`, which is not an admin path; `url` has the `.data` removed.
-  function routeByHost({ request, url }) {
-    const sitesUrl = new URL(env.SITES_URL);
-    const platformUrl = new URL(env.PLATFORM_URL);
-    const decision = resolveHostRouting({
+  async function routeByHost({ request, url, context }) {
+    const decision = classifyHost({
       method: request.method,
       pathname: url.pathname,
       search: url.search,
       requestHost: url.host,
-      publicHost: sitesUrl.host,
-      adminHost: platformUrl.host,
-      publicOrigin: sitesUrl.origin,
-      adminOrigin: platformUrl.origin,
+      platformOrigin: new URL(env.PLATFORM_URL).origin,
+      sitesOrigin: new URL(env.SITES_URL).origin,
     });
+    if (decision.kind === "allow") return;
     if (decision.kind === "redirect") throw redirect(decision.to);
-    if (decision.kind === "not-found") {
-      // Logged, like the cross-site refusal below (F-70). A host matching
-      // neither should be unreachable behind Caddy, so seeing one means the
-      // network assumption behind D22 has broken.
-      logSecurityEvent({
-        event: "request_refused",
-        reason: "wrong_host",
-        method: request.method,
-        path: url.pathname,
-        host: url.host,
-        ip: clientIp(request.headers),
-      });
+
+    // Logged, like the cross-site refusal below (F-70), but only a host outside
+    // both domains: the wildcard sends every guessed name here, and an unknown
+    // address under the sites domain is a normal 404.
+    const refuse = (foreignHost: boolean): never => {
+      if (foreignHost) {
+        logSecurityEvent({
+          event: "request_refused",
+          reason: "wrong_host",
+          method: request.method,
+          path: url.pathname,
+          host: url.host,
+          ip: clientIp(request.headers),
+        });
+      }
       throw data("Not Found", { status: 404 });
-    }
+    };
+    if (decision.kind === "not-found") return refuse(decision.foreignHost);
+
+    const site =
+      decision.kind === "subdomain"
+        ? await findSiteBySubdomain(decision.label)
+        : await findSiteByDomain(decision.host);
+    // A domain that is not in site_domains is a host nothing here serves.
+    if (!site) return refuse(decision.kind === "domain");
+    context.set(siteContext, site);
   },
   function refuseCrossSiteRequests({ request, url }) {
     const platformOrigin = new URL(env.PLATFORM_URL).origin;

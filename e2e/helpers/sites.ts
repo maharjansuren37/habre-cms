@@ -14,17 +14,22 @@ export async function siteOneId(): Promise<string> {
   return siteOne;
 }
 
-/** Makes a site and its settings row, and returns the site's id. The subdomain
- *  gets a random suffix so parallel workers never collide. */
-export function createSite(subdomain: string): Promise<string> {
+/** Makes a site and its settings row, and returns the site's id and its address
+ *  (subdomain). The subdomain gets a random suffix so parallel workers never collide. */
+export function createSiteWithAddress(subdomain: string): Promise<{ id: string; address: string }> {
   const unique = `${subdomain}-${randomUUID().slice(0, 8)}`;
   return withDatabase(async (sql) => {
     const [site] = await sql<{ id: string }[]>`
       insert into sites (subdomain) values (${unique}) returning id
     `;
     await sql`insert into site_settings (site_id, site_title) values (${site.id}, ${unique})`;
-    return site.id;
+    return { id: site.id, address: unique };
   });
+}
+
+/** Like `createSiteWithAddress`, for tests that only need the id. */
+export async function createSite(subdomain: string): Promise<string> {
+  return (await createSiteWithAddress(subdomain)).id;
 }
 
 // The app's own hash function, run by node (the e2e project cannot import app/),
@@ -78,8 +83,7 @@ export function deleteSite(siteId: string): Promise<void> {
   });
 }
 
-/** The URL of a public page. A later step serves each site at
- *  `http://<address>.localhost:<port>`; until then every address is the one server. */
-export function siteUrl(path: string, _address = "surenmaharjan"): string {
-  return `http://127.0.0.1:${PORT}${path}`;
+/** The URL of a public page: each site is served at `http://<address>.localhost:<port>`. */
+export function siteUrl(path: string, address = "surenmaharjan"): string {
+  return `http://${address}.localhost:${PORT}${path}`;
 }
