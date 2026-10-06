@@ -1,12 +1,9 @@
 import sharp, { type Sharp } from "sharp";
+import { MAX_INPUT_PIXELS } from "./upload-refusals.ts";
 import { variantWidths } from "./variant-widths.ts";
 
-/**
- * The most pixels an upload may decode to. sharp's own default (268 MP) would
- * need over 1 GB on the 954 MB server; 40 MP covers phones and most cameras.
- * A default, not a product limit - raise it with the server (D174).
- */
-export const MAX_INPUT_PIXELS = 40_000_000;
+// The cap lives in upload-refusals.ts so its message can be tested without sharp.
+export { MAX_INPUT_PIXELS };
 
 const WEBP_QUALITY = 80;
 const JPEG_QUALITY = 80;

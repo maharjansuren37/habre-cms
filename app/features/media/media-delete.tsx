@@ -8,6 +8,7 @@ import type { Route } from "./+types/media-delete";
 import { mediaBannerRedirect } from "./banner.ts";
 import { deleteMedia, findMediaForUser } from "./media.server.ts";
 import styles from "./media-delete.module.css";
+import { mediaObjectKeys } from "./media-objects.ts";
 import { buildMediaUrl } from "./media-url.ts";
 import { deleteObject } from "./r2.server.ts";
 
@@ -47,10 +48,12 @@ export async function action({ params, context }: Route.ActionArgs) {
   const actor = context.get(userContext);
   const deleted = await deleteMedia(actor.siteId, id, actor);
   if (!deleted) throw data("Not Found", { status: 404 });
-  try {
-    await deleteObject(deleted.storageKey);
-  } catch (error) {
-    console.error(`Failed to delete R2 object for media ${id}:`, error);
+  for (const key of mediaObjectKeys(deleted)) {
+    try {
+      await deleteObject(key);
+    } catch (error) {
+      console.error(`Failed to delete R2 object for media ${id}:`, error);
+    }
   }
   return mediaBannerRedirect("deleted", deleted.filename);
 }

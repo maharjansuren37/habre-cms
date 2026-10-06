@@ -105,7 +105,7 @@ item up to the same shape (D174).
   existing browser tests that seed media rows still pass (they insert with no
   `variant_widths`, i.e. `null`).
 
-- [ ] **Step 3 - upload, cache header and delete** - `uploadObject` takes the
+- [x] **Step 3 - upload, cache header and delete** - `uploadObject` takes the
   cache header and sends it on every write. Media's upload action: the existing
   checks, then `optimiseImage`; `unreadable` -> 400 "This image could not be
   read. Try saving it again as a JPEG or PNG."; `too-large` -> 400 "This image

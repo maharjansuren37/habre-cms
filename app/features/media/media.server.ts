@@ -183,12 +183,12 @@ export async function deleteMedia(
   siteId: string,
   id: string,
   actor: Actor,
-): Promise<{ storageKey: string; filename: string } | null> {
+): Promise<{ storageKey: string; variantWidths: number[] | null; filename: string } | null> {
   const [row] = await inSite(
     siteId,
-    (tx) => tx<{ storageKey: string; filename: string }[]>`
+    (tx) => tx<{ storageKey: string; variantWidths: number[] | null; filename: string }[]>`
     delete from media m where m.site_id = ${siteId} and m.id = ${id} ${ownedBy(actor)}
-    returning m.storage_key as "storageKey", m.filename
+    returning m.storage_key as "storageKey", m.variant_widths as "variantWidths", m.filename
   `,
   );
   return row ?? null;
