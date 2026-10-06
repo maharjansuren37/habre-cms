@@ -127,6 +127,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       width: detected.width,
       height: detected.height,
       altText: altText.data,
+      // Step 3 stores the sizes; until then the upload is kept as sent.
+      variantWidths: null,
     },
     actor.id,
   );

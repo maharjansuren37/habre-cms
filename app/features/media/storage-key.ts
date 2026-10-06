@@ -10,3 +10,12 @@ import { randomUUID } from "node:crypto";
 export function generateStorageKey(siteId: string, extension: string): string {
   return `sites/${siteId}/${randomUUID()}.${extension}`;
 }
+
+/**
+ * The directory a resized upload's objects live in (item 17b): `<width>.webp`
+ * for each size and `social.jpg`, named by media-objects.ts. Generated like
+ * `generateStorageKey`'s keys - never from anything the client sent.
+ */
+export function generateUploadDirectory(siteId: string): string {
+  return `sites/${siteId}/${randomUUID()}/`;
+}

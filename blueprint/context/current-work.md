@@ -79,7 +79,7 @@ item up to the same shape (D174).
   through `optimiseImage` ten times - gives the median and slowest time and
   the process's peak RSS, written into this spec's Notes.
 
-- [ ] **Step 2 - the stored shape** (run with `migrate`) - migration
+- [x] **Step 2 - the stored shape** (run with `migrate`) - migration
   `0017_media_variants.sql`: `media.variant_widths integer[]`, **nullable**:
   `null` = uploaded before 17b, not yet optimised; `'{}'` = stored as uploaded
   (animated GIF); otherwise the WebP widths, ascending. Widen `byte_size`'s

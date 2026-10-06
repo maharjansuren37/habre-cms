@@ -14,6 +14,8 @@ export type Media = {
   width: number;
   height: number;
   altText: string;
+  /** null: not yet optimised; []: stored as uploaded; else the WebP widths (media-objects.ts). */
+  variantWidths: number[] | null;
   uploadedBy: string | null;
   uploadedByName: string | null;
   createdAt: Date;
@@ -25,7 +27,7 @@ export type Actor = { id: string; role: Role };
 const mediaColumns = sql`
   m.id, m.storage_key as "storageKey", m.filename, m.mime_type as "mimeType",
   m.byte_size as "byteSize", m.width, m.height, m.alt_text as "altText",
-  m.uploaded_by as "uploadedBy", u.name as "uploadedByName", m.created_at as "createdAt"
+  m.variant_widths as "variantWidths", m.uploaded_by as "uploadedBy", u.name as "uploadedByName", m.created_at as "createdAt"
 `;
 
 export type NewMedia = {
@@ -36,6 +38,7 @@ export type NewMedia = {
   width: number;
   height: number;
   altText: string;
+  variantWidths: number[] | null;
 };
 
 /**
@@ -60,6 +63,7 @@ export async function insertMedia(
       width: input.width,
       height: input.height,
       alt_text: input.altText,
+      variant_widths: input.variantWidths,
       uploaded_by: uploadedBy,
     })}
     returning id
@@ -118,6 +122,7 @@ export type MediaSummaryRow = {
   altText: string;
   width: number;
   height: number;
+  variantWidths: number[] | null;
 };
 
 /**
@@ -132,7 +137,8 @@ export async function findMediaByIds(siteId: string, ids: string[]): Promise<Med
   return inSite(
     siteId,
     (tx) => tx<MediaSummaryRow[]>`
-    select id, storage_key as "storageKey", alt_text as "altText", width, height
+    select id, storage_key as "storageKey", alt_text as "altText", width, height,
+           variant_widths as "variantWidths"
     from media
     where site_id = ${siteId} and id = any(${ids})
   `,
