@@ -233,6 +233,16 @@ not tidying; it is what keeps the open list true.
       environment on the server, never the repository. Blocks nothing now;
       needed by item 16 and by the v1 deploy. `open` (architect, 2026-10-01)
 
+- [ ] **Caddy with the Cloudflare DNS module on `ocwebserver`, and its env
+      file filled in** - system software and credentials; a change to the
+      server's shared Caddy only you can approve (`host`). Item 16b's Caddy
+      file needs `dns.providers.cloudflare` (e.g. `caddy add-package
+      github.com/caddy-dns/cloudflare`) and `/etc/caddy/habre-cms.env` holding
+      `HABRE_PLATFORM_DOMAIN`, `HABRE_SITES_DOMAIN` and the token above;
+      `setup-server.sh` refuses without them. Blocks nothing now; needed by
+      the v1 deploy, after both domains are bought. `open` (spec 16b,
+      2026-10-06)
+
 - [ ] **An email provider account: Resend, used over SMTP** (D156) - accounts
       and spend. Sends signup verification, password reset and contact-form
       notifications. Its free tier (3,000 a month, 100 a day) covers the beta;

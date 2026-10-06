@@ -233,7 +233,11 @@ to `.env` and fill it in, `npx playwright install chromium`.
 - Operator commands: `npm run create-admin -- --email you@example.org --name "Your Name"`
   (password on stdin; a confirmed admin of site 1) and
   `npm run create-invite -- --note "for Lena"` (prints a single-use signup code
-  once; only its hash is stored). Both connect as the app role, `DATABASE_URL`.
+  once; only its hash is stored),
+  `npm run suspend-site -- --address lena` (takes the site's public pages off
+  on the next request; members keep the admin) and
+  `npm run unsuspend-site -- --address lena` (puts them back). All connect as
+  the app role, `DATABASE_URL`.
 - Dev: `npm run dev` (Vite HMR; the platform at http://app.localhost:3000/admin,
   site 1 at http://surenmaharjan.localhost:3000)
 - Build: `npm run build` (output in `build/`)

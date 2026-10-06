@@ -1,0 +1,114 @@
+import { execFileSync } from "node:child_process";
+import { expect, test } from "@playwright/test";
+import { createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
+import { withDatabase } from "./helpers/users.ts";
+
+// Item 16b, Step 1: the operator commands, run for real as a person would run
+// them. Each test makes its own site, never site 1.
+type Run = { status: number; stdout: string; stderr: string };
+
+function run(script: string, args: string[]): Run {
+  try {
+    const stdout = execFileSync("node", [`scripts/${script}.ts`, ...args], {
+      env: process.env,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return { status: 0, stdout, stderr: "" };
+  } catch (error) {
+    const failed = error as { status: number; stdout: string; stderr: string };
+    return { status: failed.status, stdout: failed.stdout, stderr: failed.stderr };
+  }
+}
+
+function suspendedAt(siteId: string): Promise<Date | null> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ suspendedAt: Date | null }[]>`
+      select suspended_at as "suspendedAt" from sites where id = ${siteId}
+    `;
+    return row.suspendedAt;
+  });
+}
+
+test("suspending takes the site off at once, and unsuspending puts it back", async ({
+  request,
+}) => {
+  const site = await createSiteWithAddress("suspend-cmd");
+  try {
+    const home = () => request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect((await home()).status()).toBe(200);
+
+    const suspended = run("suspend-site", ["--address", site.address]);
+    expect(suspended.status).toBe(0);
+    expect(suspended.stdout).toContain(`Suspended ${site.address}.`);
+    expect((await home()).status()).toBe(404);
+
+    const restored = run("unsuspend-site", ["--address", site.address]);
+    expect(restored.status).toBe(0);
+    expect(restored.stdout).toContain(`Unsuspended ${site.address}.`);
+    expect((await home()).status()).toBe(200);
+    expect(await suspendedAt(site.id)).toBeNull();
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("suspending twice exits 0, says so, and keeps the first time", async () => {
+  const site = await createSiteWithAddress("suspend-twice");
+  try {
+    expect(run("suspend-site", ["--address", site.address]).status).toBe(0);
+    const first = await suspendedAt(site.id);
+    expect(first).not.toBeNull();
+
+    const again = run("suspend-site", ["--address", site.address]);
+    expect(again.status).toBe(0);
+    expect(again.stdout).toContain("already suspended");
+    expect(await suspendedAt(site.id)).toEqual(first);
+
+    const unsuspended = run("unsuspend-site", ["--address", site.address]);
+    expect(unsuspended.status).toBe(0);
+    const twice = run("unsuspend-site", ["--address", site.address]);
+    expect(twice.status).toBe(0);
+    expect(twice.stdout).toContain("already not suspended");
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("an unknown address exits 1 and changes no row", async () => {
+  const site = await createSiteWithAddress("suspend-unknown");
+  try {
+    for (const script of ["suspend-site", "unsuspend-site"]) {
+      const result = run(script, ["--address", `${site.address}-nope`]);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("No site has the address");
+    }
+    expect(await suspendedAt(site.id)).toBeNull();
+    const anySuspendedByUs = await withDatabase(
+      (sql) =>
+        sql`select 1 from sites where suspended_at is not null and subdomain like ${`${site.address}%`}`,
+    );
+    expect(anySuspendedByUs.length).toBe(0);
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("the address is found whatever its case", async () => {
+  const site = await createSiteWithAddress("suspend-case");
+  try {
+    const result = run("suspend-site", ["--address", site.address.toUpperCase()]);
+    expect(result.status).toBe(0);
+    expect(await suspendedAt(site.id)).not.toBeNull();
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("without an address the command prints its usage and exits 1", () => {
+  for (const script of ["suspend-site", "unsuspend-site"]) {
+    const result = run(script, []);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`Usage: npm run ${script} -- --address <address>`);
+  }
+});
