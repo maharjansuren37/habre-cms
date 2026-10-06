@@ -166,7 +166,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     the input kept and nothing saved; a save from an out-of-date form is
     still refused (`settings.2`). Settings saves stay under 1 s (quality-bar).
 
-- [ ] **Step 5 - Search title and description in the editor**:
+- [x] **Step 5 - Search title and description in the editor**:
   - The *Search and sharing* disclosure with its first two fields, inside the
     editor's `Form`, so Save, Publish and Unpublish send them; typing marks
     the entry "Not saved yet".
@@ -291,6 +291,9 @@ pieces: field, textarea, select, the logo field's media picker, the error
     unit test keeps right-to-left tags out (Step 4).
   - A settings save missing `siteDescription` or `language` is "out of
     date", as a missing `homePageId` is (F-107's rule) (Step 4).
+  - An editor save missing `seoTitle` or `seoDescription` is refused with
+    its own message (F-34's `blocks` rule, F-107); a new draft stores what
+    was typed in the disclosure on `/new` (Step 5).
 
 ## Production needs
 

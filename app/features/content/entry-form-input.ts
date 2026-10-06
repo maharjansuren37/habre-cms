@@ -1,5 +1,5 @@
 import { type Document, parseDocument } from "#app/features/blocks/document.ts";
-import { titleSchema } from "./entry-input.ts";
+import { seoDescriptionSchema, seoTitleSchema, titleSchema } from "./entry-input.ts";
 import type { EntryType } from "./slug.ts";
 
 /** The editor's submitted `blocks` field, parsed as JSON, or why it cannot be read. */
@@ -26,7 +26,7 @@ function readEditorOutput(
 }
 
 export type DocumentFormResult =
-  | { ok: true; title: string; document: Document }
+  | { ok: true; title: string; seoTitle: string; seoDescription: string; document: Document }
   | { ok: false; message: string };
 
 /**
@@ -44,7 +44,35 @@ export function parseDocumentForm(form: FormData, type: EntryType): DocumentForm
   }
   const document = parseDocument(editorOutput.value, type);
   if (!document.ok) return document;
-  return { ok: true, title: title.data, document: document.document };
+  // Absent is not empty, for the same reason as `blocks` (F-34, F-107): a form
+  // from before these fields existed, or a crafted post, must not clear what
+  // is saved. The editor always renders both, so a submission without them is
+  // out of date.
+  if (!form.has("seoTitle") || !form.has("seoDescription")) {
+    return {
+      ok: false,
+      message:
+        "The search and sharing fields were missing, so nothing was saved. Reload and try again.",
+    };
+  }
+  const seoTitle = seoTitleSchema.safeParse(String(form.get("seoTitle")));
+  if (!seoTitle.success) {
+    return { ok: false, message: seoTitle.error.issues[0]?.message ?? "This could not be saved." };
+  }
+  const seoDescription = seoDescriptionSchema.safeParse(String(form.get("seoDescription")));
+  if (!seoDescription.success) {
+    return {
+      ok: false,
+      message: seoDescription.error.issues[0]?.message ?? "This could not be saved.",
+    };
+  }
+  return {
+    ok: true,
+    title: title.data,
+    seoTitle: seoTitle.data,
+    seoDescription: seoDescription.data,
+    document: document.document,
+  };
 }
 
 /** The version the editor loaded, or null when the form carried no usable one. */

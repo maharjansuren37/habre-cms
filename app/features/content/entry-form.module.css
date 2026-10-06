@@ -174,3 +174,72 @@
   color: var(--color-text-muted);
   font-size: var(--text-md);
 }
+
+/* Search and sharing (item 17): a native disclosure under the web address,
+   closed until opened. Fields use the settings form's input and textarea box. */
+.search {
+  margin: 0 0 var(--space-5);
+}
+
+.searchSummary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.searchSummary:hover {
+  color: var(--color-text);
+}
+
+.searchBody {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.searchField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.searchLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.searchInput,
+.searchTextarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.searchInput {
+  min-height: var(--size-control-md);
+}
+
+.searchTextarea {
+  resize: vertical;
+}
+
+.searchInput:hover,
+.searchTextarea:hover {
+  border-color: var(--color-text-muted);
+}
+
+.searchInput:focus-visible,
+.searchTextarea:focus-visible {
+  border-color: var(--color-focus-ring);
+}
+
+.searchHint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

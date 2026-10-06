@@ -43,7 +43,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   const entry = await createDraft(
     user.siteId,
     "page",
-    { title: form.title, document: form.document },
+    {
+      title: form.title,
+      seoTitle: form.seoTitle,
+      seoDescription: form.seoDescription,
+      document: form.document,
+    },
     user.id,
   );
   // The address is chosen here, so the editor moves to the saved page's own URL.
@@ -55,6 +60,8 @@ export default function NewPage({ loaderData, actionData }: Route.ComponentProps
     <EntryForm
       entryType="page"
       title=""
+      seoTitle=""
+      seoDescription=""
       slug=""
       document={loaderData.document}
       mediaById={loaderData.mediaById}

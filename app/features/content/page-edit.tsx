@@ -85,7 +85,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     context.get(userContext).siteId,
     "page",
     id,
-    { title: parsed.title, document: parsed.document },
+    {
+      title: parsed.title,
+      seoTitle: parsed.seoTitle,
+      seoDescription: parsed.seoDescription,
+      document: parsed.document,
+    },
     version,
     context.get(userContext),
     intent.data === "save" ? undefined : intent.data,
@@ -109,6 +114,8 @@ export default function EditPage({ loaderData, actionData }: Route.ComponentProp
     <EntryForm
       entryType="page"
       title={entry.title}
+      seoTitle={entry.seoTitle}
+      seoDescription={entry.seoDescription}
       slug={entry.slug}
       document={entry.document}
       mediaById={loaderData.mediaById}

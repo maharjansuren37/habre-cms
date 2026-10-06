@@ -32,6 +32,9 @@ function addressFor(entryType: "post" | "page", slug: string): string {
 type EntryFormProps = {
   entryType: "post" | "page";
   title: string;
+  /** Search title and description (item 17); empty when not set. */
+  seoTitle: string;
+  seoDescription: string;
   /** Empty for an entry that has not been saved yet. */
   slug: string;
   /** The post or page's one document (item 14a1); a new entry's is empty. */
@@ -48,6 +51,8 @@ type EntryFormProps = {
 export function EntryForm({
   entryType,
   title,
+  seoTitle,
+  seoDescription,
   slug,
   document: initialDocument,
   mediaById,
@@ -68,6 +73,8 @@ export function EntryForm({
   const readEditor = useRef<(() => Promise<unknown>) | null>(null);
   const [isEditorReady, setEditorReady] = useState(false);
   const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
+  // The title as typed, so the search title field can show it as its placeholder.
+  const [titleNow, setTitleNow] = useState(title);
   const [hasUnreadableContent, setUnreadableContent] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
   // Where the document editor draws Undo and Redo (in the top bar) and its palette.
@@ -230,12 +237,55 @@ export function EntryForm({
             defaultValue={title}
             placeholder={copy.titlePlaceholder}
             autoComplete="off"
-            onChange={() => setUnsavedChanges(true)}
+            onChange={(event) => {
+              setTitleNow(event.currentTarget.value);
+              setUnsavedChanges(true);
+            }}
           />
           <p className={styles.address}>
             Web address:{" "}
             <span>{slug === "" ? "chosen when you first save" : addressFor(entryType, slug)}</span>
           </p>
+          <details className={styles.search}>
+            <summary className={styles.searchSummary}>Search and sharing</summary>
+            <div className={styles.searchBody}>
+              <div className={styles.searchField}>
+                <label className={styles.searchLabel} htmlFor="entry-seo-title">
+                  Title in search results
+                </label>
+                <input
+                  id="entry-seo-title"
+                  className={styles.searchInput}
+                  name="seoTitle"
+                  defaultValue={seoTitle}
+                  placeholder={titleNow.trim() === "" ? undefined : titleNow}
+                  autoComplete="off"
+                  aria-describedby="entry-seo-title-hint"
+                  onChange={() => setUnsavedChanges(true)}
+                />
+                <p id="entry-seo-title-hint" className={styles.searchHint}>
+                  Leave empty to use the title.
+                </p>
+              </div>
+              <div className={styles.searchField}>
+                <label className={styles.searchLabel} htmlFor="entry-seo-description">
+                  Description
+                </label>
+                <textarea
+                  id="entry-seo-description"
+                  className={styles.searchTextarea}
+                  name="seoDescription"
+                  defaultValue={seoDescription}
+                  rows={3}
+                  aria-describedby="entry-seo-description-hint"
+                  onChange={() => setUnsavedChanges(true)}
+                />
+                <p id="entry-seo-description-hint" className={styles.searchHint}>
+                  Shown under the title in search results and when shared. Up to 300 characters.
+                </p>
+              </div>
+            </div>
+          </details>
 
           {isEditorReady ? (
             <DocumentEditor

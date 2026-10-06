@@ -25,13 +25,21 @@ type EntryBase = {
 };
 
 /** A post or a page is one document (item 14a1, D169). */
-export type Entry = EntryBase & { type: EntryType; document: Document };
+export type Entry = EntryBase & {
+  type: EntryType;
+  /** `''` when not set (item 17). */
+  seoTitle: string;
+  seoDescription: string;
+  document: Document;
+};
 
 /** Who is asking. Ownership is decided from this, never from the form. */
 export type Actor = { id: string; role: Role };
 
 const entryColumns = sql`
   id, type, title, slug, blocks,
+  seo_title as "seoTitle",
+  seo_description as "seoDescription",
   blocks_format as "blocksFormat",
   status,
   author_id as "authorId",
@@ -42,6 +50,8 @@ const entryColumns = sql`
 /** What the columns above return; the format is checked, then reshaped. */
 type EntryRow = EntryBase & {
   type: EntryType;
+  seoTitle: string;
+  seoDescription: string;
   blocks: Document;
   blocksFormat: string;
 };
@@ -122,6 +132,8 @@ export async function createDraft(
       site_id: siteId,
       type,
       title: input.title,
+      seo_title: input.seoTitle,
+      seo_description: input.seoDescription,
       slug,
       ...storedContent(input),
       status: "draft",
@@ -178,6 +190,8 @@ export async function saveEntry(
     const [row] = await tx<EntryRow[]>`
     update entries e set
       title = ${input.title},
+      seo_title = ${input.seoTitle},
+      seo_description = ${input.seoDescription},
       blocks = ${stored.blocks},
       blocks_format = ${stored.blocks_format},
       version = version + 1,

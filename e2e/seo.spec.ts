@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { logIn } from "./helpers/auth.ts";
+import { textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
 import { PORT, PROXIED_PORT } from "./helpers/ports.ts";
 import {
@@ -9,7 +11,16 @@ import {
   deleteSite,
   siteUrl,
 } from "./helpers/sites.ts";
-import { withDatabase } from "./helpers/users.ts";
+import {
+  createAdmin,
+  createDraftFor,
+  deleteEntriesBy,
+  deleteTestUser,
+  setRole,
+  storedEntry,
+  type TestUser,
+  withDatabase,
+} from "./helpers/users.ts";
 
 // Database only - no page. Setup and checks run as the owner, so the foreign
 // key itself is what is under test, not row-level security. Both sites are the
@@ -310,5 +321,111 @@ test("a site with 1,000 published posts answers its sitemap in under 500 ms", as
     expect(ms).toBeLessThan(500);
   } finally {
     await deleteSite(site.id);
+  }
+});
+
+// Step 5: the editor's Search and sharing disclosure. Entries are created by a
+// fresh user on site 1 and removed afterwards; no site setting is touched.
+
+async function openSearchAndSharing(page: Page) {
+  const summary = page.locator("summary", { hasText: "Search and sharing" });
+  await expect(page.getByLabel("Title in search results")).toBeHidden();
+  // By keyboard: focus the summary, then Enter.
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Title in search results")).toBeVisible();
+}
+
+async function searchFieldsOf(id: string) {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ seo_title: string; seo_description: string }[]>`
+      select seo_title, seo_description from entries where id = ${id}
+    `;
+    return row;
+  });
+}
+
+for (const kind of ["page", "post"] as const) {
+  test.describe(`search and sharing fields on a ${kind}`, () => {
+    let user: TestUser;
+
+    test.beforeEach(async ({ page }) => {
+      await page.setExtraHTTPHeaders({
+        "X-Forwarded-For": `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.9`,
+      });
+      user = createAdmin("Seo Editor");
+    });
+
+    test.afterEach(async () => {
+      await deleteEntriesBy(user.email);
+      await deleteTestUser(user.email);
+    });
+
+    test(`the fields are kept after Save and a reload, and a 301-character description is refused`, async ({
+      page,
+    }) => {
+      const id = await createDraftFor(user.email, `Seo ${kind}`, textDocument("Body"), {
+        type: kind,
+      });
+      const url = `/admin/${kind}s/${id}`;
+      await logIn(page, user);
+      await page.goto(url);
+
+      await openSearchAndSharing(page);
+      await expect(page.getByLabel("Title in search results")).toHaveAttribute(
+        "placeholder",
+        `Seo ${kind}`,
+      );
+      await page.getByLabel("Title in search results").fill("A better title");
+      await expect(page.getByText("Not saved yet")).toBeVisible();
+      await page.getByLabel("Description", { exact: true }).fill("What this is about.");
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+      await page.reload();
+      await openSearchAndSharing(page);
+      await expect(page.getByLabel("Title in search results")).toHaveValue("A better title");
+      await expect(page.getByLabel("Description", { exact: true })).toHaveValue(
+        "What this is about.",
+      );
+      expect(await searchFieldsOf(id)).toEqual({
+        seo_title: "A better title",
+        seo_description: "What this is about.",
+      });
+
+      // Too long: refused beside the message, nothing saved, version unchanged.
+      const before = (await storedEntry(id)).version;
+      await page.getByLabel("Description", { exact: true }).fill("x".repeat(301));
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Your changes were not saved.")).toBeVisible();
+      await expect(page.getByText("Description can be up to 300 characters.")).toBeVisible();
+      expect((await storedEntry(id)).version).toBe(before);
+      expect((await searchFieldsOf(id)).seo_description).toBe("What this is about.");
+    });
+  });
+}
+
+test("an author can set the search fields on their own post", async ({ page }) => {
+  await page.setExtraHTTPHeaders({
+    "X-Forwarded-For": `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.10`,
+  });
+  const author = createAdmin("Seo Author");
+  await setRole(author.email, "author");
+  try {
+    const id = await createDraftFor(author.email, "Author post", textDocument("Body"));
+    await logIn(page, author);
+    await page.goto(`/admin/posts/${id}`);
+    await openSearchAndSharing(page);
+    await page.getByLabel("Title in search results").fill("Author search title");
+    await page.getByLabel("Description", { exact: true }).fill("Author description.");
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect(await searchFieldsOf(id)).toEqual({
+      seo_title: "Author search title",
+      seo_description: "Author description.",
+    });
+  } finally {
+    await deleteEntriesBy(author.email);
+    await deleteTestUser(author.email);
   }
 });
