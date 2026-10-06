@@ -170,14 +170,6 @@ not tidying; it is what keeps the open list true.
       real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
       risk accepted, preflight, 2026-09-23)
 
-- [ ] **Check the first CI `e2e` run on item 16a's PR resolves `*.localhost`** -
-      manual verification; only a push makes CI run, and pushing is yours.
-      Locally Chromium and Playwright's `request` both reach
-      `http://<address>.localhost:3100` (item 16a, Step 1). If CI's run fails
-      on a `*.localhost` visit, the fallback is a `Host` header to
-      `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
-      `open` (verify, 2026-10-06)
-
 - [ ] **Fill `PLATFORM_URL`, `SITES_URL` and `JWT_SECRET` in your local `.env`** -
       credentials; it is your secrets file, so no agent writes to it. Item 16a
       replaces `PUBLIC_URL` and `ADMIN_URL` with `PLATFORM_URL`
@@ -315,3 +307,12 @@ not tidying; it is what keeps the open list true.
       (spec, 2026-10-02; widened, spec 15b, 2026-10-04)
 
 ## Done
+
+- [x] **Check the first CI `e2e` run on item 16a's PR resolves `*.localhost`** -
+      manual verification; only a push makes CI run, and pushing is yours.
+      Locally Chromium and Playwright's `request` both reach
+      `http://<address>.localhost:3100` (item 16a, Step 1). If CI's run fails
+      on a `*.localhost` visit, the fallback is a `Host` header to
+      `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
+      `done` (verify, 2026-10-06; closed 2026-10-06: PR #38's CI run 37412689022, `e2e` 367 passed, 8 skipped,
+      site visits on `<address>.localhost` incl. `host-routing.spec.ts:21`)

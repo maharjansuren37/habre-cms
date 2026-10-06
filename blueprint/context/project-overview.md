@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-06, `main` after `6518180`.
+Generated 2026-10-06, `main` after `09bbe1d`.
 
 ## What this is
 
@@ -39,18 +39,19 @@ mode; sections, columns and ready-made sections (D114-D143).
 (13b, `design.md`, D181-D190) - stone and rust admin in light and dark, Inter
 self-hosted, public sites neutral and light only (D168); the new editor
 (14a1-14c2) - TipTap on one v4 document per entry, sections of 1-3 columns,
-text, image, button, line and space blocks, the palette, settings panel,
-block toolbar, drag and drop, ready-made sections as templates; Editor.js and
-old content removed (`0009`); sites and memberships (15a) - `site_id` and
+blocks, palette, drag and drop, templates; Editor.js and old content removed
+(`0009`); sites and memberships (15a) - `site_id` and
 row-level security, owner and app database roles, today's install as site 1
-(`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, choosing
-the site's address, login refuses unconfirmed accounts; `0012` deletes every
+(`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, the site's
+address; `0012` deletes every
 account (D261); password reset by email (15c); a storage cap per site
 (15d, `STORAGE_LIMIT_MB`, D284-D289); Your account (15e1) - name, password,
 and an email confirmed from a link to the new address (D290-D296);
-delete your account (15e2, `0014`, D297-D308).
+delete your account (15e2, `0014`, D297-D308); sites by host (16a, `0015`,
+D309-D318) - `PLATFORM_URL` and `SITES_URL`, the site by its subdomain or a
+verified `site_domains` row, the admin on the platform host.
 
-**Platform v1 (queued):** own subdomains; SEO basics; optimised images (17b);
+**Platform v1 (queued):** suspend and the server (16b); SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -94,8 +95,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   one site per user in v1 (D159). Today's install becomes site 1 (D162).
 - **Hosts (D153, D173):** the app at `app.<platform domain>`; sites at
   `<name>.<sites domain>` or an own domain; **one main address per site**, the
-  others redirect, with a canonical link. Today: `surenmaharjan.fyi` public,
-  `cms.surenmaharjan.fyi` admin (D22).
+  others redirect, with a canonical link (17). Production still runs D22: `surenmaharjan.fyi` public, `cms.surenmaharjan.fyi` admin.
 - **Data model:** `sites`, `site_domains`, `users`, `site_members`,
   `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
   `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
@@ -147,8 +147,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-15 done; nothing in flight; 16-21 queued. 18 splits
-  when spec'd. Last shipped: 15e2
-  (`blueprint/history/features/15e2-delete-your-account.md`).
-- **Next:** `spec` item 16, own subdomains (domains: `needs-you.md`).
+- **Plan:** items 1-15 and 16a done; nothing in flight; 16b-21 queued. 18
+  splits when spec'd. Last shipped: 16a
+  (`blueprint/history/features/16a-sites-by-host.md`).
+- **Next:** `spec` item 16b, suspend and the server (domains: `needs-you.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

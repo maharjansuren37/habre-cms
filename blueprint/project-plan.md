@@ -940,8 +940,8 @@ From `architect`:
   - SMTP settings and the from address;
   - Stripe's secret key, webhook secret and price;
   - the plan limits: storage and the monthly AI credit allowance.
-  - `PUBLIC_URL` and `ADMIN_URL` become the platform URL and the sites domain
-    at item 16.
+  - `PLATFORM_URL` and `SITES_URL` replaced `PUBLIC_URL` and `ADMIN_URL` at
+    item 16a (D309); their production values wait on the two domains.
 - **One deployable, one process, `/healthz` on every host** - unchanged.
 - **Production holds until v1 is done (D163).** Production stays on release
   `8d82ce4` (items 1-12) while items 13-21 are built, then v1 ships in one
@@ -967,7 +967,8 @@ From `architect`:
   role with access to nothing else. PostgreSQL listens on localhost only.
 - **Storage:** Cloudflare R2 bucket for images, with a public URL.
 - **Health check:** `/healthz`, reporting database reachability.
-- **Env vars:** `PUBLIC_URL`, `ADMIN_URL` (replaced `APP_URL`, item 4c),
+- **Env vars:** `PLATFORM_URL`, `SITES_URL` (item 16a, D309; before that
+  `PUBLIC_URL` and `ADMIN_URL`, which replaced `APP_URL` at item 4c),
   `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 - **Backups:** nightly database dump stored off the VPS - app and database share
@@ -1035,7 +1036,7 @@ From `stack`:
   origin. It is not sent in development. `e2e/content-security-policy.spec.ts`
   fails on any violation.
 - **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,
-  `PUBLIC_URL`, `ADMIN_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `PLATFORM_URL`, `SITES_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `PORT` and `NODE_ENV` -
   the app now refuses to start without any of them (`AGENTS.md`'s Environments
   table).
