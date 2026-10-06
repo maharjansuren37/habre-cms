@@ -27,17 +27,17 @@ export const middleware: Route.MiddlewareFunction[] = [
   // `url`, not `request.url`: on a client-side navigation the request is for
   // `/admin.data`, which is not an admin path; `url` has the `.data` removed.
   function routeByHost({ request, url }) {
-    const publicUrl = new URL(env.PUBLIC_URL);
-    const adminUrl = new URL(env.ADMIN_URL);
+    const sitesUrl = new URL(env.SITES_URL);
+    const platformUrl = new URL(env.PLATFORM_URL);
     const decision = resolveHostRouting({
       method: request.method,
       pathname: url.pathname,
       search: url.search,
       requestHost: url.host,
-      publicHost: publicUrl.host,
-      adminHost: adminUrl.host,
-      publicOrigin: publicUrl.origin,
-      adminOrigin: adminUrl.origin,
+      publicHost: sitesUrl.host,
+      adminHost: platformUrl.host,
+      publicOrigin: sitesUrl.origin,
+      adminOrigin: platformUrl.origin,
     });
     if (decision.kind === "redirect") throw redirect(decision.to);
     if (decision.kind === "not-found") {
@@ -56,8 +56,8 @@ export const middleware: Route.MiddlewareFunction[] = [
     }
   },
   function refuseCrossSiteRequests({ request, url }) {
-    const adminOrigin = new URL(env.ADMIN_URL).origin;
-    if (!isAllowedRequest(request.method, request.headers, adminOrigin)) {
+    const platformOrigin = new URL(env.PLATFORM_URL).origin;
+    if (!isAllowedRequest(request.method, request.headers, platformOrigin)) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",

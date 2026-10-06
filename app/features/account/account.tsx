@@ -159,7 +159,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       );
     }
     const issued = await requestEmailChange(user.id, parsed.newEmail);
-    const message = emailChangeEmail(env.ADMIN_URL, issued.token, issued.name);
+    const message = emailChangeEmail(env.PLATFORM_URL, issued.token, issued.name);
     // Awaited, unlike forgot-password: the person is told whether it went.
     try {
       await sendEmail({ to: parsed.newEmail, subject: message.subject, text: message.text });

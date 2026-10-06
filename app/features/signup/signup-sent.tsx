@@ -62,7 +62,7 @@ export async function action({ request }: Route.ActionArgs) {
   const issued = await reissueVerifyToken(email);
   if (issued) {
     logSecurityEvent({ event: "verification_resent", userId: issued.userId });
-    const message = verificationEmail(env.ADMIN_URL, issued.token, issued.name);
+    const message = verificationEmail(env.PLATFORM_URL, issued.token, issued.name);
     // Not awaited: the answer is the same for every address, and waiting for
     // the mail server would make a real account answer slower than a missing
     // one. A failed send is logged; the person asks again if nothing arrives.

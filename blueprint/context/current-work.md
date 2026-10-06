@@ -90,7 +90,7 @@ that (D153).
   *Done when:* `npm run db:migrate` applies it to the development database.
   `\d site_domains` shows the shape, site 1 has its row, and the app role can
   `select` but not `insert`, each shown with `psql` output.
-- [ ] **Step 3 - Rename the configuration** - `PLATFORM_URL` and `SITES_URL`
+- [x] **Step 3 - Rename the configuration** - `PLATFORM_URL` and `SITES_URL`
   replace `ADMIN_URL` and `PUBLIC_URL` in `app/lib/env.server.ts`. `SITES_URL`
   is an http(s) origin with no path, query or fragment, and Zod refuses
   anything else, naming the variable. The rename also reaches:

@@ -10,8 +10,8 @@ const pendingEmailCookie = createCookie("pending_email", {
   sameSite: "lax",
   path: "/",
   maxAge: 24 * 60 * 60,
-  // Follows ADMIN_URL like the session cookie, so browser tests over http work.
-  secure: new URL(env.ADMIN_URL).protocol === "https:",
+  // Follows PLATFORM_URL like the session cookie, so browser tests over http work.
+  secure: new URL(env.PLATFORM_URL).protocol === "https:",
 });
 
 export function serializePendingEmailCookie(email: string): Promise<string> {

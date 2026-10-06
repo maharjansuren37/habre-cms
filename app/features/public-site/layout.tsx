@@ -119,7 +119,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   // This layout's own loader still runs and succeeds alongside a child
   // throwing (React Router's loaders-run-in-parallel model) - loaderData is
   // only missing if this loader itself is what failed, which reaching for
-  // env.PUBLIC_URL and a primary-key read practically never does.
+  // env.SITES_URL and a primary-key read practically never does.
   const settings = loaderData?.settings ?? {
     siteTitle: FALLBACK_SITE_TITLE,
     logoUrl: null,

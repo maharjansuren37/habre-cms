@@ -13,8 +13,6 @@ WorkingDirectory=/srv/habre-cms/current
 # Non-secret settings live here; secrets only in the mode-600 file.
 Environment=NODE_ENV=production
 Environment=PORT=3000
-Environment=PUBLIC_URL=https://surenmaharjan.fyi
-Environment=ADMIN_URL=https://cms.surenmaharjan.fyi
 EnvironmentFile=/etc/habre-cms/production.env
 ExecStart=/usr/local/bin/node server.js
 Restart=on-failure

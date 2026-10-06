@@ -107,7 +107,7 @@ export async function action({ request }: Route.ActionArgs) {
   logSecurityEvent({ event: "signup_created", userId: result.userId, siteId: result.siteId, ip });
   // After the commit: a failed send must not undo the signup. The person is told
   // on the next page and can ask for another link.
-  const message = verificationEmail(env.ADMIN_URL, result.token, parsed.data.name);
+  const message = verificationEmail(env.PLATFORM_URL, result.token, parsed.data.name);
   let sendFailed = false;
   try {
     await sendEmail({ to: parsed.data.email, subject: message.subject, text: message.text });

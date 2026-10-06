@@ -16,7 +16,7 @@ export type HostRoutingDecision =
  * testable without a `Request` or the environment - `app/root.tsx` supplies
  * both from React Router's normalized `url` (never the raw `request.url`,
  * which ends in `.data` on client-side navigations) and
- * `env.PUBLIC_URL`/`env.ADMIN_URL`.
+ * `env.SITES_URL`/`env.PLATFORM_URL`.
  */
 export function resolveHostRouting(request: {
   method: string;

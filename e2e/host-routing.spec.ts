@@ -3,7 +3,7 @@ import { HOST_SPLIT_PORT as PORT } from "./helpers/ports.ts";
 import { createAdmin, deleteTestUser } from "./helpers/users.ts";
 
 // Runs against the third web server (playwright.config.ts), started with
-// genuinely different PUBLIC_URL/ADMIN_URL hosts on one port - D22's own
+// genuinely different SITES_URL/PLATFORM_URL hosts on one port - D22's own
 // answer to "browser tests need two local hostnames". Mostly uses the request
 // API rather than a browser: what is being tested is app/lib/host-routing.ts's
 // redirect and refusal decisions, not anything rendered. Logging in is the

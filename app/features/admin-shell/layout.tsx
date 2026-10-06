@@ -18,7 +18,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   const user = context.get(userContext);
   return {
     user,
-    publicUrl: env.PUBLIC_URL,
+    sitesUrl: env.SITES_URL,
     settings: await getSiteSettings(user.siteId, env.R2_PUBLIC_URL),
   };
 }
@@ -26,7 +26,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 const ROLE_NAMES = { admin: "Admin", editor: "Editor", author: "Author" } as const;
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { user, publicUrl, settings } = loaderData;
+  const { user, sitesUrl, settings } = loaderData;
   const navigation = useNavigation();
   const isLoggingOut =
     navigation.state === "submitting" && navigation.formAction === "/admin/logout";
@@ -39,7 +39,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.siteLogo} />}
             {settings.siteTitle}
           </span>
-          <a href={publicUrl}>View site ↗</a>
+          <a href={sitesUrl}>View site ↗</a>
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
             Settings in item 7a, Users in item 8 - each added here in ship
