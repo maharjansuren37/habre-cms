@@ -21,3 +21,12 @@ export async function findSiteByDomain(host: string): Promise<PublicSite | null>
   `;
   return row ?? null;
 }
+
+/** The address a member's site is served at; a platform table, one query by primary key. */
+export async function findSubdomain(siteId: string): Promise<string> {
+  const [row] = await sql<
+    { subdomain: string }[]
+  >`select subdomain from sites where id = ${siteId}`;
+  if (!row) throw new Error("the member's site does not exist");
+  return row.subdomain;
+}

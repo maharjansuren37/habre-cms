@@ -6,6 +6,7 @@ import { findSessionUser } from "#app/features/auth/require-user.server.ts";
 import { sendEmail } from "#app/lib/email.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import { sitesHost } from "#app/lib/site-origin.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
@@ -45,7 +46,7 @@ function stringField(form: FormData, name: string): string {
 export async function loader({ request }: Route.LoaderArgs) {
   const mode = requireSignupMode();
   if (await findSessionUser(request)) throw redirect("/admin");
-  return { mode };
+  return { mode, sitesHost: sitesHost(env.SITES_URL) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -203,6 +204,7 @@ export default function Signup({ actionData, loaderData }: Route.ComponentProps)
               id="signup-address"
               label="Your website’s address"
               name="address"
+              suffix={`.${loaderData.sitesHost}`}
               autoCapitalize="none"
               spellCheck={false}
               defaultValue={values.address}

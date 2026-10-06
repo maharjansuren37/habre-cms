@@ -72,6 +72,16 @@ test("the signup page shows its five fields by label", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Create my website" })).toBeVisible();
 });
 
+test("the address field's description includes the sites domain suffix", async ({ page }) => {
+  await page.goto("/signup");
+
+  // The suffix is plain text after the input, and part of its accessible description.
+  await expect(page.getByText(".localhost:3100", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Your website’s address")).toHaveAccessibleDescription(
+    /\.localhost:3100/,
+  );
+});
+
 test("two errors are summarised, shown beside their fields, and the input is kept", async ({
   page,
 }) => {

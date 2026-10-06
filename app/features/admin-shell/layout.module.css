@@ -41,6 +41,11 @@
   width: auto;
 }
 
+.siteAddress {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
 .site a {
   color: var(--color-text-muted);
 }

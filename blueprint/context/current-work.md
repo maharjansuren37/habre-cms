@@ -160,7 +160,7 @@ that (D153).
     `/admin`;
   - `/healthz` answers 200 on the platform host, a site host and an unknown
     host.
-- [ ] **Step 8 - Links to the site, and signup's suffix** - a pure
+- [x] **Step 8 - Links to the site, and signup's suffix** - a pure
   `siteOrigin(address, sitesUrl)` in `app/lib/`, unit-tested. The admin
   shell's View site uses it for the member's site, and the site card shows
   the address (`<address>.<sites host>`) under the site name. Signup's

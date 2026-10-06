@@ -6,6 +6,8 @@ type FieldProps = Omit<ComponentProps<"input">, "name"> & {
   name: string;
   hint?: string;
   error?: string;
+  /** Fixed text after the input, such as the sites domain. Announced with the field. */
+  suffix?: string;
 };
 
 /** A labelled input. The label is always visible; hint and error are announced with it. */
@@ -14,6 +16,7 @@ export function Field({
   name,
   hint,
   error,
+  suffix,
   className,
   id: givenId,
   ...inputProps
@@ -23,21 +26,37 @@ export function Field({
   const id = givenId ?? generatedId;
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
-  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(" ");
+  const suffixId = `${id}-suffix`;
+  const describedBy = [suffix && suffixId, hint && hintId, error && errorId]
+    .filter(Boolean)
+    .join(" ");
+
+  const input = (
+    <input
+      {...inputProps}
+      id={id}
+      name={name}
+      className={styles.input}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={describedBy || undefined}
+    />
+  );
 
   return (
     <div className={[styles.field, className].filter(Boolean).join(" ")}>
       <label className={styles.label} htmlFor={id}>
         {label}
       </label>
-      <input
-        {...inputProps}
-        id={id}
-        name={name}
-        className={styles.input}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy || undefined}
-      />
+      {suffix ? (
+        <div className={styles.inputGroup}>
+          {input}
+          <span className={styles.addon} id={suffixId}>
+            {suffix}
+          </span>
+        </div>
+      ) : (
+        input
+      )}
       {hint && (
         <p className={styles.hint} id={hintId}>
           {hint}
