@@ -2,8 +2,8 @@
 
 **From build plan:** item 16b
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-06, autopilot - every done-when run live (browser tests against the served app; Caddy in Docker; refusal function by hand); full `npm run test:e2e` 383 passed, 0 skipped; `npm run verify` green. Not provable here: the real wildcard certificate, DNS and `setup-server.sh` end to end (Production needs)
+**Reviewed:** 2026-10-06, autopilot (reviewer subagent, scope current, every lens): no P0 or P1; F-282, F-283 (P2) and F-284 to F-290 (P3) open; F-269 repair judged sound, left `fixed` for a person to close
 
 ## Goal
 

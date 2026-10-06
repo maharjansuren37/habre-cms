@@ -88,3 +88,39 @@ File: e2e/account-delete.spec.ts:337-362
 
 ### F-269 [P2] fixed - A client-sent `Forwarded: host=` header may override the pinned `X-Forwarded-Host`, and the host now picks the site and the platform
 File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
+
+
+### F-282 [P2] open - The suspended notice is missing from the editor screens, which sit outside the admin shell
+File: app/routes.ts:43-47 (editor routes outside `admin-shell/layout.tsx`); blueprint/context/design.md (Admin shell, Suspended notice)
+
+
+### F-283 [P2] open - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
+File: deploy/setup-server.sh (`check_caddy_env`; `systemctl restart caddy` in `install_caddy_site`)
+
+
+### F-284 [P3] open - The restart check falls back to a reload when caddy's start time cannot be parsed
+File: deploy/setup-server.sh (`started=$(systemctl show -p ActiveEnterTimestamp ...)`, `date -d`)
+
+
+### F-285 [P3] open - The root-run `chown` of Caddy's access logs follows symlinks
+File: deploy/setup-server.sh (`CADDY_LOGS` loop in `install_caddy_site`)
+
+
+### F-286 [P3] open - A Caddy refusal stops the whole setup script, so the backup step after it never runs
+File: deploy/setup-server.sh (call order: `install_caddy_site` before `install_backup`)
+
+
+### F-287 [P3] open - The suspended-admin contrast test measures tokens, not the notice itself
+File: e2e/contrast.spec.ts (suspended site's admin page tests)
+
+
+### F-288 [P3] open - The notice's no-role check can pass without locating the banner
+File: e2e/suspend-site.spec.ts (`notice.locator("xpath=ancestor::div[1]/..")`)
+
+
+### F-289 [P3] open - The client-side navigation check does not show the notice is revalidated
+File: e2e/suspend-site.spec.ts (Pages link click)
+
+
+### F-290 [P3] open - Caddy's Cloudflare module prints the API token in its invalid-token error
+File: deploy/setup-server.sh (validate failure hint: `caddy validate ... --envfile`)
