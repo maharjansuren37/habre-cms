@@ -1,0 +1,432 @@
+# Feature: Suspend and the server
+
+**From build plan:** item 16b
+**Type:** Feature
+**Verified:** 2026-10-06, autopilot - every done-when run live (browser tests against the served app; Caddy in Docker; refusal function by hand); full `npm run test:e2e` 383 passed, 0 skipped; `npm run verify` green. Not provable here: the real wildcard certificate, DNS and `setup-server.sh` end to end (Production needs)
+**Reviewed:** 2026-10-06, 697eef5ddcc3, current (delta 1813101..18260c4 on top of the earlier full-branch pass), every lens - 0 blocking; F-283 closed, F-282 confirmed; F-291 to F-294 (P3) open
+**Shipped:** 2026-10-06 - tree c0947258efad; the delta since review (40e84f4, the F-293 and F-291 repairs, closed by build) shipped without a re-review (owner).
+
+## Goal
+
+The operator can take an abusive site off the web with one command and put it
+back with another (D158, quality-bar *Abuse*). The site's members see why
+their site went dark. And the server gets the Caddy file that makes item 16a's
+hosts reachable: the platform host, a wildcard certificate for every site
+address, and redirects from the platform's apex, its `www` and
+`cms.surenmaharjan.fyi` (D153). Without that file nothing built in 16a can be
+reached in production.
+
+## In scope
+
+- **`npm run suspend-site -- --address <address>`** and
+  **`npm run unsuspend-site -- --address <address>`**, run on the server like
+  `create-invite`, as the app role (`DATABASE_URL`):
+  - suspend sets `sites.suspended_at` to now. Unsuspend clears it.
+  - The address is lowercased before the lookup.
+  - An unknown address prints that no site has it, changes nothing and exits 1.
+  - A site that is already suspended (or already not suspended) is left as it
+    is. The command prints so and exits 0, and the original `suspended_at`
+    is kept.
+  - It takes effect on the next request, with no restart: 16a's host lookup
+    already refuses a suspended site, on its subdomain and on its own domains.
+- **Members keep their access** (owner, 2026-10-06). A suspended site's
+  members still sign in, edit and can delete their account. Every admin
+  screen shows a standing notice: **"This site is suspended."** with the line
+  **"Visitors see Not Found instead of its pages."** The notice goes away once
+  the site is unsuspended.
+- **The Caddy file** (`deploy/caddy/habre-cms.caddy`), rewritten for D153:
+  - the platform host `app.<platform domain>` proxies to the app. Its access
+    log is its own file.
+  - `<platform domain>` and `www.<platform domain>` answer a 301 to the same
+    path on the platform host.
+  - `*.<sites domain>` proxies to the app on one wildcard certificate,
+    obtained by a DNS challenge through the Cloudflare DNS module. The token
+    comes from Caddy's environment. The sites get their own access log.
+  - `surenmaharjan.fyi` proxies to the app (site 1's own domain, 16a's seed
+    row). `www.surenmaharjan.fyi` still answers a 301 to it.
+  - `cms.surenmaharjan.fyi` answers a 301 to the same path on the platform
+    host.
+  - the two domains come from Caddy environment variables, because neither
+    is bought yet (`needs-you.md`). Nothing in the repository names them.
+  - every `reverse_proxy` pins `X-Forwarded-Host` and `X-Forwarded-Proto` as
+    today, **and removes any client-sent `Forwarded` header** (F-269).
+- **Server wiring in `deploy/setup-server.sh`**:
+  - a systemd drop-in for `caddy.service` that loads `/etc/caddy/habre-cms.env`.
+  - that file, created once, mode 600, owned by root. It holds empty
+    placeholders for the two domains and `CLOUDFLARE_API_TOKEN`, and is never
+    overwritten.
+  - before installing the site file, the script refuses with a message
+    naming what is missing if:
+    - Caddy lacks the `dns.providers.cloudflare` module;
+    - either domain is empty in the env file;
+    - the token is empty.
+  - validation runs with that env file loaded, before the reload.
+
+## Out of scope
+
+- **`delete-site`** (D158 names it). No build-plan item holds it yet. See
+  Notes.
+- **One main address per site, redirects to it, and the canonical link**
+  (D173) - **item 17**. Until then site 1 answers on both its subdomain and
+  `surenmaharjan.fyi`.
+- **On-demand certificates for own domains** - **item 21**. They need a global
+  option in the main Caddyfile, which the repository does not own.
+- **The sites domain's apex and `www`**: nothing serves them, as in 16a. They
+  have no Caddy block, so no certificate is issued for them.
+- **`media.<sites domain>`** is R2's custom domain, served by Cloudflare and
+  never by this server (`needs-you.md`). Its own DNS record wins over the
+  wildcard's.
+- **Installing anything on `ocwebserver`**: a Caddy build with the Cloudflare
+  module, the token, DNS records, the env file's values. Those belong to
+  `host`, with their own yes, at the v1 deploy (D163). This item writes the
+  files and the guards only.
+- **Uptime checks** on a site subdomain and on `surenmaharjan.fyi` (F-113) -
+  `monitor`, after the v1 deploy.
+- **A reason or note stored with a suspension**: `sites` has only
+  `suspended_at`, and no item needs more.
+
+## Design reference
+
+The notice is a new use of an existing pattern (design.md *Conventions*:
+banners). It is **not an action's outcome**, so it is **not a live region**:
+no `role="alert"`, which would interrupt on every page load, and no
+`role="status"`. It is static text, read in order. It has the error banner's
+look and colours, which are already measured in design.md's contrast table:
+`Message`'s `error` tone and its icon. It sits at the top of the shell's main
+area, before the page's `h1`, on every admin screen. Its title is a `p`, not a
+heading, so the page's outline is unchanged. Step 2 records this in
+design.md's *Screens* (Admin shell row).
+
+## Build steps
+
+- [x] **Step 1 - `suspend-site` and `unsuspend-site`**:
+  - `scripts/suspend-site.ts` and `scripts/unsuspend-site.ts`, in
+    `create-invite.ts`'s shape;
+  - one shared `setSiteSuspended(address, suspended)` in
+    `app/features/sites/suspend-site.server.ts`. It returns
+    `{ outcome: "changed" | "unchanged" | "unknown" }`, plus `suspendedAt`
+    when the site is suspended;
+  - the two `package.json` scripts, and a line for each in AGENTS.md's
+    *Commands*.
+
+  *Done when:* `npm run test:e2e` passes a new `e2e/suspend-site.spec.ts`
+  that runs the real scripts through `execFileSync` (the `e2e/helpers/users.ts`
+  pattern), on a site made by `createSite` and never site 1:
+  - a site that answers 200 at its address answers 404 on the very next
+    request after `suspend-site` exits 0, with no restart;
+  - it answers 200 again after `unsuspend-site`;
+  - a second `suspend-site` exits 0, says the site is already suspended, and
+    leaves `suspended_at` unchanged (read as the owner role);
+  - an unknown address exits 1 and changes no row;
+  - `--address LENA` finds `lena`;
+  - with no `--address`, the command prints the usage and exits 1.
+
+  `e2e/host-routing.spec.ts`'s suspended test keeps setting `suspended_at`
+  directly, because it tests routing and not the command.
+- [x] **Step 2 - The suspended notice in the admin**:
+  - `findSubdomain` becomes one query returning the subdomain and whether the
+    site is suspended. It is still one query by primary key, so the shell
+    loader gains no query.
+  - the shell renders the notice from *Design reference*: `Message` gains a
+    `notice` tone with the error look and no role.
+  - design.md's Admin shell row says where the notice sits and why it has no
+    role.
+
+  *Done when:* `npm run test:e2e` passes tests in `e2e/suspend-site.spec.ts`
+  showing that the admin of a suspended second site:
+  - signs in on the platform host;
+  - sees "This site is suspended." on `/admin` and on `/admin/pages`, as a
+    full page load and after client-side navigation;
+  - finds the notice has no `role` attribute;
+  - sees the page's single `h1` unchanged.
+
+  After `unsuspend-site` the notice is gone. `e2e/contrast.spec.ts` passes
+  with a suspended site's admin page added to what it measures.
+- [x] **Step 3 - The Caddy file**: `deploy/caddy/habre-cms.caddy` rewritten
+  as *In scope* lists:
+  - `{$HABRE_PLATFORM_DOMAIN}` and `{$HABRE_SITES_DOMAIN}` stand for the two
+    domains;
+  - `{env.CLOUDFLARE_API_TOKEN}` is read at runtime, so the token never
+    appears in the adapted config;
+  - the proxy settings shared by every proxied block go in one snippet;
+  - the file's header comment says where each value comes from, and that it
+    is installed only with the v1 deploy (see Production needs).
+
+  *Done when:*
+  - a Caddy 2.11.4 built locally with `github.com/caddy-dns/cloudflare` (in
+    Docker, from `caddy:2.11.4-builder` with `xcaddy`; nothing installed on
+    the machine) runs `caddy adapt` on the file, with the three variables
+    set to test values, and exits 0;
+  - the adapted JSON shows the six host blocks;
+  - every `reverse_proxy` in the JSON deletes `Forwarded`;
+  - the token's test value does not appear in the JSON (`grep -c` shows 0);
+  - the command and output are shown.
+- [x] **Step 4 - Prove the hosts through a local Caddy** - a throwaway run, not
+  committed. The Step 3 Caddy runs in Docker (`--network host`) in front of
+  `npm start`. It loads a test main Caddyfile that imports a copy of the real
+  file. The copy differs **only** in its `tls` lines (`tls internal` instead
+  of the DNS challenge), because the challenge cannot run here, and the diff
+  between the two is shown. The domains are set to `habre.test` and
+  `sites.test`, and `.env` points at the same hosts.
+
+  *Done when:* each of these is shown with `curl -k --resolve`:
+  - `app.habre.test/admin/login` answers 200;
+  - `habre.test/x?y=1` and `www.habre.test/x` answer 301 to
+    `https://app.habre.test/x?y=1` and `https://app.habre.test/x`;
+  - `cms.surenmaharjan.fyi/admin/posts` answers 301 to
+    `https://app.habre.test/admin/posts`;
+  - `surenmaharjan.sites.test/` answers 200 with site 1's title;
+    `surenmaharjan.fyi/` does too;
+  - an unknown `nobody.sites.test/` answers 404;
+  - **F-269:** `surenmaharjan.sites.test/` sent with
+    `Forwarded: host=app.habre.test;proto=https` still answers 200 with site
+    1's home page, not a platform answer;
+  - `app.habre.test/` sent with `Forwarded: host=nobody.sites.test` still
+    redirects to `/admin`.
+
+  `build` marks F-269 `fixed` with this evidence.
+- [x] **Step 5 - `setup-server.sh` wiring**:
+  - `deploy/caddy/caddy-habre-cms.conf`: the drop-in, `EnvironmentFile=`;
+  - `install_caddy_site` installs the drop-in and runs `systemctl
+    daemon-reload` when the drop-in changed;
+  - it creates `/etc/caddy/habre-cms.env` only when absent;
+  - it runs the three refusals from *In scope* before touching the site file;
+  - it validates with the env file loaded (`caddy validate --envfile`, or
+    exporting it for that one command if the flag is missing in 2.11.4).
+
+  The refusals sit in a function that takes the env file and the
+  `caddy list-modules` output as inputs, so they can run here.
+
+  *Done when:*
+  - `bash -n deploy/setup-server.sh` passes;
+  - the refusal function, run locally against four temporary env files,
+    prints a message naming the missing item and returns non-zero for each
+    of: an empty platform domain, an empty sites domain, an empty token, and
+    a module list without the Cloudflare module;
+  - it returns zero for a complete file;
+  - each run is shown.
+
+  The full script runs only on the server at the v1 deploy; `verify` lists
+  that as not provable here.
+- [x] **Step 6 - Records**:
+  - AGENTS.md's production row names the Caddy env file and its three
+    values;
+  - the plan's *Deployment* notes for D153 say the domains come from
+    Caddy's environment;
+  - `.env.example` notes that `PLATFORM_URL` and `SITES_URL` must agree with
+    Caddy's two domains on the server.
+
+  *Done when:* `npm run verify` passes, and a grep for `cms.surenmaharjan.fyi`
+  outside `blueprint/history/`, `dev-notes/` and `CHANGELOG.md` finds only the
+  Caddy file's redirect and descriptions of it.
+
+- [x] **Repair F-282 - The suspended notice is missing from the editor
+  screens**: the four editor routes move under a pathless
+  `app/features/content/editor-layout.tsx` (no sidebar, as before) whose
+  loader reads `findMemberSite`; `EntryForm` reads `suspended` from the
+  outlet context and shows the same `notice` under its top bar. design.md's
+  row names the editor. *Done when:* a new test in `e2e/suspend-site.spec.ts`
+  sees the notice on `/admin/posts/new` and `/admin/pages/new` (full load and
+  after a client-side navigation), no `alert`, and the notice gone after
+  `unsuspend-site` - red before the repair, green after.
+- [x] **Repair F-283 - The Caddy env check accepts values systemd loads
+  differently**: `check_caddy_env` refuses, rather than strips, any value
+  outside `[A-Za-z0-9._-]` and any `export` line; after the restart or
+  reload, `systemctl is-active` must pass or the script fails naming
+  `journalctl -u caddy`. *Done when:* the function, run against temporary
+  env files, refuses an inline comment, quotes, a space, a `#` in the token
+  and an `export` line (each accepted before the repair) and still refuses
+  Step 5's four cases and passes a clean file; the guard, with `systemctl`
+  stubbed inactive, fails with that message.
+- [x] **Repair F-293 - Editor requests run `requireUser` twice**: the four
+  editor routes drop their own `requireUser`; `editor-layout.tsx` is the login
+  guard, and the page routes keep `requireRole`, as in the shell. *Done when:*
+  a new `e2e/auth.spec.ts` test sends a logged-out visit to each editor URL to
+  login with its `redirectTo`, red with the layout's guard removed and green
+  with it; `manage-pages.spec.ts`'s author refusal still passes.
+- [x] **Repair F-291 - A failed Caddy reload is reported as "every site is
+  down"**: the guard picks its message by state - the action failed and Caddy
+  is still active says the previous config is serving and not to restart;
+  only an inactive Caddy says every site is down. *Done when:* with
+  `systemctl` stubbed, a failed reload with Caddy active prints the new
+  message (it printed "down" before the repair), and failed or inactive
+  restarts and reloads still say down, and successful ones return.
+
+## Files and areas
+
+- `scripts/suspend-site.ts`, `scripts/unsuspend-site.ts` (new);
+  `app/features/sites/suspend-site.server.ts` (new); `package.json`
+- `app/features/sites/find-site.server.ts` (`findSubdomain`'s return);
+  `app/features/admin-shell/layout.tsx` (+ its CSS module if needed);
+  `app/lib/ui/message.tsx` and `message.module.css` (the `notice` tone)
+- `e2e/suspend-site.spec.ts` (new); `e2e/contrast.spec.ts`;
+  `e2e/helpers/sites.ts` if a helper is shared
+- `deploy/caddy/habre-cms.caddy` (rewritten); `deploy/caddy/caddy-habre-cms.conf`
+  (new); `deploy/setup-server.sh`
+- `AGENTS.md`, `.env.example`, `blueprint/project-plan.md` (Deployment notes,
+  Step 6, already decided in D153), `blueprint/context/design.md` (Step 2)
+
+## Data and contracts
+
+- **No migration.** `sites.suspended_at` has existed since `0010`. The app role
+  already has `update` on `sites` (`db/roles.sql`'s blanket grant). Step 1
+  proves it by running the commands as that role.
+- **`setSiteSuspended(address: string, suspended: boolean)`** returns
+  `Promise<{ outcome: "changed" | "unchanged" | "unknown"; suspendedAt?: Date }>`.
+  It is used by the two scripts only. `delete-site` and any later operator
+  screen can call it.
+- **`findSubdomain(siteId)`** becomes
+  `findMemberSite(siteId): Promise<{ subdomain: string; suspended: boolean }>`.
+  The shell is its only caller.
+- **Caddy's environment** (load-bearing; `host` fills it, items 17 and 21 read
+  it):
+  - `/etc/caddy/habre-cms.env`, mode 600, root;
+  - `HABRE_PLATFORM_DOMAIN`: the platform's registrable domain, e.g.
+    `habre.ai`;
+  - `HABRE_SITES_DOMAIN`: e.g. `habre.page`;
+  - `CLOUDFLARE_API_TOKEN`: DNS edit on the sites zone only.
+  - `PLATFORM_URL` must be `https://app.$HABRE_PLATFORM_DOMAIN`, and
+    `SITES_URL` must be `https://$HABRE_SITES_DOMAIN`.
+
+## Testing
+
+- **Browser (`npm run test:e2e`, locally with the dev database, and in CI's
+  `e2e` job, which has PostgreSQL):** Steps 1-2. The scripts run with
+  `execFileSync` and `DATABASE_URL` from the test environment, as
+  `create-admin` already does in `e2e/helpers/users.ts`. No R2 is needed, so
+  nothing is skipped in CI.
+- **No unit tests** for the commands: their logic is one `update` and three
+  outcomes, all of which need the database. `npm test` runs inside `verify`
+  with no database, so the browser suite is where they are proved.
+- **Caddy (Steps 3-4):** local only, in Docker. Not committed, and not in CI:
+  CI has no Caddy, and building one with a module on every run costs more than
+  it proves. Building the image needs network access to the Go module proxy.
+- **The shell guard (Step 5):** run by hand against temporary files and
+  shown. It is not committed as a test, because the project has no shell-test
+  runner.
+- **Not provable before the v1 deploy:** the wildcard certificate being
+  issued, the real DNS and `setup-server.sh` end to end. Production needs
+  carries them.
+
+## Decisions
+
+- **Suspension hides the public site only; members keep the admin, with a
+  standing notice** (owner, 2026-10-06). It beat locking members out: there
+  is no support address to send them to yet, and a member could no longer
+  delete their account. It also beat a silent public 404, which leaves an
+  owner with no idea why their site went dark.
+- **A standing notice has no live role.** It is a fact about the site, not an
+  action's outcome. `role="alert"` on every page load would interrupt a screen
+  reader on each navigation.
+- **The commands take the address, not an id or an email.** An abuse report
+  arrives as a URL. An own domain is looked up by hand until an item needs
+  more.
+- **Re-running a command changes nothing and exits 0**, keeping the original
+  `suspended_at`. It beat failing: a repeated command is not an error, and
+  the first time is the one worth keeping.
+- **The platform and sites domains reach Caddy as environment variables**,
+  not as names in the repository. Neither domain is bought yet. A self-hosted
+  copy sets its own without editing the file (D148). The environment also
+  already holds the token (D153).
+- **The repository owns a systemd drop-in for `caddy.service`** and the
+  placeholder env file. This is a narrow widening of D17, which said the
+  repository owns only the site file. Doing it by hand on the server was the
+  alternative, and it is not reproducible (D9). The drop-in adds one
+  `EnvironmentFile=` line and never replaces Caddy's unit.
+- **`Forwarded` is removed at Caddy** (F-269), not ignored in the app. Caddy
+  already pins the two `X-Forwarded-*` headers the app trusts (D96, F-22).
+  Removing the third header in the same place keeps one rule in one file.
+
+## Production needs
+
+- **A Caddy build with the Cloudflare DNS module on `ocwebserver`**, e.g.
+  `caddy add-package github.com/caddy-dns/cloudflare`, which replaces the
+  binary. It is `host`'s, with a yes. `setup-server.sh` refuses without it.
+- **`/etc/caddy/habre-cms.env` filled in:** `HABRE_PLATFORM_DOMAIN`,
+  `HABRE_SITES_DOMAIN`, `CLOUDFLARE_API_TOKEN` (`needs-you.md`'s token line).
+  The domains must agree with `PLATFORM_URL` and `SITES_URL` in
+  `production.env`.
+- **DNS on Cloudflare:** `app.`, the apex and `www.` of the platform domain;
+  `*.` of the sites domain; all pointing at `ocwebserver`.
+  `cms.surenmaharjan.fyi` keeps its record.
+- **Install the new Caddy file only with the v1 deploy** (D163). Until then the
+  server keeps the current file: production still runs `8d82ce4`, which needs
+  `cms.surenmaharjan.fyi` to serve the admin, not redirect it.
+- **After the deploy:** `curl` a site subdomain and check that the certificate
+  is the wildcard. That is the first proof the DNS challenge works.
+
+## Behaviour changes
+
+- Adds to `sites`: `npm run suspend-site -- --address <address>` takes the site's public pages off at once, on every host it is served at, and `unsuspend-site` brings them back; an unknown address changes nothing and exits 1 - Step 1
+- Adds to `sites`: a suspended site's members still sign in and edit, and every admin screen says the site is suspended and that visitors see Not Found - Step 2
+- Adds to `sites`: the platform's apex and `www`, and `cms.surenmaharjan.fyi`, answer a 301 to the same path on the platform host - Step 4
+- Adds to `sites`: a client-sent `Forwarded` header does not change which host or site a request is served as - Step 4
+
+## Notes
+
+- **`delete-site` has no item.** D158 and plan section 6 list it as an operator
+  command for a deletion request, but no build-plan line holds it. Today a
+  site's last admin deleting their account does the same thing (15e2). The
+  owner should decide whether it needs a line before the v1 deploy, rather
+  than this item picking it up.
+- **A suspended site's last admin can still delete their account**, which
+  deletes the site. That follows from keeping members' access. Only the
+  nightly backups keep the evidence.
+- **Script shape:** `create-invite.ts`. Use `parseArgs` with `strict: true`, a
+  `USAGE` line, `try`/`catch`/`finally` with `sql.end()`, and
+  `process.exitCode`. Print the address and the outcome, never an id.
+- **Caddy syntax:** `{$VAR}` is replaced when the Caddyfile is adapted, from
+  the environment of the process that adapts it. `systemctl reload caddy`
+  adapts inside the service, which has the drop-in's `EnvironmentFile`. A bare
+  `caddy validate` from a root shell does not, which is why Step 5 loads the
+  env file for it. Check `caddy validate --help` in the Step 3 build for
+  `--envfile` before relying on it.
+- F-275 and F-278 (dotted hosts) are already handled in the app. Caddy's host
+  matchers do not match a trailing-dot host to these blocks, so nothing more
+  is needed here. Step 4 may show it, but it is not a done-when.
+- D22 is fully superseded once this ships: `ship` marks it.
+- `ship` records the Decisions above in `dev-notes/decisions.md`. It notes the
+  D17 widening against D17 itself.
+
+## Findings
+
+### 16b-suspend-and-the-server/F-282 [P2] closed - The suspended notice is missing from the editor screens, which sit outside the admin shell
+
+# F-282 - The suspended notice is missing from the editor screens, which sit outside the admin shell
+
+**Found:** 2026-10-06 by review (scope: current, item 16b; every lens; reviewer subagent, in an autopilot run)
+**File:** app/routes.ts:43-47 (editor routes outside `admin-shell/layout.tsx`); blueprint/context/design.md (Admin shell, Suspended notice)
+**Why it matters:** The spec says every admin screen shows the notice; the four editor routes are outside the shell, so a member editing or publishing a post there is never told visitors see Not Found. design.md's row says "every shell screen", narrower than the spec.
+**Suggested fix:** Render the same `Message` in the editor's header from a `findMemberSite` call in the editor loaders, or have the owner narrow the spec to shell screens; make design.md and the spec agree either way.
+**Resolution:** 2026-10-06, build: the editor routes sit under a pathless `features/content/editor-layout.tsx` whose loader returns `suspended` (`findMemberSite`); `EntryForm` renders the `notice` under its top bar from the outlet context; design.md's row names the editor. Test: `e2e/suspend-site.spec.ts` "a suspended site's editor screens show the notice, until unsuspended" - failed before the repair (`getByText('This site is suspended.')` not found on `/admin/posts/new`), passed after (`npx playwright test e2e/suspend-site.spec.ts`: 7 passed). Full `npm run test:e2e`: 382 passed, 2 failed (account.spec.ts:327, signup.spec.ts:272 - both pass rerun alone; the second is F-231). Closed by build. Re-examined 2026-10-06 by review: all four editor routes under the layout, loader revalidates, `import type` erased from the client bundle; close confirmed. Test-strength follow-up is F-294.
+
+### 16b-suspend-and-the-server/F-283 [P2] closed - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
+
+# F-283 - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
+
+**Found:** 2026-10-06 by review (scope: current, item 16b; every lens; reviewer subagent, in an autopilot run)
+**File:** deploy/setup-server.sh (`check_caddy_env`; `systemctl restart caddy` in `install_caddy_site`)
+**Why it matters:** `HABRE_SITES_DOMAIN=habre.page # sites` passes the check (it strips quotes and spaces) and `caddy validate --envfile` (which drops inline comments), but systemd's EnvironmentFile keeps the comment; the restarted Caddy fails to adapt and every site on the box goes down, with only systemctl's message.
+**Suggested fix:** Refuse any value containing whitespace, `#`, quotes or `export` instead of stripping; after `systemctl restart caddy`, check `systemctl is-active --quiet caddy` and fail pointing at `journalctl -u caddy`.
+**Resolution:** 2026-10-06, build: `check_caddy_env` refuses any value outside `[A-Za-z0-9._-]` and any `export` line instead of stripping quotes and spaces; after `systemctl restart|reload caddy`, `systemctl is-active --quiet caddy` must pass or the script fails with "every site on this server is down. See: journalctl -u caddy -n 50". By hand against temporary env files: inline comment, quotes, space, `#` in the token and an `export` line each returned 0 before the repair and 1 after; Step 5's four refusals still return 1, a clean file 0; with `systemctl` stubbed inactive the guard exits 1 with that message. Left `fixed`: no committed test, and the restart path is proven only against a stub - for `review`. Re-reviewed 2026-10-06 by review (reviewer subagent, delta 1813101..18260c4): inline comment, quote and space values pass neither the check nor validate; legitimate tokens and punycode domains pass; `if ! systemctl ...` is exempt from errexit; reload and restart block until Caddy is ready, so `is-active` does not race. New P3s F-291 and F-292 raised separately. Closed by review.
+
+### 16b-suspend-and-the-server/F-291 [P3] closed - A failed Caddy reload is reported as "every site on this server is down" while Caddy still serves its old config
+
+# F-291 - A failed Caddy reload is reported as "every site on this server is down" while Caddy still serves its old config
+
+**Found:** 2026-10-06 by review (scope: current, delta 1813101..18260c4; every lens; reviewer subagent)
+**File:** deploy/setup-server.sh:314-316 (the post-restart guard in `install_caddy_site`)
+**Why it matters:** Caddy's `ExecReload=caddy reload --force` fails with the process still active on the previous config, but the guard's message says everything is down; an operator who believes it may restart Caddy onto the bad config and cause the outage.
+**Suggested fix:** Choose the message by state: if the action failed and `systemctl is-active caddy` still passes, say the reload failed and the previous config is still serving; keep "down" for the not-active case.
+**Resolution:** 2026-10-06, build: the guard in `install_caddy_site` chooses its message by state - action failed and Caddy still active: "The Caddy reload failed; Caddy is still serving its previous config. Do not restart it until this is fixed."; inactive: "every site on this server is down". With `systemctl` stubbed: reload failing with Caddy active printed "down" before the repair and the new message after; failed/inactive restart and reload still say down; successful restart and reload return 0. `bash -n` passes. Closed by build.
+
+### 16b-suspend-and-the-server/F-293 [P3] closed - Editor requests run `requireUser` twice, in the new layout and in each route
+
+# F-293 - Editor requests run `requireUser` twice, in the new layout and in each route
+
+**Found:** 2026-10-06 by review (scope: current, delta 1813101..18260c4; every lens; reviewer subagent)
+**File:** app/features/content/editor-layout.tsx:10; post-new.tsx:11, post-edit.tsx:13, page-new.tsx:15-18, page-edit.tsx:15
+**Why it matters:** Two JWT checks and two `findUserById` queries per editor request, saves included. The shell children rely on the layout and add only `requireRole`; the comments at page-new.tsx:12-14 and page-edit.tsx saying the route "needs both checks itself" are now stale.
+**Suggested fix:** Drop `requireUser` from the four editor routes, keep `requireRole` on the page routes, and update the two comments - the shell pattern.
+**Resolution:** 2026-10-06, build: `requireUser` removed from post-new, post-edit, page-new and page-edit (and their imports); `editor-layout.tsx` is the login guard, the page routes keep `requireRole(["admin", "editor"])`; the stale comments replaced. Test: `e2e/auth.spec.ts` "a logged-out visit to any editor screen goes to login and comes back there" - with the layout's guard also removed it failed (`/admin/posts/new` served, not `/admin/login?redirectTo=%2Fadmin%2Fposts%2Fnew`), restored it passed. `npm run verify` exit 0; auth, manage-pages (author refusal), manage-posts, suspend-site and sites specs: 65 passed. Closed by build.
+
