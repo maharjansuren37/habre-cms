@@ -213,7 +213,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 | Unique page titles | applies | `<screen> - <site> - Habre` in the admin; the page's own title on a site |
 | A customer site's home page | applies | **mocked** (`site-home.html`) |
 | Footer privacy, terms, contact (Habre's own pages) | applies | blocked on terms of service and a privacy policy (`needs-you.md`) |
-| Social and search metadata | applies | item 17 |
+| Social and search metadata | applies | item 17 (owner, 2026-10-06, not mocked): in the editor a native `<details>` **Search and sharing**, closed when the editor opens, directly after the Web address line - Title in search results (placeholder the title, "Leave empty to use the title."), Description (up to 300), Image when shared (the Logo field's picker shape: thumbnail and Remove image, or Choose image). In Settings, Site description and Language (a select of left-to-right languages) after Logo, before Home page. No "SEO", "meta" or "Open Graph" in the admin's words |
 | Readable measure | applies | `--size-measure` 68ch for running text |
 | Safe areas, offline, platform back | **not applicable** for safe areas and offline - a server-rendered web app, not an installed one; back applies and works (real URLs, including onboarding's steps) |
 
