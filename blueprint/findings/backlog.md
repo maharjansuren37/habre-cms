@@ -482,3 +482,30 @@ File: app/features/sites/find-site.server.ts:6-10
 
 ### F-297 [P3] open - Content imports isForeignKeyViolation from the settings feature instead of app/lib
 File: app/features/content/entries.server.ts:4; app/features/settings/settings.server.ts:158
+
+### F-301 [P3] open - optimise-media's GIF branch can re-create an object for a row deleted meanwhile
+File: scripts/optimise-media.ts:52-60
+
+### F-302 [P3] open - optimise-media leaves the old original public if deleting it fails, and never retries
+File: scripts/optimise-media.ts:89
+
+### F-303 [P3] open - optimise-media needs the whole web-app environment, not only DATABASE_URL
+File: scripts/optimise-media.ts:13-18; AGENTS.md *Commands*
+
+### F-304 [P3] open - The plan's dependency line does not record sharp 0.35.5
+File: blueprint/project-plan.md:168-169
+
+### F-305 [P3] open - The media delete log line no longer says which object failed
+File: app/features/media/media-delete.tsx:54
+
+### F-306 [P3] open - The phone-viewport srcset checks fail only on a 2400 pick
+File: e2e/image-srcset.spec.ts:123
+
+### F-307 [P3] open - media-optimise.spec leaves R2 objects behind when it fails partway
+File: e2e/media-optimise.spec.ts:22-24
+
+### F-308 [P3] open - Each upload decodes the original five times
+File: app/features/media/optimise-image.server.ts:49,56
+
+### F-311 [P3] unverified - A year-long immutable cache may keep serving deleted images from a CDN edge
+File: app/features/media/r2.server.ts (IMMUTABLE_CACHE_CONTROL)

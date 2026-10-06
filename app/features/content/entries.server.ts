@@ -35,6 +35,7 @@ export type Entry = EntryBase & {
    *  (only `findEntryForUser` resolves the key; null elsewhere). */
   socialImageMediaId: string | null;
   socialImageStorageKey: string | null;
+  socialImageVariantWidths: number[] | null;
   document: Document;
 };
 
@@ -60,6 +61,7 @@ type EntryRow = EntryBase & {
   seoDescription: string;
   socialImageMediaId: string | null;
   socialImageStorageKey?: string | null;
+  socialImageVariantWidths?: number[] | null;
   blocks: Document;
   blocksFormat: string;
 };
@@ -68,7 +70,12 @@ type EntryRow = EntryBase & {
  *  has already refused a format this build cannot read. */
 function toEntry({ blocks, blocksFormat, ...entry }: EntryRow): Entry {
   assertKnownFormat(entry.id, entry.type, blocksFormat);
-  return { ...entry, socialImageStorageKey: entry.socialImageStorageKey ?? null, document: blocks };
+  return {
+    ...entry,
+    socialImageStorageKey: entry.socialImageStorageKey ?? null,
+    socialImageVariantWidths: entry.socialImageVariantWidths ?? null,
+    document: blocks,
+  };
 }
 
 /**
@@ -93,7 +100,9 @@ async function findEntryIn(
   const [row] = await tx<EntryRow[]>`
     select ${entryColumns},
       (select m.storage_key from media m
-        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey"
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
+      (select m.variant_widths from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageVariantWidths"
     from entries e
     where e.site_id = ${siteId} and e.id = ${id} and e.type = ${type} ${ownedBy(actor)}
   `;
@@ -475,6 +484,7 @@ type PublicBase = {
   seoDescription: string;
   /** The share image's file key, never its media id; null when none or gone. */
   socialImageStorageKey: string | null;
+  socialImageVariantWidths: number[] | null;
 };
 export type PublicPost = PublicBase & { document: Document };
 export type PublicPage = PublicBase & { document: Document };
@@ -520,6 +530,8 @@ export async function findPublishedEntry(
       e.seo_title as "seoTitle", e.seo_description as "seoDescription",
       (select m.storage_key from media m
         where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
+      (select m.variant_widths from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageVariantWidths",
       e.published_at as "publishedAt", u.name as "authorName",
       coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
         as "isHomePage"
@@ -569,6 +581,8 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
       e.seo_title as "seoTitle", e.seo_description as "seoDescription",
       (select m.storage_key from media m
         where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",
+      (select m.variant_widths from media m
+        where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageVariantWidths",
       e.published_at as "publishedAt", u.name as "authorName"
     from site_settings s
       join entries e on e.id = s.home_page_id and e.site_id = s.site_id

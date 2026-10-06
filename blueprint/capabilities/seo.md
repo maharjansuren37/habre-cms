@@ -6,3 +6,4 @@
 - **seo.4** - the "This site is being set up" placeholder carries `noindex` *Since:* features/17-seo-basics
 - **seo.5** - a site's public pages and its 404 carry the site's language on `<html lang>`; the admin stays `en` *Since:* features/17-seo-basics
 - **seo.6** - a public page's title, description, Open Graph and Twitter tags come from its search title, description and image, else its title, the site description on `/` and `/posts` only, and no image *Since:* features/17-seo-basics
+- **seo.7** - a page's share image is the image's JPEG, at most 1200 px wide - or an animated GIF, as uploaded *Since:* features/17b-optimised-images

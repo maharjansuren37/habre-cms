@@ -14,16 +14,21 @@ function objectUrl(key: string): string {
   return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET}/${key}`;
 }
 
+/** Every object has its own key, so none ever changes: cache it for a year (D174). */
+export const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
 /** Writes one object. Throws on anything but a 2xx, naming the R2 status. */
 export async function uploadObject(
   key: string,
-  body: ArrayBuffer,
+  body: ArrayBuffer | Uint8Array,
   contentType: string,
+  cacheControl: string,
 ): Promise<void> {
   const response = await client.fetch(objectUrl(key), {
     method: "PUT",
-    body,
-    headers: { "Content-Type": contentType },
+    // A view (sharp's Buffer) is copied to its own ArrayBuffer-backed array, the type fetch accepts.
+    body: body instanceof ArrayBuffer ? body : new Uint8Array(body),
+    headers: { "Content-Type": contentType, "Cache-Control": cacheControl },
   });
   if (!response.ok) {
     throw new Error(`R2 upload failed for ${key}: ${response.status} ${await response.text()}`);
@@ -40,4 +45,14 @@ export async function deleteObject(key: string): Promise<void> {
   if (!response.ok && response.status !== 404) {
     throw new Error(`R2 delete failed for ${key}: ${response.status} ${await response.text()}`);
   }
+}
+
+/** Reads one object through the S3 API. Null when it does not exist; throws on any other non-2xx. */
+export async function getObject(key: string): Promise<Uint8Array | null> {
+  const response = await client.fetch(objectUrl(key), { method: "GET" });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`R2 read failed for ${key}: ${response.status} ${await response.text()}`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
 }

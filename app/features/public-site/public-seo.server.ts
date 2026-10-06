@@ -1,4 +1,4 @@
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
+import { mediaSources } from "#app/features/media/media-objects.ts";
 import { env } from "#app/lib/env.server.ts";
 
 /**
@@ -7,15 +7,23 @@ import { env } from "#app/lib/env.server.ts";
  * absolute URL - never the image's media id or its storage key.
  */
 export function splitPublicSeo<
-  T extends { seoTitle: string; seoDescription: string; socialImageStorageKey: string | null },
->({ seoTitle, seoDescription, socialImageStorageKey, ...rest }: T) {
+  T extends {
+    seoTitle: string;
+    seoDescription: string;
+    socialImageStorageKey: string | null;
+    socialImageVariantWidths: number[] | null;
+  },
+>({ seoTitle, seoDescription, socialImageStorageKey, socialImageVariantWidths, ...rest }: T) {
   return {
     rest,
     seo: {
       title: seoTitle,
       description: seoDescription,
       imageUrl: socialImageStorageKey
-        ? buildMediaUrl(env.R2_PUBLIC_URL, socialImageStorageKey)
+        ? mediaSources(env.R2_PUBLIC_URL, {
+            storageKey: socialImageStorageKey,
+            variantWidths: socialImageVariantWidths,
+          }).social
         : null,
     },
   };

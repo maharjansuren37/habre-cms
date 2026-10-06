@@ -1,5 +1,5 @@
 import type postgres from "postgres";
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
+import { mediaSources } from "#app/features/media/media-objects.ts";
 import { inSite } from "#app/lib/db.server.ts";
 import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
 
@@ -31,6 +31,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         siteTitle: string;
         logoMediaId: string | null;
         storageKey: string | null;
+        variantWidths: number[] | null;
         navigation: unknown;
         homePageId: string | null;
         siteDescription: string;
@@ -38,7 +39,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
-      m.storage_key as "storageKey", s.navigation as "navigation",
+      m.storage_key as "storageKey", m.variant_widths as "variantWidths", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
       s.language as "language"
     from site_settings s
@@ -49,7 +50,10 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
   return {
     siteTitle: row.siteTitle,
     logoMediaId: row.logoMediaId,
-    logoUrl: row.storageKey ? buildMediaUrl(r2PublicUrl, row.storageKey) : null,
+    logoUrl: row.storageKey
+      ? mediaSources(r2PublicUrl, { storageKey: row.storageKey, variantWidths: row.variantWidths })
+          .thumbnail
+      : null,
     navigation: parseStoredNavigation(row.navigation),
     homePageId: row.homePageId,
     siteDescription: row.siteDescription,

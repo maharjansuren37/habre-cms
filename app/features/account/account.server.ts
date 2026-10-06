@@ -5,6 +5,7 @@ import {
   passwordCheckSlots,
 } from "#app/features/auth/login-rate-limit.server.ts";
 import { hashPassword, verifyPassword } from "#app/features/auth/password.server.ts";
+import { mediaObjectKeys } from "#app/features/media/media-objects.ts";
 import { hashEmailToken } from "#app/features/signup/email-token-hash.ts";
 import { issueEmailToken } from "#app/features/signup/email-tokens.server.ts";
 import { inSite, sql } from "#app/lib/db.server.ts";
@@ -284,7 +285,7 @@ export type DeleteAccountResult =
       ok: true;
       siteDeleted: boolean;
       address: string;
-      /** R2 keys of the deleted media, for removal after the commit (empty when leaving). */
+      /** every R2 key of the deleted media (all sizes), for removal after the commit (empty when leaving). */
       storageKeys: string[];
       /** The other members of a deleted site, to be told after the commit (empty when leaving). */
       otherMembers: { name: string; email: string }[];
@@ -335,8 +336,9 @@ export async function deleteAccount(
       where m.site_id = ${siteId}`;
     await tx`delete from site_settings where site_id = ${siteId}`;
     await tx`delete from entries where site_id = ${siteId}`;
-    const media = await tx<{ storageKey: string }[]>`
-      delete from media where site_id = ${siteId} returning storage_key as "storageKey"`;
+    const media = await tx<{ storageKey: string; variantWidths: number[] | null }[]>`
+      delete from media where site_id = ${siteId}
+      returning storage_key as "storageKey", variant_widths as "variantWidths"`;
     await tx`delete from site_members where site_id = ${siteId}`;
     await tx`delete from site_domains where site_id = ${siteId}`;
     await tx`delete from users where id in ${tx(members.map((member) => member.id))}`;
@@ -345,7 +347,7 @@ export async function deleteAccount(
       ok: true,
       siteDeleted: true,
       address: facts.address,
-      storageKeys: media.map((row) => row.storageKey),
+      storageKeys: media.flatMap((row) => mediaObjectKeys(row)),
       otherMembers: members
         .filter((member) => member.id !== userId)
         .map(({ name, email }) => ({ name, email })),

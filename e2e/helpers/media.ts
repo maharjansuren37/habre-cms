@@ -74,14 +74,23 @@ export function insertTestMediaRow(options: {
   height?: number;
   /** The site the row belongs to; the uploader must be its member. Site 1 when omitted. */
   siteId?: string;
+  /** The WebP widths a row optimised by item 17b holds (ascending); `null` (the default) is a row
+   *  uploaded before it, with one flat object. The objects themselves are never uploaded. */
+  variantWidths?: number[] | null;
 }): Promise<string> {
   const { uploadedBy, altText = "A test image", width = 640, height = 480 } = options;
-  const key = `e2e-test/${randomUUID()}.jpg`;
+  const variantWidths = options.variantWidths ?? null;
+  const uuid = randomUUID();
+  const resized = variantWidths !== null && variantWidths.length > 0;
+  const key = resized
+    ? `sites/e2e-test/${uuid}/${variantWidths[variantWidths.length - 1]}.webp`
+    : `e2e-test/${uuid}.jpg`;
+  const filename = `${uuid}.${resized ? "webp" : "jpg"}`;
   return withDatabase(async (sql) => {
     const siteId = options.siteId ?? (await siteOneId());
     const [row] = await sql<{ id: string }[]>`
-      insert into media (site_id, storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
-      select ${siteId}, ${key}, ${`${key.slice(9)}`}, 'image/jpeg', 1, ${width}, ${height}, ${altText}, id
+      insert into media (site_id, storage_key, filename, mime_type, byte_size, width, height, alt_text, variant_widths, uploaded_by)
+      select ${siteId}, ${key}, ${filename}, 'image/jpeg', 1, ${width}, ${height}, ${altText}, ${variantWidths}::integer[], id
       from users where email = ${uploadedBy}
       returning id
     `;

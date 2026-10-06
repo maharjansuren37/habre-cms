@@ -1,6 +1,6 @@
 import type { Document, DocumentMedia } from "#app/features/blocks/document-nodes.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
+import { mediaSources } from "#app/features/media/media-objects.ts";
 import { env } from "#app/lib/env.server.ts";
 import { documentMediaIds } from "./document-media-ids.ts";
 
@@ -15,14 +15,12 @@ export async function resolveDocumentMedia(
 ): Promise<Record<string, DocumentMedia>> {
   const rows = await findMediaByIds(siteId, documentMediaIds(document));
   return Object.fromEntries(
-    rows.map((row) => [
-      row.id,
-      {
-        url: buildMediaUrl(env.R2_PUBLIC_URL, row.storageKey),
-        altText: row.altText,
-        width: row.width,
-        height: row.height,
-      },
-    ]),
+    rows.map((row) => {
+      const { src, srcset } = mediaSources(env.R2_PUBLIC_URL, row);
+      return [
+        row.id,
+        { url: src, srcset, altText: row.altText, width: row.width, height: row.height },
+      ];
+    }),
   );
 }

@@ -936,7 +936,8 @@ function SettingsHost({
       setMedia((current) => ({
         ...current,
         [pick.id]: {
-          url: pick.url,
+          url: pick.src,
+          srcset: null,
           altText: pick.altText,
           width: pick.width,
           height: pick.height,

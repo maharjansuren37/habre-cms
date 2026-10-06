@@ -8,7 +8,7 @@ import type { Route } from "./+types/media-delete";
 import { mediaBannerRedirect } from "./banner.ts";
 import { deleteMedia, findMediaForUser } from "./media.server.ts";
 import styles from "./media-delete.module.css";
-import { buildMediaUrl } from "./media-url.ts";
+import { mediaObjectKeys, mediaSources } from "./media-objects.ts";
 import { deleteObject } from "./r2.server.ts";
 
 /**
@@ -32,7 +32,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   const media = await findMediaForUser(actor.siteId, requireMediaId(params.id), actor);
   if (!media) throw data("Not Found", { status: 404 });
-  return { media: { ...media, url: buildMediaUrl(env.R2_PUBLIC_URL, media.storageKey) } };
+  return { media: { ...media, url: mediaSources(env.R2_PUBLIC_URL, media).thumbnail } };
 }
 
 export async function action({ params, context }: Route.ActionArgs) {
@@ -47,10 +47,12 @@ export async function action({ params, context }: Route.ActionArgs) {
   const actor = context.get(userContext);
   const deleted = await deleteMedia(actor.siteId, id, actor);
   if (!deleted) throw data("Not Found", { status: 404 });
-  try {
-    await deleteObject(deleted.storageKey);
-  } catch (error) {
-    console.error(`Failed to delete R2 object for media ${id}:`, error);
+  for (const key of mediaObjectKeys(deleted)) {
+    try {
+      await deleteObject(key);
+    } catch (error) {
+      console.error(`Failed to delete R2 object for media ${id}:`, error);
+    }
   }
   return mediaBannerRedirect("deleted", deleted.filename);
 }

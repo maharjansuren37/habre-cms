@@ -22,6 +22,7 @@
     "create-invite": "node --env-file-if-exists=.env scripts/create-invite.ts",
     "suspend-site": "node --env-file-if-exists=.env scripts/suspend-site.ts",
     "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
+    "optimise-media": "node --env-file-if-exists=.env scripts/optimise-media.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0",
+    "sharp": "0.35.5",
     "zod": "4.6.5"
   },
   "devDependencies": {

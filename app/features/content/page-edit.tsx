@@ -2,7 +2,7 @@ import { data } from "react-router";
 import { z } from "zod";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { buildMediaUrl } from "#app/features/media/media-url.ts";
+import { mediaSources } from "#app/features/media/media-objects.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/page-edit";
@@ -48,7 +48,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       entry.socialImageMediaId && entry.socialImageStorageKey
         ? {
             id: entry.socialImageMediaId,
-            url: buildMediaUrl(env.R2_PUBLIC_URL, entry.socialImageStorageKey),
+            url: mediaSources(env.R2_PUBLIC_URL, {
+              storageKey: entry.socialImageStorageKey,
+              variantWidths: entry.socialImageVariantWidths,
+            }).thumbnail,
           }
         : null,
     mediaById: await resolveDocumentMedia(actor.siteId, entry.document),

@@ -11,6 +11,7 @@ import {
   isRenderedBlock,
   type TextNode,
 } from "./document-nodes.ts";
+import { imageSizes } from "./image-sizes.ts";
 
 /**
  * A v4 document (item 14a1, D169) as the public site shows it: each node its
@@ -72,6 +73,7 @@ export function renderDocument(
                       mainHeading,
                       mediaById,
                       block === firstImage,
+                      section.content.length,
                     ),
                   )}
                 </div>
@@ -92,6 +94,7 @@ function renderDocumentBlock(
   mainHeading: Heading | undefined,
   mediaById: Readonly<Record<string, DocumentMedia>>,
   isFirstImage: boolean,
+  columns: number,
 ) {
   // A space is not "rendered" (it cannot keep a section alive) but still takes
   // room between the blocks that are.
@@ -138,6 +141,7 @@ function renderDocumentBlock(
           key={key}
           className={content.image}
           src={media.url}
+          {...(media.srcset ? { srcSet: media.srcset, sizes: imageSizes(columns) } : {})}
           alt={media.altText}
           width={media.width}
           height={media.height}

@@ -84,3 +84,22 @@ File: e2e/account-delete.spec.ts:337-362
 
 ### F-269 [P2] fixed - A client-sent `Forwarded: host=` header may override the pinned `X-Forwarded-Host`, and the host now picks the site and the platform
 File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
+
+### F-298 [P2] open - An animated WebP is flattened to its first frame, and a long one is refused as over 40 megapixels
+File: app/features/media/optimise-image.server.ts:44-45
+
+
+### F-299 [P2] open - The "upload itself is not kept" browser assertions cannot fail
+File: e2e/media-optimise.spec.ts:105-107
+
+
+### F-300 [P2] open - The refusal for an upload that only fails the storage limit after resizing has no test
+File: app/features/media/media-list.tsx:151
+
+
+### F-309 [P2] unverified - Peak memory resizing a 40-megapixel image on the 954 MB server is unmeasured
+File: app/features/media/optimise-image.server.ts (MAX_INPUT_PIXELS)
+
+
+### F-310 [P2] unverified - sharp's prebuilt x64 binary needs x86-64-v2, which the server is not checked for
+File: deploy/setup-server.sh:47

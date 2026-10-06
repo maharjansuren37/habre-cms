@@ -166,7 +166,7 @@ Or just ask in plain language - "spec the next item", "run the review".
 - Other installed versions (from `package-lock.json`): `postgres` 3.4.9, Zod 4.6.5,
   `isbot` 5.2.2, `@remix-run/node-fetch-server` 0.14.2,
   TipTap 3.31.4 (`@tiptap/core`, `pm`, `react`, `starter-kit`, `extensions`), `@types/node` 26.5.1, `@types/react` / `@types/react-dom` 19.3.0,
-  Playwright 1.63.0 (Chromium 153), Biome 2.5.13, `nodemailer` 10.0.14,
+  Playwright 1.63.0 (Chromium 153), Biome 2.5.13, `nodemailer` 10.0.14, `sharp` 0.35.5,
   `@types/nodemailer` 8.0.2. Development database: PostgreSQL 16.15
   (`postgres:16-alpine`). Development and CI email: Mailpit
   (`axllent/mailpit:v1.31.4`).
@@ -236,8 +236,10 @@ to `.env` and fill it in, `npx playwright install chromium`.
   once; only its hash is stored),
   `npm run suspend-site -- --address lena` (takes the site's public pages off
   on the next request; members keep the admin) and
-  `npm run unsuspend-site -- --address lena` (puts them back). All connect as
-  the app role, `DATABASE_URL`.
+  `npm run unsuspend-site -- --address lena` (puts them back),
+  `npm run optimise-media` (gives every image uploaded before item 17b its
+  sizes; safe to re-run, exits 1 if any row failed). All connect as the app
+  role, `DATABASE_URL`.
 - Dev: `npm run dev` (Vite HMR; the platform at http://app.localhost:3000/admin,
   site 1 at http://surenmaharjan.localhost:3000)
 - Build: `npm run build` (output in `build/`)

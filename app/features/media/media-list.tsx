@@ -19,10 +19,13 @@ import {
 } from "./media-input.ts";
 import styles from "./media-list.module.css";
 import { parseMediaListPage } from "./media-list-query.ts";
-import { buildMediaUrl } from "./media-url.ts";
-import { uploadObject } from "./r2.server.ts";
-import { generateStorageKey } from "./storage-key.ts";
+import { mediaSources } from "./media-objects.ts";
+import { optimiseImage } from "./optimise-image.server.ts";
+import { IMMUTABLE_CACHE_CONTROL, uploadObject } from "./r2.server.ts";
+import { generateStorageKey, generateUploadDirectory } from "./storage-key.ts";
 import { fitsStorage, formatStorageLimit, storageSummary } from "./storage-limit.ts";
+import { resizedObjects } from "./stored-objects.server.ts";
+import { MAX_INPUT_PIXELS, tooLargeMessage, UNREADABLE_MESSAGE } from "./upload-refusals.ts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Media - Habre CMS" }];
@@ -48,7 +51,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return {
     media: list.media.map((item) => ({
       ...item,
-      url: buildMediaUrl(env.R2_PUBLIC_URL, item.storageKey),
+      url: mediaSources(env.R2_PUBLIC_URL, item).thumbnail,
       // Matches media.server.ts's `ownedBy`: authors delete only their own,
       // editors and admins delete any.
       canDelete: actor.role !== "author" || item.uploadedBy === actor.id,
@@ -59,6 +62,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     banner,
     storage: storageSummary(await storageUsed(actor.siteId), env.STORAGE_LIMIT_BYTES),
   };
+}
+
+function storageRefusal(limit: number) {
+  return data(
+    {
+      problem: `This image would take your site past its ${formatStorageLimit(limit)} of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.`,
+    },
+    { status: 413 },
+  );
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -102,33 +114,64 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data({ problem: "This file is not a JPEG, PNG, WebP or GIF image." }, { status: 400 });
   }
 
-  // Before R2 and before any row. No lock: two uploads at once can each pass by one file (accepted).
+  // A site already full is refused before resizing, so it costs no CPU. No lock:
+  // two uploads at once can each pass by one file (accepted).
   const limit = env.STORAGE_LIMIT_BYTES;
-  if (limit !== null && !fitsStorage(await storageUsed(actor.siteId), buffer.byteLength, limit)) {
-    return data(
-      {
-        problem: `This image would take your site past its ${formatStorageLimit(limit)} of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.`,
-      },
-      { status: 413 },
-    );
+  const used = limit === null ? 0 : await storageUsed(actor.siteId);
+  if (limit !== null && used >= limit) return storageRefusal(limit);
+
+  const bytes = Buffer.from(buffer);
+  const started = performance.now();
+  const optimised = await optimiseImage(bytes);
+  const resizeMs = Math.round(performance.now() - started);
+  if (optimised.kind === "unreadable") {
+    return data({ problem: UNREADABLE_MESSAGE }, { status: 400 });
+  }
+  if (optimised.kind === "too-large") {
+    return data({ problem: tooLargeMessage(MAX_INPUT_PIXELS) }, { status: 400 });
   }
 
-  const storageKey = generateStorageKey(actor.siteId, detected.extension);
-  // R2 object first, then the row (the plan's data rule) - a failure between
-  // leaves a harmless orphaned object.
-  await uploadObject(storageKey, buffer, detected.mimeType);
+  // What is stored: every resized object, or the upload itself for an animated GIF.
+  const resized =
+    optimised.kind === "resized"
+      ? resizedObjects(generateUploadDirectory(actor.siteId), optimised.sizes, optimised.social)
+      : null;
+  const objects = resized
+    ? resized.objects
+    : [
+        {
+          key: generateStorageKey(actor.siteId, detected.extension),
+          bytes,
+          contentType: detected.mimeType,
+        },
+      ];
+  const storedBytes = resized
+    ? resized.storedBytes
+    : objects.reduce((sum, object) => sum + object.bytes.byteLength, 0);
+  if (limit !== null && !fitsStorage(used, storedBytes, limit)) return storageRefusal(limit);
+
+  // R2 objects first, then the row (the plan's data rule) - a failure between
+  // leaves harmless orphaned objects. Written one at a time: five small writes,
+  // and a failure stops at the first.
+  for (const object of objects) {
+    await uploadObject(object.key, object.bytes, object.contentType, IMMUTABLE_CACHE_CONTROL);
+  }
   await insertMedia(
     actor.siteId,
     {
-      storageKey,
+      storageKey: resized ? resized.widestKey : objects[0].key,
       filename: filename.data,
-      mimeType: detected.mimeType,
-      byteSize: buffer.byteLength,
-      width: detected.width,
-      height: detected.height,
+      mimeType: resized ? "image/webp" : detected.mimeType,
+      byteSize: storedBytes,
+      width: resized?.width ?? detected.width,
+      height: resized?.height ?? detected.height,
       altText: altText.data,
+      variantWidths: resized?.variantWidths ?? [],
     },
     actor.id,
+  );
+  console.info(
+    `media upload site=${actor.siteId} resize_ms=${resizeMs} bytes_in=${buffer.byteLength} bytes_stored=${storedBytes}`,
   );
   return mediaBannerRedirect("uploaded", filename.data);
 }

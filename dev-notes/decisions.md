@@ -3870,3 +3870,128 @@ the login answers 503 ("Login is busy."), reading the status, not the message
 Beats: running signup's race test in its own Playwright project after the
 others (slower, more config).
 Costs: those local copies can still meet the 503 under the full suite.
+
+## D338 - Variant widths: the set below the original, plus its own width under 2400 (2026-10-07)
+
+**Chose:** an upload is stored at each of 480, 960, 1600 and 2400 px narrower
+than the original, plus one at the original's own width when it is under 2400
+(a 1200 px upload gives 480, 960, 1200). Widths follow the *oriented* width
+(item 17b).
+Beats: only the fixed four (a 1200 px upload would top out at 960, blurrier
+than uploaded) and always all four (upscaling).
+Costs: a row's widths are not a fixed set; readers use `variant_widths`.
+
+## D339 - `variant_widths`: null = not yet optimised, `'{}'` = stored as uploaded (2026-10-07)
+
+**Chose:** one nullable `media.variant_widths integer[]` column says both
+whether a row is optimised and what sizes it has (`0017_media_variants`).
+Beats: a separate `optimised` flag beside the widths.
+Costs: three states in one column; every reader handles null and empty.
+
+## D340 - `storage_key` points at the widest WebP (2026-10-07)
+
+**Chose:** keys `sites/<siteId>/<uuid>/<width>.webp` and `.../social.jpg`;
+`storage_key` holds the widest WebP, and the row's directory is `storage_key`
+up to its last slash. Key and source functions need only
+`{ storageKey, variantWidths }`.
+Beats: a prefix-only key - every existing reader (the share-image subquery,
+the logo, account deletion) keeps a valid URL unchanged.
+Costs: the directory is derived from a key, not stored.
+
+## D341 - `byte_size` is the sum stored; check widened to 50 MB (2026-10-07)
+
+**Chose:** `byte_size` counts every object a row owns (D174, D150); the
+column's check rises from 10 MB to 50 MB. The 10 MB cap on the upload itself
+stays in the app.
+Beats: keeping 10 MB, which would refuse a legal five-object row.
+Costs: the down migration is refused while any row exceeds 10 MB.
+
+## D342 - The storage limit is checked after resizing, with a cheap refusal first (2026-10-07)
+
+**Chose:** a site already at or past its limit is refused before resizing (no
+CPU spent); otherwise the limit is checked against the sum of the resized
+objects.
+Beats: checking the upload's size, which would refuse uploads that fit once
+resized.
+Costs: a site near its limit spends a resize on an upload that is then
+refused.
+
+## D343 - A 40-megapixel input cap, checked from the header (2026-10-07)
+
+**Chose:** `MAX_INPUT_PIXELS` = 40 MP in `optimise-image.server.ts`, one
+constant the refusal message reads, checked from the image header with no
+pixels decoded, and **after** the animated-GIF check (an animated GIF's
+height is every frame stacked). A reasonable default, raised with the server
+(owner, 2026-10-07).
+Beats: sharp's 268 MP default - one such decode needs over 1 GB on a 954 MB
+server.
+Costs: larger camera files are refused until the server grows.
+
+## D344 - WebP and JPEG at quality 80; social image flattened onto white (2026-10-07)
+
+**Chose:** WebP 80, JPEG 80 (mozjpeg off); the social JPEG is 1200 px wide
+(or the original's width if narrower), encoded from the original, with
+transparency flattened onto white.
+Beats: higher quality (size) and sharp's default black flatten.
+Costs: each upload decodes the original once per output (F-308).
+
+## D345 - One resize at a time, in-process (2026-10-07)
+
+**Chose:** every `optimiseImage` call goes through one promise chain in the
+module; `sharp.cache(false)`; objects are written to R2 one at a time.
+Beats: concurrent resizes, which multiply peak memory on a small server.
+Costs: uploads queue behind each other (~3 s each on the dev machine).
+
+## D346 - Every R2 object is written with a one-year immutable cache header (2026-10-07)
+
+**Chose:** `uploadObject` requires a cache header; one constant,
+`IMMUTABLE_CACHE_CONTROL` = `public, max-age=31536000, immutable`. Safe
+because each upload gets a new key.
+Beats: an optional header that a new caller could forget.
+Costs: a deleted image may linger in a CDN edge cache (F-311).
+
+## D347 - `srcset` on public pages only; fixed sizes in the admin (2026-10-07)
+
+**Chose:** public images get `srcset` and `sizes`; the logo, Media's grid,
+the picker, the delete screen and the share-image field use the 480
+`thumbnail`; the editor uses `src` (widest up to 1600); `og:image` uses the
+social JPEG. `PickedMedia.url` stays the thumbnail. `mediaSources` is the only
+place besides `buildMediaUrl` where keys become URLs.
+Beats: `srcset` everywhere - the admin is a few people on desktop.
+Costs: a large admin preview may look soft.
+
+## D348 - `sizes` from a 51rem reading column, stacking below 43rem (2026-10-07)
+
+**Chose:** `imageSizes(columns)` uses the reading column measured at 51rem
+(816 px, 68ch of 19px Inter in Chromium), the column gap, and a 43rem
+stacking viewport, in `rem` and `vw` only (a `ch` in `sizes` resolves against
+the browser's default font). A banded section's padding is not counted.
+Beats: computing from `ch`, or counting padding.
+Costs: the numbers must be kept in step with the tokens by hand; uncounted
+padding skews the pick slightly wider.
+
+## D349 - The share image's widths come from a second scalar subquery (2026-10-07)
+
+**Chose:** `socialImageVariantWidths` beside the existing
+`socialImageStorageKey` subquery in the entries query.
+Beats: a join that would reshape the entry query.
+Costs: two subqueries on the same media row.
+
+## D350 - The resized-objects shape is one shared module (2026-10-07)
+
+**Chose:** `stored-objects.server.ts` turns an `optimiseImage` result into the
+objects to write, used by both the upload and `optimise-media`.
+Beats: two copies of the key and byte-size logic.
+Costs: none worth naming.
+
+## D351 - `optimise-media` skips a row that fails and exits 1 (2026-10-07)
+
+**Chose:** per site, inside `inSite`, each `variant_widths is null` row is
+read, resized, written, then updated `where ... and variant_widths is null`;
+a row that fails is logged by id and skipped; the command ends with counts
+and exit code 1 if any failed. A row finished meanwhile counts as optimised
+and its new objects are deleted.
+Beats: stopping at the first failure - one missing object should not block
+every other site.
+Costs: an operator must read the counts; a failed old-object delete is not
+retried (F-302).

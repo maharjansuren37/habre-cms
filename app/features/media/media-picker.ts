@@ -3,7 +3,7 @@ import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/media-picker";
 import { listMedia } from "./media.server.ts";
 import { clampToLastPage, parseMediaListPage } from "./media-list-query.ts";
-import { buildMediaUrl } from "./media-url.ts";
+import { mediaSources } from "./media-objects.ts";
 
 /**
  * `GET /admin/media/picker` - the image tool's dialog fetches this, paginated
@@ -22,14 +22,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // out-of-range request costs a second query.
   const list = page === requestedPage ? first : await listMedia(siteId, page);
   return Response.json({
-    media: list.media.map((item) => ({
-      id: item.id,
-      url: buildMediaUrl(env.R2_PUBLIC_URL, item.storageKey),
-      filename: item.filename,
-      altText: item.altText,
-      width: item.width,
-      height: item.height,
-    })),
+    media: list.media.map((item) => {
+      const { src, thumbnail } = mediaSources(env.R2_PUBLIC_URL, item);
+      return {
+        id: item.id,
+        url: thumbnail,
+        src,
+        filename: item.filename,
+        altText: item.altText,
+        width: item.width,
+        height: item.height,
+      };
+    }),
     page,
     totalPages: list.totalPages,
   });

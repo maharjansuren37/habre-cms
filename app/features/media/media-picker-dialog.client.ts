@@ -11,7 +11,10 @@ const PICKER_ENDPOINT = "/admin/media/picker";
 
 export type PickedMedia = {
   id: string;
+  /** The small fixed size, for the picker's own grid and previews. */
   url: string;
+  /** The size an image shows at in the editor. */
+  src: string;
   filename: string;
   altText: string;
   width: number;
