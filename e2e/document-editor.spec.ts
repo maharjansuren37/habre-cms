@@ -1109,10 +1109,10 @@ test("keyboard only: Tab to the Line tile, Enter - the line lands after the curs
   await textbox.getByText("Gamma").click();
   await settle(page);
 
-  // Shift+Tab walks back out of the writing area: the title, then the palette's
+  // Shift+Tab walks back out of the writing area: Search and sharing, the title, then the palette's
   // tiles - the four section tiles (14c1), then Space - to Line.
   const line = tile(page, "Line");
-  for (let presses = 0; presses < 7; presses++) await page.keyboard.press("Shift+Tab");
+  for (let presses = 0; presses < 8; presses++) await page.keyboard.press("Shift+Tab");
   await expect(line).toBeFocused();
   await page.keyboard.press("Enter");
 

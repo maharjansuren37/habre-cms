@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_LANGUAGE, isLanguageTag, LANGUAGES } from "./languages.ts";
+import { DEFAULT_LANGUAGE, isLanguageTag, LANGUAGES, languageOrDefault } from "./languages.ts";
 
 // Right-to-left languages need dir="rtl" and a checked layout - not offered (item 17).
 const RIGHT_TO_LEFT = ["ar", "he", "iw", "fa", "ur", "yi", "ps", "sd", "ug", "dv", "ckb", "ku"];
@@ -41,4 +41,10 @@ test("isLanguageTag accepts a listed tag and nothing else", () => {
   assert.equal(isLanguageTag("xx-evil"), false);
   assert.equal(isLanguageTag("ar"), false);
   assert.equal(isLanguageTag(""), false);
+});
+
+test("languageOrDefault keeps a listed tag and turns anything else into English", () => {
+  assert.equal(languageOrDefault("ne"), "ne");
+  assert.equal(languageOrDefault("en-GB"), "en");
+  assert.equal(languageOrDefault(""), "en");
 });

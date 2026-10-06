@@ -3762,3 +3762,111 @@ editor routes, loads `findMemberSite` for the suspended notice and runs the one
 Beats: each route loading the site and the user itself - two guards per
 request, and a screen that forgets the notice.
 Costs: a new editor route must be added under the layout in `app/routes.ts`.
+
+## D327 - An own domain is a site's main address only where `SITES_URL` is https (2026-10-06)
+
+**Chose:** `mainHost` returns the site's own domain when `SITES_URL` is
+`https:` and the site has a verified one, else `<subdomain>.<sites host>`
+(item 17, D173).
+Beats: the pure rule, which would send development and the browser tests' site
+1 to the live `surenmaharjan.fyi` seeded by `0015`; clearing that seed outside
+production; an explicit main-domain column.
+Costs: an http deployment never uses own domains as the main address.
+
+## D328 - Several verified domains: the earliest verified wins, then by name (2026-10-06)
+
+**Chose:** `find-site` orders a site's verified domains by `verified_at, domain`
+and takes the first, in the same indexed query.
+Beats: a chosen main domain - item 21 may add one; until then there is one.
+Costs: the rule is implicit; nothing tests the tie-break yet (F-296).
+
+## D329 - The main-address redirect is a 301 on GET and HEAD, cached one day (2026-10-07)
+
+**Chose:** any other host of a site answers GET and HEAD with a 301 to the same
+path and query on the main address, with `Cache-Control: max-age=86400`. Hosts
+compare without the scheme - the http-to-https hop is Caddy's. Other methods are
+served where they arrive until item 19 decides `/_contact`. The redirect is
+computed in root middleware and the main origin rides on `siteContext`, so
+`find-site` stays free of the environment.
+Beats: a 302 (search engines carry ranking less reliably); an uncached 301,
+which browsers keep indefinitely - once item 21 can remove a domain, its next
+owner would receive the site's readers.
+Costs: a browser may revisit the old host once a day.
+
+## D330 - A site's language is a fixed list of left-to-right tags (2026-10-06)
+
+**Chose:** 68 base tags in `app/features/settings/languages.ts`, named by
+`Intl.DisplayNames(["en"])`, stored as the tag, `en` by default; the database
+checks only the tag's format. A stored tag no longer in the list shows as
+English in Settings (`languageOrDefault`), never as the first option.
+Beats: a free-text tag (jargon, unvalidatable); right-to-left languages, which
+need `dir="rtl"` and a checked layout.
+Costs: adding a language is a code change.
+
+## D331 - Search and share fallbacks (2026-10-06)
+
+**Chose:** `<title>` is the search title alone when set, else
+"<title> - <site>" (F-116). `og:title` is the search title, else the entry's
+title without the suffix, else the site title. The description is the entry's
+own; only `/` and `/posts` fall back to the site description. No image falls
+back. `og:image` is the original upload until item 17b. `twitter:card` is
+`summary_large_image` with an image, else `summary`.
+Beats: one description on every page (search engines read it as duplicate); the
+logo as a share image (the wrong shape for a card).
+Costs: a page with no description of its own has none.
+
+## D332 - The search fields sit in a closed `<details>` under the title (2026-10-06)
+
+**Chose:** a native disclosure, "Search and sharing", after the Web address
+line, closed when the editor opens; saved with Save, Publish and Unpublish.
+Admin words never say "SEO", "meta" or "Open Graph".
+Beats: the block settings panel, which is block-only and script-driven.
+Costs: one more keyboard stop in the editor (the summary).
+
+## D333 - The share image is checked against the site in the save itself (2026-10-06)
+
+**Chose:** `saveEntry` and `createDraft` check `socialImageMediaId` is this
+site's media in the same transaction, backed by a composite foreign key
+`(site_id, social_image_media_id)` with `on delete set null`; a 23503 on it is
+the same refusal, never a 500. Deleting an image in use is not refused - the
+foreign key clears the entry's column.
+Beats: a check only in the route (a race past it); refusing a media delete.
+Costs: an entry silently loses its share image when the image is deleted.
+
+## D334 - Public pages carry no entry ids and no share image id or key (2026-10-06)
+
+**Chose:** public loaders return the share image as a URL only
+(`public-seo.server.ts`); the canonical path comes from the route's `slug`
+param, which the loader matched exactly. Image blocks keep their `mediaId`,
+which the renderer needs (F-295).
+Beats: returning the id and building the URL in the page.
+Costs: none beyond a second small query per page.
+
+## D335 - Sitemap and robots shape (2026-10-06)
+
+**Chose:** `/sitemap.xml` lists `/`, `/posts`, pages by slug, posts newest
+first; `/posts` is dated by the newest post; an empty site answers 200 with an
+empty `urlset`; bounded at 50,000 URLs. `robots.txt` tells the platform host
+from a site by whether `siteContext` is set (React Router 8.4's context has no
+`has()`, so it catches the throw). The under-500 ms check is one timed request,
+not a p95 (owner accepted, 2026-10-07).
+Beats: a sitemap index (no site is near 50,000); a timed p95 in the tests.
+Costs: the timing proves one request, not load.
+
+## D336 - A form missing an item 17 field is out of date, not blank (2026-10-06)
+
+**Chose:** a Settings save without `siteDescription` or `language`, and an
+editor save without `seoTitle` or `seoDescription`, are refused with the
+out-of-date message (F-34, F-107), never treated as empty.
+Beats: defaulting a missing field, which a tab open from before the deploy
+would use to blank the description or reset the language.
+Costs: an old open tab must reload before saving.
+
+## D337 - The shared browser-test login retries once on 503 (2026-10-07)
+
+**Chose:** `e2e/helpers/auth.ts` `logIn` submits again once, after 500 ms, when
+the login answers 503 ("Login is busy."), reading the status, not the message
+(F-231). The specs' local login copies, which test login itself, do not retry.
+Beats: running signup's race test in its own Playwright project after the
+others (slower, more config).
+Costs: those local copies can still meet the 503 under the full suite.

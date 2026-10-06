@@ -87,3 +87,8 @@ const KNOWN = new Set(TAGS);
 export function isLanguageTag(value: string): boolean {
   return KNOWN.has(value);
 }
+
+/** A stored tag the list no longer offers shows as English, never as the first option. */
+export function languageOrDefault(tag: string): string {
+  return isLanguageTag(tag) ? tag : DEFAULT_LANGUAGE;
+}

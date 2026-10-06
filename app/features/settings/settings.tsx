@@ -14,7 +14,7 @@ import {
   type PickedMedia,
 } from "#app/features/media/media-picker-dialog.client.ts";
 import type { Route } from "./+types/settings";
-import { LANGUAGES } from "./languages.ts";
+import { LANGUAGES, languageOrDefault } from "./languages.ts";
 import {
   applyNavIntent,
   draftRowsToNavItems,
@@ -239,7 +239,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const draftRows = actionData ? actionData.draftRows : navItemsToDraftRows(settings.navigation);
   const siteTitleDefault = actionData ? actionData.siteTitle : settings.siteTitle;
   const siteDescriptionDefault = actionData ? actionData.siteDescription : settings.siteDescription;
-  const languageDefault = actionData ? actionData.language : settings.language;
+  const languageDefault = actionData ? actionData.language : languageOrDefault(settings.language);
   const errors = actionData?.errors ?? {};
   const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
   const pageById = new Map(pages.map((page) => [page.id, page]));

@@ -113,6 +113,8 @@ test("a site with an own domain redirects its subdomain there, and the domain se
     );
     expect(subdomain.status()).toBe(301);
     expect(subdomain.headers().location).toBe(`https://${domain}/posts?x=1`);
+    // Cached a day at most: item 21 can take a domain away again.
+    expect(subdomain.headers()["cache-control"]).toBe("max-age=86400");
 
     const own = await request.get(`${PROXIED}/posts`, {
       headers: { "X-Forwarded-Host": domain, "X-Forwarded-Proto": "https" },

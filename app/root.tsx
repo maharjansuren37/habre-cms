@@ -84,7 +84,12 @@ export const middleware: Route.MiddlewareFunction[] = [
       (request.method === "GET" || request.method === "HEAD") &&
       url.host.toLowerCase() !== main
     ) {
-      throw redirect(`${mainOrigin(site, env.SITES_URL)}${url.pathname}${url.search}`, 301);
+      // Cached a day at most: item 21 can take a domain away again, and a
+      // browser must not keep sending readers to its next owner.
+      throw redirect(`${mainOrigin(site, env.SITES_URL)}${url.pathname}${url.search}`, {
+        status: 301,
+        headers: { "Cache-Control": "max-age=86400" },
+      });
     }
     context.set(siteContext, { ...site, mainOrigin: mainOrigin(site, env.SITES_URL) });
   },

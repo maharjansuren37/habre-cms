@@ -173,7 +173,7 @@ test("a suspended site's editor screens show the notice, until unsuspended", asy
 
     for (const path of ["/admin/posts/new", "/admin/pages/new"]) {
       await page.goto(path);
-      await expect(page.getByLabel("Title")).toBeVisible();
+      await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
       await expect(notice).toBeVisible();
       await expect(page.getByText("Visitors see Not Found instead of its pages.")).toBeVisible();
       await expect(page.getByRole("alert")).toHaveCount(0);
@@ -187,7 +187,7 @@ test("a suspended site's editor screens show the notice, until unsuspended", asy
 
     expect(run("unsuspend-site", ["--address", site.address]).status).toBe(0);
     await page.goto("/admin/posts/new");
-    await expect(page.getByLabel("Title")).toBeVisible();
+    await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
     await expect(notice).toHaveCount(0);
   } finally {
     await deleteSite(site.id);
