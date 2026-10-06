@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
-import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
+import { deleteTestMedia, insertTestMediaRow, testMediaFilename } from "./helpers/media.ts";
 import { PORT, PROXIED_PORT } from "./helpers/ports.ts";
 import {
   createSite,
@@ -428,4 +428,117 @@ test("an author can set the search fields on their own post", async ({ page }) =
     await deleteEntriesBy(author.email);
     await deleteTestUser(author.email);
   }
+});
+
+// Step 6: Image when shared.
+
+async function socialImageOf(id: string) {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string | null }[]>`
+      select social_image_media_id as id from entries where id = ${id}
+    `;
+    return row?.id ?? null;
+  });
+}
+
+test.describe("image when shared", () => {
+  let user: TestUser;
+  let mediaId: string;
+  let entryId: string;
+
+  test.beforeEach(async ({ page }) => {
+    await page.setExtraHTTPHeaders({
+      "X-Forwarded-For": `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.11`,
+    });
+    user = createAdmin("Seo Image");
+    mediaId = await insertTestMediaRow({ uploadedBy: user.email });
+    entryId = await createDraftFor(user.email, "Image page", textDocument("Body"), {
+      type: "page",
+    });
+    await logIn(page, user);
+    await page.goto(`/admin/pages/${entryId}`);
+    await openSearchAndSharing(page);
+  });
+
+  test.afterEach(async () => {
+    await deleteEntriesBy(user.email);
+    await deleteTestMedia(mediaId);
+    await deleteTestUser(user.email);
+  });
+
+  async function choose(page: Page) {
+    await page.getByRole("button", { name: "Choose image" }).click();
+    await expect(page.getByRole("dialog", { name: "Choose an image to share" })).toBeVisible();
+    await page.getByText(await testMediaFilename(mediaId)).click();
+  }
+
+  test("choosing an image and saving shows its thumbnail after a reload; Remove image clears it", async ({
+    page,
+  }) => {
+    const field = page.getByRole("group", { name: "Image when shared" });
+    await expect(field.locator("img")).toHaveCount(0);
+    await choose(page);
+    await expect(field.locator("img")).toHaveCount(1);
+    await expect(page.getByText("Not saved yet")).toBeVisible();
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect(await socialImageOf(entryId)).toBe(mediaId);
+
+    await page.reload();
+    await openSearchAndSharing(page);
+    await expect(field.locator("img")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Remove image" }).click();
+    await expect(page.getByText("Not saved yet")).toBeVisible();
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await openSearchAndSharing(page);
+    await expect(field.locator("img")).toHaveCount(0);
+    expect(await socialImageOf(entryId)).toBeNull();
+  });
+
+  test("another site's image is refused and nothing is saved", async ({ page }) => {
+    const other = await createSiteWithAddress(`seo-img-${randomUUID().slice(0, 8)}`);
+    const otherAdmin = await createSiteAdmin(other.id, "Seo Img Other");
+    const otherMedia = await insertTestMediaRow({
+      uploadedBy: otherAdmin.email,
+      siteId: other.id,
+    });
+    try {
+      const before = (await storedEntry(entryId)).version;
+      await page.getByLabel("Description", { exact: true }).fill("Should not be saved");
+      // Crafted: the hidden field names another site's media row.
+      await page.locator('input[name="socialImageMediaId"]').evaluate((input, value) => {
+        Object.assign(input, { value });
+      }, otherMedia);
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Your changes were not saved.")).toBeVisible();
+      await expect(page.getByText("Image when shared could not be saved")).toBeVisible();
+      expect((await storedEntry(entryId)).version).toBe(before);
+      expect(await socialImageOf(entryId)).toBeNull();
+      expect((await searchFieldsOf(entryId)).seo_description).toBe("");
+    } finally {
+      await deleteTestMedia(otherMedia);
+      await deleteSite(other.id);
+    }
+  });
+
+  test("deleting the image from Media leaves the entry with none", async ({ page }) => {
+    await choose(page);
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    expect(await socialImageOf(entryId)).toBe(mediaId);
+
+    await page.goto(`/admin/media/${mediaId}/delete`);
+    await page.getByRole("button", { name: "Delete image" }).click();
+    await page.waitForURL(/\/admin\/media\?/);
+    expect(await socialImageOf(entryId)).toBeNull();
+
+    await page.goto(`/admin/pages/${entryId}`);
+    await openSearchAndSharing(page);
+    await expect(page.getByRole("group", { name: "Image when shared" }).locator("img")).toHaveCount(
+      0,
+    );
+  });
 });

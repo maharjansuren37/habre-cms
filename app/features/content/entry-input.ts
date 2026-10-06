@@ -46,5 +46,7 @@ export type DocumentInput = {
   title: string;
   seoTitle: string;
   seoDescription: string;
+  /** This site's media row to show when shared, or null for none (item 17). */
+  socialImageMediaId: string | null;
   document: Document;
 };

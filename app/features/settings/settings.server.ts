@@ -155,7 +155,7 @@ export async function saveSiteSettings(
 
 const FOREIGN_KEY_VIOLATION = "23503";
 
-function isForeignKeyViolation(error: unknown, constraint: string): boolean {
+export function isForeignKeyViolation(error: unknown, constraint: string): boolean {
   return (
     error instanceof Error &&
     "code" in error &&

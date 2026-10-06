@@ -243,3 +243,32 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* Image when shared: the Settings logo field's shape (settings.module.css). */
+.imageField {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.imagePreview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.imageThumb {
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background: var(--color-surface-sunken);
+}
+
+.imageActions {
+  display: flex;
+  gap: var(--space-2);
+}

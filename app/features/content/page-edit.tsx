@@ -2,13 +2,15 @@ import { data } from "react-router";
 import { z } from "zod";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { buildMediaUrl } from "#app/features/media/media-url.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
+import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/page-edit";
 import { bannerRedirect } from "./banner.ts";
 import { findEntryForUser, listLinkablePages, saveEntry } from "./entries.server.ts";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
-import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
+import { parseDocumentForm, parseVersion, SOCIAL_IMAGE_MESSAGE } from "./entry-form-input.ts";
 
 // Login is checked by editor-layout.tsx; the role is this route's own, as in
 // page-list.tsx (F-293).
@@ -42,6 +44,13 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   return {
     entry,
+    socialImage:
+      entry.socialImageMediaId && entry.socialImageStorageKey
+        ? {
+            id: entry.socialImageMediaId,
+            url: buildMediaUrl(env.R2_PUBLIC_URL, entry.socialImageStorageKey),
+          }
+        : null,
     mediaById: await resolveDocumentMedia(actor.siteId, entry.document),
     pages: await listLinkablePages(actor.siteId, actor),
   };
@@ -89,6 +98,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       title: parsed.title,
       seoTitle: parsed.seoTitle,
       seoDescription: parsed.seoDescription,
+      socialImageMediaId: parsed.socialImageMediaId,
       document: parsed.document,
     },
     version,
@@ -97,6 +107,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   );
   if (!result.ok) {
     if (result.reason === "not_found") throw data("Not Found", { status: 404 });
+    if (result.reason === "image_gone") {
+      return data(
+        { problem: { kind: "invalid" as const, message: SOCIAL_IMAGE_MESSAGE } },
+        { status: 400 },
+      );
+    }
     return data({ problem: { kind: "stale" as const } }, { status: 409 });
   }
   // Publish and unpublish return to the list with the same success-banner
@@ -116,6 +132,7 @@ export default function EditPage({ loaderData, actionData }: Route.ComponentProp
       title={entry.title}
       seoTitle={entry.seoTitle}
       seoDescription={entry.seoDescription}
+      socialImage={loaderData.socialImage}
       slug={entry.slug}
       document={entry.document}
       mediaById={loaderData.mediaById}

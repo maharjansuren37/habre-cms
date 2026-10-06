@@ -179,7 +179,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     after a reload; a 301-character description is refused and the entry's
     version is unchanged; an author can set them on their own post.
 
-- [ ] **Step 6 - Image when shared**:
+- [x] **Step 6 - Image when shared**:
   - In the disclosure: the Logo field's picker and states, a hidden
     `socialImageMediaId`; the action checks the id is this site's media
     (`inSite`, `site_id` named) before saving, the logo's rule.
@@ -294,6 +294,11 @@ pieces: field, textarea, select, the logo field's media picker, the error
   - An editor save missing `seoTitle` or `seoDescription` is refused with
     its own message (F-34's `blocks` rule, F-107); a new draft stores what
     was typed in the disclosure on `/new` (Step 5).
+  - The share image's site check lives in `saveEntry` and `createDraft`
+    (one `select` in the same transaction), backed by the composite foreign
+    key; a 23503 on it is the same refusal, never a 500. `createDraft`
+    returns `null` for it. Media delete does not refuse an image in use -
+    the foreign key clears the entry's column (Step 6).
 
 ## Production needs
 

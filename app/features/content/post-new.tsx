@@ -5,7 +5,7 @@ import type { Route } from "./+types/post-new";
 import { createDraft, listLinkablePages } from "./entries.server.ts";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
-import { parseDocumentForm } from "./entry-form-input.ts";
+import { parseDocumentForm, SOCIAL_IMAGE_MESSAGE } from "./entry-form-input.ts";
 
 // Hands over the empty document a new entry starts with, so the schema module
 // stays out of the browser bundle.
@@ -42,10 +42,17 @@ export async function action({ request, context }: Route.ActionArgs) {
       title: form.title,
       seoTitle: form.seoTitle,
       seoDescription: form.seoDescription,
+      socialImageMediaId: form.socialImageMediaId,
       document: form.document,
     },
     user.id,
   );
+  if (!entry) {
+    return data(
+      { problem: { kind: "invalid" as const, message: SOCIAL_IMAGE_MESSAGE } },
+      { status: 400 },
+    );
+  }
   // The address is chosen here, so the editor moves to the saved post's own URL.
   return redirect(`/admin/posts/${entry.id}`);
 }
@@ -57,6 +64,7 @@ export default function NewPost({ loaderData, actionData }: Route.ComponentProps
       title=""
       seoTitle=""
       seoDescription=""
+      socialImage={null}
       slug=""
       document={loaderData.document}
       mediaById={loaderData.mediaById}
