@@ -173,7 +173,7 @@ that (D153).
   - a browser test reads the suffix on `/signup` and finds it in the
     address field's accessible description;
   - `e2e/contrast.spec.ts` still passes with the addon on the page.
-- [ ] **Step 9 - The oldest site is ordinary** - remove the oldest-site case
+- [x] **Step 9 - The oldest site is ordinary** - remove the oldest-site case
   from `deletionCase`, `readDeletionFacts` and the confirm screen (D302).
   `deleteAccount` deletes the site's `site_domains` rows before the site, and
   the comments that say "until item 16" go. design.md's *Your account* row

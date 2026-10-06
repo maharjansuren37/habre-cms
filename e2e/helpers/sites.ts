@@ -65,7 +65,7 @@ export async function createSiteAdmin(siteId: string, name = "Site Admin"): Prom
   return { email, name, password: PASSWORD };
 }
 
-/** Test cleanup, in dependency order: settings, content, memberships and their users, the site. */
+/** Test cleanup, in dependency order: settings, content, memberships, domains, their users, the site. */
 export function deleteSite(siteId: string): Promise<void> {
   return withDatabase(async (sql) => {
     await sql.begin(async (tx) => {
@@ -77,6 +77,7 @@ export function deleteSite(siteId: string): Promise<void> {
       await tx`delete from entries where site_id = ${siteId}`;
       await tx`delete from media where site_id = ${siteId}`;
       await tx`delete from site_members where site_id = ${siteId}`;
+      await tx`delete from site_domains where site_id = ${siteId}`;
       if (userIds.length > 0) await tx`delete from users where id in ${tx(userIds)}`;
       await tx`delete from sites where id = ${siteId}`;
     });

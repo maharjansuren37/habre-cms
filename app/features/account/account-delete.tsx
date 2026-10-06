@@ -48,8 +48,6 @@ function nameList(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-const REFUSED =
-  "This is the platform's main site, so it can't be deleted yet. Make another member an admin first, then delete your account.";
 const CHANGED = "Something changed on your site. Check what will be deleted and try again.";
 
 /**
@@ -113,7 +111,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   // The slot is released: the transaction may wait on the site's lock (F-265).
   const result = await deleteAccount(user.siteId, user.id, parsed.expect);
   if (!result.ok) {
-    return refused({}, result.reason === "refused" ? REFUSED : CHANGED, 409);
+    return refused({}, CHANGED, 409);
   }
   logSecurityEvent({
     event: "account_deleted",
@@ -148,62 +146,49 @@ export default function DeleteAccount({ loaderData, actionData }: Route.Componen
     <section className={styles.confirm}>
       <h1 className={styles.title}>Delete your account</h1>
       {actionData?.formError && <Message tone="error" title={actionData.formError} />}
-      {loaderData.case === "refused" ? (
-        <p>{REFUSED}</p>
+      {loaderData.site ? (
+        <p>
+          Your site <strong>{loaderData.address}</strong> is deleted with your account:{" "}
+          {plural(loaderData.site.posts, "post")}, {plural(loaderData.site.pages, "page")},{" "}
+          {plural(loaderData.site.images, "image")}, and{" "}
+          {loaderData.site.otherMemberNames.length === 0
+            ? "no other members"
+            : `the accounts of ${nameList(loaderData.site.otherMemberNames)}`}
+          .
+        </p>
       ) : (
-        <>
-          {loaderData.site ? (
-            <p>
-              Your site <strong>{loaderData.address}</strong> is deleted with your account:{" "}
-              {plural(loaderData.site.posts, "post")}, {plural(loaderData.site.pages, "page")},{" "}
-              {plural(loaderData.site.images, "image")}, and{" "}
-              {loaderData.site.otherMemberNames.length === 0
-                ? "no other members"
-                : `the accounts of ${nameList(loaderData.site.otherMemberNames)}`}
-              .
-            </p>
-          ) : (
-            <p>
-              You'll be signed out and can't sign in again. Your posts, pages and images stay on{" "}
-              <strong>{loaderData.address}</strong>, credited to Deleted account.
-            </p>
-          )}
-          <Form method="post" className={styles.form}>
-            <input type="hidden" name="expect" value={loaderData.case} />
-            {loaderData.site && (
-              <Field
-                label={`Type ${loaderData.address} to confirm`}
-                name="address"
-                autoComplete="off"
-                defaultValue={actionData?.typedAddress}
-                error={actionData?.errors.address}
-              />
-            )}
-            <Field
-              label="Current password"
-              name="currentPassword"
-              type="password"
-              autoComplete="current-password"
-              error={actionData?.errors.currentPassword}
-            />
-            <div className={styles.actions}>
-              <Button type="submit" variant="danger" isPending={isDeleting}>
-                {isDeleting ? "Deleting…" : "Delete my account"}
-              </Button>
-              <Link className={`${buttonStyles.button} ${buttonStyles.quiet}`} to="/admin/account">
-                Cancel
-              </Link>
-            </div>
-          </Form>
-        </>
+        <p>
+          You'll be signed out and can't sign in again. Your posts, pages and images stay on{" "}
+          <strong>{loaderData.address}</strong>, credited to Deleted account.
+        </p>
       )}
-      {loaderData.case === "refused" && (
+      <Form method="post" className={styles.form}>
+        <input type="hidden" name="expect" value={loaderData.case} />
+        {loaderData.site && (
+          <Field
+            label={`Type ${loaderData.address} to confirm`}
+            name="address"
+            autoComplete="off"
+            defaultValue={actionData?.typedAddress}
+            error={actionData?.errors.address}
+          />
+        )}
+        <Field
+          label="Current password"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          error={actionData?.errors.currentPassword}
+        />
         <div className={styles.actions}>
+          <Button type="submit" variant="danger" isPending={isDeleting}>
+            {isDeleting ? "Deleting…" : "Delete my account"}
+          </Button>
           <Link className={`${buttonStyles.button} ${buttonStyles.quiet}`} to="/admin/account">
-            Back to Your account
+            Cancel
           </Link>
         </div>
-      )}
+      </Form>
     </section>
   );
 }

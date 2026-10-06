@@ -81,12 +81,15 @@ test("the body cap is the Users forms' 8 KB, and needs a declared length", () =>
   assert.equal(isDeleteFormBodyAllowed(new Headers()), false);
 });
 
-test("a member who is not the last active admin leaves, on any site", () => {
-  assert.equal(deletionCase({ isLastActiveAdmin: false, isOldestSite: false }), "leave");
-  assert.equal(deletionCase({ isLastActiveAdmin: false, isOldestSite: true }), "leave");
+test("a member who is not the last active admin leaves", () => {
+  assert.equal(deletionCase({ isLastActiveAdmin: false }), "leave");
 });
 
-test("the last active admin takes the site, unless it is the oldest site", () => {
-  assert.equal(deletionCase({ isLastActiveAdmin: true, isOldestSite: false }), "site");
-  assert.equal(deletionCase({ isLastActiveAdmin: true, isOldestSite: true }), "refused");
+test("the last active admin takes the site, whichever site it is", () => {
+  assert.equal(deletionCase({ isLastActiveAdmin: true }), "site");
+});
+
+test("the oldest site is not special: a stray isOldestSite fact changes nothing", () => {
+  // @ts-expect-error - the input no longer has isOldestSite
+  assert.equal(deletionCase({ isLastActiveAdmin: true, isOldestSite: true }), "site");
 });
