@@ -90,11 +90,11 @@ File: e2e/account-delete.spec.ts:337-362
 File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
 
 
-### F-282 [P2] open - The suspended notice is missing from the editor screens, which sit outside the admin shell
+### F-282 [P2] closed - The suspended notice is missing from the editor screens, which sit outside the admin shell
 File: app/routes.ts:43-47 (editor routes outside `admin-shell/layout.tsx`); blueprint/context/design.md (Admin shell, Suspended notice)
 
 
-### F-283 [P2] open - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
+### F-283 [P2] fixed - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
 File: deploy/setup-server.sh (`check_caddy_env`; `systemctl restart caddy` in `install_caddy_site`)
 
 

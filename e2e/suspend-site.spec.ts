@@ -160,3 +160,36 @@ test("a suspended site's admin sees a standing notice on every screen, until uns
     await deleteSite(site.id);
   }
 });
+
+// F-282: the editor screens sit outside the shell, and show the notice too.
+test("a suspended site's editor screens show the notice, until unsuspended", async ({ page }) => {
+  const site = await createSiteWithAddress("suspend-editor");
+  try {
+    const admin = await createSiteAdmin(site.id);
+    expect(run("suspend-site", ["--address", site.address]).status).toBe(0);
+
+    await logIn(page, admin);
+    const notice = page.getByText(NOTICE, { exact: true });
+
+    for (const path of ["/admin/posts/new", "/admin/pages/new"]) {
+      await page.goto(path);
+      await expect(page.getByLabel("Title")).toBeVisible();
+      await expect(notice).toBeVisible();
+      await expect(page.getByText("Visitors see Not Found instead of its pages.")).toBeVisible();
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    }
+
+    // After a client-side navigation from the shell into the editor.
+    await page.goto("/admin/posts");
+    await page.getByRole("link", { name: "New post" }).first().click();
+    await page.waitForURL("**/admin/posts/new");
+    await expect(notice).toBeVisible();
+
+    expect(run("unsuspend-site", ["--address", site.address]).status).toBe(0);
+    await page.goto("/admin/posts/new");
+    await expect(page.getByLabel("Title")).toBeVisible();
+    await expect(notice).toHaveCount(0);
+  } finally {
+    await deleteSite(site.id);
+  }
+});

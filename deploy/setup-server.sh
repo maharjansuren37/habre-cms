@@ -203,6 +203,12 @@ install_service() {
 # if anything is: the Cloudflare DNS module, either domain, or the token. Takes
 # the env file and the output of `caddy list-modules`, so it runs anywhere.
 # Never prints a value.
+#
+# A value is refused, not cleaned up, unless it is only letters, digits, `.`,
+# `_` and `-`: systemd's EnvironmentFile and `caddy validate --envfile` read
+# quotes, spaces and an inline `# comment` differently, so a value that passes
+# here could validate and then stop the restarted Caddy (F-283). Domains and
+# Cloudflare tokens need nothing else.
 check_caddy_env() {
   local env_file=$1 modules=$2 missing=0 name value
   if ! grep -qE '^dns\.providers\.cloudflare( |$)' <<<"$modules"; then
@@ -213,11 +219,17 @@ check_caddy_env() {
     printf 'setup-server: %s is missing.\n' "$env_file" >&2
     return 1
   fi
+  if grep -qE '^[[:space:]]*export[[:space:]]' "$env_file"; then
+    printf 'setup-server: %s has an `export` line; systemd does not read those. Write NAME=value.\n' "$env_file" >&2
+    missing=1
+  fi
   for name in HABRE_PLATFORM_DOMAIN HABRE_SITES_DOMAIN CLOUDFLARE_API_TOKEN; do
     value=$(sed -n "s/^${name}=//p" "$env_file" | tail -n 1)
-    value=${value//[\"\' ]/}
     if [[ -z $value ]]; then
       printf 'setup-server: %s is empty in %s.\n' "$name" "$env_file" >&2
+      missing=1
+    elif [[ ! $value =~ ^[A-Za-z0-9._-]+$ ]]; then
+      printf 'setup-server: %s in %s may hold only letters, digits, ".", "_" and "-" - no quotes, spaces or comments.\n' "$name" "$env_file" >&2
       missing=1
     fi
   done
@@ -292,11 +304,15 @@ ENV
   fi
   caddy validate --config "$CADDYFILE" --adapter caddyfile --envfile "$CADDY_ENV_FILE" >/dev/null 2>&1 \
     || fail "Caddy config does not validate; not reloading. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
+  # Caddy serves every site on this box, so a failed start is said plainly,
+  # with where to look, rather than left as systemctl's one line (F-283).
+  local action=reload
   if [[ $restart == true ]]; then
     log "Restarting Caddy: its environment changed"
-    systemctl restart caddy
-  else
-    systemctl reload caddy
+    action=restart
+  fi
+  if ! systemctl "$action" caddy || ! systemctl is-active --quiet caddy; then
+    fail "Caddy is not running after the $action - every site on this server is down. See: journalctl -u caddy -n 50"
   fi
 }
 

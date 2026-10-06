@@ -170,7 +170,7 @@ blank instead".
   account, Plan, Sign out**
 - **Suspended notice** (item 16b): while the operator has suspended the
   site, the top of the main area, before the page's `h1`, on every shell
-  screen: "This site is suspended." / "Visitors see Not Found instead of its
+  screen, and on the editor under its top bar (F-282): "This site is suspended." / "Visitors see Not Found instead of its
   pages." `Message`'s `notice` tone - the error banner's look and colours,
   **no role**: a standing fact, not an action's outcome, so it is read in
   order and never interrupts on each navigation. Its title is a `p`, so the

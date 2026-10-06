@@ -219,6 +219,25 @@ design.md's *Screens* (Admin shell row).
   outside `blueprint/history/`, `dev-notes/` and `CHANGELOG.md` finds only the
   Caddy file's redirect and descriptions of it.
 
+- [x] **Repair F-282 - The suspended notice is missing from the editor
+  screens**: the four editor routes move under a pathless
+  `app/features/content/editor-layout.tsx` (no sidebar, as before) whose
+  loader reads `findMemberSite`; `EntryForm` reads `suspended` from the
+  outlet context and shows the same `notice` under its top bar. design.md's
+  row names the editor. *Done when:* a new test in `e2e/suspend-site.spec.ts`
+  sees the notice on `/admin/posts/new` and `/admin/pages/new` (full load and
+  after a client-side navigation), no `alert`, and the notice gone after
+  `unsuspend-site` - red before the repair, green after.
+- [x] **Repair F-283 - The Caddy env check accepts values systemd loads
+  differently**: `check_caddy_env` refuses, rather than strips, any value
+  outside `[A-Za-z0-9._-]` and any `export` line; after the restart or
+  reload, `systemctl is-active` must pass or the script fails naming
+  `journalctl -u caddy`. *Done when:* the function, run against temporary
+  env files, refuses an inline comment, quotes, a space, a `#` in the token
+  and an `export` line (each accepted before the repair) and still refuses
+  Step 5's four cases and passes a clean file; the guard, with `systemctl`
+  stubbed inactive, fails with that message.
+
 ## Files and areas
 
 - `scripts/suspend-site.ts`, `scripts/unsuspend-site.ts` (new);
