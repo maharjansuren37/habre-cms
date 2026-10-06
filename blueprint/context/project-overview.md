@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-05, `main` after `f74a2bf`.
+Generated 2026-10-06, `main` after `6518180`.
 
 ## What this is
 
@@ -47,9 +47,10 @@ row-level security, owner and app database roles, today's install as site 1
 the site's address, login refuses unconfirmed accounts; `0012` deletes every
 account (D261); password reset by email (15c); a storage cap per site
 (15d, `STORAGE_LIMIT_MB`, D284-D289); Your account (15e1) - name, password,
-and an email confirmed from a link to the new address (D290-D296).
+and an email confirmed from a link to the new address (D290-D296);
+delete your account (15e2, `0014`, D297-D308).
 
-**Platform v1 (queued):** delete your account (15e2); own subdomains; SEO basics; optimised images (17b);
+**Platform v1 (queued):** own subdomains; SEO basics; optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -146,8 +147,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-14 and 15a-15e1 done; 15e2 in flight
-  (`current-work.md`); 16-21 queued. 18 splits when spec'd. Last shipped: 15e1
-  (`blueprint/history/features/15e1-your-account.md`).
-- **Next:** `build` item 15e2, delete your account (spec'd 2026-10-05).
+- **Plan:** items 1-15 done; nothing in flight; 16-21 queued. 18 splits
+  when spec'd. Last shipped: 15e2
+  (`blueprint/history/features/15e2-delete-your-account.md`).
+- **Next:** `spec` item 16, own subdomains (domains: `needs-you.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
