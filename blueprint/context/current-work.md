@@ -151,7 +151,7 @@ item up to the same shape (D174).
   `og:image` ends in `/social.jpg`; the page's `img` elements keep their role
   and alt-text name (public-site.6).
 
-- [ ] **Step 5 - `optimise-media`** - `scripts/optimise-media.ts`, `npm run
+- [x] **Step 5 - `optimise-media`** - `scripts/optimise-media.ts`, `npm run
   optimise-media`, as the app role (`DATABASE_URL`) like the other operator
   commands. For each site (from `sites`), inside `inSite`, each row with
   `variant_widths is null`: read the object through R2's S3 API (new
@@ -246,6 +246,25 @@ item up to the same shape (D174).
   a few people on desktop; public pages are what the quality bar measures.
 - **`optimise-media` skips a row that fails and exits 1** - beat stopping at
   the first failure: one missing object should not block every other site.
+- **Settled during build (autopilot, 2026-10-07):**
+  - The pixel cap is checked from the header (no pixels decoded), **after**
+    the animated-GIF check - an animated GIF's height is every frame stacked.
+  - The social JPEG is encoded from the original, not from a resized copy.
+  - A resized row's directory is `storage_key` up to its last slash; the key
+    and source functions need only `{ storageKey, variantWidths }`.
+  - `uploadObject` requires the cache header; one constant,
+    `IMMUTABLE_CACHE_CONTROL`. Objects are written one at a time.
+  - `sizes` uses a reading column measured at 51rem (816 px, 68ch of 19px
+    Inter, Chromium); columns stack below a 43rem viewport. A banded
+    section's padding is not counted (only skews the pick wider).
+  - The share image's widths come from a second scalar subquery
+    (`socialImageVariantWidths`), keeping `socialImageStorageKey`.
+  - `PickedMedia.url` stays the thumbnail; the editor uses the new `src`.
+  - The resized-objects shape is one shared module,
+    `stored-objects.server.ts`, used by the upload and `optimise-media`.
+  - `optimise-media` counts a row finished meanwhile as optimised (its new
+    objects are deleted).
+  - `fixtures/1x1.png` was not a decodable PNG; regenerated with `sharp`.
 
 ## Production needs
 

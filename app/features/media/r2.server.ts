@@ -46,3 +46,13 @@ export async function deleteObject(key: string): Promise<void> {
     throw new Error(`R2 delete failed for ${key}: ${response.status} ${await response.text()}`);
   }
 }
+
+/** Reads one object through the S3 API. Null when it does not exist; throws on any other non-2xx. */
+export async function getObject(key: string): Promise<Uint8Array | null> {
+  const response = await client.fetch(objectUrl(key), { method: "GET" });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`R2 read failed for ${key}: ${response.status} ${await response.text()}`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}

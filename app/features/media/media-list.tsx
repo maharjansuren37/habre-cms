@@ -19,11 +19,12 @@ import {
 } from "./media-input.ts";
 import styles from "./media-list.module.css";
 import { parseMediaListPage } from "./media-list-query.ts";
-import { mediaSources, socialKey, webpKey } from "./media-objects.ts";
+import { mediaSources } from "./media-objects.ts";
 import { optimiseImage } from "./optimise-image.server.ts";
 import { IMMUTABLE_CACHE_CONTROL, uploadObject } from "./r2.server.ts";
 import { generateStorageKey, generateUploadDirectory } from "./storage-key.ts";
 import { fitsStorage, formatStorageLimit, storageSummary } from "./storage-limit.ts";
+import { resizedObjects } from "./stored-objects.server.ts";
 import { MAX_INPUT_PIXELS, tooLargeMessage, UNREADABLE_MESSAGE } from "./upload-refusals.ts";
 
 export function meta(_: Route.MetaArgs) {
@@ -131,27 +132,22 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   // What is stored: every resized object, or the upload itself for an animated GIF.
-  const objects =
+  const resized =
     optimised.kind === "resized"
-      ? (() => {
-          const directory = generateUploadDirectory(actor.siteId);
-          return [
-            ...optimised.sizes.map((size) => ({
-              key: webpKey(directory, size.width),
-              bytes: size.bytes,
-              contentType: "image/webp",
-            })),
-            { key: socialKey(directory), bytes: optimised.social.bytes, contentType: "image/jpeg" },
-          ];
-        })()
-      : [
-          {
-            key: generateStorageKey(actor.siteId, detected.extension),
-            bytes,
-            contentType: detected.mimeType,
-          },
-        ];
-  const storedBytes = objects.reduce((sum, object) => sum + object.bytes.byteLength, 0);
+      ? resizedObjects(generateUploadDirectory(actor.siteId), optimised.sizes, optimised.social)
+      : null;
+  const objects = resized
+    ? resized.objects
+    : [
+        {
+          key: generateStorageKey(actor.siteId, detected.extension),
+          bytes,
+          contentType: detected.mimeType,
+        },
+      ];
+  const storedBytes = resized
+    ? resized.storedBytes
+    : objects.reduce((sum, object) => sum + object.bytes.byteLength, 0);
   if (limit !== null && !fitsStorage(used, storedBytes, limit)) return storageRefusal(limit);
 
   // R2 objects first, then the row (the plan's data rule) - a failure between
@@ -160,19 +156,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   for (const object of objects) {
     await uploadObject(object.key, object.bytes, object.contentType, IMMUTABLE_CACHE_CONTROL);
   }
-  const widest = optimised.kind === "resized" ? optimised.sizes.at(-1) : undefined;
-  const widestKey = objects[optimised.kind === "resized" ? objects.length - 2 : 0].key;
   await insertMedia(
     actor.siteId,
     {
-      storageKey: widestKey,
+      storageKey: resized ? resized.widestKey : objects[0].key,
       filename: filename.data,
-      mimeType: widest ? "image/webp" : detected.mimeType,
+      mimeType: resized ? "image/webp" : detected.mimeType,
       byteSize: storedBytes,
-      width: widest?.width ?? detected.width,
-      height: widest?.height ?? detected.height,
+      width: resized?.width ?? detected.width,
+      height: resized?.height ?? detected.height,
       altText: altText.data,
-      variantWidths: optimised.kind === "resized" ? optimised.sizes.map((size) => size.width) : [],
+      variantWidths: resized?.variantWidths ?? [],
     },
     actor.id,
   );

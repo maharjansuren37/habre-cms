@@ -22,6 +22,7 @@
     "create-invite": "node --env-file-if-exists=.env scripts/create-invite.ts",
     "suspend-site": "node --env-file-if-exists=.env scripts/suspend-site.ts",
     "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
+    "optimise-media": "node --env-file-if-exists=.env scripts/optimise-media.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
