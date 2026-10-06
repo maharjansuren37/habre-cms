@@ -19,8 +19,7 @@ import {
 } from "./media-input.ts";
 import styles from "./media-list.module.css";
 import { parseMediaListPage } from "./media-list-query.ts";
-import { socialKey, webpKey } from "./media-objects.ts";
-import { buildMediaUrl } from "./media-url.ts";
+import { mediaSources, socialKey, webpKey } from "./media-objects.ts";
 import { optimiseImage } from "./optimise-image.server.ts";
 import { IMMUTABLE_CACHE_CONTROL, uploadObject } from "./r2.server.ts";
 import { generateStorageKey, generateUploadDirectory } from "./storage-key.ts";
@@ -51,7 +50,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return {
     media: list.media.map((item) => ({
       ...item,
-      url: buildMediaUrl(env.R2_PUBLIC_URL, item.storageKey),
+      url: mediaSources(env.R2_PUBLIC_URL, item).thumbnail,
       // Matches media.server.ts's `ownedBy`: authors delete only their own,
       // editors and admins delete any.
       canDelete: actor.role !== "author" || item.uploadedBy === actor.id,

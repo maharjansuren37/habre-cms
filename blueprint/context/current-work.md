@@ -130,7 +130,7 @@ item up to the same shape (D174).
   existing storage-limit browser tests (CI) still pass. Unit tests cover the
   two new refusals' messages.
 
-- [ ] **Step 4 - pages pick the size** - `DocumentMedia` gains `srcset`
+- [x] **Step 4 - pages pick the size** - `DocumentMedia` gains `srcset`
   (`string | null`); `resolveDocumentMedia` fills `url` and `srcset` from
   `mediaSources`. The renderer gives each image `srcset` and `sizes` from its
   section's column count - one function, `imageSizes(columns)` in

@@ -43,8 +43,15 @@ export type Section = {
 export type Document = { type: "doc"; content: Section[] };
 
 /** What the renderer needs of one media row, resolved at render time and never
- *  stored in the document (D55): where the file is, its alt text and its size. */
-export type DocumentMedia = { url: string; altText: string; width: number; height: number };
+ *  stored in the document (D55): where the file is, its alt text and its size.
+ *  `srcset` lists every stored size; null for a row with only one object. */
+export type DocumentMedia = {
+  url: string;
+  srcset: string | null;
+  altText: string;
+  width: number;
+  height: number;
+};
 
 /** A page a button can go to, as the editor's "Goes to" list needs it: no body. */
 export type LinkablePage = {
