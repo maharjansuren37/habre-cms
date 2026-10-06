@@ -184,7 +184,7 @@ design.md's *Screens* (Admin shell row).
     redirects to `/admin`.
 
   `build` marks F-269 `fixed` with this evidence.
-- [ ] **Step 5 - `setup-server.sh` wiring**:
+- [x] **Step 5 - `setup-server.sh` wiring**:
   - `deploy/caddy/caddy-habre-cms.conf`: the drop-in, `EnvironmentFile=`;
   - `install_caddy_site` installs the drop-in and runs `systemctl
     daemon-reload` when the drop-in changed;
