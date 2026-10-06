@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
-import { createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
+import { logIn } from "./helpers/auth.ts";
+import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
 // Item 16b, Step 1: the operator commands, run for real as a person would run
@@ -110,5 +111,52 @@ test("without an address the command prints its usage and exits 1", () => {
     const result = run(script, []);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`Usage: npm run ${script} -- --address <address>`);
+  }
+});
+
+// Step 2: members keep the admin, with a standing notice that is not a live region.
+const NOTICE = "This site is suspended.";
+
+test("a suspended site's admin sees a standing notice on every screen, until unsuspended", async ({
+  page,
+}) => {
+  const site = await createSiteWithAddress("suspend-notice");
+  try {
+    const admin = await createSiteAdmin(site.id);
+    expect(run("suspend-site", ["--address", site.address]).status).toBe(0);
+
+    await logIn(page, admin);
+    const notice = page.getByText(NOTICE, { exact: true });
+
+    // A full page load of /admin, which lands on the posts list.
+    await page.goto("/admin");
+    await expect(notice).toBeVisible();
+    await expect(page.getByText("Visitors see Not Found instead of its pages.")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
+
+    // The banner around the title carries no role: it is a fact, not an outcome.
+    const banner = notice.locator("xpath=ancestor::div[1]/..");
+    await expect(banner).not.toHaveAttribute("role", /.*/);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: NOTICE })).toHaveCount(0);
+
+    // After a client-side navigation.
+    await page.getByRole("link", { name: "Pages", exact: true }).click();
+    await page.waitForURL("**/admin/pages");
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pages");
+
+    // A full page load of /admin/pages.
+    await page.goto("/admin/pages");
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+
+    expect(run("unsuspend-site", ["--address", site.address]).status).toBe(0);
+    await page.goto("/admin/pages");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pages");
+    await expect(notice).toHaveCount(0);
+  } finally {
+    await deleteSite(site.id);
   }
 });

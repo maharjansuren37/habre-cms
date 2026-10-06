@@ -10,7 +10,8 @@
   color: var(--color-text);
 }
 
-.error {
+.error,
+.notice {
   border-color: var(--color-danger);
   background: var(--color-danger-subtle);
 }
@@ -26,7 +27,8 @@
   height: var(--icon-size);
 }
 
-.error .icon {
+.error .icon,
+.notice .icon {
   color: var(--color-danger);
 }
 

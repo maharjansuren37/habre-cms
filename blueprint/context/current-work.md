@@ -122,7 +122,7 @@ design.md's *Screens* (Admin shell row).
 
   `e2e/host-routing.spec.ts`'s suspended test keeps setting `suspended_at`
   directly, because it tests routing and not the command.
-- [ ] **Step 2 - The suspended notice in the admin**:
+- [x] **Step 2 - The suspended notice in the admin**:
   - `findSubdomain` becomes one query returning the subdomain and whether the
     site is suspended. It is still one query by primary key, so the shell
     loader gains no query.
