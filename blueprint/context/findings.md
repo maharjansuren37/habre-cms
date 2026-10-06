@@ -132,3 +132,7 @@ File: .env.example:18-19
 
 ### F-280 [P3] closed - A `PLATFORM_URL` or `SITES_URL` ending in a dot loops forever or 404s every site
 File: app/lib/hosts-env.server.ts:8-11 (`isBareOrigin`); app/lib/host-routing.ts:39-42
+
+
+### F-281 [P3] closed - A scheme-less or empty `PLATFORM_URL`/`SITES_URL` crashes startup with a bare `TypeError` that names no variable and prints the value
+File: app/lib/hosts-env.server.ts:7-11 (`isBareOrigin`)

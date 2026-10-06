@@ -4,11 +4,13 @@ import { z } from "zod";
 // env.server.ts, which parses process.env when imported, so node --test can
 // exercise these rules. env.server.ts spreads the fields.
 
-// z.url has already accepted the string, so new URL cannot throw here. A
-// trailing dot is refused: host-routing drops it from the request's host, so a
-// configured one would never match (F-280).
+// A trailing dot is refused: host-routing drops it from the request's host, so
+// a configured one would never match (F-280).
 function isBareOrigin(value: string): boolean {
-  const url = new URL(value);
+  // z.url's own issue does not stop the refine running (F-281): a value that is
+  // not a URL at all passes here and is reported by z.url, naming the variable.
+  const url = URL.parse(value);
+  if (!url) return true;
   return (
     url.pathname === "/" &&
     !url.search &&

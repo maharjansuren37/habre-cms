@@ -53,3 +53,14 @@ test("an origin whose host ends in a dot is refused, naming the variable", () =>
     /PLATFORM_URL/,
   );
 });
+
+test("an empty or scheme-less origin is refused naming the variable, not thrown as a TypeError", () => {
+  for (const value of ["", "habre.page"]) {
+    assert.throws(() => parse(value), /SITES_URL/, value);
+    assert.throws(
+      () => hostsEnvSchema.parse({ PLATFORM_URL: value, SITES_URL: "https://a.test" }),
+      /PLATFORM_URL/,
+      value,
+    );
+  }
+});
