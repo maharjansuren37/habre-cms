@@ -108,7 +108,7 @@ that (D153).
   `blueprint/`, `dev-notes/` and `CHANGELOG.md` finds nothing, and a unit
   test shows `SITES_URL=https://habre.page/x` refused with a message naming
   `SITES_URL`.
-- [ ] **Step 4 - Public visits in the browser suite go through one helper** -
+- [x] **Step 4 - Public visits in the browser suite go through one helper** -
   `siteUrl(path, address = "surenmaharjan")` in `e2e/helpers/sites.ts`, which
   still returns the primary server's single origin. Every `goto` and
   `request.get` of a public path (about 49 in 16 spec files) uses it, and so

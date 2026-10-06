@@ -3,6 +3,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -85,7 +86,7 @@ async function uploadPixel(page: Page): Promise<string> {
 test("HTML pages carry the Content-Security-Policy, and neither area allows inline styles or data: images", async ({
   page,
 }) => {
-  const publicPage = await page.goto("/");
+  const publicPage = await page.goto(siteUrl("/"));
   const publicPolicy = publicPage?.headers()["content-security-policy"] ?? "";
   expect(publicPolicy).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);
   expect(publicPolicy).toContain("style-src 'self';");
@@ -118,16 +119,16 @@ test("the public site renders with nothing refused by the policy", async ({ page
     type: "page",
   });
 
-  await page.goto("/posts");
+  await page.goto(siteUrl("/posts"));
   await expect(page.getByRole("link", { name: "CSP Post" })).toBeVisible();
 
-  await page.goto("/posts/csp-post");
+  await page.goto(siteUrl("/posts/csp-post"));
   await expect(page.getByText("Some bold")).toBeVisible();
 
-  await page.goto("/csp-page");
+  await page.goto(siteUrl("/csp-page"));
   await expect(page.getByText("A page.")).toBeVisible();
 
-  const missing = await page.goto("/no-such-page-for-csp");
+  const missing = await page.goto(siteUrl("/no-such-page-for-csp"));
   expect(missing?.status()).toBe(404);
 
   expect(violations).toEqual([]);
@@ -144,7 +145,7 @@ test("a published page's image loads under the public policy with nothing refuse
     type: "page",
   });
 
-  await page.goto("/csp-image-page");
+  await page.goto(siteUrl("/csp-image-page"));
   const image = page.getByRole("main").getByRole("img", { name: "A CSP pixel" });
   await expect(image).toBeVisible();
   await expect

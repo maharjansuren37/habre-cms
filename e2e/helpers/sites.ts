@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { PORT } from "./ports.ts";
 import { PASSWORD, type TestUser, withDatabase } from "./users.ts";
 
 let siteOne: string | undefined;
@@ -75,4 +76,10 @@ export function deleteSite(siteId: string): Promise<void> {
       await tx`delete from sites where id = ${siteId}`;
     });
   });
+}
+
+/** The URL of a public page. A later step serves each site at
+ *  `http://<address>.localhost:<port>`; until then every address is the one server. */
+export function siteUrl(path: string, _address = "surenmaharjan"): string {
+  return `http://127.0.0.1:${PORT}${path}`;
 }

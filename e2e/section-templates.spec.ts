@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import type { TestNode } from "./helpers/documents.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -332,7 +333,7 @@ test("a filled-in Hero publishes as a middle-aligned section with the only h1, a
 
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page).toHaveURL(/\/admin\/pages\?/);
-  await page.goto(`/${slugOf(title)}`);
+  await page.goto(siteUrl(`/${slugOf(title)}`));
 
   const main = page.getByRole("main");
   const sections = main.locator("section");
@@ -360,7 +361,7 @@ test("a filled-in Call to action publishes as a section on the band", async ({ p
   await page.keyboard.type("Join us");
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page).toHaveURL(/\/admin\/pages\?/);
-  await page.goto(`/${slugOf(title)}`);
+  await page.goto(siteUrl(`/${slugOf(title)}`));
   const band = page.getByRole("main").locator("section", {
     has: page.getByRole("heading", { name: "Join us" }),
   });

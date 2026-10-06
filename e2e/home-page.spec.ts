@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { resetSiteSettings } from "./helpers/site-settings.ts";
-import { siteOneId } from "./helpers/sites.ts";
+import { siteOneId, siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -131,7 +131,7 @@ test("/ shows the placeholder by default, never the posts, which are at /posts (
   const postTitle = `Home Spec Post ${randomInt(1_000_000)}`;
   await createDraftFor(admin.email, postTitle, textDocument(), { status: "published" });
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByText("This site is being set up.")).toBeVisible();
   await expect(page.getByRole("link", { name: postTitle })).toHaveCount(0);
   await expect(page).toHaveTitle("Habre CMS");
@@ -158,15 +158,15 @@ test("a chosen page takes /, its own address lands on /, and unpublishing it bri
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Settings updated.")).toBeVisible();
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
   await expect(page.getByText("Welcome to the front door.")).toBeVisible();
   await expect(page).toHaveTitle(`${homeTitle} - Habre CMS`);
 
-  await page.goto("/posts");
+  await page.goto(siteUrl("/posts"));
   await expect(page.getByRole("link", { name: postTitle })).toBeVisible();
 
-  const response = await page.goto(`/${homeSlug}`);
+  const response = await page.goto(siteUrl(`/${homeSlug}`));
   expect(new URL(page.url()).pathname).toBe("/");
   expect(response?.request().redirectedFrom()?.url()).toContain(`/${homeSlug}`);
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
@@ -177,7 +177,7 @@ test("a chosen page takes /, its own address lands on /, and unpublishing it bri
   await page.getByRole("button", { name: "Unpublish" }).click();
   await page.waitForURL(/unpublished=/);
 
-  await page.goto("/");
+  await page.goto(siteUrl("/"));
   await expect(page.getByText("This site is being set up.")).toBeVisible();
   await expect(page.getByRole("link", { name: postTitle })).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toHaveCount(0);
@@ -206,7 +206,7 @@ test("with a home page set, a post's All posts link still leads to the post list
     (sql) => sql`update site_settings set home_page_id = ${homeId} where site_id = ${siteId}`,
   );
 
-  await page.goto(`/posts/${postSlug}`);
+  await page.goto(siteUrl(`/posts/${postSlug}`));
   await page.getByRole("link", { name: "All posts" }).click();
   await expect(page).toHaveURL(/\/posts$/);
   await expect(page.getByRole("link", { name: postTitle })).toBeVisible();

@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
-import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
+import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -264,7 +264,7 @@ test.describe("content belongs to one site", () => {
       `;
     });
 
-    await page.goto(`/${slug}`);
+    await page.goto(siteUrl(`/${slug}`));
 
     // The page's title is its document title; the body is "One" or "Two".
     await expect(page).toHaveTitle(new RegExp(siteOneTitle));
@@ -382,7 +382,7 @@ test.describe("media and settings belong to one site", () => {
       type: "page",
       status: "published",
     });
-    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await page.goto(siteUrl(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`));
     const image = page.getByRole("img", { name: "Prefixed image" });
     await expect(image).toBeVisible();
     await expect(image).toHaveAttribute("src", new RegExp(`/sites/${stored.siteId}/`));

@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { buttonBlock, imageBlock, lineBlock, spaceBlock } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow } from "./helpers/media.ts";
-import { siteOneId } from "./helpers/sites.ts";
+import { siteOneId, siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -102,7 +102,7 @@ test("a published v4 page renders each node as its own element, found by role", 
   page,
 }) => {
   await publish("page", "Studio Page", studio);
-  await page.goto("/studio-page");
+  await page.goto(siteUrl("/studio-page"));
   const main = page.getByRole("main");
 
   // The page's level-1 heading is its only h1; the title is not drawn as one.
@@ -144,7 +144,7 @@ test("a published v4 post's title is its h1", async ({ page }) => {
     "Post Title Here",
     doc(section([heading(2, "Inside the post"), paragraph(text("Post body."))])),
   );
-  await page.goto("/posts/post-title-here");
+  await page.goto(siteUrl("/posts/post-title-here"));
   const main = page.getByRole("main");
 
   await expect(main.getByRole("heading", { level: 1 })).toHaveCount(1);
@@ -155,7 +155,7 @@ test("a published v4 post's title is its h1", async ({ page }) => {
 
 test("a page without a level-1 heading shows its title as the h1", async ({ page }) => {
   await publish("page", "Titled Page", doc(section([paragraph(text("Just words."))])));
-  await page.goto("/titled-page");
+  await page.goto(siteUrl("/titled-page"));
   const main = page.getByRole("main");
 
   await expect(main.getByRole("heading", { level: 1 })).toHaveCount(1);
@@ -165,7 +165,7 @@ test("a page without a level-1 heading shows its title as the h1", async ({ page
 test("a 2-column section sits side by side at 1280px and stacks at 390px", async ({ page }) => {
   await publish("page", "Column Page", studio);
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/column-page");
+  await page.goto(siteUrl("/column-page"));
   const left = page.getByText("Left column");
   const right = page.getByText("Right column");
 
@@ -227,7 +227,7 @@ test("a published page draws an image, a button and a line as an img, a link and
 }) => {
   const title = `Blocks Page ${randomInt(1_000_000)}`;
   await publish("page", title, await blocksDocument());
-  await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+  await page.goto(siteUrl(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`));
   const main = page.getByRole("main");
 
   const harbour = main.getByRole("img", { name: "Harbour at dawn" });
@@ -253,7 +253,7 @@ test("the first image loads at once with high priority and every later one lazil
   page,
 }) => {
   await publish("page", "Priority Page", await blocksDocument());
-  await page.goto("/priority-page");
+  await page.goto(siteUrl("/priority-page"));
   const images = page.getByRole("main").getByRole("img");
 
   await expect(images).toHaveCount(2);
@@ -267,7 +267,7 @@ test("a deleted image, an empty button and a section of spaces add no element", 
   page,
 }) => {
   await publish("page", "Nothing Page", await blocksDocument());
-  await page.goto("/nothing-page");
+  await page.goto(siteUrl("/nothing-page"));
   const main = page.getByRole("main");
 
   // Four sections stored, two drawn: the second holds nothing that renders and
@@ -287,7 +287,7 @@ test("an image's alt text is announced once and there is no figcaption (F-79)", 
   page,
 }) => {
   await publish("page", "Alt Page", await blocksDocument());
-  await page.goto("/alt-page");
+  await page.goto(siteUrl("/alt-page"));
   const main = page.locator("main");
 
   const snapshot = await main.ariaSnapshot();
@@ -300,7 +300,7 @@ test("an image's alt text is announced once and there is no figcaption (F-79)", 
 test("a post draws an image the same way", async ({ page }) => {
   const id = await seedMedia("Post picture", { width: 100, height: 50 });
   await publish("post", "Image Post", doc(section([imageBlock(id), buttonBlock("Go", "/x")])));
-  await page.goto("/posts/image-post");
+  await page.goto(siteUrl("/posts/image-post"));
   const image = page.getByRole("main").getByRole("img", { name: "Post picture" });
 
   await expect(image).toHaveAttribute("width", "100");
@@ -323,7 +323,7 @@ test("the chosen home page draws an image the same way", async ({ page }) => {
     await withDatabase(async (sql) => {
       await sql`update site_settings set home_page_id = ${pageId} where site_id = ${siteId}`;
     });
-    await page.goto("/");
+    await page.goto(siteUrl("/"));
     const main = page.getByRole("main");
     const image = main.getByRole("img", { name: "Home picture" });
 
@@ -348,7 +348,7 @@ test("a published page holding 30 images answers in under 500 ms", async ({ page
   const timings: number[] = [];
   for (let i = 0; i < 5; i++) {
     const before = Date.now();
-    const response = await page.request.get("/thirty-images");
+    const response = await page.request.get(siteUrl("/thirty-images"));
     expect(response.status()).toBe(200);
     expect(await response.text()).toContain("Gallery picture 30");
     timings.push(Date.now() - before);

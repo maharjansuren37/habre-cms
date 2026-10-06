@@ -10,6 +10,7 @@ import {
   textDocument,
 } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow, testMediaFilename } from "./helpers/media.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -653,7 +654,7 @@ test("a page saved with 2 sections of 2 columns renders them side by side on the
   await expect(page).toHaveURL(/\/admin\/pages\?/);
 
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/two-by-two");
+  await page.goto(siteUrl("/two-by-two"));
   await expect(page.getByRole("main").locator("section")).toHaveCount(2);
   for (const [left, right] of [
     ["Start here.", "Top right"],
@@ -703,7 +704,7 @@ test("the canvas's content box is as wide as the public page's at 1280px", async
   await expect(textbox).toBeVisible();
   const inEditor = await textbox.locator('[data-node="section"]').boundingBox();
 
-  await page.goto("/same-width");
+  await page.goto(siteUrl("/same-width"));
   const published = await page.getByRole("main").locator("section").boundingBox();
 
   expect(inEditor && published).toBeTruthy();
@@ -741,7 +742,7 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(page.getByText(`Published`, { exact: false }).first()).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/pages\?/);
 
-    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await page.goto(siteUrl(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`));
     await expect(
       page.getByRole("main").getByText("Start here. Changed for the journey."),
     ).toBeVisible();
@@ -915,7 +916,7 @@ test("a document at the caps saves in under 1 s and its published page answers i
   const timings: number[] = [];
   for (let i = 0; i < 5; i++) {
     const before = Date.now();
-    const published = await page.request.get("/at-the-caps");
+    const published = await page.request.get(siteUrl("/at-the-caps"));
     expect(published.status()).toBe(200);
     expect(await published.text()).toContain("Part 1 edited");
     timings.push(Date.now() - before);
@@ -1707,7 +1708,7 @@ test("button: add one from the palette, type its text, choose a page, Publish - 
 
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page).toHaveURL(/\/admin\/pages\?/);
-  await page.goto("/button-journey-host");
+  await page.goto(siteUrl("/button-journey-host"));
   const link = page.getByRole("main").getByRole("link", { name: "Book now" });
   await expect(link).toHaveAttribute("href", `/${target.slug}`);
 });
@@ -1801,7 +1802,7 @@ test("button: Outline draws the outline in the canvas and on the public page", a
 
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-  await page.goto(`/${slug}`);
+  await page.goto(siteUrl(`/${slug}`));
   const link = page.getByRole("main").getByRole("link", { name: "Seeded" });
   expect(await backgroundOf(link)).toBe("rgba(0, 0, 0, 0)");
 });
@@ -1892,7 +1893,7 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await page.getByRole("button", { name: "Publish" }).click();
     await expect(page).toHaveURL(/\/admin\/pages\?/);
 
-    await page.goto(`/${slug}`);
+    await page.goto(siteUrl(`/${slug}`));
     const link = page.getByRole("main").getByRole("link", { name: "Book now" });
     await expect(link).toHaveAttribute("href", `/${target.slug}`);
     // And through the site's own link: it leads to the page it names.

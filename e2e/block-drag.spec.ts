@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import type { TestNode } from "./helpers/documents.ts";
+import { siteUrl } from "./helpers/sites.ts";
 import {
   createAdmin,
   createDraftFor,
@@ -461,7 +462,7 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
 
     await page.getByRole("button", { name: "Publish" }).click();
     await expect(page).toHaveURL(/\/admin\/pages\?/);
-    await page.goto(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+    await page.goto(siteUrl(`/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`));
     await expect(page.getByRole("main").getByRole("paragraph")).toHaveText([
       "First",
       "Dragged in",
