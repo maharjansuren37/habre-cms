@@ -29,30 +29,30 @@
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  src: url("../app/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
 }
 /* Habre: the style presets' fonts (D167), self-hosted, SIL Open Font License
- * (fonts/*-LICENSE.txt). A site loads only its own preset's pair. */
+ * (app/fonts/*-LICENSE.txt). A site loads only its own preset's pair. */
 @font-face {
   font-family: "Source Serif 4 Variable";
   font-style: normal;
   font-display: swap;
   font-weight: 200 900;
-  src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2-variations");
+  src: url("../app/fonts/source-serif-4-latin-wght-normal.woff2") format("woff2-variations");
 }
 @font-face {
   font-family: "Source Sans 3 Variable";
   font-style: normal;
   font-display: swap;
   font-weight: 200 900;
-  src: url("fonts/source-sans-3-latin-wght-normal.woff2") format("woff2-variations");
+  src: url("../app/fonts/source-sans-3-latin-wght-normal.woff2") format("woff2-variations");
 }
 @font-face {
   font-family: "Nunito Variable";
   font-style: normal;
   font-display: swap;
   font-weight: 200 1000;
-  src: url("fonts/nunito-latin-wght-normal.woff2") format("woff2-variations");
+  src: url("../app/fonts/nunito-latin-wght-normal.woff2") format("woff2-variations");
 }
 
 :root {

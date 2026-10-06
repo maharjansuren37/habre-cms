@@ -100,7 +100,7 @@ onboarding.
   no colour and `#2f6b5a` respectively; the declarations text never contains
   any character outside `[a-z0-9#:;-]`.
 
-- [ ] **Step 3 - The preset fonts and the site-scope rules** - move the three
+- [x] **Step 3 - The preset fonts and the site-scope rules** - move the three
   woff2 files and their OFL licence files from `prototypes/fonts/` to
   `app/fonts/`; add their `@font-face` rules and the three `[data-style]`
   blocks (fonts and radii, from `prototypes/theme.css`) inside the site scope
