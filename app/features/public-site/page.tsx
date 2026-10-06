@@ -1,13 +1,16 @@
 import { data, redirect } from "react-router";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
+import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/page";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
-import { publicTitle } from "./public-title.ts";
 
-export function meta({ loaderData, matches }: Route.MetaArgs) {
-  return [{ title: publicTitle(matches, loaderData?.page.title ?? "Page") }];
+export function meta({ loaderData, matches, params }: Route.MetaArgs) {
+  return publicMeta(matches, {
+    title: loaderData?.page.title ?? "Page",
+    path: `/${params.slug}`,
+  });
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {

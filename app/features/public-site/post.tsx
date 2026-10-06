@@ -1,14 +1,17 @@
 import { data, Link } from "react-router";
 import { renderDocument } from "#app/features/blocks/render.tsx";
 import { findPublishedEntry } from "#app/features/content/entries.server.ts";
+import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/post";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
-import { publicTitle } from "./public-title.ts";
 
-export function meta({ loaderData, matches }: Route.MetaArgs) {
-  return [{ title: publicTitle(matches, loaderData?.post.title ?? "Post") }];
+export function meta({ loaderData, matches, params }: Route.MetaArgs) {
+  return publicMeta(matches, {
+    title: loaderData?.post.title ?? "Post",
+    path: `/posts/${params.slug}`,
+  });
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {

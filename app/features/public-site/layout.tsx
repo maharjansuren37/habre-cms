@@ -44,11 +44,15 @@ export function meta({ error, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const siteId = context.get(siteContext).id;
+  const { id: siteId, mainOrigin } = context.get(siteContext);
   const settings = await getSiteSettings(siteId, env.R2_PUBLIC_URL);
   const navLinks = await resolveNavigation(siteId, settings.navigation);
-  // Only what the header and footer show (F-108); never the whole row.
-  return { settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl }, navLinks };
+  // Only what the header, footer and head tags need (F-108); never the whole row.
+  return {
+    settings: { siteTitle: settings.siteTitle, logoUrl: settings.logoUrl },
+    navLinks,
+    mainOrigin,
+  };
 }
 
 /**

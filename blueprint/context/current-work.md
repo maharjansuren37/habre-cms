@@ -96,7 +96,7 @@ pieces: field, textarea, select, the logo field's media picker, the error
     entry's own social image sets the column null. (Browser test; needs the
     development database; runs in CI's `e2e` job.)
 
-- [ ] **Step 2 - The main address and the canonical link**:
+- [x] **Step 2 - The main address and the canonical link**:
   - `findSiteBySubdomain` / `findSiteByDomain` also return the site's
     earliest-verified own domain (ties by name), still one indexed query
     each.
