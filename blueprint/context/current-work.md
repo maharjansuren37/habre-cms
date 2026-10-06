@@ -207,7 +207,7 @@ design.md's *Screens* (Admin shell row).
 
   The full script runs only on the server at the v1 deploy; `verify` lists
   that as not provable here.
-- [ ] **Step 6 - Records**:
+- [x] **Step 6 - Records**:
   - AGENTS.md's production row names the Caddy env file and its three
     values;
   - the plan's *Deployment* notes for D153 say the domains come from
