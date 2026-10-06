@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-07, `main` after `fc9cd68`.
+Generated 2026-10-07, `main` after `1822efc`.
 
 ## What this is
 
@@ -34,27 +34,20 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not yet deployed** (deploy steps in
+**Built for v1, not yet deployed** (items 13-17b; each in
+`blueprint/history/features/`, deploy steps in
 `blueprint/production-pending.md`): React Router 8.4.0 (13); the new look
-(13b, `design.md`, D181-D190) - stone and rust admin in light and dark, Inter
-self-hosted, public sites neutral and light only (D168); the new editor
-(14a1-14c2) - TipTap on one v4 document per entry, sections of 1-3 columns,
-blocks, palette, drag and drop, templates; Editor.js and old content removed
-(`0009`); sites and memberships (15a) - `site_id` and
-row-level security, owner and app database roles, today's install as site 1
-(`0010`-`0011`); signup (15b) - invite codes, an emailed confirm link, the site's
-address; `0012` deletes every
-account (D261); password reset by email (15c); a storage cap per site
-(15d, `STORAGE_LIMIT_MB`, D284-D289); Your account (15e1) - name, password,
-and an email confirmed from a link to the new address (D290-D296);
-delete your account (15e2, `0014`, D297-D308); sites by host (16a, `0015`,
-D309-D318) - `PLATFORM_URL` and `SITES_URL`, the site by its subdomain or a
-verified `site_domains` row, the admin on the platform host; suspend and
-the server (16b, D319-D326) - `suspend-site`, the Caddy file for both domains;
-SEO basics (17, `0016`, D327-D337).
+(13b, `design.md`) - stone and rust admin, light and dark, public sites
+neutral and light only (D168); the TipTap editor on one v4 document per
+entry, sections of 1-3 columns, templates (14a1-14c2, `0009` deletes old
+content); sites, memberships and row-level security (15a); signup by invite
+with an emailed confirm link (15b, `0012` deletes every account, D261);
+password reset (15c); a storage cap per site (15d); Your account and
+deleting it (15e1-15e2); sites by host and suspend, the Caddy file (16a-16b);
+SEO basics (17); optimised images with `sharp`, `srcset` and
+`optimise-media` (17b).
 
-**Platform v1 (queued):** optimised images (17b);
-your brand and an AI draft from a description (18a-18b); contact form; Simple
+**Platform v1 (queued):** your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
@@ -79,8 +72,9 @@ constraint** - each new runtime dependency is a recorded decision.
   `node:test`; Playwright.
 - `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
   and CI (D254).
+- `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
 - **v1 adds, pinned when installed:** `@anthropic-ai/sdk`
-  and `openai` (D155), `sharp` (D174), `stripe` (D160).
+  and `openai` (D155), `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -149,8 +143,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-17 done; nothing in flight; 17b-21 queued. 18 splits
-  when spec'd. Last shipped: 17
-  (`blueprint/history/features/17-seo-basics.md`).
-- **Next:** `spec` item 17b, optimised images.
+- **Plan:** items 1-17b done; nothing in flight; 18-21 queued. 18 splits
+  when spec'd. Last shipped: 17b
+  (`blueprint/history/features/17b-optimised-images.md`).
+- **Next:** `spec` item 18, start from a description, in your brand.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

@@ -492,7 +492,7 @@ File: scripts/optimise-media.ts:89
 ### F-303 [P3] open - optimise-media needs the whole web-app environment, not only DATABASE_URL
 File: scripts/optimise-media.ts:13-18; AGENTS.md *Commands*
 
-### F-304 [P3] open - The plan's dependency line does not record sharp 0.35.5
+### F-304 [P3] fixed - The plan's dependency line does not record sharp 0.35.5
 File: blueprint/project-plan.md:168-169
 
 ### F-305 [P3] open - The media delete log line no longer says which object failed
