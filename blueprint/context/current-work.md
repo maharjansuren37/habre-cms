@@ -237,6 +237,13 @@ onboarding.
   ten-plus steps; the logo's colour suggestion has its own open question
   (Notes).
 
+- **The shade rule (Step 2), fitted to the `#2f6b5a` example:** hover is
+  primary's OKLCH lightness - 0.07; subtle is lightness 0.965 at 35% of
+  primary's chroma, hue kept; on-primary is white, else `#0a0a0a`. A colour
+  that fails any pair has its lightness lowered in 0.005 steps (chroma
+  clamped into sRGB) until all five hold - beats a lookup table, and
+  reproduces the mock's hover and subtle exactly.
+
 ## Production needs
 
 - Migration `0018_brand.sql` (additive, defaults; no data change).
