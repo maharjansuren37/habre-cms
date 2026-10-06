@@ -94,7 +94,7 @@ File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
 File: app/routes.ts:43-47 (editor routes outside `admin-shell/layout.tsx`); blueprint/context/design.md (Admin shell, Suspended notice)
 
 
-### F-283 [P2] fixed - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
+### F-283 [P2] closed - The Caddy env check accepts values systemd will load differently, and a failed restart takes down the shared Caddy
 File: deploy/setup-server.sh (`check_caddy_env`; `systemctl restart caddy` in `install_caddy_site`)
 
 
@@ -124,3 +124,19 @@ File: e2e/suspend-site.spec.ts (Pages link click)
 
 ### F-290 [P3] open - Caddy's Cloudflare module prints the API token in its invalid-token error
 File: deploy/setup-server.sh (validate failure hint: `caddy validate ... --envfile`)
+
+
+### F-291 [P3] closed - A failed Caddy reload is reported as "every site on this server is down" while Caddy still serves its old config
+File: deploy/setup-server.sh:314-316 (the post-restart guard in `install_caddy_site`)
+
+
+### F-292 [P3] open - The Caddy env check reads only its three keys, so another line can still make systemd load something different
+File: deploy/setup-server.sh:222-235 (`check_caddy_env`)
+
+
+### F-293 [P3] closed - Editor requests run `requireUser` twice, in the new layout and in each route
+File: app/features/content/editor-layout.tsx:10; post-new.tsx:11, post-edit.tsx:13, page-new.tsx:15-18, page-edit.tsx:15
+
+
+### F-294 [P3] open - The editor notice's client-side navigation check can pass on the shell's banner before the editor renders
+File: e2e/suspend-site.spec.ts:183-186

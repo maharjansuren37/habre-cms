@@ -3,7 +3,7 @@
 **From build plan:** item 16b
 **Type:** Feature
 **Verified:** 2026-10-06, autopilot - every done-when run live (browser tests against the served app; Caddy in Docker; refusal function by hand); full `npm run test:e2e` 383 passed, 0 skipped; `npm run verify` green. Not provable here: the real wildcard certificate, DNS and `setup-server.sh` end to end (Production needs)
-**Reviewed:** 2026-10-06, autopilot (reviewer subagent, scope current, every lens): no P0 or P1; F-282, F-283 (P2) and F-284 to F-290 (P3) open; F-269 repair judged sound, left `fixed` for a person to close
+**Reviewed:** 2026-10-06, 697eef5ddcc3, current (delta 1813101..18260c4 on top of the earlier full-branch pass), every lens - 0 blocking; F-283 closed, F-282 confirmed; F-291 to F-294 (P3) open
 
 ## Goal
 
@@ -237,6 +237,19 @@ design.md's *Screens* (Admin shell row).
   and an `export` line (each accepted before the repair) and still refuses
   Step 5's four cases and passes a clean file; the guard, with `systemctl`
   stubbed inactive, fails with that message.
+- [x] **Repair F-293 - Editor requests run `requireUser` twice**: the four
+  editor routes drop their own `requireUser`; `editor-layout.tsx` is the login
+  guard, and the page routes keep `requireRole`, as in the shell. *Done when:*
+  a new `e2e/auth.spec.ts` test sends a logged-out visit to each editor URL to
+  login with its `redirectTo`, red with the layout's guard removed and green
+  with it; `manage-pages.spec.ts`'s author refusal still passes.
+- [x] **Repair F-291 - A failed Caddy reload is reported as "every site is
+  down"**: the guard picks its message by state - the action failed and Caddy
+  is still active says the previous config is serving and not to restart;
+  only an inactive Caddy says every site is down. *Done when:* with
+  `systemctl` stubbed, a failed reload with Caddy active prints the new
+  message (it printed "down" before the repair), and failed or inactive
+  restarts and reloads still say down, and successful ones return.
 
 ## Files and areas
 

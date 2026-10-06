@@ -1,7 +1,6 @@
 import { data } from "react-router";
 import { z } from "zod";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
-import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
 import type { Route } from "./+types/page-edit";
@@ -11,11 +10,9 @@ import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-siz
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
 
-// Outside the admin-shell layout (routes.ts), same as post-edit.tsx.
-export const middleware: Route.MiddlewareFunction[] = [
-  requireUser,
-  requireRole(["admin", "editor"]),
-];
+// Login is checked by editor-layout.tsx; the role is this route's own, as in
+// page-list.tsx (F-293).
+export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin", "editor"])];
 
 /**
  * A page id that is not a uuid never matches a row, but reaching the database

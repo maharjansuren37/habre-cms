@@ -311,9 +311,14 @@ ENV
     log "Restarting Caddy: its environment changed"
     action=restart
   fi
-  if ! systemctl "$action" caddy || ! systemctl is-active --quiet caddy; then
-    fail "Caddy is not running after the $action - every site on this server is down. See: journalctl -u caddy -n 50"
+  # A failed reload leaves Caddy serving its previous config; saying it is down
+  # would invite the restart that takes it down (F-291).
+  if systemctl "$action" caddy; then
+    systemctl is-active --quiet caddy && return
+  elif systemctl is-active --quiet caddy; then
+    fail "The Caddy $action failed; Caddy is still serving its previous config. Do not restart it until this is fixed. See: journalctl -u caddy -n 50"
   fi
+  fail "Caddy is not running after the $action - every site on this server is down. See: journalctl -u caddy -n 50"
 }
 
 install_backup() {

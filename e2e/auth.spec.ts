@@ -207,3 +207,19 @@ test("a client-side navigation to New page after the session is gone goes to log
 
   await expect(page).toHaveURL(/\/admin\/login/);
 });
+
+test("a logged-out visit to any editor screen goes to login and comes back there", async ({
+  page,
+}) => {
+  // The editor sits outside the admin shell; its own layout is the login guard (F-293).
+  const id = "00000000-0000-4000-8000-000000000000";
+  for (const path of [
+    "/admin/posts/new",
+    `/admin/posts/${id}`,
+    "/admin/pages/new",
+    `/admin/pages/${id}`,
+  ]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(`/admin/login?redirectTo=${encodeURIComponent(path)}`);
+  }
+});

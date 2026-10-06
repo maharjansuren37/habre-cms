@@ -1,6 +1,5 @@
 import { data, redirect } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
-import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { emptyDocument } from "#app/features/blocks/document.ts";
 import type { Route } from "./+types/page-new";
@@ -9,18 +8,12 @@ import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-siz
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm } from "./entry-form-input.ts";
 
-// Outside the admin-shell layout (routes.ts), same as post-new.tsx - the
-// editor drops the sidebar - so this route needs both checks itself: login,
-// then role.
-export const middleware: Route.MiddlewareFunction[] = [
-  requireUser,
-  requireRole(["admin", "editor"]),
-];
+// Login is checked by editor-layout.tsx; the role is this route's own, as in
+// page-list.tsx (F-293).
+export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin", "editor"])];
 
-// The loader is what makes a client-side navigation call the server, so the
-// middleware checks the user on those too (React Router middleware docs).
-// It also hands over the empty document a new entry starts with, so the
-// schema module stays out of the browser bundle.
+// Hands over the empty document a new entry starts with, so the schema module
+// stays out of the browser bundle.
 export async function loader({ context }: Route.LoaderArgs) {
   return {
     document: emptyDocument(),
