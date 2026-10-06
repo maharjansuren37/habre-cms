@@ -84,3 +84,39 @@ File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488
 
 ### F-264 [P2] open - The "two admins at once" test can pass without the site-row lock
 File: e2e/account-delete.spec.ts:337-362
+
+
+### F-269 [P2] unverified - A client-sent `Forwarded: host=` header may override the pinned `X-Forwarded-Host`, and the host now picks the site and the platform
+File: server/app.ts:16 (`trustProxy: true`); deploy/caddy/habre-cms.caddy:29-32
+
+
+### F-270 [P3] open - Re-running `setup-server.sh` re-grants `insert, update` on `site_domains`, undoing 0015's revoke
+File: db/migrations/0015_site_domains.sql:36; db/roles.sql:24; deploy/setup-server.sh:171-174
+
+
+### F-271 [P3] open - The admin site card's address breaks mid-word
+File: app/features/admin-shell/layout.module.css:44-47; app/features/admin-shell/layout.tsx:46
+
+
+### F-272 [P3] open - The own-domain browser test reads site 1's shared title (F-103 pattern)
+File: e2e/host-routing.spec.ts:40-53
+
+
+### F-273 [P3] open - `PLATFORM_URL` is not checked as a bare origin, while `SITES_URL` is
+File: app/lib/hosts-env.server.ts:17
+
+
+### F-274 [P3] open - Stale comments and dev docs after the host change
+File: app/features/auth/session-cookie.server.ts:12-15; app/features/public-site/layout.tsx:122; e2e/deleted-account.spec.ts:17; app/features/content/slug.ts:18; README.md:31; AGENTS.md:237,239; server.js:127
+
+
+### F-275 [P3] open - A host with a trailing dot is looked up as an own domain
+File: app/lib/host-routing.ts:37-41
+
+
+### F-276 [P3] open - A public path's 404 on the platform host renders in the customer-site look
+File: app/root.tsx:89
+
+
+### F-277 [P3] open - `confirm-email` is a platform path but not a reserved page slug
+File: app/features/content/slug.ts:19-28

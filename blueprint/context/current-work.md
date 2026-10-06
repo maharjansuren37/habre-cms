@@ -2,8 +2,8 @@
 
 **From build plan:** item 16a
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-06, 40e7d8f02549, 9 of 10 proven, 1 could not verify (CI resolving `*.localhost` - the PR's first `e2e` run)
+**Reviewed:** 2026-10-06, 40e7d8f02549, current, every lens - 0 blocking
 
 ## Goal
 
