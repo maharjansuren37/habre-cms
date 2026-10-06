@@ -1,3 +1,4 @@
+import type { TransactionSql } from "postgres";
 import {
   emailLoginLimiter,
   LOGIN_BLOCK_MINUTES,
@@ -6,8 +7,9 @@ import {
 import { hashPassword, verifyPassword } from "#app/features/auth/password.server.ts";
 import { hashEmailToken } from "#app/features/signup/email-token-hash.ts";
 import { issueEmailToken } from "#app/features/signup/email-tokens.server.ts";
-import { sql } from "#app/lib/db.server.ts";
+import { inSite, sql } from "#app/lib/db.server.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
+import { type DeletionCase, type DeletionExpect, deletionCase } from "./account-delete-input.ts";
 import { EMAIL_CHANGE_LIFETIME_HOURS } from "./email-change-email.ts";
 
 /** Sets the signed-in person's own name. `userId` is the session's, never the form's. */
@@ -223,6 +225,137 @@ export async function confirmEmailChange(
     if (isUniqueViolation(error, "users_email_key")) return { ok: false, state: "taken" };
     throw error;
   }
+}
+
+export type DeletionFacts = {
+  address: string;
+  case: DeletionCase;
+  /** Site case only: what goes with the site. Null for the other cases. */
+  site: { posts: number; pages: number; images: number; otherMemberNames: string[] } | null;
+};
+
+/**
+ * Which case this member is in, read with `db` (a transaction from `inSite`;
+ * entries and media are under row-level security). Not the site's last active
+ * admin: leave. The last active admin of the oldest site (`findPublicSiteId`'s
+ * rule, which the public domain serves until item 16): refused. Any other last
+ * active admin takes the site. Null when the person has no membership on the
+ * site any more.
+ */
+async function readDeletionFacts(
+  db: TransactionSql,
+  siteId: string,
+  userId: string,
+): Promise<DeletionFacts | null> {
+  const [row] = await db<{ address: string; role: string; deactivatedAt: Date | null }[]>`
+    select s.subdomain as address, m.role, m.deactivated_at as "deactivatedAt"
+    from site_members m
+    join sites s on s.id = m.site_id
+    where m.site_id = ${siteId} and m.user_id = ${userId}`;
+  if (!row) return null;
+  const [others] = await db<{ count: number }[]>`
+    select count(*)::int as count from site_members
+    where site_id = ${siteId} and role = 'admin' and deactivated_at is null
+      and user_id <> ${userId}`;
+  const [oldest] = await db<{ id: string }[]>`
+    select id from sites order by created_at, id limit 1`;
+  const isLastActiveAdmin = row.role === "admin" && !row.deactivatedAt && others.count === 0;
+  const kind = deletionCase({ isLastActiveAdmin, isOldestSite: oldest?.id === siteId });
+  if (kind !== "site") return { address: row.address, case: kind, site: null };
+  const [counts] = await db<{ posts: number; pages: number; images: number }[]>`
+    select
+      (select count(*)::int from entries where site_id = ${siteId} and type = 'post') as posts,
+      (select count(*)::int from entries where site_id = ${siteId} and type = 'page') as pages,
+      (select count(*)::int from media where site_id = ${siteId}) as images`;
+  const names = await db<{ name: string }[]>`
+    select u.name from site_members m join users u on u.id = m.user_id
+    where m.site_id = ${siteId} and m.user_id <> ${userId}
+    order by u.name, u.id`;
+  return {
+    address: row.address,
+    case: "site",
+    site: { ...counts, otherMemberNames: names.map((member) => member.name) },
+  };
+}
+
+/** What the confirm screen shows: the site's address, which case applies, and for the site case what goes. */
+export async function findDeletion(siteId: string, userId: string): Promise<DeletionFacts | null> {
+  return inSite(siteId, (tx) => readDeletionFacts(tx, siteId, userId));
+}
+
+export type DeleteAccountResult =
+  | {
+      ok: true;
+      siteDeleted: boolean;
+      address: string;
+      /** R2 keys of the deleted media, for removal after the commit (empty when leaving). */
+      storageKeys: string[];
+      /** The other members of a deleted site, to be told after the commit (empty when leaving). */
+      otherMembers: { name: string; email: string }[];
+    }
+  | { ok: false; reason: "changed" | "refused" };
+
+/**
+ * Deletes the signed-in person's own account, and the site with it when they
+ * are its last active admin. **This is the one place a site is deleted.** Every
+ * later site-owned table or service adds its own cleanup here: `site_domains`
+ * (item 16), image variants' R2 keys (17b), `ai_runs` (18),
+ * `contact_submissions` (19) and cancelling the Stripe subscription (21).
+ *
+ * One transaction: the site's row is locked first, then the user's (15e1's
+ * confirm locks the user and never the site, so no cycle), and the case is
+ * worked out again. A case other than the one the form was loaded as deletes
+ * nothing. Leaving: the membership goes before the user
+ * (`site_members.user_id` restricts); its foreign keys null the author and
+ * uploader of their entries and media, and `email_tokens` cascade from the
+ * user. Taking the site: settings, entries, media, memberships, every member's
+ * user and the site row, in that order (settings' keys point at entries and
+ * media). After the commit the caller removes the returned R2 keys and tells
+ * the other members. `userId` and `siteId` are the session's.
+ */
+export async function deleteAccount(
+  siteId: string,
+  userId: string,
+  expect: DeletionExpect,
+): Promise<DeleteAccountResult> {
+  return inSite(siteId, async (tx): Promise<DeleteAccountResult> => {
+    await tx`select id from sites where id = ${siteId} for update`;
+    await tx`select id from users where id = ${userId} for update`;
+    const facts = await readDeletionFacts(tx, siteId, userId);
+    if (!facts) return { ok: false, reason: "changed" };
+    if (facts.case === "refused") return { ok: false, reason: "refused" };
+    if (facts.case !== expect) return { ok: false, reason: "changed" };
+    if (facts.case === "leave") {
+      await tx`delete from site_members where site_id = ${siteId} and user_id = ${userId}`;
+      await tx`delete from users where id = ${userId}`;
+      return {
+        ok: true,
+        siteDeleted: false,
+        address: facts.address,
+        storageKeys: [],
+        otherMembers: [],
+      };
+    }
+    const members = await tx<{ id: string; name: string; email: string }[]>`
+      select u.id, u.name, u.email from site_members m join users u on u.id = m.user_id
+      where m.site_id = ${siteId}`;
+    await tx`delete from site_settings where site_id = ${siteId}`;
+    await tx`delete from entries where site_id = ${siteId}`;
+    const media = await tx<{ storageKey: string }[]>`
+      delete from media where site_id = ${siteId} returning storage_key as "storageKey"`;
+    await tx`delete from site_members where site_id = ${siteId}`;
+    await tx`delete from users where id in ${tx(members.map((member) => member.id))}`;
+    await tx`delete from sites where id = ${siteId}`;
+    return {
+      ok: true,
+      siteDeleted: true,
+      address: facts.address,
+      storageKeys: media.map((row) => row.storageKey),
+      otherMembers: members
+        .filter((member) => member.id !== userId)
+        .map(({ name, email }) => ({ name, email })),
+    };
+  });
 }
 
 const UNIQUE_VIOLATION = "23505";

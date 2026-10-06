@@ -1,6 +1,7 @@
 import { Link, redirect } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { DELETED_ACCOUNT } from "#app/lib/deleted-account.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
 import fieldStyles from "#app/lib/ui/field.module.css";
@@ -174,7 +175,7 @@ function PageTable({ pages, query }: { pages: EntrySummary[]; query: EntryListQu
                   {STATUS_LABEL[page.status]}
                 </span>
               </td>
-              <td className={styles.colAuthor}>{page.authorName}</td>
+              <td className={styles.colAuthor}>{page.authorName ?? DELETED_ACCOUNT}</td>
               <td className={`${styles.colUpdated} ${styles.muted}`}>
                 {formatUpdatedAt(page.updatedAt)}
               </td>

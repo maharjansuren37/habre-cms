@@ -14,8 +14,8 @@ export type Media = {
   width: number;
   height: number;
   altText: string;
-  uploadedBy: string;
-  uploadedByName: string;
+  uploadedBy: string | null;
+  uploadedByName: string | null;
   createdAt: Date;
 };
 
@@ -82,7 +82,7 @@ export async function listMedia(siteId: string, page: number): Promise<MediaList
     Promise.all([
       tx<Media[]>`
       select ${mediaColumns}
-      from media m join users u on u.id = m.uploaded_by
+      from media m left join users u on u.id = m.uploaded_by
       where m.site_id = ${siteId}
       order by m.created_at desc
       limit ${MEDIA_PAGE_SIZE} offset ${(page - 1) * MEDIA_PAGE_SIZE}
@@ -155,7 +155,7 @@ export async function findMediaForUser(
     siteId,
     (tx) => tx<Media[]>`
     select ${mediaColumns}
-    from media m join users u on u.id = m.uploaded_by
+    from media m left join users u on u.id = m.uploaded_by
     where m.site_id = ${siteId} and m.id = ${id} ${ownedBy(actor)}
   `,
   );

@@ -70,10 +70,10 @@ export function setRole(email: string, role: "admin" | "editor" | "author"): Pro
   });
 }
 
-/** Test-only: removes the membership, leaving a user who belongs to no site. */
+/** Test-only: removes the membership, leaving a user who belongs to no site.
+ *  Their entries and media stay, with a null author (0014: "Deleted account"). */
 export function removeMembership(email: string): Promise<void> {
   return withDatabase(async (sql) => {
-    await deleteMemberRows(sql, email);
     await sql`
       delete from site_members where user_id in (select id from users where email = ${email})
     `;

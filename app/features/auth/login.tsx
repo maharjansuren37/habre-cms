@@ -29,7 +29,9 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   if (await findSessionUser(request)) throw redirect("/admin");
-  return { signupOpen: env.SIGNUP_MODE !== "off", resetByEmail: isEmailOn(env) };
+  // A fixed flag: the banner never shows text taken from the URL.
+  const deleted = new URL(request.url).searchParams.get("deleted") === "1";
+  return { signupOpen: env.SIGNUP_MODE !== "off", resetByEmail: isEmailOn(env), deleted };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -152,6 +154,8 @@ export default function Login({ actionData, loaderData }: Route.ComponentProps) 
           <h1>Log in to Habre CMS</h1>
           <p>Manage the website’s posts, pages and images.</p>
         </div>
+
+        {loaderData.deleted && <Message tone="success" title="Your account is deleted." />}
 
         <Form method="post" className={styles.card}>
           {actionData && "retryAfterMinutes" in actionData && (

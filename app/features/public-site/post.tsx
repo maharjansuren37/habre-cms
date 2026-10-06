@@ -31,8 +31,7 @@ export default function Post({ loaderData }: Route.ComponentProps) {
         <time dateTime={new Date(post.publishedAt).toISOString()}>
           {formatDate(post.publishedAt)}
         </time>
-        {" · "}
-        {post.authorName}
+        {post.authorName && ` · ${post.authorName}`}
       </p>
       <h1 className={styles.title}>{post.title}</h1>
       {renderDocument(post.document, "post", mediaById)}

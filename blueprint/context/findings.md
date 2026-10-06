@@ -80,3 +80,7 @@ File: e2e/block-toolbar.spec.ts:687; e2e/sites.spec.ts:56
 
 ### F-252 [P2] open - The confirm test's sign-in helper reads the URL before the login answers, so "the old address no longer signs in" can pass vacuously
 File: e2e/account.spec.ts:452-465 (`signIn`), used at :487-488
+
+
+### F-264 [P2] open - The "two admins at once" test can pass without the site-row lock
+File: e2e/account-delete.spec.ts:337-362

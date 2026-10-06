@@ -18,3 +18,10 @@
 - **accounts.16** - a new email that is already yours or another account's is refused beside the field *Since:* features/15e1-your-account
 - **accounts.17** - with email on, asking for a new email changes nothing until the link sent to that address is confirmed, and only the newest link works *Since:* features/15e1-your-account
 - **accounts.18** - confirming a new email changes it once and within 24 hours, tells the old address, and stops reset links sent before it *Since:* features/15e1-your-account
+- **accounts.19** - anyone signed in who is not their site's last active admin can delete their account with their current password; they are signed out everywhere and cannot sign in again *Since:* features/15e2-delete-your-account
+- **accounts.20** - a deleted member's posts, pages and images stay on the site, shown in the admin as by "Deleted account" and publicly with no author name *Since:* features/15e2-delete-your-account
+- **accounts.21** - a wrong current password when deleting counts toward the same lock as a failed sign-in *Since:* features/15e2-delete-your-account
+- **accounts.22** - the last active admin's deletion, after typing the site's address, deletes the site, its content, images and settings, and every member's account, and frees its address *Since:* features/15e2-delete-your-account
+- **accounts.23** - the last active admin of the oldest site cannot delete their account (until item 16) *Since:* features/15e2-delete-your-account
+- **accounts.24** - a deletion is refused, deleting nothing, when who is the last active admin changed after the confirm screen loaded *Since:* features/15e2-delete-your-account
+- **accounts.25** - with email on, every other member of a deleted site is emailed that it was deleted *Since:* features/15e2-delete-your-account

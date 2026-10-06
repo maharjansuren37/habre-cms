@@ -429,3 +429,15 @@ File: app/features/signup/email-tokens.server.ts:16-22
 
 ### F-262 [P3] open - `isPlatformPath`'s doc comment does not list `/confirm-email`
 File: app/lib/content-security-policy.ts:3-7
+
+
+### F-266 [P3] unverified - A content write that lands during a site deletion likely ends in an unhandled 500
+File: app/features/account/account.server.ts (`deleteAccount`); app/features/content/entries.server.ts (`createDraft`); media upload
+
+
+### F-267 [P3] open - Known gap: delete in one tab while demoting the only other admin can leave a site with no admin, and then a memberless site
+File: app/features/users/ (role change, deactivate); app/features/account/account.server.ts (`readDeletionFacts`)
+
+
+### F-268 [P3] open - The slot test's lock poll counts waiting locks across the whole database, so the reverted code could pass it
+File: e2e/account-delete.spec.ts:400-405
