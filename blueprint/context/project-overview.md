@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-06, `main` after `09bbe1d`.
+Generated 2026-10-06, `main` after `f1d39d4`.
 
 ## What this is
 
@@ -49,9 +49,10 @@ account (D261); password reset by email (15c); a storage cap per site
 and an email confirmed from a link to the new address (D290-D296);
 delete your account (15e2, `0014`, D297-D308); sites by host (16a, `0015`,
 D309-D318) - `PLATFORM_URL` and `SITES_URL`, the site by its subdomain or a
-verified `site_domains` row, the admin on the platform host.
+verified `site_domains` row, the admin on the platform host; suspend and
+the server (16b, D319-D326) - `suspend-site`, the Caddy file for both domains.
 
-**Platform v1 (queued):** suspend and the server (16b); SEO basics; optimised images (17b);
+**Platform v1 (queued):** SEO basics (17); optimised images (17b);
 your brand and an AI draft from a description (18a-18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -95,7 +96,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   one site per user in v1 (D159). Today's install becomes site 1 (D162).
 - **Hosts (D153, D173):** the app at `app.<platform domain>`; sites at
   `<name>.<sites domain>` or an own domain; **one main address per site**, the
-  others redirect, with a canonical link (17). Production still runs D22: `surenmaharjan.fyi` public, `cms.surenmaharjan.fyi` admin.
+  others redirect, with a canonical link (17). Production runs D22 until the v1 deploy.
 - **Data model:** `sites`, `site_domains`, `users`, `site_members`,
   `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
   `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
@@ -147,8 +148,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-15 and 16a done; nothing in flight; 16b-21 queued. 18
-  splits when spec'd. Last shipped: 16a
-  (`blueprint/history/features/16a-sites-by-host.md`).
-- **Next:** `spec` item 16b, suspend and the server (domains: `needs-you.md`).
+- **Plan:** items 1-16 done; nothing in flight; 17-21 queued. 18 splits
+  when spec'd. Last shipped: 16b
+  (`blueprint/history/features/16b-suspend-and-the-server.md`).
+- **Next:** `spec` item 17, SEO basics.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
