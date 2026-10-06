@@ -182,7 +182,8 @@
  * setting turns dark on later, item 20). Sets every role rather than inheriting
  * Habre's, which follows the device. Modern's font and radii are merged in
  * until style presets arrive (item 18a). --color-selection belongs to the
- * editor (item 14a). */
+ * editor (item 14a). The bg and surface values below are mirrored in
+ * LIGHT_SITE_SURFACE (app/features/brand/brand-colours.ts); change both together. */
 [data-surface="site"] {
   color-scheme: light;
   --color-bg: var(--neutral-0);

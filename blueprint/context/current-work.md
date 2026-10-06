@@ -83,7 +83,7 @@ onboarding.
   to `'#FFF'`, `'red'` or `'ornate'` is refused by its check (shown with
   `psql` as the owner); `npm run verify` passes.
 
-- [ ] **Step 2 - The shade derivation** - `app/features/brand/brand-colours.ts`
+- [x] **Step 2 - The shade derivation** - `app/features/brand/brand-colours.ts`
   (pure, runs in both server and browser): `parseBrandColor` (exactly
   `#rrggbb`, lowercased; anything else is "no colour"), sRGB <-> OKLCH,
   WCAG contrast, and `deriveBrandShades(hex, surface)` returning the five
