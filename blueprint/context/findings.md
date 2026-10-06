@@ -126,5 +126,9 @@ File: app/features/content/slug.ts:19-28
 File: app/lib/host-routing.ts:39; app/root.tsx:78-89; app/lib/same-origin.ts
 
 
-### F-279 [P3] fixed - `.env.example` says only `SITES_URL` must be a bare origin
+### F-279 [P3] closed - `.env.example` says only `SITES_URL` must be a bare origin
 File: .env.example:18-19
+
+
+### F-280 [P3] closed - A `PLATFORM_URL` or `SITES_URL` ending in a dot loops forever or 404s every site
+File: app/lib/hosts-env.server.ts:8-11 (`isBareOrigin`); app/lib/host-routing.ts:39-42

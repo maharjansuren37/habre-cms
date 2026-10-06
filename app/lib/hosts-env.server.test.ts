@@ -44,3 +44,12 @@ test("a PLATFORM_URL with a path is refused naming PLATFORM_URL", () => {
     /PLATFORM_URL/,
   );
 });
+
+test("an origin whose host ends in a dot is refused, naming the variable", () => {
+  assert.throws(() => parse("https://habre.page."), /SITES_URL/);
+  assert.throws(
+    () =>
+      hostsEnvSchema.parse({ PLATFORM_URL: "https://app.habre.ai.", SITES_URL: "https://a.test" }),
+    /PLATFORM_URL/,
+  );
+});
