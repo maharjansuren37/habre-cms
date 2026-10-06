@@ -141,7 +141,7 @@ design.md's *Screens* (Admin shell row).
 
   After `unsuspend-site` the notice is gone. `e2e/contrast.spec.ts` passes
   with a suspended site's admin page added to what it measures.
-- [ ] **Step 3 - The Caddy file**: `deploy/caddy/habre-cms.caddy` rewritten
+- [x] **Step 3 - The Caddy file**: `deploy/caddy/habre-cms.caddy` rewritten
   as *In scope* lists:
   - `{$HABRE_PLATFORM_DOMAIN}` and `{$HABRE_SITES_DOMAIN}` stand for the two
     domains;
