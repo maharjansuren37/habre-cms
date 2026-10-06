@@ -30,7 +30,12 @@ ENV_FILE="$CONFIG_DIR/production.env"
 BACKUP_ENV_FILE="$CONFIG_DIR/backup.env"
 CADDYFILE="/etc/caddy/Caddyfile"
 CADDY_SITE="/etc/caddy/sites/habre-cms.caddy"
-CADDY_LOG="/var/log/caddy/habre-cms-access.log"
+# The platform's access log and the sites' (deploy/caddy/habre-cms.caddy).
+CADDY_LOGS=(/var/log/caddy/habre-cms-access.log /var/log/caddy/habre-cms-public-access.log)
+# Caddy's own environment for the site file: the two domains and the Cloudflare
+# token. Root-only; the owner fills it in. Loaded by the drop-in below.
+CADDY_ENV_FILE="/etc/caddy/habre-cms.env"
+CADDY_DROPIN="/etc/systemd/system/caddy.service.d/habre-cms.conf"
 DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 log() { printf '==> %s\n' "$*"; }
@@ -194,20 +199,96 @@ install_service() {
   fi
 }
 
+# Prints what Caddy's environment lacks for the site file and returns non-zero
+# if anything is: the Cloudflare DNS module, either domain, or the token. Takes
+# the env file and the output of `caddy list-modules`, so it runs anywhere.
+# Never prints a value.
+#
+# A value is refused, not cleaned up, unless it is only letters, digits, `.`,
+# `_` and `-`: systemd's EnvironmentFile and `caddy validate --envfile` read
+# quotes, spaces and an inline `# comment` differently, so a value that passes
+# here could validate and then stop the restarted Caddy (F-283). Domains and
+# Cloudflare tokens need nothing else.
+check_caddy_env() {
+  local env_file=$1 modules=$2 missing=0 name value
+  if ! grep -qE '^dns\.providers\.cloudflare( |$)' <<<"$modules"; then
+    printf 'setup-server: Caddy lacks the dns.providers.cloudflare module. Add it with: caddy add-package github.com/caddy-dns/cloudflare\n' >&2
+    missing=1
+  fi
+  if [[ ! -r $env_file ]]; then
+    printf 'setup-server: %s is missing.\n' "$env_file" >&2
+    return 1
+  fi
+  if grep -qE '^[[:space:]]*export[[:space:]]' "$env_file"; then
+    printf 'setup-server: %s has an `export` line; systemd does not read those. Write NAME=value.\n' "$env_file" >&2
+    missing=1
+  fi
+  for name in HABRE_PLATFORM_DOMAIN HABRE_SITES_DOMAIN CLOUDFLARE_API_TOKEN; do
+    value=$(sed -n "s/^${name}=//p" "$env_file" | tail -n 1)
+    if [[ -z $value ]]; then
+      printf 'setup-server: %s is empty in %s.\n' "$name" "$env_file" >&2
+      missing=1
+    elif [[ ! $value =~ ^[A-Za-z0-9._-]+$ ]]; then
+      printf 'setup-server: %s in %s may hold only letters, digits, ".", "_" and "-" - no quotes, spaces or comments.\n' "$name" "$env_file" >&2
+      missing=1
+    fi
+  done
+  return "$missing"
+}
+
 install_caddy_site() {
   command -v caddy >/dev/null || fail "Caddy is not installed"
+
+  # Created once, never overwritten: the values are the owner's.
+  if [[ ! -e $CADDY_ENV_FILE ]]; then
+    install -m 600 -o root -g root /dev/null "$CADDY_ENV_FILE"
+    cat > "$CADDY_ENV_FILE" <<'ENV'
+# Caddy's environment for Habre (deploy/caddy/habre-cms.caddy). Fill in, then
+# run setup-server.sh again. The domains must agree with PLATFORM_URL
+# (https://app.<platform domain>) and SITES_URL (https://<sites domain>) in
+# /etc/habre-cms/production.env.
+HABRE_PLATFORM_DOMAIN=
+HABRE_SITES_DOMAIN=
+# DNS edit on the sites domain's zone only, for the wildcard certificate.
+CLOUDFLARE_API_TOKEN=
+ENV
+    log "Created $CADDY_ENV_FILE - fill it in"
+  fi
+
+  # The token is read by the running Caddy, so a new drop-in or a changed env
+  # file needs a restart; a reload keeps the old process and its environment.
+  local restart=false
+  if ! cmp -s "$DEPLOY_DIR/caddy/caddy-habre-cms.conf" "$CADDY_DROPIN"; then
+    log "Installing the caddy.service drop-in"
+    install -d -m 755 "$(dirname "$CADDY_DROPIN")"
+    install -m 644 "$DEPLOY_DIR/caddy/caddy-habre-cms.conf" "$CADDY_DROPIN"
+    systemctl daemon-reload
+    restart=true
+  fi
+  local started
+  started=$(systemctl show -p ActiveEnterTimestamp --value caddy)
+  if [[ -z $started ]] || (( $(stat -c %Y "$CADDY_ENV_FILE") > $(date -d "$started" +%s) )); then
+    restart=true
+  fi
+
+  check_caddy_env "$CADDY_ENV_FILE" "$(caddy list-modules)" \
+    || fail "Caddy is not ready for the site file; nothing installed. See needs-you.md (Caddy with the Cloudflare DNS module)."
+
   log "Installing Caddy site file"
   install -d -m 755 "$(dirname "$CADDY_SITE")"
   install -m 644 "$DEPLOY_DIR/caddy/habre-cms.caddy" "$CADDY_SITE"
   # Caddy runs as the caddy user and cannot open a log file owned by root -
   # which is what `sudo caddy validate` leaves behind if it gets there first,
   # and the reload then fails with "permission denied" while the old config
-  # keeps serving. Create it correctly before either happens.
-  if [[ ! -e $CADDY_LOG ]]; then
-    install -m 640 -o caddy -g caddy /dev/null "$CADDY_LOG"
-  else
-    chown caddy:caddy "$CADDY_LOG"
-  fi
+  # keeps serving. Create them correctly before either happens.
+  local caddy_log
+  for caddy_log in "${CADDY_LOGS[@]}"; do
+    if [[ ! -e $caddy_log ]]; then
+      install -m 640 -o caddy -g caddy /dev/null "$caddy_log"
+    else
+      chown caddy:caddy "$caddy_log"
+    fi
+  done
 
   local import_line="import $CADDY_SITE"
   if ! grep -qxF "$import_line" "$CADDYFILE"; then
@@ -216,14 +297,28 @@ install_caddy_site() {
     cp -p "$CADDYFILE" "$backup"
     printf '\n%s\n' "$import_line" >> "$CADDYFILE"
     log "Added import line to $CADDYFILE (backup: $backup)"
-    if ! caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null 2>&1; then
+    if ! caddy validate --config "$CADDYFILE" --adapter caddyfile --envfile "$CADDY_ENV_FILE" >/dev/null 2>&1; then
       cp -p "$backup" "$CADDYFILE"
-      fail "Caddy rejected the new config; $CADDYFILE restored from $backup. Check with: caddy validate --config $CADDYFILE"
+      fail "Caddy rejected the new config; $CADDYFILE restored from $backup. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
     fi
   fi
-  caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null 2>&1 \
-    || fail "Caddy config does not validate; not reloading. Check with: caddy validate --config $CADDYFILE"
-  systemctl reload caddy
+  caddy validate --config "$CADDYFILE" --adapter caddyfile --envfile "$CADDY_ENV_FILE" >/dev/null 2>&1 \
+    || fail "Caddy config does not validate; not reloading. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
+  # Caddy serves every site on this box, so a failed start is said plainly,
+  # with where to look, rather than left as systemctl's one line (F-283).
+  local action=reload
+  if [[ $restart == true ]]; then
+    log "Restarting Caddy: its environment changed"
+    action=restart
+  fi
+  # A failed reload leaves Caddy serving its previous config; saying it is down
+  # would invite the restart that takes it down (F-291).
+  if systemctl "$action" caddy; then
+    systemctl is-active --quiet caddy && return
+  elif systemctl is-active --quiet caddy; then
+    fail "The Caddy $action failed; Caddy is still serving its previous config. Do not restart it until this is fixed. See: journalctl -u caddy -n 50"
+  fi
+  fail "Caddy is not running after the $action - every site on this server is down. See: journalctl -u caddy -n 50"
 }
 
 install_backup() {

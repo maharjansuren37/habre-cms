@@ -3,10 +3,11 @@ import { Form, Link, NavLink, Outlet, useNavigation } from "react-router";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
-import { findSubdomain } from "#app/features/sites/find-site.server.ts";
+import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { siteOrigin, sitesHost } from "#app/lib/site-origin.ts";
 import { Button } from "#app/lib/ui/button.tsx";
+import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
 
@@ -19,9 +20,10 @@ export async function loader({ context }: Route.LoaderArgs) {
   // (D153), so the link has to be absolute. env is server-only, so the origin
   // crosses the loader boundary like `user`.
   const user = context.get(userContext);
-  const subdomain = await findSubdomain(user.siteId);
+  const { subdomain, suspended } = await findMemberSite(user.siteId);
   return {
     user,
+    suspended,
     siteUrl: siteOrigin(subdomain, env.SITES_URL),
     siteAddress: `${subdomain}.${sitesHost(env.SITES_URL)}`,
     settings: await getSiteSettings(user.siteId, env.R2_PUBLIC_URL),
@@ -39,7 +41,7 @@ function addressLabels(address: string) {
 const ROLE_NAMES = { admin: "Admin", editor: "Editor", author: "Author" } as const;
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { user, siteUrl, siteAddress, settings } = loaderData;
+  const { user, suspended, siteUrl, siteAddress, settings } = loaderData;
   const navigation = useNavigation();
   const isLoggingOut =
     navigation.state === "submitting" && navigation.formAction === "/admin/logout";
@@ -134,6 +136,11 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </aside>
       <main className={styles.main}>
+        {suspended && (
+          <Message tone="notice" title="This site is suspended." className={styles.notice}>
+            Visitors see Not Found instead of its pages.
+          </Message>
+        )}
         <Outlet />
       </main>
     </div>

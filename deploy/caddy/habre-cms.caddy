@@ -1,58 +1,89 @@
-# Habre CMS site block only (D17). Imported by the server's main Caddyfile with
-# `import /etc/caddy/sites/habre-cms.caddy`; installed by deploy/setup-server.sh.
+# Habre CMS site blocks (D17, D153). Imported by the server's main Caddyfile
+# with `import /etc/caddy/sites/habre-cms.caddy`; installed by
+# deploy/setup-server.sh - **only with the v1 deploy** (D163). Until then the
+# server keeps the file of release 8d82ce4, whose admin is
+# cms.surenmaharjan.fyi; this file redirects that host instead.
 #
-# One app answers both hostnames (D22, item 4c) - the app itself tells them
-# apart by Host header (app/lib/host-routing.ts), Caddy just forwards both to
-# the same port.
+# Where each value comes from - none is named in this repository:
+# - {$HABRE_PLATFORM_DOMAIN} and {$HABRE_SITES_DOMAIN} are replaced when the
+#   Caddyfile is adapted, from the environment of the process adapting it. On
+#   the server that is caddy.service, which loads /etc/caddy/habre-cms.env
+#   through the drop-in deploy/caddy/caddy-habre-cms.conf. They must agree with
+#   PLATFORM_URL (https://app.<platform domain>) and SITES_URL
+#   (https://<sites domain>) in /etc/habre-cms/production.env.
+# - {env.CLOUDFLARE_API_TOKEN} is read at runtime, when the DNS module starts,
+#   from that same file, so the token never appears in the adapted config.
+#
+# One app answers every host; it tells them apart by Host header
+# (app/lib/host-routing.ts). The sites domain's apex and www have no block, so
+# nothing serves them and no certificate is issued for them. media.<sites
+# domain> is R2's custom domain, served by Cloudflare, never by this server.
 #
 # No `bind`: the server has no IPv6 address today, so IPv6 clients cannot reach
 # this. If it ever gets one, re-check F-13 before serving over IPv6.
-cms.surenmaharjan.fyi {
+
+# Shared by every block that proxies to the app. Its argument names the access
+# log: the only signal for "is anyone using this", since the app logs security
+# events, not requests. Rolled at 10 MB, 3 kept, so it cannot quietly fill the
+# disk. It records visitor IP addresses and user agents; nothing else about a
+# visitor is stored (quality-bar.md, Security posture).
+(habre_cms_proxy) {
 	encode zstd gzip
 
-	# The only signal for "is anyone using this" - the app logs security events,
-	# not requests. Rolled at 10 MB, 3 kept, so it cannot quietly fill the disk.
-	# Note it records visitor IP addresses and user agents; nothing else about a
-	# visitor is stored (quality-bar.md, Security posture).
 	log {
-		output file /var/log/caddy/habre-cms-access.log {
+		output file /var/log/caddy/{args[0]}.log {
 			roll_size 10mb
 			roll_keep 3
 		}
 	}
 	# reverse_proxy sets X-Forwarded-For to the connecting address, which the
 	# login rate limit reads (app/features/auth/client-ip.ts, F-07).
-	# The app believes X-Forwarded-Host/Proto for its own origin (D23), so both
-	# are set here from the real request rather than left to Caddy's defaults,
-	# which pass a client's values through for any `trusted_proxies` the main
-	# Caddyfile - not this repo's (D17) - might one day list (F-22).
+	# The app believes X-Forwarded-Host/Proto for its own origin and for which
+	# site and platform a request is (D23, D153), so both are set here from the
+	# real request rather than left to Caddy's defaults, which pass a client's
+	# values through for any `trusted_proxies` the main Caddyfile - not this
+	# repo's (D17) - might one day list (F-22). A client-sent `Forwarded`
+	# header is removed for the same reason: the app's request handling could
+	# read its host= and proto= over the pinned pair (F-269).
 	reverse_proxy 127.0.0.1:3000 {
 		header_up X-Forwarded-Host {host}
 		header_up X-Forwarded-Proto {scheme}
+		header_up -Forwarded
 	}
 }
 
+# The platform: signup, login and every site's admin.
+app.{$HABRE_PLATFORM_DOMAIN} {
+	import habre_cms_proxy habre-cms-access
+}
+
+# The platform's apex and www are redirects only, never a second copy.
+{$HABRE_PLATFORM_DOMAIN}, www.{$HABRE_PLATFORM_DOMAIN} {
+	redir https://app.{$HABRE_PLATFORM_DOMAIN}{uri} permanent
+}
+
+# Every site at <address>.<sites domain>, on one wildcard certificate. A
+# wildcard needs the DNS challenge, through the Cloudflare DNS module. The
+# sites get their own log: anonymous visitors, not a handful of members, and a
+# shared file would make one's volume hide the other's.
+*.{$HABRE_SITES_DOMAIN} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	import habre_cms_proxy habre-cms-public-access
+}
+
+# Site 1's own domain (item 16a's seed row in site_domains). Until item 17
+# picks one main address per site, it answers here and on its subdomain.
 surenmaharjan.fyi {
-	encode zstd gzip
-
-	# Its own log file, not shared with cms's: the two hostnames serve very
-	# different traffic (anonymous visitors vs a handful of admins), and a
-	# shared file would make one's volume hide the other's.
-	log {
-		output file /var/log/caddy/habre-cms-public-access.log {
-			roll_size 10mb
-			roll_keep 3
-		}
-	}
-	# Pinned for the same reason as cms's block above (F-22).
-	reverse_proxy 127.0.0.1:3000 {
-		header_up X-Forwarded-Host {host}
-		header_up X-Forwarded-Proto {scheme}
-	}
+	import habre_cms_proxy habre-cms-public-access
 }
 
-# The apex is canonical; www is a redirect only, never a second copy of the
-# site (project-plan section 6, Hostnames).
 www.surenmaharjan.fyi {
 	redir https://surenmaharjan.fyi{uri} permanent
+}
+
+# The old admin host (D22) sends people to the platform, path kept.
+cms.surenmaharjan.fyi {
+	redir https://app.{$HABRE_PLATFORM_DOMAIN}{uri} permanent
 }

@@ -1,5 +1,4 @@
 import { data, redirect } from "react-router";
-import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { emptyDocument } from "#app/features/blocks/document.ts";
 import type { Route } from "./+types/post-new";
@@ -8,12 +7,8 @@ import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-siz
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm } from "./entry-form-input.ts";
 
-export const middleware: Route.MiddlewareFunction[] = [requireUser];
-
-// The loader is what makes a client-side navigation call the server, so the
-// middleware checks the user on those too (React Router middleware docs).
-// It also hands over the empty document a new entry starts with, so the
-// schema module stays out of the browser bundle.
+// Hands over the empty document a new entry starts with, so the schema module
+// stays out of the browser bundle.
 export async function loader({ context }: Route.LoaderArgs) {
   return {
     document: emptyDocument(),

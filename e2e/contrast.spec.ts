@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { siteUrl } from "./helpers/sites.ts";
+import { logIn } from "./helpers/auth.ts";
+import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
+import { withDatabase } from "./helpers/users.ts";
 
 // WCAG 2.x contrast of Habre's role tokens, measured on the real served app.
 // The pairs and minimums are those of prototypes/checks/contrast.mjs, except
@@ -110,3 +112,22 @@ test("the site scope still meets contrast under a dark device", async ({ page })
   expect(await measure(page, siteUrl("/"), "dark")).toEqual([]);
   await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
 });
+
+// Item 16b: a suspended site's admin shows the standing notice in the error
+// banner's colours; it is measured with the notice on the page.
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`a suspended site's admin page meets contrast in ${colorScheme} mode`, async ({ page }) => {
+    const site = await createSiteWithAddress("contrast-suspended");
+    try {
+      const admin = await createSiteAdmin(site.id);
+      await withDatabase(async (sql) => {
+        await sql`update sites set suspended_at = now() where id = ${site.id}`;
+      });
+      await logIn(page, admin);
+      expect(await measure(page, "/admin/posts", colorScheme)).toEqual([]);
+      await expect(page.getByText("This site is suspended.", { exact: true })).toBeVisible();
+    } finally {
+      await deleteSite(site.id);
+    }
+  });
+}

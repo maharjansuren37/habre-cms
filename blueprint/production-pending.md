@@ -41,3 +41,21 @@
 - [ ] Migration `0015_site_domains.sql` (additive; runs with the v1 deploy's other migrations). Seeds `surenmaharjan.fyi` for subdomain `surenmaharjan`.
 - [ ] `PLATFORM_URL` and `SITES_URL` in `/etc/habre-cms/production.env`, and `PUBLIC_URL` / `ADMIN_URL` removed from the systemd unit (this release's `deploy/habre-cms.service` no longer sets them). The values depend on the platform and sites domains still to be bought (`needs-you.md`).
 - [ ] DNS and certificates for the platform and sites domains, and the Caddy file - item 16b and `host`. Without them, nothing reaches the new hosts.
+
+## features/16b-suspend-and-the-server
+
+- [ ] **A Caddy build with the Cloudflare DNS module on `ocwebserver`**, e.g.
+  `caddy add-package github.com/caddy-dns/cloudflare`, which replaces the
+  binary. It is `host`'s, with a yes. `setup-server.sh` refuses without it.
+- [ ] **`/etc/caddy/habre-cms.env` filled in:** `HABRE_PLATFORM_DOMAIN`,
+  `HABRE_SITES_DOMAIN`, `CLOUDFLARE_API_TOKEN` (`needs-you.md`'s token line).
+  The domains must agree with `PLATFORM_URL` and `SITES_URL` in
+  `production.env`.
+- [ ] **DNS on Cloudflare:** `app.`, the apex and `www.` of the platform domain;
+  `*.` of the sites domain; all pointing at `ocwebserver`.
+  `cms.surenmaharjan.fyi` keeps its record.
+- [ ] **Install the new Caddy file only with the v1 deploy** (D163). Until then the
+  server keeps the current file: production still runs `8d82ce4`, which needs
+  `cms.surenmaharjan.fyi` to serve the admin, not redirect it.
+- [ ] **After the deploy:** `curl` a site subdomain and check that the certificate
+  is the wildcard. That is the first proof the DNS challenge works.

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, useNavigation, useSubmit } from "react-router";
+import { Form, Link, useNavigation, useOutletContext, useSubmit } from "react-router";
 import type { Document } from "#app/features/blocks/document.ts";
 import { DocumentEditor } from "#app/features/blocks/document-editor.client.tsx";
 import type { DocumentMedia, LinkablePage } from "#app/features/blocks/document-nodes.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { isReadableDocumentContent } from "./editor-content.ts";
+import type { EditorOutletContext } from "./editor-layout.tsx";
 import { ENTRY_TOO_LONG_MESSAGE, isEntryFormSizeAllowed } from "./entry-body-size.ts";
 import styles from "./entry-form.module.css";
 
@@ -57,6 +58,7 @@ export function EntryForm({
 }: EntryFormProps) {
   const navigation = useNavigation();
   const submit = useSubmit();
+  const { suspended } = useOutletContext<EditorOutletContext>();
   const copy = ENTRY_COPY[entryType];
   // An entry with no address yet has never been saved, so there is nothing to
   // publish - only Save, which creates it (as a draft, as today).
@@ -183,6 +185,14 @@ export function EntryForm({
           </div>
         </div>
       </div>
+
+      {/* The shell's standing notice (design.md), here too because the editor
+          sits outside the shell (F-282). Not one of the save messages below. */}
+      {suspended && (
+        <Message tone="notice" title="This site is suspended.">
+          Visitors see Not Found instead of its pages.
+        </Message>
+      )}
 
       {/* One message at a time. The client-side guards win: they describe the
           save that was just refused, while `problem` describes an earlier one

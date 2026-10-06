@@ -104,3 +104,14 @@
       separate yes. Item 15b's step 10 done-when is a green CI run on the pull
       request with `signup.spec.ts` running in the `e2e` job's new Mailpit
       service; nothing local can show that. Blocks `ship` of 15b. `done` - pushed, PR #33, CI green (ship, 2026-10-04)
+
+## features/16b-suspend-and-the-server
+
+- [x] **Check the first CI `e2e` run on item 16a's PR resolves `*.localhost`** -
+      manual verification; only a push makes CI run, and pushing is yours.
+      Locally Chromium and Playwright's `request` both reach
+      `http://<address>.localhost:3100` (item 16a, Step 1). If CI's run fails
+      on a `*.localhost` visit, the fallback is a `Host` header to
+      `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
+      `done` (verify, 2026-10-06; closed 2026-10-06: PR #38's CI run 37412689022, `e2e` 367 passed, 8 skipped,
+      site visits on `<address>.localhost` incl. `host-routing.spec.ts:21`)

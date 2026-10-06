@@ -1,6 +1,5 @@
 import { data } from "react-router";
 import { z } from "zod";
-import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
 import type { Route } from "./+types/post-edit";
@@ -9,8 +8,6 @@ import { findEntryForUser, listLinkablePages, saveEntry } from "./entries.server
 import { ENTRY_TOO_LONG_MESSAGE, isEntryBodySizeAllowed } from "./entry-body-size.ts";
 import { EntryForm } from "./entry-form.tsx";
 import { parseDocumentForm, parseVersion } from "./entry-form-input.ts";
-
-export const middleware: Route.MiddlewareFunction[] = [requireUser];
 
 /**
  * A post id that is not a uuid never matches a row, but reaching the database

@@ -168,6 +168,13 @@ blank instead".
   site is on Pro (D166)
 - Account menu at the foot, under the person's name and plan: **Your
   account, Plan, Sign out**
+- **Suspended notice** (item 16b): while the operator has suspended the
+  site, the top of the main area, before the page's `h1`, on every shell
+  screen, and on the editor under its top bar (F-282): "This site is suspended." / "Visitors see Not Found instead of its
+  pages." `Message`'s `notice` tone - the error banner's look and colours,
+  **no role**: a standing fact, not an action's outcome, so it is read in
+  order and never interrupts on each navigation. Its title is a `p`, so the
+  outline is unchanged.
 
 **Editor:** full screen, no sidebar; Back returns to Pages or Blog. Same
 editor for pages and posts.
@@ -475,6 +482,9 @@ record (`git show 1d58e42:blueprint/context/design.md`).
   below the field, `aria-invalid` and `aria-describedby`, input kept. Sign-in
   marks no field.
 - **Success:** a banner, `role="status"`, on the page the action returns to.
+- **Standing notice:** a fact about the site that holds across screens (item
+  16b's suspension) - the error banner's look with no role, at the top of the
+  main area.
 - **At most one primary button per view.** Destructive actions confirm on
   their own page, naming the thing, then return to the list with a success
   banner (item 3's pattern).

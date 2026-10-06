@@ -232,6 +232,10 @@ that name itself, from this site file. The choice stands: the main Caddyfile
 stays hand-managed and only imports site files, so a later app on the same
 server cannot collide with this one.
 
+*Widened 2026-10-06 (D324, item 16b):* the repository also owns a systemd
+drop-in for `caddy.service` and the placeholder `/etc/caddy/habre-cms.env`. The
+main Caddyfile and Caddy's unit stay hand-managed.
+
 ## D18 - `server.js` serves `build/client` itself (2026-09-15)
 
 **Chose:** a ~30-line static handler in `server.js` (GET/HEAD only, dotfiles and
@@ -324,6 +328,9 @@ above - separate origins for the admin and public pages - carries over and is
 strengthened by putting sites on a different registrable domain.
 Took effect with item 16a (2026-10-06, D309-D312): the platform and sites hosts
 replace the apex/`cms.` split.
+Fully superseded with item 16b (2026-10-06): the Caddy file redirects
+`cms.surenmaharjan.fyi` to the platform host, and `surenmaharjan.fyi` is site 1's
+own domain. Live once the v1 deploy installs it.
 
 ## D23 - The Node listener is built directly, to trust Caddy's forwarded headers (2026-09-16)
 
@@ -3681,3 +3688,77 @@ Beats: keeping the refusal - once the public host no longer serves the oldest
 site, nothing makes it special.
 Costs: none; `e2e/deleted-account.spec.ts` can now move off site 1 (not done
 here, D308).
+
+## D319 - Suspension hides the public site only; members keep the admin, with a standing notice (2026-10-06)
+
+**Chose:** `suspend-site` sets `sites.suspended_at`; the host lookup refuses the
+site on every host, while members still sign in, edit and can delete their
+account, and every admin screen, the editor included, shows "This site is
+suspended." (owner, item 16b).
+Beats: locking members out - there is no support address to send them to yet,
+and a member could no longer delete their account. Beats a silent public 404,
+which leaves an owner with no idea why their site went dark.
+Costs: a suspended site's last admin can still delete their account, and the
+site with it; only the nightly backups keep the evidence.
+
+## D320 - A standing notice has no live role (2026-10-06)
+
+**Chose:** the suspended notice is static text with `Message`'s `notice` tone
+(the error look), no `role="alert"` or `role="status"`, its title a `p`.
+Beats: `role="alert"` - it is a fact about the site, not an action's outcome,
+and an alert would interrupt a screen reader on every navigation.
+Costs: a screen-reader user meets it only in reading order, at the top of main.
+
+## D321 - Operator commands take the site's address (2026-10-06)
+
+**Chose:** `suspend-site` / `unsuspend-site --address <address>`, lowercased.
+Beats: an id or an owner's email - an abuse report arrives as a URL.
+Costs: an own domain is looked up by hand until an item needs more.
+
+## D322 - Re-running an operator command changes nothing and exits 0 (2026-10-06)
+
+**Chose:** suspending a suspended site (or the reverse) prints so, exits 0 and
+keeps the original `suspended_at`.
+Beats: failing - a repeated command is not an error, and the first time is the
+one worth keeping.
+Costs: none.
+
+## D323 - The platform and sites domains reach Caddy as environment variables (2026-10-06)
+
+**Chose:** `deploy/caddy/habre-cms.caddy` uses `{$HABRE_PLATFORM_DOMAIN}` and
+`{$HABRE_SITES_DOMAIN}`, and reads `{env.CLOUDFLARE_API_TOKEN}` at runtime, from
+`/etc/caddy/habre-cms.env` (mode 600, root). `PLATFORM_URL` and `SITES_URL`
+in `production.env` must agree with them.
+Beats: naming the domains in the repository - neither is bought yet, and a
+self-hosted copy sets its own without editing the file (D148).
+Costs: two places on the server hold the same domains and must be kept equal.
+
+## D324 - The repository owns a systemd drop-in for `caddy.service` (2026-10-06)
+
+**Chose:** `deploy/caddy/caddy-habre-cms.conf` adds one `EnvironmentFile=` line;
+`setup-server.sh` installs it and creates the placeholder env file once, never
+overwriting it. It refuses to install the site file while the Cloudflare module,
+either domain or the token is missing, or while any line holds a value outside
+`[A-Za-z0-9._-]` or an `export` (F-283) - refusing rather than stripping,
+because systemd parses quotes, comments and spaces differently from the shell.
+A failed reload with Caddy still active says the previous config is serving
+(F-291). A narrow widening of D17.
+Beats: doing it by hand on the server, which is not reproducible (D9).
+Costs: the repository now touches Caddy's service, though never its unit.
+
+## D325 - `Forwarded` is removed at Caddy (2026-10-06)
+
+**Chose:** every `reverse_proxy` deletes a client-sent `Forwarded` header
+alongside pinning `X-Forwarded-Host` and `X-Forwarded-Proto` (F-269).
+Beats: ignoring it in the app - Caddy already pins the headers the app trusts
+(D96, F-22), so one rule stays in one file.
+Costs: the app trusts Caddy to do it; run without Caddy, the header is honoured.
+
+## D326 - The editor screens sit under a pathless layout that is their login guard (2026-10-06)
+
+**Chose:** `app/features/content/editor-layout.tsx` (no sidebar) wraps the four
+editor routes, loads `findMemberSite` for the suspended notice and runs the one
+`requireUser`; the page routes keep `requireRole` (F-282, F-293).
+Beats: each route loading the site and the user itself - two guards per
+request, and a screen that forgets the notice.
+Costs: a new editor route must be added under the layout in `app/routes.ts`.

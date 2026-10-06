@@ -234,7 +234,8 @@ habre-cms/
 ├── deploy/
 │   ├── setup-server.sh         installs Node 26, PostgreSQL 16, the service, the Caddy site
 │   ├── habre-cms.service       systemd unit
-│   └── caddy/habre-cms.caddy   this app's site block only, imported by the server's main Caddyfile
+│   └── caddy/habre-cms.caddy   this app's site blocks only, imported by the server's main Caddyfile
+│       caddy/caddy-habre-cms.conf  drop-in giving caddy.service its env file (item 16b)
 ├── e2e/                        Playwright tests (*.spec.ts)
 ├── public/                     copied into the build as-is - favicon only
 ├── compose.yaml                development-only PostgreSQL 16 container
@@ -378,6 +379,13 @@ D153; replaces D22 when item 16 is built.
     are configured in the repository's Caddy site file. The wildcard comes from
     a DNS challenge through Caddy's Cloudflare DNS module, with an API token in
     Caddy's own environment on the server, never in the repository.
+  - **The domains come from Caddy's environment too** (item 16b): the site
+    file names `{$HABRE_PLATFORM_DOMAIN}` and `{$HABRE_SITES_DOMAIN}`, set
+    with `CLOUDFLARE_API_TOKEN` in `/etc/caddy/habre-cms.env` (mode 600,
+    root), which a systemd drop-in for `caddy.service`
+    (`deploy/caddy/caddy-habre-cms.conf`) loads. They must agree with
+    `PLATFORM_URL` and `SITES_URL`. A self-hosted copy sets its own without
+    editing the file (D148).
   - A certificate per subdomain lost: Let's Encrypt limits certificates per
     registered domain per week, and every site name would be published in the
     certificate transparency logs.
@@ -940,8 +948,8 @@ From `architect`:
   - SMTP settings and the from address;
   - Stripe's secret key, webhook secret and price;
   - the plan limits: storage and the monthly AI credit allowance.
-  - `PUBLIC_URL` and `ADMIN_URL` become the platform URL and the sites domain
-    at item 16.
+  - `PLATFORM_URL` and `SITES_URL` replaced `PUBLIC_URL` and `ADMIN_URL` at
+    item 16a (D309); their production values wait on the two domains.
 - **One deployable, one process, `/healthz` on every host** - unchanged.
 - **Production holds until v1 is done (D163).** Production stays on release
   `8d82ce4` (items 1-12) while items 13-21 are built, then v1 ships in one
@@ -957,7 +965,8 @@ From `architect`:
 - **Domains (D22, 2026-09-16; replaced by D153 at item 16):** public site `surenmaharjan.fyi`
   (`PUBLIC_URL=https://surenmaharjan.fyi`), admin `cms.surenmaharjan.fyi`
   (`ADMIN_URL=https://cms.surenmaharjan.fyi`), `www` redirecting to the apex.
-  `deploy/caddy/habre-cms.caddy` serves all three names, proxying the two app
+  Release `8d82ce4`'s `deploy/caddy/habre-cms.caddy` serves all three names
+  (item 16b's file replaces it at the v1 deploy), proxying the two app
   hosts to the same port. Production values are set in production config,
   never in `.env.example`.
 - **One deployable application.** It listens on localhost only; **Caddy**
@@ -967,7 +976,8 @@ From `architect`:
   role with access to nothing else. PostgreSQL listens on localhost only.
 - **Storage:** Cloudflare R2 bucket for images, with a public URL.
 - **Health check:** `/healthz`, reporting database reachability.
-- **Env vars:** `PUBLIC_URL`, `ADMIN_URL` (replaced `APP_URL`, item 4c),
+- **Env vars:** `PLATFORM_URL`, `SITES_URL` (item 16a, D309; before that
+  `PUBLIC_URL` and `ADMIN_URL`, which replaced `APP_URL` at item 4c),
   `DATABASE_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 - **Backups:** nightly database dump stored off the VPS - app and database share
@@ -991,8 +1001,9 @@ From `stack`:
   owner wants the public site on `surenmaharjan.fyi` and admin on
   `cms.surenmaharjan.fyi` - designed in D22, built in item 4). More web apps later
   likely need a bigger VPS - decide before hosting a second app.
-- **Caddy:** the repository ships only `deploy/caddy/habre-cms.caddy`; the
-  server's main Caddyfile imports it. **The setup script must not replace the
+- **Caddy:** the repository ships only `deploy/caddy/habre-cms.caddy`, which the
+  server's main Caddyfile imports, and (item 16b) a `caddy.service` drop-in
+  that adds one `EnvironmentFile=` line - never Caddy's own unit. **The setup script must not replace the
   main Caddyfile, and must not reinstall or reconfigure an existing PostgreSQL**
   - it adds this app's database and role alongside whatever is there.
 - **IPv4 only today (checked 2026-09-16, F-13):** `ocwebserver` has no global
@@ -1035,7 +1046,7 @@ From `stack`:
   origin. It is not sent in development. `e2e/content-security-policy.spec.ts`
   fails on any violation.
 - **More env vars:** `PORT`, `NODE_ENV`. Read today: `DATABASE_URL`,
-  `PUBLIC_URL`, `ADMIN_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `PLATFORM_URL`, `SITES_URL`, `JWT_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `PORT` and `NODE_ENV` -
   the app now refuses to start without any of them (`AGENTS.md`'s Environments
   table).

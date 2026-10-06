@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import styles from "./message.module.css";
 
 type MessageProps = {
-  tone: "error" | "success";
+  /** `notice` is a standing fact about the site, not an action's outcome: the
+   *  error look, and no role, so it is read in order and never interrupts. */
+  tone: "error" | "success" | "notice";
   /** One sentence saying what happened, shown in bold. */
   title: string;
   /** What to do about it. */
@@ -12,14 +14,15 @@ type MessageProps = {
   className?: string;
 };
 
-/** A banner for the outcome of an action. Errors interrupt; successes are announced politely. */
+/** A banner for the outcome of an action. Errors interrupt; successes are announced politely.
+ *  A notice is announced not at all. */
 export function Message({ tone, title, children, action, className }: MessageProps) {
   return (
     <div
       className={[styles.message, styles[tone], className].filter(Boolean).join(" ")}
-      role={tone === "error" ? "alert" : "status"}
+      role={ROLES[tone]}
     >
-      {tone === "error" ? <ErrorIcon /> : <SuccessIcon />}
+      {tone === "success" ? <SuccessIcon /> : <ErrorIcon />}
       <div className={styles.body}>
         <p className={styles.title}>{title}</p>
         {children && <p>{children}</p>}
@@ -28,6 +31,8 @@ export function Message({ tone, title, children, action, className }: MessagePro
     </div>
   );
 }
+
+const ROLES = { error: "alert", success: "status", notice: undefined } as const;
 
 function ErrorIcon() {
   return (

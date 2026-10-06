@@ -441,3 +441,38 @@ File: app/features/users/ (role change, deactivate); app/features/account/accoun
 
 ### F-268 [P3] open - The slot test's lock poll counts waiting locks across the whole database, so the reverted code could pass it
 File: e2e/account-delete.spec.ts:400-405
+
+### F-284 [P3] open - The restart check falls back to a reload when caddy's start time cannot be parsed
+File: deploy/setup-server.sh (`started=$(systemctl show -p ActiveEnterTimestamp ...)`, `date -d`)
+
+
+### F-285 [P3] open - The root-run `chown` of Caddy's access logs follows symlinks
+File: deploy/setup-server.sh (`CADDY_LOGS` loop in `install_caddy_site`)
+
+
+### F-286 [P3] open - A Caddy refusal stops the whole setup script, so the backup step after it never runs
+File: deploy/setup-server.sh (call order: `install_caddy_site` before `install_backup`)
+
+
+### F-287 [P3] open - The suspended-admin contrast test measures tokens, not the notice itself
+File: e2e/contrast.spec.ts (suspended site's admin page tests)
+
+
+### F-288 [P3] open - The notice's no-role check can pass without locating the banner
+File: e2e/suspend-site.spec.ts (`notice.locator("xpath=ancestor::div[1]/..")`)
+
+
+### F-289 [P3] open - The client-side navigation check does not show the notice is revalidated
+File: e2e/suspend-site.spec.ts (Pages link click)
+
+
+### F-290 [P3] open - Caddy's Cloudflare module prints the API token in its invalid-token error
+File: deploy/setup-server.sh (validate failure hint: `caddy validate ... --envfile`)
+
+
+### F-292 [P3] open - The Caddy env check reads only its three keys, so another line can still make systemd load something different
+File: deploy/setup-server.sh:222-235 (`check_caddy_env`)
+
+
+### F-294 [P3] open - The editor notice's client-side navigation check can pass on the shell's banner before the editor renders
+File: e2e/suspend-site.spec.ts:183-186

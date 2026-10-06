@@ -170,14 +170,6 @@ not tidying; it is what keeps the open list true.
       real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
       risk accepted, preflight, 2026-09-23)
 
-- [ ] **Check the first CI `e2e` run on item 16a's PR resolves `*.localhost`** -
-      manual verification; only a push makes CI run, and pushing is yours.
-      Locally Chromium and Playwright's `request` both reach
-      `http://<address>.localhost:3100` (item 16a, Step 1). If CI's run fails
-      on a `*.localhost` visit, the fallback is a `Host` header to
-      `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
-      `open` (verify, 2026-10-06)
-
 - [ ] **Fill `PLATFORM_URL`, `SITES_URL` and `JWT_SECRET` in your local `.env`** -
       credentials; it is your secrets file, so no agent writes to it. Item 16a
       replaces `PUBLIC_URL` and `ADMIN_URL` with `PLATFORM_URL`
@@ -240,6 +232,16 @@ not tidying; it is what keeps the open list true.
       wildcard certificate for every site (D153). It goes into Caddy's own
       environment on the server, never the repository. Blocks nothing now;
       needed by item 16 and by the v1 deploy. `open` (architect, 2026-10-01)
+
+- [ ] **Caddy with the Cloudflare DNS module on `ocwebserver`, and its env
+      file filled in** - system software and credentials; a change to the
+      server's shared Caddy only you can approve (`host`). Item 16b's Caddy
+      file needs `dns.providers.cloudflare` (e.g. `caddy add-package
+      github.com/caddy-dns/cloudflare`) and `/etc/caddy/habre-cms.env` holding
+      `HABRE_PLATFORM_DOMAIN`, `HABRE_SITES_DOMAIN` and the token above;
+      `setup-server.sh` refuses without them. Blocks nothing now; needed by
+      the v1 deploy, after both domains are bought. `open` (spec 16b,
+      2026-10-06)
 
 - [ ] **An email provider account: Resend, used over SMTP** (D156) - accounts
       and spend. Sends signup verification, password reset and contact-form

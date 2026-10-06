@@ -20,6 +20,8 @@
     "db:migrate": "node --env-file-if-exists=.env db/migrate.ts",
     "create-admin": "node --env-file-if-exists=.env scripts/create-admin.ts",
     "create-invite": "node --env-file-if-exists=.env scripts/create-invite.ts",
+    "suspend-site": "node --env-file-if-exists=.env scripts/suspend-site.ts",
+    "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {

@@ -9,3 +9,7 @@
 - **sites.7** - a verified domain in `site_domains` serves its site; an unverified domain, an unknown address or a suspended site answers 404 *Since:* features/16a-sites-by-host
 - **sites.8** - sign-in, signup and the admin answer on the platform host only - an admin path on a site host redirects there, a public path on the platform host answers 404, and `/` there redirects to `/admin` *Since:* features/16a-sites-by-host
 - **sites.9** - View site and the admin's site card show the site's address, and signup shows the sites domain after the address field *Since:* features/16a-sites-by-host
+- **sites.10** - `npm run suspend-site -- --address <address>` takes the site's public pages off at once, on every host it is served at, and `unsuspend-site` brings them back; an unknown address changes nothing and exits 1 *Since:* features/16b-suspend-and-the-server
+- **sites.11** - a suspended site's members still sign in and edit, and every admin screen says the site is suspended and that visitors see Not Found *Since:* features/16b-suspend-and-the-server
+- **sites.12** - the platform's apex and `www`, and `cms.surenmaharjan.fyi`, answer a 301 to the same path on the platform host *Since:* features/16b-suspend-and-the-server
+- **sites.13** - a client-sent `Forwarded` header does not change which host or site a request is served as *Since:* features/16b-suspend-and-the-server
