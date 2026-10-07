@@ -17,6 +17,7 @@ const PAIRS: [string, string, number][] = [
   ["text-muted", "surface-hover", 4.5],
   ["primary", "bg", 4.5],
   ["primary", "surface", 4.5],
+  ["primary", "surface-sunken", 4.5],
   ["primary-hover", "bg", 4.5],
   ["on-primary", "primary", 4.5],
   ["on-primary", "primary-hover", 4.5],

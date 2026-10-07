@@ -2,7 +2,7 @@
 // The stored colour is only ever `''` (no colour) or `#rrggbb`; every colour that reaches a
 // page is derived here and re-printed as `#rrggbb`, never the stored string.
 
-export type BrandSurface = { bg: string; surface: string };
+export type BrandSurface = { bg: string; surface: string; sunken: string };
 export type BrandShades = {
   primary: string;
   primaryHover: string;
@@ -11,9 +11,14 @@ export type BrandShades = {
   focusRing: string;
 };
 
-// The light site scope's --color-bg (neutral-0) and --color-surface (neutral-50) in
-// app/app.css. Keep the two in step; the tests read these values. Item 20 passes a dark pair.
-export const LIGHT_SITE_SURFACE: BrandSurface = { bg: "#ffffff", surface: "#fafafa" };
+// The light site scope's --color-bg (neutral-0), --color-surface (neutral-50) and
+// --color-surface-sunken (neutral-100, a band section's background, F-312) in app/app.css.
+// Keep them in step; the tests read these values. Item 20 passes a dark set.
+export const LIGHT_SITE_SURFACE: BrandSurface = {
+  bg: "#ffffff",
+  surface: "#fafafa",
+  sunken: "#f5f5f5",
+};
 
 const AA = 4.5;
 const WHITE = "#ffffff";
@@ -118,6 +123,7 @@ function shadesFor(primary: string, surface: BrandSurface): BrandShades & { ok: 
     onPrimary !== undefined &&
     contrastRatio(primary, surface.bg) >= AA &&
     contrastRatio(primary, surface.surface) >= AA &&
+    contrastRatio(primary, surface.sunken) >= AA &&
     contrastRatio(primary, primarySubtle) >= AA;
   return {
     primary,
@@ -131,7 +137,8 @@ function shadesFor(primary: string, surface: BrandSurface): BrandShades & { ok: 
 
 /**
  * The five brand roles from one `#rrggbb`, each `#rrggbb`: primary at least 4.5:1 on the
- * surface's bg, on its surface and on subtle; on-primary at least 4.5:1 on primary and hover.
+ * surface's bg, its surface, its sunken surface (a band section) and subtle; on-primary at
+ * least 4.5:1 on primary and hover.
  * Input that is not `#rrggbb` is treated as black.
  */
 export function deriveBrandShades(hex: string, surface: BrandSurface): BrandShades {

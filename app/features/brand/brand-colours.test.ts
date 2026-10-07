@@ -51,13 +51,14 @@ function oklchHex(L: number, C: number, hDeg: number): string {
 }
 
 function pairs(hex: string) {
-  const { bg, surface } = LIGHT_SITE_SURFACE;
+  const { bg, surface, sunken } = LIGHT_SITE_SURFACE;
   const s = deriveBrandShades(hex, LIGHT_SITE_SURFACE);
   return {
     s,
     list: [
       ["primary on bg", contrastRatio(s.primary, bg)],
       ["primary on surface", contrastRatio(s.primary, surface)],
+      ["primary on sunken", contrastRatio(s.primary, sunken)],
       ["primary on subtle", contrastRatio(s.primary, s.primarySubtle)],
       ["on-primary on primary", contrastRatio(s.onPrimary, s.primary)],
       ["on-primary on hover", contrastRatio(s.onPrimary, s.primaryHover)],
@@ -103,6 +104,12 @@ test("every hue and lightness in the grid meets all five pairs", () => {
   }
 });
 
+test("a light green that already passed on white still reads at 4.5:1 on a band section", () => {
+  // F-312's reproduction: #69c369 once derived #24822a, 4.48:1 on surface-sunken.
+  const { s } = pairs("#69c369");
+  assert.ok(contrastRatio(s.primary, LIGHT_SITE_SURFACE.sunken) >= 4.5);
+});
+
 test("pure white, black and yellow meet all five pairs", () => {
   for (const hex of ["#ffffff", "#000000", "#ffff00"]) assertPairsHold(hex);
 });
@@ -130,7 +137,7 @@ test("the declarations text holds only safe characters, even for hostile input",
   );
 });
 
-test("the light surface matches the site scope's bg and surface in app.css", () => {
+test("the light surface matches the site scope's bg, surface and sunken in app.css", () => {
   const css = readFileSync(path.join(import.meta.dirname, "../../app.css"), "utf8");
   const token = (name: string) => css.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6});`))?.[1];
   const scope = css.slice(css.indexOf('[data-surface="site"] {'));
@@ -138,4 +145,5 @@ test("the light surface matches the site scope's bg and surface in app.css", () 
     scope.match(new RegExp(`${name}:\\s*var\\((--[a-z0-9-]+)\\)`))?.[1];
   assert.equal(token(role("--color-bg") ?? ""), LIGHT_SITE_SURFACE.bg);
   assert.equal(token(role("--color-surface") ?? ""), LIGHT_SITE_SURFACE.surface);
+  assert.equal(token(role("--color-surface-sunken") ?? ""), LIGHT_SITE_SURFACE.sunken);
 });

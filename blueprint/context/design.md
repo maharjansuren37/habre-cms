@@ -127,7 +127,8 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
   one hex - for light, and for dark when it is on - by moving the colour's
   OKLCH lightness until each pair meets AA: primary at least 4.5:1 on bg and
   surface, on-primary at least 4.5:1 on primary and on hover, **and primary at
-  least 4.5:1 on subtle**. A sketch that checked only the first two let gold
+  least 4.5:1 on subtle**, and on surface-sunken, a band section's background
+  (F-312: `#69c369` once derived a primary at 4.48 there). A sketch that checked only the first two let gold
   `#c9a25e` through at 4.39 on subtle, so the subtle check is required.
   The example `#2f6b5a` passes unchanged: light 6.23, dark `#66a28f` 6.72.
 - **Presets** (names provisional), each a font pair and a corner shape and

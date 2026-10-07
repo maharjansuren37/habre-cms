@@ -3,7 +3,7 @@
 **From build plan:** item 18a1 (item 18 -> 18a your brand -> 18a1; split proposed with this spec)
 **Type:** Feature
 **Verified:** not yet
-**Reviewed:** not yet
+**Reviewed:** 2026-10-07, 4277b1fbeb32, current, every lens - 1 blocking
 
 ## Goal
 
@@ -172,6 +172,13 @@ onboarding.
   button block on the canvas is `rgb(47, 107, 90)` and a heading block is
   Source Serif 4, while the selected block's ring is still Habre's rust;
   `e2e/content-security-policy.spec.ts`'s editor walk sees no violation.
+
+- [x] **Repair F-312 - A brand colour's links and outline buttons can fall to
+  4.48:1 on a band section** - `deriveBrandShades` also requires primary
+  >= 4.5:1 on the surface's `sunken` (`#f5f5f5`, `--color-surface-sunken`);
+  `e2e/contrast.spec.ts` gains primary on surface-sunken; design.md's rule
+  names it. *Done when:* `#69c369`'s primary is >= 4.5:1 on `#f5f5f5`
+  (red before the repair, green after); the contrast spec passes.
 
 ## Files and areas
 

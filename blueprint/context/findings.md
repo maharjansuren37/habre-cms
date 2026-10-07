@@ -103,3 +103,18 @@ File: app/features/media/optimise-image.server.ts (MAX_INPUT_PIXELS)
 
 ### F-310 [P2] unverified - sharp's prebuilt x64 binary needs x86-64-v2, which the server is not checked for
 File: deploy/setup-server.sh:47
+
+### F-312 [P1] fixed - A brand colour's links and outline buttons can fall to 4.48:1 on a band section
+File: app/features/brand/brand-colours.ts:117-121; app/features/blocks/content.module.css:18-21
+
+### F-313 [P2] open - deriveBrandShades only darkens, so a dark surface silently gets failing shades
+File: app/features/brand/brand-colours.ts:138-149
+
+### F-314 [P3] open - Other colour saves the wrong colour before hydration or without JavaScript
+File: app/features/settings/settings.tsx:443,455-466
+
+### F-315 [P3] open - The CSP walk's brand-preview colour assertion cannot fail
+File: e2e/content-security-policy.spec.ts:264-266
+
+### F-316 [P3] open - After a save, Settings' swatches keep the pre-save choice until a reload
+File: app/features/settings/settings.tsx:292-303
