@@ -104,7 +104,7 @@ File: app/features/media/optimise-image.server.ts (MAX_INPUT_PIXELS)
 ### F-310 [P2] unverified - sharp's prebuilt x64 binary needs x86-64-v2, which the server is not checked for
 File: deploy/setup-server.sh:47
 
-### F-312 [P1] fixed - A brand colour's links and outline buttons can fall to 4.48:1 on a band section
+### F-312 [P1] closed - A brand colour's links and outline buttons can fall to 4.48:1 on a band section
 File: app/features/brand/brand-colours.ts:117-121; app/features/blocks/content.module.css:18-21
 
 ### F-313 [P2] open - deriveBrandShades only darkens, so a dark surface silently gets failing shades

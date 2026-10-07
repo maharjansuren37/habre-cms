@@ -2,8 +2,8 @@
 
 **From build plan:** item 18a1 (item 18 -> 18a your brand -> 18a1; split proposed with this spec)
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** 2026-10-07, 9f7da7d1c732, current (re-review of F-312), every lens - 0 open blocking; F-312 fixed, re-review found it closed, awaiting a person (autopilot)
+**Verified:** 2026-10-07, 9f7da7d1c732, 8 of 8 proven (7 steps + the F-312 repair: `npm run test:e2e` 442/442, `npm run verify` 656 unit, psql constraint checks, screenshots); Step 3's "nothing visible yet" proven when built, superseded by Step 4 by design
+**Reviewed:** 2026-10-07, 9f7da7d1c732, current (re-review of F-312), every lens - 0 blocking; F-312 closed by the owner
 
 ## Goal
 
