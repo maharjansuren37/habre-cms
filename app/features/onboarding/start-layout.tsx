@@ -9,13 +9,9 @@ import type { Route } from "./+types/start-layout";
 import styles from "./onboarding.module.css";
 import { startGate } from "./start-gate.ts";
 
-// Order matters: a signed-out visitor goes to sign in, a member who is not an
-// admin gets Not Found, and only then is the gate asked.
-export const middleware: Route.MiddlewareFunction[] = [requireUser, requireRole(["admin"])];
-
-// A loader, so client-side navigations run the gate again. It guards every
-// /start route: the steps below it add only their own checks.
-export async function loader({ context }: Route.LoaderArgs) {
+// Middleware, not a loader: loaders do not run for a POST, so an action under
+// this layout (step 2's, the wait's retry) would otherwise skip the gate.
+const gateMiddleware: Route.MiddlewareFunction = async ({ context }) => {
   const { siteId } = context.get(userContext);
   const [{ suspended }, published] = await Promise.all([
     findMemberSite(siteId),
@@ -23,8 +19,16 @@ export async function loader({ context }: Route.LoaderArgs) {
   ]);
   const gate = startGate({ aiOn: runner !== null, suspended, published });
   if (gate.kind === "redirect") throw redirect(gate.to);
-  return null;
-}
+};
+
+// Order matters: a signed-out visitor goes to sign in, a member who is not an
+// admin gets Not Found, and only then is the gate asked. It guards every /start
+// route: the steps below it add only their own checks.
+export const middleware: Route.MiddlewareFunction[] = [
+  requireUser,
+  requireRole(["admin"]),
+  gateMiddleware,
+];
 
 export default function StartLayout() {
   return (

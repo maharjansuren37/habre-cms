@@ -175,7 +175,7 @@ cap - land here too. The draft's review and apply are 18b4.
   `/admin`; on the host-split server `/start` goes to `/admin`; no
   horizontal scroll at 390px; `e2e/content-security-policy.spec.ts`'s
   admin-policy check covers `/start`.
-- [ ] **Step 5 - `/start/about`, step 2, and starting the run** -
+- [x] **Step 5 - `/start/about`, step 2, and starting the run** -
   `start-about.tsx`: loader (a missing or unknown `kind` -> `/start`; a
   running run -> its page; `from=<runId>` of this site prefills the
   description); action (Zod: kind, description trimmed 10-2,000; then
@@ -312,6 +312,7 @@ cap - land here too. The draft's review and apply are 18b4.
   paths as well as `/admin`. Beat: losing the step on sign-in (journey 6).
 - **A suspended site is not offered a run.** Beat: letting a site the
   operator took down for abuse keep spending AI credits.
+- **The gate runs as the layout's middleware, not a loader** (autopilot, Step 5): loaders do not run for a POST, so step 2's action and the wait's retry would otherwise start runs for a site with published content. Beat: the loader the spec named.
 - **The wait polls every 2 seconds with `useRevalidator`.** Beat: a stream or
   SSE (D154), and a meta refresh (a full reload every time, losing focus).
 

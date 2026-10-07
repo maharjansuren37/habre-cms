@@ -26,7 +26,10 @@ export default [
   route("reset-password", "features/signup/reset-password.tsx"),
   route("confirm-email", "features/account/confirm-email.tsx"),
   // Onboarding (item 18b3): platform paths, admin only; the layout runs the gate.
-  layout("features/onboarding/start-layout.tsx", [route("start", "features/onboarding/start.tsx")]),
+  layout("features/onboarding/start-layout.tsx", [
+    route("start", "features/onboarding/start.tsx"),
+    route("start/about", "features/onboarding/start-about.tsx"),
+  ]),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.ts"),
     route("admin/posts", "features/content/post-list.tsx"),
