@@ -156,6 +156,24 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
     the page hydrates; its visible name says it regardless.
   - **Placement:** the Brand section follows Logo and precedes Site
     description.
+- **Settings' logo and its colours (18a2, owner's spec 2026-10-07).** The
+  record did not cover four things:
+  - **Both ways to set a logo stay:** Upload logo (a file input, PNG, JPEG,
+    WebP, GIF or SVG, up to 10 MB) and Choose logo (the library picker).
+    With a logo set they read Replace logo and Change logo, beside Remove
+    logo.
+  - **Upload states:** the upload control is `aria-busy` and disabled while
+    sending; a refusal shows the server's message under the field (the
+    Media screen's wording); "Saved as a PNG for the web." shows only after
+    an SVG.
+  - **A chosen colour never moves by itself:** when the logo changes or
+    goes, a selected logo colour that is no longer offered stays selected as
+    Other colour with the same hex, so the preview never changes unasked.
+    Settings never selects a logo colour itself; 18b's onboarding may.
+  - **Swatch names:** the logo's colours follow the saved colour, most-used
+    first; the visible text is the hex, as for the saved colour, and the
+    accessible name adds the colour word and "from your logo" ("Green from
+    your logo, #2d6a58").
 - **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
   a site looks the way its owner saw it in the editor, and a dark logo never
   disappears on a dark page.
@@ -220,7 +238,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 | Editor | applies | **mocked**, two states (`editor.html`) |
 | Media | applies | carried over (below) |
 | Messages (contact form submissions) | applies | deferred to item 19; the kit's list and empty state |
-| Settings: name, address, logo, brand colour, style, home page, menu, SEO defaults, level, dark mode (Pro) | applies | deferred to items 16-20; the kit's form; brand colour and style reuse `start-brand.html`'s controls |
+| Settings: name, address, logo, brand colour, style, home page, menu, SEO defaults, level, dark mode (Pro) | applies | deferred to items 16-20; the kit's form; brand colour and style reuse `start-brand.html`'s controls; the logo's upload, its states and its colour swatches: *Customer sites*, Settings' logo and its colours (18a2) |
 | Users | applies, Pro only | carried over from item 8 |
 | Not found (404), on Habre and on a site | applies | the kit's `.error-page`, in each scope; not re-mocked |
 | Something went wrong (500) | applies | the kit's `.error-page`; no stack trace |

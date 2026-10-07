@@ -34,8 +34,19 @@ test("the public policy allows styles from this origin and this response's nonce
 
 test("the admin policy allows no inline styles and no data: images; its styles stay this origin only", () => {
   const header = contentSecurityPolicy({ nonce: "abc123==", area: "admin", imageBaseUrl: R2 });
-  assert.deepEqual(directives(header), { ...SHARED, "style-src": "'self'" });
+  assert.deepEqual(directives(header), {
+    ...SHARED,
+    "style-src": "'self'",
+    "img-src": `'self' ${R2} blob:`,
+  });
   assert.doesNotMatch(header, /unsafe-inline|data:/);
+});
+
+test("only the admin allows blob: images, so an SVG logo can be drawn from the person's own file (18a2)", () => {
+  const admin = contentSecurityPolicy({ nonce: "n", area: "admin", imageBaseUrl: R2 });
+  const site = contentSecurityPolicy({ nonce: "n", area: "public", imageBaseUrl: R2 });
+  assert.match(directives(admin)["img-src"], /(^| )blob:/);
+  assert.doesNotMatch(directives(site)["img-src"], /blob:/);
 });
 
 test("images are allowed from the R2 bucket's origin, without its path", () => {

@@ -8,6 +8,8 @@ export type SiteSettings = {
   siteTitle: string;
   logoMediaId: string | null;
   logoUrl: string | null;
+  /** The logo's colours, most-used first; `[]` with no logo. */
+  logoColours: string[];
   navigation: NavItem[];
   homePageId: string | null;
   siteDescription: string;
@@ -59,6 +61,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         logoMediaId: string | null;
         storageKey: string | null;
         variantWidths: number[] | null;
+        colours: string[] | null;
         navigation: unknown;
         homePageId: string | null;
         siteDescription: string;
@@ -68,7 +71,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
-      m.storage_key as "storageKey", m.variant_widths as "variantWidths", s.navigation as "navigation",
+      m.storage_key as "storageKey", m.variant_widths as "variantWidths", m.colours as "colours", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
       s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset"
     from site_settings s
@@ -83,6 +86,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
       ? mediaSources(r2PublicUrl, { storageKey: row.storageKey, variantWidths: row.variantWidths })
           .thumbnail
       : null,
+    logoColours: row.colours ?? [],
     navigation: parseStoredNavigation(row.navigation),
     homePageId: row.homePageId,
     siteDescription: row.siteDescription,

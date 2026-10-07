@@ -1,3 +1,4 @@
+import type { PickedMedia } from "./media-picker-dialog.client.ts";
 import { buildMediaUrl } from "./media-url.ts";
 
 /** What a media row's objects are worked out from. */
@@ -65,5 +66,30 @@ export function mediaSources(publicUrl: string, row: MediaObjectRow): MediaSourc
     srcset: widths.map((width) => `${url(width)} ${width}w`).join(", "),
     thumbnail: url(thumbnailWidth),
     social: buildMediaUrl(publicUrl, socialKey(directory)),
+  };
+}
+
+/** What a media row needs to become the picker's item. */
+export type PickableRow = MediaObjectRow & {
+  id: string;
+  filename: string;
+  altText: string;
+  width: number;
+  height: number;
+  colours: string[];
+};
+
+/** The one shape the picker, and an upload's answer, hand to the browser. */
+export function toPickedMedia(r2PublicUrl: string, row: PickableRow): PickedMedia {
+  const { src, thumbnail } = mediaSources(r2PublicUrl, row);
+  return {
+    id: row.id,
+    url: thumbnail,
+    src,
+    filename: row.filename,
+    altText: row.altText,
+    width: row.width,
+    height: row.height,
+    colours: row.colours,
   };
 }

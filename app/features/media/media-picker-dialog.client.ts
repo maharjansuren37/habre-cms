@@ -19,6 +19,8 @@ export type PickedMedia = {
   altText: string;
   width: number;
   height: number;
+  /** Up to three `#rrggbb` colours counted from the image, most-used first. */
+  colours: string[];
 };
 
 type PickerResponse = { media: PickedMedia[]; page: number; totalPages: number };

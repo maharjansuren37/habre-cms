@@ -518,3 +518,9 @@ File: e2e/content-security-policy.spec.ts:264-266
 
 ### F-316 [P3] open - After a save, Settings' swatches keep the pre-save choice until a reload
 File: app/features/settings/settings.tsx:292-303
+
+### F-327 [P3] open - A real colour can be dropped against a segment whose end is itself a halo, so the palette can be empty
+File: app/features/brand/logo-colours.ts:95-102
+
+### F-328 [P3] open - design.md says the upload control is disabled while sending; the code uses aria-disabled on it, Choose and Remove
+File: blueprint/context/design.md:165-168, :508 (*Pending*)

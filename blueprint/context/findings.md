@@ -94,7 +94,7 @@ File: e2e/media-optimise.spec.ts:105-107
 
 
 ### F-300 [P2] open - The refusal for an upload that only fails the storage limit after resizing has no test
-File: app/features/media/media-list.tsx:151
+File: app/features/media/store-upload.server.ts:94 (moved from media-list.tsx in 18a2)
 
 
 ### F-309 [P2] unverified - Peak memory resizing a 40-megapixel image on the 954 MB server is unmeasured
@@ -106,3 +106,6 @@ File: deploy/setup-server.sh:47
 
 ### F-313 [P2] open - deriveBrandShades only darkens, so a dark surface silently gets failing shades
 File: app/features/brand/brand-colours.ts:138-149
+
+### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
+File: app/features/media/optimise-image.server.ts:64

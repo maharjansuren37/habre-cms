@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!.claude", "!.agents", "!prototypes", "!blueprint/design-kit"]
+    "includes": [
+      "**",
+      "!.claude",
+      "!.agents",
+      "!prototypes",
+      "!blueprint/design-kit",
+      "!e2e/fixtures"
+    ]
   },
   "formatter": {
     "enabled": true,

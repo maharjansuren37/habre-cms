@@ -34,7 +34,9 @@ export function areaForPath(pathname: string): PolicyArea {
  * panel are placed through CSSOM (`element.style`), which the policy allows.
  * `e2e/content-security-policy.spec.ts` walks the editor to keep it so.
  * Images come from this origin or the R2 bucket, whose base URL may carry a
- * path, so only its origin is used.
+ * path, so only its origin is used. The admin also allows `blob:` images, so an
+ * SVG logo can be drawn from the person's own file before it becomes a PNG
+ * (18a2); the public pages do not.
  */
 export function contentSecurityPolicy(options: {
   nonce: string;
@@ -50,7 +52,7 @@ export function contentSecurityPolicy(options: {
     "default-src": "'self'",
     "script-src": `'self' 'nonce-${nonce}'`,
     "style-src": area === "public" ? `'self' 'nonce-${nonce}'` : "'self'",
-    "img-src": `'self' ${imageOrigin}`,
+    "img-src": area === "admin" ? `'self' ${imageOrigin} blob:` : `'self' ${imageOrigin}`,
     "font-src": "'self'",
     "connect-src": "'self'",
     "object-src": "'none'",

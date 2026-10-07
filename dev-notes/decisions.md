@@ -4058,3 +4058,108 @@ Costs: a picked colour may be shown darker than picked.
 Beats: checking only bg, surface and subtle - 1,233 of 140,608 sampled
 colours fell below 4.5 on a band section.
 Costs: some light colours derive one step darker.
+
+## D359 - A logo's colours are counted on the server at upload and stored on its media row (2026-10-07)
+
+**Chose:** `sharp` reads a 64px raw copy of each uploaded image and stores up
+to three `#rrggbb` colours in `media.colours` (item 18a2). Supersedes D167's
+"taken from the logo's pixels in the browser".
+Beats: the browser canvas, which a logo picked from the library taints (R2 is
+another origin; CORS is an owner setting), so library logos would get no
+colours; reading the image back from R2 on each pick.
+Costs: a 64px decode per upload and a column. Images uploaded before 18a2 have
+no colours; `optimise-media` does not backfill them.
+
+## D360 - The admin's `img-src` allows `blob:` (2026-10-07)
+
+**Chose:** `blob:` in the admin's Content-Security-Policy `img-src`, so an SVG
+logo can be drawn from the user's own file; the public policy is unchanged.
+Beats: a `data:` URL (same risk, larger); putting the SVG into the page's DOM
+(it would run).
+Costs: none worth naming - only same-origin blobs qualify.
+
+## D361 - The logo uploads through its own admin-only route, on one shared upload function (2026-10-07)
+
+**Chose:** `POST /admin/settings/logo` answers JSON; Media's action and this
+route both call `storeUpload(actor, file, altText)` (storage cap, sizes, R2
+before the row). 18b's onboarding upload calls it too.
+Beats: posting to `/admin/media` and reading its redirect.
+Costs: one more route.
+
+## D362 - A logo uploaded from Settings gets the alt text "<site title> logo" (2026-10-07)
+
+**Chose:** that alt text, set by the server.
+Beats: asking for alt text in Settings - the header shows the logo with
+`alt=""` beside the site name, so this is only the library's label.
+Costs: the label does not follow a later title change.
+
+## D363 - Settings never selects a logo colour by itself (2026-10-07)
+
+**Chose:** the logo's colours are offered as swatches, none checked; when the
+logo changes or goes, a selected logo colour no longer offered stays selected
+as Other colour with the same hex.
+Beats: preselecting the logo's main colour - AI and the logo suggest, the user
+applies (principles). 18b's onboarding may preselect.
+Costs: one more click for the common case.
+
+## D364 - An SVG logo becomes a PNG 1200px on its longer side (2026-10-07)
+
+**Chose:** drawn from a `blob:` URL in an `<img>` into a canvas, 1200px on its
+longer side, transparency kept, sent as `image/png`; the server's byte check
+still refuses SVG. Re-confirmed by the owner (2026-10-07).
+Beats: D167's "about 1200px wide" (a tall logo would grow past 1200px);
+storing SVG, which needs all three of a server-side allowlist sanitiser, the
+cookieless media domain, and `sandbox` CSP headers on `.svg` responses (needs
+the custom R2 domain; `r2.dev` cannot set them).
+Costs: the logo loses its vector sharpness above 1200px.
+
+## D365 - Biome skips `e2e/fixtures` (2026-10-07)
+
+**Chose:** `e2e/fixtures` excluded in `biome.json`.
+Beats: linting them - Biome 2.5 lints `.svg` and fails on the deliberately
+malformed and scripted fixtures, which are test inputs, not source.
+Costs: a real lint problem in a fixture goes unseen.
+
+## D366 - An SVG's size comes from its root tag's text (2026-10-07)
+
+**Chose:** `svg-size.ts` reads plain or px `width` and `height`, else the
+`viewBox`, else what the browser measured - as a string, never put into the
+page.
+Beats: the browser's measurement alone, which reports Chromium's 300x150
+default for a viewBox-only SVG.
+Costs: units other than px fall back to the viewBox.
+
+## D367 - The palette rule (2026-10-07)
+
+**Chose:** skip pixels under alpha 128 and with OKLab L > 0.95; a pixel joins
+the nearest group whose running OKLab centre is within 0.08, else starts one;
+keep groups of at least 5% of counted pixels; drop a halo - a group within 12
+(of 255) of the open sRGB segment between another kept colour and white, or
+between two other kept colours, at any size (F-317, F-323); each colour is its
+group's sRGB average; at most three. Colour words: L < 0.25 black, chroma <
+0.04 grey, else by hue - red 355-40, orange 40-80, yellow 80-125, green
+125-176, teal 176-225, blue 225-285, purple 285-325, pink 325-355; a light red
+(L > 0.78) is pink, a dark orange or yellow (L < 0.6) brown.
+Beats: "within 0.16 OKLab of a larger kept group", which also dropped a real
+second tone of one hue (`#4a9c80` beside `#2f6b5a` at 45%); a size bound on
+halos, since a text wordmark's edges reach 0.71 of the main colour's pixels.
+Costs: a deliberate tint of a kept colour, a grey beside black, or a mix of
+two kept colours is dropped as a halo at any share (F-324). A colour is near
+the drawn one, not exact - edge pixels within 0.08 join the group, so the
+mock's `#2f6b5a` is stored as `#2d6a58`.
+
+## D368 - A logo's colours are ordered most-used first (2026-10-07)
+
+**Chose:** most-used first, ties by higher chroma - owner, 2026-10-07.
+Beats: the spec's "highest chroma first" - 18b preselects `colours[0]`, and
+the colour covering most of a logo is its brand colour more often than a
+small saturated accent.
+Costs: a logo with a large neutral-ish field and a small vivid mark offers
+the field first.
+
+## D369 - `media.colours`' check refuses anything but 0-3 lowercase `#rrggbb` values (2026-10-07)
+
+**Chose:** `0019_media_colours.sql`'s check also refuses `{''}`, an element
+holding a comma and a multi-dimensional array (F-318).
+Beats: trusting the app to write well-formed values - 18b reads `colours[0]`.
+Costs: none worth naming.

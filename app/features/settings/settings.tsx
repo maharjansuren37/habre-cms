@@ -11,12 +11,16 @@ import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import "#app/lib/zod-jitless.client.ts";
-import {
-  openMediaPickerDialog,
-  type PickedMedia,
-} from "#app/features/media/media-picker-dialog.client.ts";
+import { colourWord } from "#app/features/brand/logo-colours.ts";
 import type { Route } from "./+types/settings";
+import {
+  brandSwatches,
+  type ColourChoice,
+  choiceAfterLogoChange,
+  choiceColour,
+} from "./brand-swatches.ts";
 import { LANGUAGES, languageOrDefault } from "./languages.ts";
+import { type Logo, LogoField } from "./logo-field.tsx";
 import {
   applyNavIntent,
   draftRowsToNavItems,
@@ -243,6 +247,10 @@ const STYLE_PRESETS = [
   { value: "friendly", label: "Friendly", sample: "Soft and round" },
 ] as const;
 
+function capitalise(word: string) {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 /** Through the CSSOM, never a style attribute: the admin's style-src has no 'unsafe-inline'. */
 function setSwatchColour(element: HTMLElement | null, colour: string) {
   element?.style.setProperty("--swatch", colour);
@@ -258,9 +266,14 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
     throw new Error("Settings: the admin-shell layout's data is missing - check its route id.");
   }
   const { settings } = layoutData;
-  const [logo, setLogo] = useState<Pick<PickedMedia, "id" | "url" | "filename"> | null>(
+  const [logo, setLogo] = useState<Logo | null>(
     settings.logoMediaId && settings.logoUrl
-      ? { id: settings.logoMediaId, url: settings.logoUrl, filename: "" }
+      ? {
+          id: settings.logoMediaId,
+          url: settings.logoUrl,
+          filename: "",
+          colours: settings.logoColours,
+        }
       : null,
   );
   const navigation = useNavigation();
@@ -288,17 +301,34 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   // "Other colour" holds whatever the colour picker says. It starts on the saved
   // colour (or a neutral green to start from) and is only checked when the
   // colour in play is neither No colour nor the saved one.
-  const otherIsChecked = colourDefault !== "" && colourDefault !== savedColour;
+  const startsOnLogoColour =
+    colourDefault !== "" &&
+    colourDefault !== savedColour &&
+    settings.logoColours.includes(colourDefault);
+  const otherIsChecked =
+    colourDefault !== "" && colourDefault !== savedColour && !startsOnLogoColour;
   const [otherColour, setOtherColour] = useState(
     otherIsChecked ? colourDefault : savedColour || "#2f6b5a",
   );
   // Which swatch is chosen. Controlled, because a radio checked by script would not tell
   // React it changed (its value tracker would swallow the next click on the one it unchecked).
-  const [colourChoice, setColourChoice] = useState<"none" | "saved" | "other">(
-    otherIsChecked ? "other" : colourDefault === "" ? "none" : "saved",
+  const [colourChoice, setColourChoice] = useState<ColourChoice>(
+    startsOnLogoColour
+      ? colourDefault
+      : otherIsChecked
+        ? "other"
+        : colourDefault === ""
+          ? "none"
+          : "saved",
   );
-  const previewColour =
-    colourChoice === "other" ? otherColour : colourChoice === "saved" ? savedColour : "";
+  const previewColour = choiceColour(colourChoice, savedColour, otherColour);
+  // A chosen colour never moves by itself when the logo changes or goes.
+  function changeLogo(next: Logo | null) {
+    const kept = choiceAfterLogoChange(colourChoice, savedColour, next?.colours ?? [], otherColour);
+    setLogo(next);
+    setColourChoice(kept.choice);
+    setOtherColour(kept.other);
+  }
   // What the preview shows for Style: the saved choice to start with, then whatever is picked.
   const [previewPreset, setPreviewPreset] = useState<string>(presetDefault);
   const previewFrameRef = useRef<HTMLDivElement>(null);
@@ -307,24 +337,6 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   }, [previewColour]);
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
-
-  // The picker's dialog closes before it hands back a pick (media-picker-dialog.client.ts),
-  // which restores focus to whatever opened it - but that element is the exact
-  // one this re-render is about to remove (placeholder <-> preview swap the
-  // button's own root element), so the browser's restored focus lands on a node
-  // that is gone by the time it paints. The fix (F-76): re-focus a button by
-  // hand once the new content exists. Skipped on mount so loading an already-set logo
-  // does not steal focus from nothing.
-  const logoFieldRef = useRef<HTMLFieldSetElement>(null);
-  const hasMountedRef = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: depends on `logo` to re-run on every change, though the body only reads refs
-  useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
-    }
-    logoFieldRef.current?.querySelector("button")?.focus();
-  }, [logo]);
 
   return (
     <>
@@ -363,30 +375,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           required
         />
         <input type="hidden" name="logoMediaId" value={logo?.id ?? ""} />
-        <fieldset className={styles.logoField} ref={logoFieldRef}>
-          <legend className={styles.logoLabel}>Logo</legend>
-          {logo ? (
-            <div className={styles.logoPreview}>
-              <img src={logo.url} alt="" className={styles.logoImage} />
-              <div className={styles.logoActions}>
-                <Button
-                  type="button"
-                  variant="quiet"
-                  onClick={() => openMediaPickerDialog("Choose a logo", setLogo)}
-                >
-                  Change logo
-                </Button>
-                <Button type="button" variant="quiet" onClick={() => setLogo(null)}>
-                  Remove logo
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button type="button" onClick={() => openMediaPickerDialog("Choose a logo", setLogo)}>
-              Choose logo
-            </Button>
-          )}
-        </fieldset>
+        <LogoField logo={logo} onChange={changeLogo} />
         <div className={styles.brandArea}>
           <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
             <legend className={styles.logoLabel}>Brand colour</legend>
@@ -398,74 +387,91 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               colour reaches its swatch through the CSSOM (setSwatchColour): a style attribute
               is blocked by the admin's style-src. */}
             <ul className={styles.swatches}>
-              <li>
-                <label className={`${styles.swatch} ${styles.swatchInk}`}>
-                  <input
-                    type="radio"
-                    name="brandColor"
-                    value=""
-                    checked={colourChoice === "none"}
-                    onChange={() => setColourChoice("none")}
-                  />
-                  <span className={styles.swatchDot} aria-hidden="true" />
-                  <span className={styles.swatchName}>
-                    No colour<span className="visually-hidden"> (black and white)</span>
-                  </span>
-                </label>
-              </li>
-              {savedColour && (
-                <li>
-                  <label className={styles.swatch}>
-                    <input
-                      type="radio"
-                      name="brandColor"
-                      value={savedColour}
-                      checked={colourChoice === "saved"}
-                      onChange={() => setColourChoice("saved")}
-                    />
-                    <span
-                      className={styles.swatchDot}
-                      aria-hidden="true"
-                      ref={(el) => setSwatchColour(el, savedColour)}
-                    />
-                    <span className={styles.swatchName}>
-                      <span className="visually-hidden">Saved colour </span>
-                      {savedColour}
-                    </span>
-                  </label>
-                </li>
+              {brandSwatches(savedColour, logo?.colours ?? [], colourChoice, otherColour).map(
+                (swatch) => {
+                  if (swatch.kind === "none") {
+                    return (
+                      <li key={swatch.key}>
+                        <label className={`${styles.swatch} ${styles.swatchInk}`}>
+                          <input
+                            type="radio"
+                            name="brandColor"
+                            value=""
+                            checked={swatch.checked}
+                            onChange={() => setColourChoice("none")}
+                          />
+                          <span className={styles.swatchDot} aria-hidden="true" />
+                          <span className={styles.swatchName}>
+                            No colour<span className="visually-hidden"> (black and white)</span>
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  }
+                  if (swatch.kind === "other") {
+                    return (
+                      <li key={swatch.key} className={styles.otherSwatch}>
+                        <label className={styles.swatch}>
+                          <input
+                            type="radio"
+                            name="brandColor"
+                            value={swatch.value}
+                            checked={swatch.checked}
+                            onChange={() => setColourChoice("other")}
+                          />
+                          <span
+                            className={styles.swatchDot}
+                            aria-hidden="true"
+                            ref={(el) => setSwatchColour(el, swatch.value)}
+                          />
+                          <span className={styles.swatchName}>Other colour</span>
+                        </label>
+                        <input
+                          type="color"
+                          className={styles.colourInput}
+                          aria-label="Pick other colour"
+                          value={otherColour}
+                          // Opening the picker selects Other; so does a new colour (a click is not
+                          // needed to change one by keyboard). Focus alone does not, so tabbing
+                          // past it changes nothing.
+                          onClick={() => setColourChoice("other")}
+                          onChange={(event) => {
+                            setOtherColour(event.target.value);
+                            setColourChoice("other");
+                          }}
+                        />
+                      </li>
+                    );
+                  }
+                  const isLogo = swatch.kind === "logo";
+                  return (
+                    <li key={swatch.key}>
+                      <label className={styles.swatch}>
+                        <input
+                          type="radio"
+                          name="brandColor"
+                          value={swatch.value}
+                          checked={swatch.checked}
+                          onChange={() => setColourChoice(isLogo ? swatch.value : "saved")}
+                        />
+                        <span
+                          className={styles.swatchDot}
+                          aria-hidden="true"
+                          ref={(el) => setSwatchColour(el, swatch.value)}
+                        />
+                        <span className={styles.swatchName}>
+                          <span className="visually-hidden">
+                            {isLogo
+                              ? `${capitalise(colourWord(swatch.value))} from your logo, `
+                              : "Saved colour "}
+                          </span>
+                          {swatch.value}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                },
               )}
-              <li className={styles.otherSwatch}>
-                <label className={styles.swatch}>
-                  <input
-                    type="radio"
-                    name="brandColor"
-                    value={otherColour}
-                    checked={colourChoice === "other"}
-                    onChange={() => setColourChoice("other")}
-                  />
-                  <span
-                    className={styles.swatchDot}
-                    aria-hidden="true"
-                    ref={(el) => setSwatchColour(el, otherColour)}
-                  />
-                  <span className={styles.swatchName}>Other colour</span>
-                </label>
-                <input
-                  type="color"
-                  className={styles.colourInput}
-                  aria-label="Pick other colour"
-                  value={otherColour}
-                  // Opening the picker selects Other; so does a new colour (a click is not
-                  // needed to change one by keyboard). Focus alone does not, so tabbing
-                  // past it changes nothing.
-                  onClick={() => setColourChoice("other")}
-                  onChange={(event) => {
-                    setOtherColour(event.target.value);
-                    setColourChoice("other");
-                  }}
-                />
-              </li>
             </ul>
             {errors.brandColor && <p className={styles.fieldError}>{errors.brandColor}</p>}
           </fieldset>

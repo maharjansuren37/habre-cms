@@ -16,6 +16,8 @@ export type Media = {
   altText: string;
   /** null: not yet optimised; []: stored as uploaded; else the WebP widths (media-objects.ts). */
   variantWidths: number[] | null;
+  /** Up to three `#rrggbb` logo colours, most-used first. */
+  colours: string[];
   uploadedBy: string | null;
   uploadedByName: string | null;
   createdAt: Date;
@@ -27,7 +29,7 @@ export type Actor = { id: string; role: Role };
 const mediaColumns = sql`
   m.id, m.storage_key as "storageKey", m.filename, m.mime_type as "mimeType",
   m.byte_size as "byteSize", m.width, m.height, m.alt_text as "altText",
-  m.variant_widths as "variantWidths", m.uploaded_by as "uploadedBy", u.name as "uploadedByName", m.created_at as "createdAt"
+  m.variant_widths as "variantWidths", m.colours, m.uploaded_by as "uploadedBy", u.name as "uploadedByName", m.created_at as "createdAt"
 `;
 
 export type NewMedia = {
@@ -39,6 +41,7 @@ export type NewMedia = {
   height: number;
   altText: string;
   variantWidths: number[] | null;
+  colours: string[];
 };
 
 /**
@@ -64,6 +67,7 @@ export async function insertMedia(
       height: input.height,
       alt_text: input.altText,
       variant_widths: input.variantWidths,
+      colours: input.colours,
       uploaded_by: uploadedBy,
     })}
     returning id

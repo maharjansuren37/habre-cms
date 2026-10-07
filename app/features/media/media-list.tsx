@@ -9,23 +9,13 @@ import { Meter } from "#app/lib/ui/meter.tsx";
 import type { Route } from "./+types/media-list";
 import { mediaBannerRedirect, readMediaBanner } from "./banner.ts";
 import { formatFileSize } from "./file-size.ts";
-import { insertMedia, listMedia, storageUsed } from "./media.server.ts";
-import {
-  altTextSchema,
-  detectImage,
-  filenameSchema,
-  isUploadSizeAllowed,
-  MAX_UPLOAD_BYTES,
-} from "./media-input.ts";
+import { listMedia, storageUsed } from "./media.server.ts";
+import { isUploadSizeAllowed } from "./media-input.ts";
 import styles from "./media-list.module.css";
 import { parseMediaListPage } from "./media-list-query.ts";
 import { mediaSources } from "./media-objects.ts";
-import { optimiseImage } from "./optimise-image.server.ts";
-import { IMMUTABLE_CACHE_CONTROL, uploadObject } from "./r2.server.ts";
-import { generateStorageKey, generateUploadDirectory } from "./storage-key.ts";
-import { fitsStorage, formatStorageLimit, storageSummary } from "./storage-limit.ts";
-import { resizedObjects } from "./stored-objects.server.ts";
-import { MAX_INPUT_PIXELS, tooLargeMessage, UNREADABLE_MESSAGE } from "./upload-refusals.ts";
+import { storageSummary } from "./storage-limit.ts";
+import { storeUpload } from "./store-upload.server.ts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Media - Habre CMS" }];
@@ -64,15 +54,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-function storageRefusal(limit: number) {
-  return data(
-    {
-      problem: `This image would take your site past its ${formatStorageLimit(limit)} of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.`,
-    },
-    { status: 413 },
-  );
-}
-
 export async function action({ request, context }: Route.ActionArgs) {
   const actor = context.get(userContext);
   if (!isUploadSizeAllowed(request.headers)) {
@@ -82,98 +63,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     );
   }
   const form = await request.formData();
-  const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return data({ problem: "Choose an image to upload." }, { status: 400 });
-  }
-  // The header check above is on the declared size; this is the real one.
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return data(
-      { problem: "This image is larger than 10 MB. Choose a smaller file and try again." },
-      { status: 413 },
-    );
-  }
-  const altText = altTextSchema.safeParse(form.get("altText") ?? "");
-  if (!altText.success) {
-    return data(
-      { problem: altText.error.issues[0]?.message ?? "Add alt text before uploading." },
-      { status: 400 },
-    );
-  }
-  const filename = filenameSchema.safeParse(file.name);
-  if (!filename.success) {
-    return data(
-      { problem: filename.error.issues[0]?.message ?? "This file has no usable name." },
-      { status: 400 },
-    );
-  }
-
-  const buffer = await file.arrayBuffer();
-  const detected = detectImage(new Uint8Array(buffer));
-  if (!detected.ok) {
-    return data({ problem: "This file is not a JPEG, PNG, WebP or GIF image." }, { status: 400 });
-  }
-
-  // A site already full is refused before resizing, so it costs no CPU. No lock:
-  // two uploads at once can each pass by one file (accepted).
-  const limit = env.STORAGE_LIMIT_BYTES;
-  const used = limit === null ? 0 : await storageUsed(actor.siteId);
-  if (limit !== null && used >= limit) return storageRefusal(limit);
-
-  const bytes = Buffer.from(buffer);
-  const started = performance.now();
-  const optimised = await optimiseImage(bytes);
-  const resizeMs = Math.round(performance.now() - started);
-  if (optimised.kind === "unreadable") {
-    return data({ problem: UNREADABLE_MESSAGE }, { status: 400 });
-  }
-  if (optimised.kind === "too-large") {
-    return data({ problem: tooLargeMessage(MAX_INPUT_PIXELS) }, { status: 400 });
-  }
-
-  // What is stored: every resized object, or the upload itself for an animated GIF.
-  const resized =
-    optimised.kind === "resized"
-      ? resizedObjects(generateUploadDirectory(actor.siteId), optimised.sizes, optimised.social)
-      : null;
-  const objects = resized
-    ? resized.objects
-    : [
-        {
-          key: generateStorageKey(actor.siteId, detected.extension),
-          bytes,
-          contentType: detected.mimeType,
-        },
-      ];
-  const storedBytes = resized
-    ? resized.storedBytes
-    : objects.reduce((sum, object) => sum + object.bytes.byteLength, 0);
-  if (limit !== null && !fitsStorage(used, storedBytes, limit)) return storageRefusal(limit);
-
-  // R2 objects first, then the row (the plan's data rule) - a failure between
-  // leaves harmless orphaned objects. Written one at a time: five small writes,
-  // and a failure stops at the first.
-  for (const object of objects) {
-    await uploadObject(object.key, object.bytes, object.contentType, IMMUTABLE_CACHE_CONTROL);
-  }
-  await insertMedia(
-    actor.siteId,
-    {
-      storageKey: resized ? resized.widestKey : objects[0].key,
-      filename: filename.data,
-      mimeType: resized ? "image/webp" : detected.mimeType,
-      byteSize: storedBytes,
-      width: resized?.width ?? detected.width,
-      height: resized?.height ?? detected.height,
-      altText: altText.data,
-      variantWidths: resized?.variantWidths ?? [],
-    },
-    actor.id,
-  );
-  console.info(
-    `media upload site=${actor.siteId} resize_ms=${resizeMs} bytes_in=${buffer.byteLength} bytes_stored=${storedBytes}`,
-  );
-  return mediaBannerRedirect("uploaded", filename.data);
+  const result = await storeUpload(actor, form.get("file"), form.get("altText"));
+  if (!result.ok) return data({ problem: result.problem }, { status: result.status });
+  return mediaBannerRedirect("uploaded", result.media.filename);
 }
 
 export default function MediaList({ loaderData, actionData }: Route.ComponentProps) {

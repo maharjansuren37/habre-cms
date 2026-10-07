@@ -76,3 +76,8 @@
 
 - [ ] Run migration `0018_brand.sql` (additive, defaults: `site_settings.brand_color`, `style_preset`; no data change).
 - [ ] Public pages' Content-Security-Policy changes to `style-src 'self' 'nonce-…'`; Caddy sets no CSP of its own, so nothing on the server changes - confirm on a live public page after the deploy. No new environment variables, accounts or dependencies.
+
+## features/18a2-your-logo
+
+- [ ] Run migration `0019_media_colours.sql` (additive, default `'{}'`; no data change).
+- [ ] The admin's Content-Security-Policy gains `img-src blob:`; Caddy sets no CSP of its own, so nothing on the server changes. No new environment variables, accounts or dependencies.

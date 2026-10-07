@@ -7,3 +7,4 @@
 - **media.5** - deleting an image removes every stored size *Since:* features/17b-optimised-images
 - **media.6** - an image that cannot be read, or is over 40 megapixels, is refused with a message and no media row is added *Since:* features/17b-optimised-images
 - **media.7** - `npm run optimise-media` gives every image uploaded before item 17b its sizes, and a second run changes nothing *Since:* features/17b-optimised-images
+- **media.8** - an SVG sent to the server is refused, from Media and from Settings, and no media row is added *Since:* features/18a2-your-logo

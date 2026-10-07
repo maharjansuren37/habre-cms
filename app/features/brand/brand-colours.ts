@@ -59,18 +59,23 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-type Oklch = { l: number; c: number; h: number };
+export type Oklch = { l: number; c: number; h: number };
 
-function hexToOklch(hex: string): Oklch {
-  const [r, g, b] = hexToRgb(hex).map(decode) as Rgb;
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  const lab = {
+/** Gamma-encoded sRGB, each channel 0-1, to OKLab. */
+export function srgbToOklab(r: number, g: number, b: number): { l: number; a: number; b: number } {
+  const [lr, lg, lb] = [r, g, b].map(decode) as Rgb;
+  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  return {
     l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
     a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
     b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
   };
+}
+
+export function hexToOklch(hex: string): Oklch {
+  const lab = srgbToOklab(...hexToRgb(hex));
   return { l: lab.l, c: Math.hypot(lab.a, lab.b), h: Math.atan2(lab.b, lab.a) };
 }
 

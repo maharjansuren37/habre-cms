@@ -1,4 +1,5 @@
 import sharp, { type Sharp } from "sharp";
+import { paletteFromPixels } from "#app/features/brand/logo-colours.ts";
 import { MAX_INPUT_PIXELS } from "./upload-refusals.ts";
 import { variantWidths } from "./variant-widths.ts";
 
@@ -12,7 +13,7 @@ const SOCIAL_WIDTH = 1200;
 export type EncodedImage = { width: number; height: number; bytes: Buffer };
 
 export type OptimisedImage =
-  | { kind: "resized"; sizes: EncodedImage[]; social: EncodedImage }
+  | { kind: "resized"; sizes: EncodedImage[]; social: EncodedImage; colours: string[] }
   | { kind: "as-uploaded" }
   | { kind: "unreadable" }
   | { kind: "too-large" };
@@ -58,10 +59,17 @@ async function optimise(bytes: Buffer): Promise<OptimisedImage> {
       .resize({ width: Math.min(SOCIAL_WIDTH, width), withoutEnlargement: true })
       .jpeg({ quality: JPEG_QUALITY, mozjpeg: false })
       .toBuffer({ resolveWithObject: true });
+    // The logo's colours come from a 64px copy, so counting them costs next to nothing.
+    const small = await upright(bytes)
+      .resize({ width: 64, height: 64, fit: "inside" })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
     return {
       kind: "resized",
       sizes,
       social: { width: out.width, height: out.height, bytes: data },
+      colours: paletteFromPixels(small.data, small.info.width, small.info.height),
     };
   } catch (error) {
     if (error instanceof Error && /pixel limit/i.test(error.message)) {

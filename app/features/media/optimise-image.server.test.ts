@@ -167,3 +167,35 @@ test("a failed call does not stop the next one", async () => {
   assert.equal(bad.kind, "unreadable");
   assert.equal(ok.kind, "resized");
 });
+
+test("a logo's resized result carries its colours, most-used first", async () => {
+  const input = await sharp({
+    create: { width: 200, height: 100, channels: 3, background: "#ffffff" },
+  })
+    .composite([
+      {
+        input: { create: { width: 80, height: 60, channels: 3, background: "#2f6b5a" } },
+        left: 20,
+        top: 20,
+      },
+      {
+        input: { create: { width: 40, height: 60, channels: 3, background: "#c9a25e" } },
+        left: 130,
+        top: 20,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await expectResized(input);
+  assert.equal(result.colours.length, 2);
+  const near = (actual: string | undefined, expected: string) => {
+    assert.ok(actual);
+    for (const i of [1, 3, 5]) {
+      const a = Number.parseInt(actual.slice(i, i + 2), 16);
+      const e = Number.parseInt(expected.slice(i, i + 2), 16);
+      assert.ok(Math.abs(a - e) <= 3, `${actual} is not near ${expected}`);
+    }
+  };
+  near(result.colours[0], "#2f6b5a");
+  near(result.colours[1], "#c9a25e");
+});

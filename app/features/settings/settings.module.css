@@ -60,7 +60,10 @@
 
 .logoActions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  /* Three buttons with a logo set (18a2): they wrap beside the thumbnail at 390px. */
+  min-width: 0;
 }
 
 .navSection {
@@ -468,4 +471,26 @@
     left: calc(100% + var(--space-5) + var(--space-5));
     width: 22rem;
   }
+}
+
+/* Upload logo: a label that looks like the kit's button, around a visually hidden file input. */
+.uploadButton {
+  composes: button from "../../lib/ui/button.module.css";
+}
+
+.uploadButton:has(input:focus-visible) {
+  outline: var(--focus-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.uploadButton:has(input[aria-disabled="true"]),
+.logoActions button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.logoProblem {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
 }

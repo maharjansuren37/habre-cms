@@ -138,7 +138,8 @@ not tidying; it is what keeps the open list true.
       the editor's Search and sharing disclosure and its image picker, and
       Settings' Site description and Language; from item 18a1, Settings'
       Brand section - the colour swatches, Other colour, the Style cards and
-      the preview's name).
+      the preview's name; from item 18a2, Upload logo with its busy state and
+      refusals, and the "from your logo" swatches).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -148,7 +149,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -192,6 +193,15 @@ not tidying; it is what keeps the open list true.
       `surenmaharjan.fyi/` shows a "This site is being set up" placeholder
       instead of today's post list. Blocks nothing now; needed straight after
       `deploy` of item 9. `open` (spec, 2026-09-29)
+
+- [ ] **Upload an SVG logo in Settings in Firefox and Safari** - manual
+      verification; the browser tests run Chromium only, and older Safari
+      tainted any canvas an SVG was drawn on, which would stop the SVG
+      becoming a PNG. Upload `e2e/fixtures` SVG logo in each: it shows as the
+      logo, "Saved as a PNG for the web." appears, and its colours are
+      offered. Blocks nothing now; `verify` of item 18a2 names it as not
+      proven, and `preflight` needs it before the v1 deploy. `open` (spec
+      18a2, 2026-10-07)
 
 - [ ] **Check a real share preview and the sitemap after the v1 deploy** -
       manual verification; no test reaches Facebook's, LinkedIn's or
