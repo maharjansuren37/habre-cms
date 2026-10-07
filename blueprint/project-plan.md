@@ -696,13 +696,17 @@ decides a permission.
   `media.<sites domain>`.
   - **Uploads go through the app server** (D7): 10 MB cap; JPEG, PNG, WebP,
     GIF only. **No SVG** - it can carry script.
-- **AI: three providers in order - Anthropic's Claude API, then OpenAI, then
-  OpenRouter** (D155). They sit behind one `ai` module with one adapter per
-  provider.
-  - **Two packages, not three.** Anthropic and OpenAI are called through their
-    official SDKs (`@anthropic-ai/sdk`, `openai`). OpenRouter speaks OpenAI's
-    API, so the `openai` SDK calls it by changing the base URL - no new
-    package.
+- **AI: providers in a configured order, OpenRouter first by default**
+  (D155, amended by 18b1). They sit behind one `ai` module with one adapter
+  per provider; `AI_PROVIDERS` lists the order.
+  - **OpenRouter is the default primary:** any model it serves is
+    configuration, and **credits come from the cost OpenRouter reports on
+    each response** (`usage.cost`), not from a configured price.
+  - **Anthropic and OpenAI direct are optional fallbacks** (item 18b2),
+    through their official SDKs (`@anthropic-ai/sdk`, `openai`). They report
+    only tokens, so each needs a configured price per model. OpenRouter
+    speaks OpenAI's API, so the `openai` SDK calls it - the one package 18b1
+    installs.
   - **OpenRouter's request settings:**
     - `provider.require_parameters: true` - only endpoints that honour our
       output schema;
@@ -713,8 +717,8 @@ decides a permission.
     keeps the primary's model family when Anthropic itself is down. Asking
     for zero data retention as well can leave some models with no endpoint
     that accepts a schema, so item 18 checks the combination it uses.
-  - **The models are configuration,** with a price per model for credits
-    (D164). Item 18 measures the cost and quality of Claude Opus 5.5
+  - **The models are configuration** (D164); a provider that reports no cost
+    has a price per model. Item 18 measures the cost and quality of Claude Opus 5.5
     (US$4 / US$20 per million input / output tokens) against Claude Sonnet 5.5
     (US$2 / US$10), and each fallback model the same way. The owner picks.
   - **When the next provider is used:** only when the current one is
@@ -726,6 +730,8 @@ decides a permission.
       provider declines - a fake bank login page, say - is not sent elsewhere
       to get a yes. Anthropic's own server-side fallback to another Claude
       model handles Claude's refusals; if that also declines, the run fails.
+      That fallback applies only when Anthropic is called directly; through
+      OpenRouter a refusal fails the run.
     - **A request error (400) or an authentication error (401)** is our bug or
       a broken key. It fails loudly instead of being hidden by the fallback.
   - **Every provider fills the same constrained schema:** pages made of
@@ -797,7 +803,7 @@ decides a permission.
 |---|---|
 | PostgreSQL | every site and the admin down; `/healthz` 503 |
 | R2 | uploads fail with a message; images missing, text still served |
-| AI provider | Claude unavailable: the SDK retries, then the run moves to OpenAI, then to OpenRouter. All unavailable: the run fails ("Couldn't build your site - try again, or start blank"), no credits spent. A refusal never moves provider; it is a failed run with its own message |
+| AI provider | The primary unavailable: the SDK retries, then the run moves to the next provider in `AI_PROVIDERS`. All unavailable: the run fails ("Couldn't build your site - try again, or start blank"), no credits spent. A refusal never moves provider; it is a failed run with its own message |
 | Email | signup: "We couldn't send the email" with a resend button. Reset: the same neutral reply, failure logged. Contact form: submission kept, `notified_at` empty, shown in Messages |
 | Stripe API | the plan page says payment is unavailable; sites unaffected |
 | Stripe webhooks | Stripe retries for days; each event processed once |
@@ -945,8 +951,9 @@ From `architect`:
   - Backups are unaffected: `pg_dump` runs as the `postgres` superuser.
 - **New optional configuration:**
   - the signup mode;
-  - the AI providers' keys and models: Anthropic first, then OpenAI and
-    OpenRouter as optional fallbacks, with a price per model for credits;
+  - the AI providers' order, keys and models - OpenRouter by default,
+    Anthropic and OpenAI direct as optional fallbacks with a price per model;
+    OpenRouter needs no price, its responses carry their cost;
   - SMTP settings and the from address;
   - Stripe's secret key, webhook secret and price;
   - the plan limits: storage and the monthly AI credit allowance.
@@ -1189,8 +1196,9 @@ signup, many sites, forms and password reset by email move into platform v1.
   is not chosen. Owner's decision, needed by item 16. ~~Whether user sites also
   get a separate domain~~ **settled by D153:** yes, a separate sites domain, so
   sites live at `<name>.<sites domain>`.
-- ~~Which AI and email providers~~ **settled by D155 and D156:** Anthropic,
-  then OpenAI and OpenRouter as fallbacks; email over SMTP through Resend.
+- ~~Which AI and email providers~~ **settled by D155 and D156:** OpenRouter
+  first by default, Anthropic and OpenAI direct as optional fallbacks (D155,
+  amended 18b1); email over SMTP through Resend.
   ~~Payment provider~~ **settled by D149:** Stripe, as a plain processor.
 - **Prices and plan limits** - tiers and provisional prices recorded (D175,
   section 9); what Free allows, what Launch raises it to, and the final prices

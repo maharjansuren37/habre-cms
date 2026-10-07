@@ -278,12 +278,17 @@ not tidying; it is what keeps the open list true.
       2026-10-04)
 
 - [ ] **Three AI provider accounts, each with an API key and a monthly spend
-      limit: Anthropic (primary), then OpenAI and OpenRouter (fallbacks)**
+      limit: OpenRouter (primary), then Anthropic and OpenAI (fallbacks)**
       (D155) - accounts and spend. They power "start from a description". Set
       a spend cap in each provider's console as well as the app's per-site
-      credit allowance. Blocks nothing now; Anthropic is needed by item 18,
-      and the fallbacks can come last. `open` (rescope review, 2026-10-01;
-      providers chosen, architect, 2026-10-01)
+      credit allowance. **Order changed (D155 amended, 2026-10-07):
+      OpenRouter is now the primary, Anthropic and OpenAI direct the optional
+      fallbacks. OpenRouter blocks item 18b1's Step 7**: buy a few dollars of
+      OpenRouter credits, set a credit limit on the key, and put it in your
+      local `.env` as `OPENROUTER_API_KEY` (no agent writes to it); a
+      separate production key is needed by the v1 deploy. Anthropic and
+      OpenAI are needed by 18b2. `open` (rescope review, 2026-10-01;
+      providers chosen, architect, 2026-10-01; OpenRouter first and blocks 18b1 Step 7, spec 18b1, 2026-10-07)
 
 - [ ] **Free plan limits and the paid plan's price** - decision. How much AI
       use and storage Free allows, what the paid plan raises them to, and its
@@ -293,7 +298,9 @@ not tidying; it is what keeps the open list true.
       the AI model from item 18's measured cost and quality; re-check Stripe's
       Australian fees (D149); ask your accountant about GST-inclusive prices.
       Starting points are in D150. Item 15d reads the storage number from
-      `STORAGE_LIMIT_MB` (500 MB when unset). Blocks nothing now; needed by
+      `STORAGE_LIMIT_MB` (500 MB when unset); item 18b1 reads the AI number
+      from `AI_CREDITS_PER_MONTH`, 1,000 (US$1) when unset, provisional
+      until 18b2 measures a run. Blocks nothing now; needed by
       item 21 (the AI cap's number by item 18, the storage number by the v1
       deploy if not 500 MB). `open` (rescope review, 2026-10-01)
 

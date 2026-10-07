@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-07, `main` after `275cb62`.
+Generated 2026-10-07, `main` after `044d3bb` (D155 amended by 18b1's spec).
 
 ## What this is
 
@@ -50,7 +50,8 @@ Settings, with a live preview, on public pages and the canvas (18a1);
 a logo upload in Settings, SVG turned into a PNG in the browser, and brand
 colours offered from the logo (18a2).
 
-**Platform v1 (queued):** an AI draft from a description (18b); contact form; Simple
+**Platform v1 (queued):** an AI draft from a description (18b1-18b5);
+contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
@@ -76,8 +77,8 @@ constraint** - each new runtime dependency is a recorded decision.
 - `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
   and CI (D254).
 - `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
-- **v1 adds, pinned when installed:** `@anthropic-ai/sdk`
-  and `openai` (D155), `stripe` (D160).
+- **v1 adds, pinned when installed:** `openai` (18b1, for OpenRouter),
+  `@anthropic-ai/sdk` (18b2) (D155), `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -127,8 +128,9 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ### Integrations
 
-- **AI:** Anthropic, then OpenAI, then OpenRouter, only when one is
-  unavailable - **never on a refusal** (D155).
+- **AI:** `AI_PROVIDERS` order, **OpenRouter first**, any model, credits
+  from its reported cost; Anthropic and OpenAI direct as priced fallbacks;
+  moves on only when unavailable - **never on a refusal** (D155, amended).
 - **Email:** SMTP via Resend (D156). **Payments:** Stripe's hosted pages;
   webhooks set the plan (D149, D160).
 
@@ -146,7 +148,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18a2 done; nothing in flight; 18b and 19-21 queued.
-  Last shipped: 18a2 (`blueprint/history/features/18a2-your-logo.md`).
-- **Next:** `spec` item 18b, start from a description.
+- **Plan:** items 1-18a2 done; 18b1 spec'd in `current-work.md`, not built;
+  18b2-18b5 and 19-21 queued. Last shipped: 18a2.
+- **Next:** `build` item 18b1, the run with OpenRouter.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
