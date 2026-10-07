@@ -10,7 +10,7 @@
 import { parseArgs } from "node:util";
 import { z } from "zod";
 import { createFakeAdapter } from "#app/features/ai/fake-provider.ts";
-import { createOpenRouterAdapter } from "#app/features/ai/openrouter.server.ts";
+import { createAiAdapter } from "#app/features/ai/providers.server.ts";
 import { type AiAdapter, createRunner, type RunKind } from "#app/features/ai/run-generation.ts";
 import { findRun, runStore } from "#app/features/ai/runs.server.ts";
 import { aiEnvFields, toAiSettings } from "#app/lib/ai-env.server.ts";
@@ -47,12 +47,15 @@ async function aiTry(): Promise<number> {
   if (values.fake) {
     adapter = createFakeAdapter();
   } else {
-    const settings = toAiSettings(fields);
+    const settings = toAiSettings(fields, (variable) => {
+      throw new Error(`${variable} is required`);
+    });
     if (!settings) {
-      console.error("AI is off: set OPENROUTER_API_KEY, or pass --fake.");
+      const first = fields.AI_PROVIDERS[0] ?? "openrouter";
+      console.error(`AI is off: set ${first.toUpperCase()}_API_KEY, or pass --fake.`);
       return 1;
     }
-    adapter = createOpenRouterAdapter(settings.openrouter);
+    adapter = createAiAdapter(settings);
   }
 
   const [site] = await sql<{ id: string }[]>`select id from sites where subdomain = ${address}`;

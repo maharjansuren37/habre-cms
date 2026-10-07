@@ -286,9 +286,20 @@ not tidying; it is what keeps the open list true.
       fallbacks. OpenRouter blocks item 18b1's Step 7**: buy a few dollars of
       OpenRouter credits, set a credit limit on the key, and put it in your
       local `.env` as `OPENROUTER_API_KEY` (no agent writes to it); a
-      separate production key is needed by the v1 deploy. Anthropic and
-      OpenAI are needed by 18b2. `open` (rescope review, 2026-10-01;
-      providers chosen, architect, 2026-10-01; OpenRouter first and blocks 18b1 Step 7, spec 18b1, 2026-10-07)
+      separate production key is needed by the v1 deploy. **18b2 shipped
+      without the Anthropic and OpenAI keys (owner, 2026-10-07)**, so these
+      live checks are still owed, before the v1 deploy: put
+      `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in your local `.env`, plus
+      each one's model and price (`ANTHROPIC_MODEL`, `ANTHROPIC_PRICE`,
+      `OPENAI_MODEL`, `OPENAI_PRICE` - formats in `.env.example`); then a
+      succeeded `npm run ai:try` with `AI_PROVIDERS` set to `anthropic`
+      alone and to `openai` alone, each recording its provider, model,
+      tokens, cost and credits; a second Anthropic run, noting cache reads
+      or why there are none (F-352: the instructions may be under the
+      model's minimum cacheable prefix); and `npm run ai:measure` with all
+      three configured (12 proposal files), whose tables feed *Free plan
+      limits* below. Archived spec: `blueprint/history/features/18b2-fallbacks.md`. `open` (rescope review, 2026-10-01;
+      providers chosen, architect, 2026-10-01; OpenRouter first and blocks 18b1 Step 7, spec 18b1, 2026-10-07; direct keys block 18b2 Steps 6-7, spec 18b2, 2026-10-07; moved past 18b2's ship, spec amendment, 2026-10-07)
 
 - [ ] **Compare four AI runs with OpenRouter's activity page** - manual
       verification; it needs your OpenRouter login. Item 18b1's Step 7 made

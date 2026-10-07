@@ -5,14 +5,14 @@ import {
   type AiAdapter,
   AiError,
   createRunner,
-  type GenerateInput,
   type GenerateResult,
   type RunOutcome,
   type RunStore,
+  type StartInput,
 } from "./run-generation.ts";
 import { validProposal } from "./test-proposal.ts";
 
-const input: GenerateInput = { kind: "business", description: "A bakery in Leeds." };
+const input: StartInput = { kind: "business", description: "A bakery in Leeds." };
 const NOW = new Date("2026-10-15T12:00:00Z");
 
 function memoryStore(used = 0) {
@@ -337,4 +337,21 @@ test("the log line names the run, site, outcome and model but never the descript
   assert.equal(entry.siteId, "s1");
   assert.equal(entry.outcome, "succeeded");
   assert.ok(!lines[0]?.includes("bakery"));
+});
+
+test("the adapter is handed the run's own id", async () => {
+  const { store, rows } = memoryStore();
+  const fake = createFakeAdapter();
+  const seen: string[] = [];
+  const adapter: AiAdapter = {
+    generate(i, signal) {
+      seen.push(i.runId);
+      return fake.generate(i, signal);
+    },
+  };
+  const r = await started(
+    createRunner({ store, adapter, allowance: null }).start("s1", "u1", input),
+  );
+  await r.done;
+  assert.deepEqual(seen, [rows[0]?.id]);
 });

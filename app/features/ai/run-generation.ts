@@ -16,7 +16,9 @@ export type RunKind = "website" | "blog" | "business" | "portfolio";
 export type AiErrorCode = "unavailable" | "broken" | "refused" | "invalid";
 export type RunErrorCode = AiErrorCode | "timeout";
 export type Usage = { input: number; cacheRead: number; cacheWrite: number; output: number };
-export type GenerateInput = { kind: RunKind; description: string };
+export type GenerateInput = { runId: string; kind: RunKind; description: string };
+/** What a caller hands the runner; the runner adds the run's id. */
+export type StartInput = Omit<GenerateInput, "runId">;
 export type GenerateResult = {
   output: unknown;
   usage: Usage;
@@ -173,12 +175,12 @@ export function createRunner(options: RunnerOptions) {
   async function execute(
     runId: string,
     siteId: string,
-    input: GenerateInput,
+    input: StartInput,
     startedAt: number,
   ): Promise<void> {
     let outcome = failed("broken");
     try {
-      outcome = await callAdapter(input);
+      outcome = await callAdapter({ ...input, runId });
       await store.finish(siteId, runId, outcome);
     } catch (error) {
       // Never the description: log the run, not the request.
@@ -213,7 +215,7 @@ export function createRunner(options: RunnerOptions) {
   let slotsInUse = 0;
 
   /** Returns once the run is recorded as running; `done` settles when it finishes and never rejects. */
-  async function start(siteId: string, userId: string, input: GenerateInput): Promise<StartResult> {
+  async function start(siteId: string, userId: string, input: StartInput): Promise<StartResult> {
     // Claimed before the first await: two starts in the same tick cannot both pass.
     if (slotsInUse >= MAX_CONCURRENT_RUNS || sitesInFlight.has(siteId)) {
       return { ok: false, reason: "busy" };

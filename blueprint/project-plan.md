@@ -730,10 +730,10 @@ decides a permission.
   - **When it is not used:**
     - **A refusal never moves to another provider.** A description any
       provider declines - a fake bank login page, say - is not sent elsewhere
-      to get a yes. Anthropic's own server-side fallback to another Claude
-      model handles Claude's refusals; if that also declines, the run fails.
-      That fallback applies only when Anthropic is called directly; through
-      OpenRouter a refusal fails the run.
+      to get a yes; the run fails, whichever provider refused. Anthropic's
+      server-side refusal fallback is not used: it can answer with a model
+      that has no configured price, so the allowance would stop limiting
+      spend (item 18b2; revisit when optimising AI cost).
     - **A request error (400) or an authentication error (401)** is our bug or
       a broken key. It fails loudly instead of being hidden by the fallback.
   - **Every provider fills the same constrained schema:** pages made of

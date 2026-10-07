@@ -557,3 +557,12 @@ File: app/features/ai/openrouter.server.ts:20,51 (`maxRetries: 2`); app/features
 
 ### F-342 [P3] open - The spec understates the `max_tokens` trade-off
 File: blueprint/context/current-work.md:199-201 (Step 10), :308-311 (Decision); app/features/ai/openrouter-response.test.ts:95-99
+
+### F-350 [P3] open - The SDKs still read some settings from the environment, and the F-347 comment says they are all pinned
+File: app/features/ai/client-options.ts:1-8
+
+### F-351 [P3] open - A failed run through the chain does not record which provider failed
+File: app/features/ai/chat-completion.ts:131-146; app/features/ai/anthropic-response.ts:86-101
+
+### F-352 [P3] unverified - Step 6's "Anthropic shows cache reads on a second run" probably cannot pass
+File: app/features/ai/anthropic.server.ts:31; app/features/ai/instructions.ts

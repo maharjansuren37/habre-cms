@@ -4350,3 +4350,111 @@ replaces "a failed run costs no credits".
 Beats: a separate cap on summed `cost_usd`, or a daily cap on failed runs.
 Costs: a site pays for a run that gave it nothing; a timeout can still go
 uncharged (F-341).
+
+## D392 - 18b2 ships without a live run through Anthropic or OpenAI direct (2026-10-07)
+
+**Chose:** owner, 2026-10-07: Steps 6 and 7 narrowed to what runs with
+OpenRouter alone (a succeeded chain run, a 401 that does not move, an
+unreachable OpenRouter that moves to Anthropic, `ai:measure` 4 of 4 at a mean
+31.8 credits). The direct providers are proven by unit tests on constructed
+SDK responses; their live runs and the three-provider measurement are a
+`needs-you.md` line, owed before the v1 deploy.
+Beats: holding the item open until the keys arrive.
+Costs: whether Anthropic accepts the provider schema through `output_config`
+is unknown until the first live run.
+
+## D393 - Anthropic's server-side refusal fallback is not used (2026-10-07)
+
+**Chose:** owner, 2026-10-07: no `fallbacks` on Anthropic requests. Its
+`"default"` form routes a refusal to a model Anthropic picks, priced at a rate
+we have not configured, so the allowance would stop bounding spend (D391). A
+refusal fails the run with every provider (D372). Amends plan section 6,
+*Integrations*.
+Beats: the array form with a configured fallback model and a second price.
+Costs: a refusal Anthropic could have answered on another model fails the run.
+
+## D394 - AI is on when the first provider in `AI_PROVIDERS` has its key (2026-10-07)
+
+**Chose:** the first listed provider's key is the switch; a listed fallback
+missing its key, model or price stops startup. A malformed price stops startup
+even with AI off.
+Beats: AI on when any listed key is set, skipping the rest.
+Costs: a fallback can't be listed before its key exists.
+
+## D395 - Direct providers have no default model or price (2026-10-07)
+
+**Chose:** `ANTHROPIC_MODEL`/`_PRICE` and `OPENAI_MODEL`/`_PRICE` are required
+when listed. A price belongs to one model, and a default drifts out of date
+unnoticed.
+Beats: defaulting to Claude Opus 5.5 at US$4 / US$20.
+Costs: three more variables per direct provider to set.
+
+## D396 - A price has all four keys (2026-10-07)
+
+**Chose:** `input=…,output=…,cache_read=…,cache_write=…` in US$ per million
+tokens, all required, with `cache_write=0` where a provider does not charge it
+(OpenAI).
+Beats: deriving the cache prices from the input price, which hides the 10x
+difference between a cache read and an uncached token.
+Costs: a longer variable to write.
+
+## D397 - `Usage.input` counts every input token, cache included (2026-10-07)
+
+**Chose:** for every adapter, `input` includes cache reads and writes, so
+`ai_runs.input_tokens` means the same whichever provider ran; `costFromUsage`
+subtracts the cache counts before pricing the rest.
+Beats: storing each provider's own convention (Anthropic's `input_tokens`
+excludes the cache).
+Costs: the Anthropic adapter sums three fields.
+
+## D398 - Every provider but the last has 150 s; the last has what is left (2026-10-07)
+
+**Chose:** `ATTEMPT_TIMEOUT_MS` 150 s per non-last attempt, combined with the
+run's 5-minute signal; an abandoned attempt counts as `unavailable` and is not
+charged. With three providers the third may get no time - owner, F-345
+accepted, revisit when optimising AI cost and latency. When the run's own
+signal has fired, the chain logs `to: null` and tries nothing more (F-344).
+Beats: a fixed 100 s for every attempt; sharing the time left across the
+providers left.
+Costs: two hung providers use the whole run.
+
+## D399 - An `unavailable` attempt is charged nothing (2026-10-07)
+
+**Chose:** none of the three providers reports a cost for a 429, 5xx, dropped
+connection or abort, so a run that moved on is charged only what the provider
+that answered reported.
+Beats: summing the costs of every attempt.
+Costs: none known; revisit if a provider starts reporting partial costs.
+
+## D400 - OpenAI direct sends `max_completion_tokens` 8000 (2026-10-07)
+
+**Chose:** not `max_tokens`, which the SDK marks deprecated and OpenAI's
+reasoning models refuse with a 400 - sorted `broken`, never falling back.
+Beats: the spec's `max_tokens`.
+Costs: none known.
+
+## D401 - The direct adapters take `Exclude<ProviderSettings, { name: "openrouter" }>` (2026-10-07)
+
+**Chose:** one settings member covers both direct providers, so
+`Extract<…, { name: "openai" }>` would be `never`.
+Beats: splitting the union into one member per provider.
+Costs: the type does not stop an Anthropic setting reaching the OpenAI adapter.
+
+## D402 - `ai:measure` runs each provider on its own, not through the chain (2026-10-07)
+
+**Chose:** every configured model is measured; to compare another, run it
+again with `<P>_MODEL` changed. A 5-minute timeout is recorded as `timeout`,
+not `unavailable` (F-346); the summary counts proposals that expand cleanly
+(F-349).
+Beats: a `--models` list, which would need a price per model on the command
+line.
+Costs: one run per model comparison.
+
+## D403 - The SDK clients pin their address and logging in code (2026-10-07)
+
+**Chose:** `client-options.ts` sets `baseURL`, `logLevel` and the auth token
+for all three clients, so `ANTHROPIC_BASE_URL` and the like in the environment
+cannot redirect a provider (F-347). `OPENAI_ORG_ID`/`_PROJECT_ID` and the
+`*_CUSTOM_HEADERS` variables are still read by the SDKs (F-350, backlog).
+Beats: trusting the SDKs' environment defaults.
+Costs: an option list to keep in step with SDK upgrades.

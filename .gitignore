@@ -68,3 +68,4 @@ coverage/
 test-results/
 playwright-report/
 blob-report/
+ai-measurements/

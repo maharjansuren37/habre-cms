@@ -87,3 +87,9 @@
 - [ ] Run migration `0020_ai_runs.sql` (new table and the `fail_interrupted_ai_runs()` function; no data change).
 - [ ] `OPENROUTER_API_KEY` (a production key with a credit limit on OpenRouter), optionally `AI_PROVIDERS`, `OPENROUTER_MODEL`, `AI_CREDITS_PER_MONTH`, in `/etc/habre-cms/production.env`.
 - [ ] `openai` in the release's `node_modules`.
+
+## features/18b2-fallbacks
+
+- [ ] `@anthropic-ai/sdk` 0.131.0 in the release's `node_modules`.
+- [ ] In `/etc/habre-cms/production.env`, entered by the owner: `AI_PROVIDERS` (e.g. `openrouter,anthropic,openai`, or the order chosen); for each listed direct provider `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_PRICE` and `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_PRICE` - production keys, each with a spend limit in its provider's console.
+- [ ] Before listing a direct provider in production, the live runs owed by `needs-you.md` (D392) have succeeded locally. No migration.

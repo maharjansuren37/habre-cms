@@ -4,22 +4,19 @@
  * description is personal data: it is sent, never logged.
  */
 import OpenAI, { APIError } from "openai";
-import type { AiSettings } from "#app/lib/ai-env.server.ts";
+import type { ProviderSettings } from "#app/lib/ai-env.server.ts";
+import { readCompletion, sortChatError, userMessage } from "./chat-completion.ts";
+import { openRouterClientOptions } from "./client-options.ts";
 import { INSTRUCTIONS } from "./instructions.ts";
-import { readCompletion, sortOpenRouterError, userMessage } from "./openrouter-response.ts";
 import { providerJsonSchema } from "./provider-schema.ts";
 import type { AiAdapter, GenerateInput } from "./run-generation.ts";
 
-const BASE_URL = "https://openrouter.ai/api/v1";
 const MAX_TOKENS = 8000;
 
-export function createOpenRouterAdapter(settings: AiSettings["openrouter"]): AiAdapter {
-  const client = new OpenAI({
-    apiKey: settings.apiKey,
-    baseURL: BASE_URL,
-    maxRetries: 2,
-    defaultHeaders: { "X-Title": "Habre" },
-  });
+export function createOpenRouterAdapter(
+  settings: Extract<ProviderSettings, { name: "openrouter" }>,
+): AiAdapter {
+  const client = new OpenAI(openRouterClientOptions(settings.apiKey));
 
   return {
     async generate(input: GenerateInput, signal: AbortSignal) {
@@ -50,9 +47,9 @@ export function createOpenRouterAdapter(settings: AiSettings["openrouter"]): AiA
           },
           { signal, maxRetries: 2 },
         );
-        return readCompletion(response);
+        return readCompletion(response, { provider: "openrouter", cost: "reported" });
       } catch (error) {
-        const sorted = sortOpenRouterError(error);
+        const sorted = sortChatError(error, "OpenRouter");
         if (error instanceof APIError && typeof error.status === "number") {
           if (error.status === 402) {
             console.error("OpenRouter is out of credits (402).");

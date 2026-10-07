@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { aiEnvFields, toAiSettings } from "#app/lib/ai-env.server.ts";
+import { aiEnvFields, reportMissing, toAiSettings } from "#app/lib/ai-env.server.ts";
 import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 import {
   emailEnvFields,
@@ -38,22 +38,40 @@ const envSchema = databaseEnvSchema
   // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit. And
   // env.AI: null when AI is off, else the parsed settings.
   .transform(
-    ({
-      STORAGE_LIMIT_MB,
-      AI_PROVIDERS,
-      OPENROUTER_API_KEY,
-      OPENROUTER_MODEL,
-      AI_CREDITS_PER_MONTH,
-      ...rest
-    }) => ({
-      ...rest,
-      STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
-      AI: toAiSettings({
+    (
+      {
+        STORAGE_LIMIT_MB,
         AI_PROVIDERS,
         OPENROUTER_API_KEY,
         OPENROUTER_MODEL,
+        ANTHROPIC_API_KEY,
+        ANTHROPIC_MODEL,
+        ANTHROPIC_PRICE,
+        OPENAI_API_KEY,
+        OPENAI_MODEL,
+        OPENAI_PRICE,
         AI_CREDITS_PER_MONTH,
-      }),
+        ...rest
+      },
+      context,
+    ) => ({
+      ...rest,
+      STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
+      AI: toAiSettings(
+        {
+          AI_PROVIDERS,
+          OPENROUTER_API_KEY,
+          OPENROUTER_MODEL,
+          ANTHROPIC_API_KEY,
+          ANTHROPIC_MODEL,
+          ANTHROPIC_PRICE,
+          OPENAI_API_KEY,
+          OPENAI_MODEL,
+          OPENAI_PRICE,
+          AI_CREDITS_PER_MONTH,
+        },
+        reportMissing(context),
+      ),
     }),
   );
 

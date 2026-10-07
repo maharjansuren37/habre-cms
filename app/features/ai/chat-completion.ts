@@ -1,14 +1,15 @@
 /**
- * The pure half of the OpenRouter adapter (18b1 Step 7): the messages, the
- * reading of a completion, and the sorting of errors. No client, no key, so
- * `node --test` can exercise it. Everything read from the provider goes
+ * The pure half of the chat-completion adapters (OpenRouter 18b1 Step 7,
+ * OpenAI 18b2 Step 3): the messages, the reading of a completion, and the
+ * sorting of errors. No client, no key, so `node --test` can exercise it. Everything read from the provider goes
  * through Zod - no `as` casts.
  */
 import { APIConnectionError, APIError, APIUserAbortError } from "openai";
 import { z } from "zod";
+import type { Price } from "#app/lib/ai-env.server.ts";
+import { costFromUsage } from "./pricing.ts";
 import { AiError, type GenerateInput, type GenerateResult, type Usage } from "./run-generation.ts";
 
-export const PROVIDER_NAME = "openrouter";
 const FENCE = "<<<";
 const FENCE_END = ">>>";
 
@@ -52,8 +53,17 @@ const completionSchema = z.object({
 const count = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 
+/**
+ * Where a completion's cost comes from: the provider reports it (OpenRouter's
+ * `usage.cost`), or it is worked out from the tokens and a configured price.
+ */
+export type CostSource =
+  | { provider: string; cost: "reported" }
+  | { provider: string; price: Price };
+
 /** Turns a completion into the adapter's result, or throws the `AiError` it deserves. */
-export function readCompletion(response: unknown): GenerateResult {
+export function readCompletion(response: unknown, source: CostSource): GenerateResult {
+  const { provider } = source;
   const parsed = completionSchema.safeParse(response);
   if (!parsed.success) throw new AiError("invalid", "The response had an unexpected shape.");
   const { model, choices, usage: reported } = parsed.data;
@@ -67,12 +77,23 @@ export function readCompletion(response: unknown): GenerateResult {
     cacheWrite: count(details?.cache_write_tokens),
     output: count(reported.completion_tokens),
   };
-  const cost = reported?.cost;
-  const costUsd = typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? cost : undefined;
+  let costUsd: number | undefined;
+  if ("price" in source) {
+    // Worked out from the tokens; usage.cost, if present, is ignored. Counts
+    // that do not add up give no cost, so the run fails rather than go free.
+    try {
+      costUsd = usage && costFromUsage(usage, source.price);
+    } catch {
+      costUsd = undefined;
+    }
+  } else {
+    const cost = reported?.cost;
+    costUsd = typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? cost : undefined;
+  }
   const carried = {
     ...(usage ? { usage } : {}),
     ...(costUsd !== undefined ? { costUsd } : {}),
-    provider: PROVIDER_NAME,
+    provider,
     ...(model ? { model } : {}),
   };
 
@@ -84,7 +105,11 @@ export function readCompletion(response: unknown): GenerateResult {
   }
   if (costUsd === undefined || !usage) {
     // An unpriced run would be free, so it fails (spec Decisions).
-    throw new AiError("invalid", "The response reported no cost.", carried);
+    throw new AiError(
+      "invalid",
+      "cost" in source ? "The response reported no cost." : "The response reported no usage.",
+      carried,
+    );
   }
   let output: unknown;
   try {
@@ -92,29 +117,30 @@ export function readCompletion(response: unknown): GenerateResult {
   } catch {
     throw new AiError("invalid", "The answer was not valid JSON.", carried);
   }
-  return { output, usage, costUsd, provider: PROVIDER_NAME, model: model ?? "unknown" };
+  return { output, usage, costUsd, provider, model: model ?? "unknown" };
 }
 
 /**
- * Sorts a failure from the SDK. 429, 402 (OpenRouter out of credits), 5xx,
+ * Sorts a failure from the SDK; `provider` is the label used in messages
+ * ("OpenRouter", "OpenAI"). 429, 402 (out of credits), 5xx,
  * connection, timeout and the run's own abort are `unavailable`; every other
  * HTTP error (400, 401, 403, and any other 4xx) and anything unrecognised is
  * `broken`. The abort sorts as `unavailable`: the runner has already turned
  * anything after its own timeout into `timeout`.
  */
-export function sortOpenRouterError(error: unknown): AiError {
+export function sortChatError(error: unknown, provider: string): AiError {
   if (error instanceof AiError) return error;
   if (error instanceof APIUserAbortError)
     return new AiError("unavailable", "The request was aborted.");
   if (error instanceof APIConnectionError) {
-    return new AiError("unavailable", "Could not reach OpenRouter.");
+    return new AiError("unavailable", `Could not reach ${provider}.`);
   }
   if (error instanceof APIError && typeof error.status === "number") {
     const { status } = error;
     if (status === 429 || status === 402 || status >= 500) {
-      return new AiError("unavailable", `OpenRouter answered ${status}.`);
+      return new AiError("unavailable", `${provider} answered ${status}.`);
     }
-    return new AiError("broken", `OpenRouter answered ${status}.`);
+    return new AiError("broken", `${provider} answered ${status}.`);
   }
-  return new AiError("broken", "An unexpected error calling OpenRouter.");
+  return new AiError("broken", `An unexpected error calling ${provider}.`);
 }

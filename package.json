@@ -24,9 +24,11 @@
     "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
     "optimise-media": "node --env-file-if-exists=.env scripts/optimise-media.ts",
     "ai:try": "node --env-file-if-exists=.env scripts/ai-try.ts",
+    "ai:measure": "node --env-file-if-exists=.env scripts/ai-measure.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
     "@react-router/node": "8.4.0",
     "@remix-run/node-fetch-server": "0.14.2",
     "@tiptap/core": "3.31.4",
