@@ -127,7 +127,8 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
   one hex - for light, and for dark when it is on - by moving the colour's
   OKLCH lightness until each pair meets AA: primary at least 4.5:1 on bg and
   surface, on-primary at least 4.5:1 on primary and on hover, **and primary at
-  least 4.5:1 on subtle**. A sketch that checked only the first two let gold
+  least 4.5:1 on subtle**, and on surface-sunken, a band section's background
+  (F-312: `#69c369` once derived a primary at 4.48 there). A sketch that checked only the first two let gold
   `#c9a25e` through at 4.39 on subtle, so the subtle check is required.
   The example `#2f6b5a` passes unchanged: light 6.23, dark `#66a28f` 6.72.
 - **Presets** (names provisional), each a font pair and a corner shape and
@@ -141,6 +142,20 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
 
 - **No logo gives a wordmark** (`.site-brand.wordmark`): the site's name in
   the preset's heading font and the brand colour.
+- **Settings' Brand section (18a1, owner's spec 2026-10-07).** It sits after
+  Logo and before Site description: two `fieldset`s, Brand colour and Style,
+  swatches and preset cards as real radio inputs. The record did not cover
+  three things:
+  - **A No colour swatch.** Neutral ink is a stored state (`''`), so Settings
+    needs a way back to it. First in the row, drawn as the ink colour, named
+    "No colour (black and white)".
+  - **Swatch and preview colours are set through the CSSOM**
+    (`element.style.setProperty`), never a `style` attribute: the mock's
+    `style="--swatch: ..."` is blocked by the admin's `style-src 'self'` (no
+    nonce, no `unsafe-inline`). A server-rendered swatch shows its colour once
+    the page hydrates; its visible name says it regardless.
+  - **Placement:** the Brand section follows Logo and precedes Site
+    description.
 - **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
   a site looks the way its owner saw it in the editor, and a dark logo never
   disappears on a dark page.

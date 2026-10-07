@@ -62,7 +62,7 @@ test("with no home page chosen, / shows the placeholder under the site title, no
   );
 });
 
-test("a published page and post ship no entry id and no settings beyond title, logo and menu", async ({
+test("a published page and post ship no entry id and no settings beyond title, logo, menu, language, site description, main address, brand colour and style", async ({
   request,
 }) => {
   const postId = await createDraftFor(author.email, "Lean Data Post", textDocument(), {

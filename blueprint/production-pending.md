@@ -71,3 +71,8 @@
 - [ ] Run migration `0017_media_variants` (additive, reversible: `media.variant_widths integer[]`, `byte_size` check widened to 50 MB).
 - [ ] `sharp` 0.35.5's native binary in `node_modules` - installed on the dev machine (`x86_64`, glibc) and copied; the server is `x86_64` Ubuntu 24.04 (glibc), which `setup-server.sh` checks. Also confirm the CPU supports x86-64-v2 (F-310). No new environment variable.
 - [ ] Run `npm run optimise-media` once after the deploy. At the v1 deploy `0012` has already deleted every media row, so it should report 0.
+
+## features/18a1-brand-colour-and-style
+
+- [ ] Run migration `0018_brand.sql` (additive, defaults: `site_settings.brand_color`, `style_preset`; no data change).
+- [ ] Public pages' Content-Security-Policy changes to `style-src 'self' 'nonce-…'`; Caddy sets no CSP of its own, so nothing on the server changes - confirm on a live public page after the deploy. No new environment variables, accounts or dependencies.

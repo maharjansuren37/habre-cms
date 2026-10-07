@@ -26,8 +26,10 @@ export function areaForPath(pathname: string): PolicyArea {
 /**
  * The Content-Security-Policy header for one HTML response (F-100). Scripts
  * run only from this origin or with this response's nonce; styles only from
- * this origin. The admin once also allowed inline styles and `data:` images,
- * which Editor.js needed; item 14a3 dropped both, once nothing in the editor
+ * this origin, plus on public pages the nonce, for the brand `<style>` (18a1:
+ * only declarations built from derived hex values, never a stored string).
+ * The admin once also allowed inline styles and `data:` images, which
+ * Editor.js needed; item 14a3 dropped both, once nothing in the editor
  * needed them - TipTap runs with `injectCSS: false` and the toolbar, chip and
  * panel are placed through CSSOM (`element.style`), which the policy allows.
  * `e2e/content-security-policy.spec.ts` walks the editor to keep it so.
@@ -36,18 +38,18 @@ export function areaForPath(pathname: string): PolicyArea {
  */
 export function contentSecurityPolicy(options: {
   nonce: string;
-  /** Decides nothing since 14a3, when the admin's policy became the public
-   *  one; kept so the two hosts can differ again without touching callers. */
+  /** Public pages also allow this response's nonce for the one brand
+   *  `<style>` (18a1); the admin allows this origin only. */
   area: PolicyArea;
   imageBaseUrl: string;
 }): string {
-  const { nonce, imageBaseUrl } = options;
+  const { nonce, area, imageBaseUrl } = options;
   const imageOrigin = new URL(imageBaseUrl).origin;
 
   const directives: Record<string, string> = {
     "default-src": "'self'",
     "script-src": `'self' 'nonce-${nonce}'`,
-    "style-src": "'self'",
+    "style-src": area === "public" ? `'self' 'nonce-${nonce}'` : "'self'",
     "img-src": `'self' ${imageOrigin}`,
     "font-src": "'self'",
     "connect-src": "'self'",

@@ -1,6 +1,6 @@
 # Capability: public-site
 
-- **public-site.1** - public pages carry no entry ids and no share image id or key, and no settings beyond the title, logo, menu, language, site description and main address *Since:* fixes/tidy-findings-backlog · *Changed:* features/17-seo-basics
+- **public-site.1** - public pages carry no entry ids and no share image id or key, and no settings beyond the title, logo, menu, language, site description, main address, brand colour and style *Since:* fixes/tidy-findings-backlog · *Changed:* features/18a1-brand-colour-and-style
 - **public-site.2** - public pages, the public 404 and the error page are light whatever the device's setting (D168; items 1-12 followed the device, never recorded as a claim) *Since:* features/13b-the-new-look
 - **public-site.3** - pages and posts render as sections of columns, which stack when their container is narrower than 40rem *Since:* features/14a1-the-document
 - **public-site.4** - a page's main heading is its only `h1`, else its title is; a post's title is always its `h1` *Since:* features/14a1-the-document

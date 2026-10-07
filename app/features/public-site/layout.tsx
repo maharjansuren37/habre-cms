@@ -1,8 +1,10 @@
 import { isRouteErrorResponse, Link, Outlet } from "react-router";
+import { brandCustomProperties } from "#app/features/brand/brand-colours.ts";
 import { findPublishedPageSlugs } from "#app/features/content/entries.server.ts";
 import { getSiteSettings, type SiteSettings } from "#app/features/settings/settings.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import { env } from "#app/lib/env.server.ts";
+import { nonceContext } from "#app/lib/nonce-context.ts";
 import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
 import { FALLBACK_SITE_TITLE, publicTitle } from "./public-title.ts";
@@ -54,6 +56,11 @@ export async function loader({ context }: Route.LoaderArgs) {
     siteDescription: settings.siteDescription,
     navLinks,
     mainOrigin,
+    // The brand reaches the page as derived declarations only, never the stored
+    // string (D171); the nonce is the one in this response's CSP header.
+    nonce: context.get(nonceContext),
+    brandCss: brandCustomProperties(settings.brandColor),
+    stylePreset: settings.stylePreset,
   };
 }
 
@@ -76,7 +83,10 @@ function Chrome({
     <>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <Link className={styles.brand} to="/">
+          <Link
+            className={settings.logoUrl ? styles.brand : `${styles.brand} ${styles.wordmark}`}
+            to="/"
+          >
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.logo} />}
             {settings.siteTitle}
           </Link>

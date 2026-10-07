@@ -103,3 +103,6 @@ File: app/features/media/optimise-image.server.ts (MAX_INPUT_PIXELS)
 
 ### F-310 [P2] unverified - sharp's prebuilt x64 binary needs x86-64-v2, which the server is not checked for
 File: deploy/setup-server.sh:47
+
+### F-313 [P2] open - deriveBrandShades only darkens, so a dark surface silently gets failing shades
+File: app/features/brand/brand-colours.ts:138-149

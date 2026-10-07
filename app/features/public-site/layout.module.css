@@ -28,6 +28,12 @@
   text-decoration: none;
 }
 
+/* With no logo, the name is the wordmark: the brand colour in the preset's
+ * heading font (applied by the public layout in item 18a1, Step 4). */
+.wordmark {
+  color: var(--color-primary);
+}
+
 .logo {
   height: var(--size-control-sm);
   width: auto;

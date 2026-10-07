@@ -30,6 +30,7 @@ import {
   useState,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
+import { applyBrandProperties } from "#app/features/brand/apply-brand.ts";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
@@ -410,6 +411,8 @@ export function DocumentEditor({
   settingsSlot,
   mediaById,
   pages,
+  brandColor,
+  stylePreset,
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
@@ -427,6 +430,9 @@ export function DocumentEditor({
   mediaById: Record<string, DocumentMedia>;
   /** The pages a button can go to. Read by the settings panel only - never by the editor's options (F-158). */
   pages: LinkablePage[];
+  /** The site's brand, drawn on the canvas only: `''` or `#rrggbb`, and its style preset. */
+  brandColor: string;
+  stylePreset: string;
 }) {
   const { extensions, editorProps } = OPTIONS[entryType];
   // In state so the media a person picks in the settings panel can be added.
@@ -473,6 +479,10 @@ export function DocumentEditor({
   }, [editor, contentRef]);
 
   const canvas = useRef<HTMLDivElement>(null);
+  // The brand's colours reach the canvas through the CSSOM, as in Settings' preview.
+  useEffect(() => {
+    applyBrandProperties(canvas.current, brandColor);
+  }, [brandColor]);
   const [isAddOpen, setAddOpen] = useState(false);
   const [isLinkOpen, setLinkOpen] = useState(false);
   // What the polite status region last said: moves and deletes (14a3).
@@ -515,7 +525,7 @@ export function DocumentEditor({
         <AddDialog editor={editor} onClose={() => setAddOpen(false)} sections={sectionPalette} />
       ) : null}
       {undoSlot && editor ? createPortal(<UndoRedo editor={editor} />, undoSlot) : null}
-      <div data-surface="site" className={styles.site} ref={canvas}>
+      <div data-surface="site" data-style={stylePreset} className={styles.site} ref={canvas}>
         <MediaContext.Provider value={media}>
           <EditorContent editor={editor} />
         </MediaContext.Provider>

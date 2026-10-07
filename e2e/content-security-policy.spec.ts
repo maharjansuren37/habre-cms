@@ -89,7 +89,9 @@ test("HTML pages carry the Content-Security-Policy, and neither area allows inli
   const publicPage = await page.goto(siteUrl("/"));
   const publicPolicy = publicPage?.headers()["content-security-policy"] ?? "";
   expect(publicPolicy).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);
-  expect(publicPolicy).toContain("style-src 'self';");
+  // The public area also allows this response's nonce, for the brand style (18a1).
+  expect(publicPolicy).toMatch(/style-src 'self' 'nonce-[A-Za-z0-9+/=]+';/);
+  expect(publicPolicy).not.toContain("unsafe-inline");
 
   const adminPage = await page.goto("/admin/login");
   const adminPolicy = adminPage?.headers()["content-security-policy"] ?? "";
@@ -253,6 +255,15 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByText(filename).click();
   await expect(page.getByRole("button", { name: "Change logo" })).toBeVisible();
+
+  // The brand preview takes its colours and style through the CSSOM, not a style attribute.
+  const colourPicker = page.getByLabel("Pick other colour", { exact: true });
+  await colourPicker.click();
+  await colourPicker.fill("#c9a25e");
+  await page.getByRole("radio", { name: "Friendly" }).check();
+  await expect(
+    page.getByRole("img", { name: /^Preview of your site/ }).locator("[data-preview='button']"),
+  ).toHaveCSS("background-color", /^rgb\(/);
 
   await page.goto("/admin/users");
   await expect(page.getByText(admin.email).first()).toBeVisible();

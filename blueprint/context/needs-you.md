@@ -136,7 +136,9 @@ not tidying; it is what keeps the open list true.
       15e2, the Delete account section, `/admin/account/delete` in its three
       states, and login's "Your account is deleted." banner; from item 17,
       the editor's Search and sharing disclosure and its image picker, and
-      Settings' Site description and Language).
+      Settings' Site description and Language; from item 18a1, Settings'
+      Brand section - the colour swatches, Other colour, the Style cards and
+      the preview's name).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -146,7 +148,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch

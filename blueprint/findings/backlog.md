@@ -509,3 +509,12 @@ File: app/features/media/optimise-image.server.ts:49,56
 
 ### F-311 [P3] unverified - A year-long immutable cache may keep serving deleted images from a CDN edge
 File: app/features/media/r2.server.ts (IMMUTABLE_CACHE_CONTROL)
+
+### F-314 [P3] open - Other colour saves the wrong colour before hydration or without JavaScript
+File: app/features/settings/settings.tsx:443,455-466
+
+### F-315 [P3] open - The CSP walk's brand-preview colour assertion cannot fail
+File: e2e/content-security-policy.spec.ts:264-266
+
+### F-316 [P3] open - After a save, Settings' swatches keep the pre-save choice until a reload
+File: app/features/settings/settings.tsx:292-303

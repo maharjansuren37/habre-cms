@@ -17,6 +17,7 @@ const PAIRS: [string, string, number][] = [
   ["text-muted", "surface-hover", 4.5],
   ["primary", "bg", 4.5],
   ["primary", "surface", 4.5],
+  ["primary", "surface-sunken", 4.5],
   ["primary-hover", "bg", 4.5],
   ["on-primary", "primary", 4.5],
   ["on-primary", "primary-hover", 4.5],
@@ -126,6 +127,46 @@ for (const colorScheme of ["light", "dark"] as const) {
       await logIn(page, admin);
       expect(await measure(page, "/admin/posts", colorScheme)).toEqual([]);
       await expect(page.getByText("This site is suspended.", { exact: true })).toBeVisible();
+    } finally {
+      await deleteSite(site.id);
+    }
+  });
+}
+
+// Item 18a1: whatever brand colour a site picks, its shades meet the same pairs.
+for (const brand of ["#c9a25e", "#ffff00", "#000000"]) {
+  test(`a site branded ${brand} meets contrast in light mode`, async ({ page }) => {
+    const site = await createSiteWithAddress("contrast-brand");
+    try {
+      await withDatabase(async (sql) => {
+        await sql`update site_settings set brand_color = ${brand} where site_id = ${site.id}`;
+      });
+      expect(await measure(page, siteUrl("/", site.address), "light")).toEqual([]);
+      await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
+      await expect(page.locator("head style[nonce]")).toHaveCount(1);
+    } finally {
+      await deleteSite(site.id);
+    }
+  });
+}
+
+// Item 18a1, Step 5: Settings with its Brand section (swatches, preset cards).
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`Settings with the Brand section meets contrast in ${colorScheme} mode`, async ({
+    page,
+  }) => {
+    const site = await createSiteWithAddress("contrast-settings");
+    try {
+      const admin = await createSiteAdmin(site.id);
+      await withDatabase(async (sql) => {
+        await sql`
+          update site_settings set brand_color = '#2f6b5a', style_preset = 'classic'
+          where site_id = ${site.id}
+        `;
+      });
+      await logIn(page, admin);
+      expect(await measure(page, "/admin/settings", colorScheme)).toEqual([]);
+      await expect(page.getByRole("group", { name: "Style" })).toBeVisible();
     } finally {
       await deleteSite(site.id);
     }

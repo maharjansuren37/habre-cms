@@ -3995,3 +3995,66 @@ Beats: stopping at the first failure - one missing object should not block
 every other site.
 Costs: an operator must read the counts; a failed old-object delete is not
 retried (F-302).
+
+## D352 - No colour is a stored choice, the first swatch (2026-10-07)
+
+**Chose:** `brand_color = ''` means the neutral ink look, and Settings offers
+it as the first swatch, "No colour (black and white)".
+Beats: treating "no colour" only as the state before one is picked, with no
+way back to ink once a colour is saved.
+Costs: one more swatch in the row.
+
+## D353 - The CSP nonce reaches the page through the public layout's loader (2026-10-07)
+
+**Chose:** one per-request nonce, created before any loader runs;
+`entry.server.tsx` puts it in the `Content-Security-Policy` header and the
+public layout's loader returns it to root `Layout` for the `<style nonce>`.
+Beats: reading React Router's internal nonce context (undocumented in 8.4.0),
+or generating it twice.
+Costs: the nonce is in loader data - already in the page's script tags, and
+it changes per response.
+
+## D354 - The admin's `style-src` stays `'self'`; brand colours go through CSSOM (2026-10-07)
+
+**Chose:** public pages get `style-src 'self' 'nonce-…'`; the admin keeps
+`'self'`, and the Settings swatches, preview and editor canvas set their
+colours with `element.style.setProperty`.
+Beats: widening the admin policy to nonce'd styles.
+Costs: server-rendered swatches show their colour only once the page
+hydrates (their visible names say it regardless).
+
+## D355 - Dark brand shades wait for item 20 (2026-10-07)
+
+**Chose:** `deriveBrandShades(hex, surface)` takes the surface, but only the
+light one is defined and tested.
+Beats: deriving and testing values no page can show yet (D168).
+Costs: the derivation only darkens, so a dark surface needs a second
+direction (F-313).
+
+## D356 - Item 18a splits into 18a1 (colour and style) and 18a2 (the logo) (2026-10-07)
+
+**Chose:** brand colour, presets, preview and canvas first; the SVG logo and
+colours suggested from it second.
+Beats: one spec of ten-plus steps; the logo's colour suggestion has its own
+open question - reading a cross-origin R2 image's pixels in a canvas.
+Costs: none worth naming.
+
+## D357 - The shade rule: OKLCH lightness steps until every pair holds (2026-10-07)
+
+**Chose:** hover is primary's OKLCH lightness - 0.07; subtle is lightness
+0.965 at 35% of primary's chroma, hue kept; on-primary is white, else
+`#0a0a0a`. A colour that fails any pair has its lightness lowered in 0.005
+steps (chroma clamped into sRGB) until primary is >= 4.5:1 on bg, surface,
+surface-sunken and subtle, and on-primary >= 4.5:1 on primary and hover.
+Only the input is stored; shades are derived on every render (D171).
+Beats: a lookup table; reproduces the `#2f6b5a` mock's hover and subtle
+exactly.
+Costs: a picked colour may be shown darker than picked.
+
+## D358 - Primary must also clear 4.5:1 on the band background (2026-10-07)
+
+**Chose:** the derivation checks primary against `--color-surface-sunken`
+(`#f5f5f5`) as well, from `BrandSurface.sunken` (F-312).
+Beats: checking only bg, surface and subtle - 1,233 of 140,608 sampled
+colours fell below 4.5 on a band section.
+Costs: some light colours derive one step darker.

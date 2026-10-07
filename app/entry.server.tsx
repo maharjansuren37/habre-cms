@@ -1,13 +1,13 @@
-import { randomBytes } from "node:crypto";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
-import type { EntryContext, HandleErrorFunction } from "react-router";
+import type { EntryContext, HandleErrorFunction, RouterContextProvider } from "react-router";
 import { isRouteErrorResponse, ServerRouter } from "react-router";
 import { areaForPath, contentSecurityPolicy } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
+import { nonceContext } from "#app/lib/nonce-context.ts";
 import { isRoutineRefusal } from "#app/lib/server-errors.ts";
 
 export const streamTimeout = 5_000;
@@ -26,10 +26,11 @@ export default function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
+  loadContext: RouterContextProvider,
 ) {
-  // One per response, never reused: it is what lets React Router's own inline
-  // scripts past the Content-Security-Policy (F-100).
-  const nonce = randomBytes(16).toString("base64");
+  // Made once per request in server/app.ts, so the public layout's loader reads
+  // the very value this header carries (18a1).
+  const nonce = loadContext.get(nonceContext);
   // Not in development: Vite's dev server injects inline scripts and styles
   // with no nonce. The browser tests run the production build instead.
   if (!import.meta.env.DEV) {

@@ -1,4 +1,5 @@
 import type postgres from "postgres";
+import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { mediaSources } from "#app/features/media/media-objects.ts";
 import { inSite } from "#app/lib/db.server.ts";
 import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
@@ -11,7 +12,33 @@ export type SiteSettings = {
   homePageId: string | null;
   siteDescription: string;
   language: string;
+  /** `''` (neutral ink) or `#rrggbb`. */
+  brandColor: string;
+  stylePreset: StylePreset;
 };
+
+export type StylePreset = "classic" | "modern" | "friendly";
+
+/** Just the brand - what the editor's canvas needs, without the logo and menu. */
+export async function getSiteBrand(
+  siteId: string,
+): Promise<{ brandColor: string; stylePreset: StylePreset }> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ brandColor: string; stylePreset: string }[]>`
+      select brand_color as "brandColor", style_preset as "stylePreset"
+      from site_settings where site_id = ${siteId}
+    `,
+  );
+  return {
+    brandColor: parseBrandColor(row.brandColor),
+    stylePreset: readStylePreset(row.stylePreset),
+  };
+}
+
+function readStylePreset(value: string): StylePreset {
+  return value === "classic" || value === "friendly" ? value : "modern";
+}
 
 /**
  * The one `site_settings` row, with the logo's URL resolved the same way a
@@ -36,12 +63,14 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         homePageId: string | null;
         siteDescription: string;
         language: string;
+        brandColor: string;
+        stylePreset: string;
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", m.variant_widths as "variantWidths", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
-      s.language as "language"
+      s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset"
     from site_settings s
     left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
     where s.site_id = ${siteId}
@@ -58,6 +87,9 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
     homePageId: row.homePageId,
     siteDescription: row.siteDescription,
     language: row.language,
+    // Parsed again on the way out: this text ends up in a page's `<style>` (D171).
+    brandColor: parseBrandColor(row.brandColor),
+    stylePreset: readStylePreset(row.stylePreset),
   };
 }
 
@@ -122,6 +154,19 @@ async function updateSeoDefaults(
   `;
 }
 
+/** Another F-40 sibling: only the brand colour and style preset (item 18a1). */
+async function updateBrand(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  input: { brandColor: string; stylePreset: StylePreset },
+): Promise<void> {
+  await tx`
+    update site_settings
+    set brand_color = ${input.brandColor}, style_preset = ${input.stylePreset}, updated_at = now()
+    where site_id = ${siteId}
+  `;
+}
+
 export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
 
 /**
@@ -140,6 +185,8 @@ export async function saveSiteSettings(
     navigation: NavItem[];
     siteDescription: string;
     language: string;
+    /** Absent leaves both columns as they are (a form from before the Brand section). */
+    brand?: { brandColor: string; stylePreset: StylePreset };
   },
 ): Promise<SaveSettingsResult> {
   try {
@@ -148,6 +195,7 @@ export async function saveSiteSettings(
       await updateHomePage(tx, siteId, input.homePageId);
       await updateNavigation(tx, siteId, input.navigation);
       await updateSeoDefaults(tx, siteId, input);
+      if (input.brand) await updateBrand(tx, siteId, input.brand);
     });
     return "saved";
   } catch (error) {
