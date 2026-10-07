@@ -122,12 +122,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const publicData = useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout");
   const lang = siteLook ? (publicData?.language ?? "en") : "en";
   return (
-    <html lang={lang} data-surface={siteLook ? "site" : undefined}>
+    <html
+      lang={lang}
+      data-surface={siteLook ? "site" : undefined}
+      data-style={siteLook ? publicData?.stylePreset : undefined}
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        {siteLook && publicData?.brandCss && (
+          <style nonce={publicData.nonce}>{`[data-surface="site"]{${publicData.brandCss}}`}</style>
+        )}
       </head>
       <body>
         {children}

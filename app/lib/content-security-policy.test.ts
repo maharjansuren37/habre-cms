@@ -26,12 +26,13 @@ const SHARED = {
   "frame-ancestors": "'none'",
 };
 
-test("the public policy is the shared directives with styles and images from known origins only", () => {
+test("the public policy allows styles from this origin and this response's nonce (18a1)", () => {
   const header = contentSecurityPolicy({ nonce: "abc123==", area: "public", imageBaseUrl: R2 });
-  assert.deepEqual(directives(header), { ...SHARED, "style-src": "'self'" });
+  assert.deepEqual(directives(header), { ...SHARED, "style-src": "'self' 'nonce-abc123=='" });
+  assert.doesNotMatch(header, /unsafe-inline/);
 });
 
-test("the admin policy allows no inline styles and no data: images, the same as the public one (14a3)", () => {
+test("the admin policy allows no inline styles and no data: images; its styles stay this origin only", () => {
   const header = contentSecurityPolicy({ nonce: "abc123==", area: "admin", imageBaseUrl: R2 });
   assert.deepEqual(directives(header), { ...SHARED, "style-src": "'self'" });
   assert.doesNotMatch(header, /unsafe-inline|data:/);

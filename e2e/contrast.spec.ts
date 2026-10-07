@@ -131,3 +131,20 @@ for (const colorScheme of ["light", "dark"] as const) {
     }
   });
 }
+
+// Item 18a1: whatever brand colour a site picks, its shades meet the same pairs.
+for (const brand of ["#c9a25e", "#ffff00", "#000000"]) {
+  test(`a site branded ${brand} meets contrast in light mode`, async ({ page }) => {
+    const site = await createSiteWithAddress("contrast-brand");
+    try {
+      await withDatabase(async (sql) => {
+        await sql`update site_settings set brand_color = ${brand} where site_id = ${site.id}`;
+      });
+      expect(await measure(page, siteUrl("/", site.address), "light")).toEqual([]);
+      await expect(page.locator("html")).toHaveAttribute("data-surface", "site");
+      await expect(page.locator("head style[nonce]")).toHaveCount(1);
+    } finally {
+      await deleteSite(site.id);
+    }
+  });
+}

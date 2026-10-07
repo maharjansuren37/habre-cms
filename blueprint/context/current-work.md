@@ -111,7 +111,7 @@ onboarding.
   fonts, since they are throwaway); nothing visible changes yet - the
   existing browser suite is green.
 
-- [ ] **Step 4 - The brand on public pages** - `getSiteSettings` reads
+- [x] **Step 4 - The brand on public pages** - `getSiteSettings` reads
   `brandColor` and `stylePreset`; one nonce per request, created before any
   loader runs and read by both `entry.server.tsx` (the header) and the public
   layout's loader (check the installed docs for how `handleRequest` receives

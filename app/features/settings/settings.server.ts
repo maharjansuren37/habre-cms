@@ -1,4 +1,5 @@
 import type postgres from "postgres";
+import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { mediaSources } from "#app/features/media/media-objects.ts";
 import { inSite } from "#app/lib/db.server.ts";
 import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
@@ -11,7 +12,16 @@ export type SiteSettings = {
   homePageId: string | null;
   siteDescription: string;
   language: string;
+  /** `''` (neutral ink) or `#rrggbb`. */
+  brandColor: string;
+  stylePreset: StylePreset;
 };
+
+export type StylePreset = "classic" | "modern" | "friendly";
+
+function readStylePreset(value: string): StylePreset {
+  return value === "classic" || value === "friendly" ? value : "modern";
+}
 
 /**
  * The one `site_settings` row, with the logo's URL resolved the same way a
@@ -36,12 +46,14 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         homePageId: string | null;
         siteDescription: string;
         language: string;
+        brandColor: string;
+        stylePreset: string;
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", m.variant_widths as "variantWidths", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
-      s.language as "language"
+      s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset"
     from site_settings s
     left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
     where s.site_id = ${siteId}
@@ -58,6 +70,9 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
     homePageId: row.homePageId,
     siteDescription: row.siteDescription,
     language: row.language,
+    // Parsed again on the way out: this text ends up in a page's `<style>` (D171).
+    brandColor: parseBrandColor(row.brandColor),
+    stylePreset: readStylePreset(row.stylePreset),
   };
 }
 
