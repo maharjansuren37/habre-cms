@@ -127,7 +127,7 @@ test("changing the password keeps this browser in and signs the other one out", 
     await expect(page).toHaveURL(/\/admin\/login/);
     await page.getByLabel("Password").fill(NEW_PASSWORD);
     await page.getByRole("button", { name: "Log in" }).click();
-    await expect(page).toHaveURL("/admin/posts");
+    await expect(page).toHaveURL("/admin");
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
     await deleteTestUser(user.email);
@@ -221,7 +221,7 @@ async function saveEmail(page: Page, newEmail: string, password: string): Promis
 
 async function openOff(page: Page, user: TestUser): Promise<void> {
   await logInOff(page, user.email, user.password);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await page.goto(`${OFF}/admin/account`);
 }
 
@@ -241,7 +241,7 @@ test("with email off, a new email takes effect at once and the old one stops sig
     await logInOff(page, user.email, user.password);
     await expect(page.getByText("That email and password don’t match.")).toBeVisible();
     await logInOff(page, newEmail, user.password);
-    await expect(page).toHaveURL(`${OFF}/admin/posts`);
+    await expect(page).toHaveURL(`${OFF}/admin`);
   } finally {
     await deleteTestUser(newEmail);
     await deleteTestUser(user.email);
@@ -302,7 +302,7 @@ test("with email off, a wrong current password is refused below its field and ch
     try {
       const other = await fresh.newPage();
       await logInOff(other, user.email, user.password);
-      await expect(other).toHaveURL(`${OFF}/admin/posts`);
+      await expect(other).toHaveURL(`${OFF}/admin`);
     } finally {
       await fresh.close();
     }
@@ -484,7 +484,7 @@ test("confirming changes the email only on the button, then tells the old addres
     await expect(page.getByRole("status")).toContainText(`Your email is now ${newEmail}.`);
     expect(await emailOf(user.email)).toBeUndefined();
 
-    expect(await signIn(browser, newEmail, user.password)).toMatch(/\/admin\/posts$/);
+    expect(await signIn(browser, newEmail, user.password)).toMatch(/\/admin$/);
     expect(await signIn(browser, user.email, user.password)).toMatch(/\/admin\/login/);
 
     const [notice] = await waitForMail(user.email, 1);

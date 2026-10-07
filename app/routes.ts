@@ -32,7 +32,7 @@ export default [
     route("start/:runId", "features/onboarding/start-wait.tsx"),
   ]),
   layout("features/admin-shell/layout.tsx", [
-    route("admin", "features/admin-shell/home.ts"),
+    route("admin", "features/admin-shell/home.tsx"),
     route("admin/posts", "features/content/post-list.tsx"),
     // A short question, not a focused task - keeps the sidebar (post-delete.tsx).
     route("admin/posts/:id/delete", "features/content/post-delete.tsx"),

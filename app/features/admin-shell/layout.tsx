@@ -72,11 +72,22 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
             Settings in item 7a, Users in item 8 - each added here in ship
-            order (D35). Pages is editor/admin only and Settings and Users are
-            admin only (requireRole), so a role that would get a 404 from the
-            route never sees a link to it. */}
+            order (D35). Home (item 18b4a) is first and admin only: it is the
+            admin's landing, and /admin sends an editor or author to Posts.
+            Pages is editor/admin only and Settings and Users are admin only
+            (requireRole), so a role that would get a 404 from the route never
+            sees a link to it. */}
         <nav aria-label="Admin">
           <ul className={styles.nav}>
+            {user.role === "admin" && (
+              <li>
+                {/* end: Home is /admin itself, not a prefix of every admin path. */}
+                <NavLink to="/admin" end>
+                  <HomeIcon />
+                  Home
+                </NavLink>
+              </li>
+            )}
             <li>
               <NavLink to="/admin/posts">
                 <PostsIcon />
@@ -144,6 +155,24 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" />
+    </svg>
   );
 }
 

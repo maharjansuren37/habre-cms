@@ -122,30 +122,30 @@ test("a site with a published page goes to /admin", async ({ page }) => {
   });
   await page.goto("/admin/login");
   await signIn(page, admin);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await page.goto("/start");
-  await page.waitForURL("**/admin/posts");
-  expect(new URL(page.url()).pathname).toBe("/admin/posts");
+  await page.waitForURL("**/admin");
+  expect(new URL(page.url()).pathname).toBe("/admin");
 });
 
 test("a suspended site goes to /admin", async ({ page }) => {
   await page.goto("/admin/login");
   await signIn(page, admin);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await withDatabase(async (sql) => {
     await sql`update sites set suspended_at = now() where id = ${siteId}`;
   });
   await page.goto("/start");
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("with AI off, /start goes to /admin", async ({ page }) => {
   const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
   await page.goto(`${off}/admin/login`);
   await signIn(page, admin);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await page.goto(`${off}/start`);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("step 1 has no horizontal scroll at 390px", async ({ page }) => {
@@ -268,7 +268,7 @@ test.describe("step 2, Tell us about it", () => {
     });
     await page.goto("/admin/login");
     await signIn(page, admin);
-    await page.waitForURL("**/admin/posts");
+    await page.waitForURL("**/admin");
     await page.goto("/start");
     await page.waitForURL(`**/start/${runId}`);
     await page.goto("/start/about?kind=blog");
@@ -303,7 +303,7 @@ test.describe("step 2, Tell us about it", () => {
     });
     await page.goto("/admin/login");
     await signIn(page, admin);
-    await page.waitForURL("**/admin/posts");
+    await page.waitForURL("**/admin");
     const finalPath = await page.evaluate(async () => {
       const body = new URLSearchParams({
         kind: "business",
@@ -566,7 +566,7 @@ test.describe("the wait", () => {
     // Not through /start: an applied run closes onboarding, so it would redirect too.
     await logInThenOpen(page, "/admin/settings");
     await page.goto(`/start/${runId}`);
-    await page.waitForURL(/\/admin(\/posts)?$/);
+    await page.waitForURL(/\/admin$/);
   });
 
   test("a running run created seven minutes ago shows Couldn't build your site", async ({
@@ -641,7 +641,7 @@ test.describe("use this draft", () => {
     await logInThenOpen(page, `/start/${runId}`);
     await page.getByRole("button", { name: "Use this draft" }).click();
     await page.waitForURL((url) => !url.pathname.startsWith("/start"));
-    expect(new URL(page.url()).pathname).toMatch(/^\/admin(\/posts)?$/);
+    expect(new URL(page.url()).pathname).toBe("/admin");
 
     const pages = await pagesOfSite();
     expect(pages.map((row) => row.title).sort()).toEqual(["About", "Home"]);
@@ -780,7 +780,7 @@ test.describe("use this draft", () => {
     await page.waitForURL((url) => !url.pathname.startsWith("/start"));
     for (const path of ["/start", "/start/about?kind=blog", `/start/${runId}`]) {
       await page.goto(path);
-      expect(new URL(page.url()).pathname, path).toMatch(/^\/admin(\/posts)?$/);
+      expect(new URL(page.url()).pathname, path).toBe("/admin");
     }
     const before = (await runRows()).length;
     const response = await page.request.post(`/start/${failedId}`, {

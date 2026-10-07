@@ -241,6 +241,10 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await page.getByRole("button", { name: "Save draft" }).click();
   await page.waitForURL(/\/admin\/posts\/[0-9a-f-]{36}$/);
 
+  // Home, the admin's landing (item 18b4a).
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+
   await page.goto("/admin/posts");
   await expect(
     page.locator("table tbody tr td:first-child a", { hasText: "CSP Editor Post" }),

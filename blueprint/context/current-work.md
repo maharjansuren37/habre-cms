@@ -181,7 +181,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   `/start`, `/start/about?kind=blog` and the used run's page each go to
   `/admin`, and an `intent=retry` POST to another failed run of the site
   starts no run.
-- [ ] **Step 5 - Home at `/admin`, and the landing** - `app/routes.ts`:
+- [x] **Step 5 - Home at `/admin`, and the landing** - `app/routes.ts`:
   `admin` points at a new `app/features/admin-shell/home.tsx` (the old
   `home.ts` deleted): its loader sends an editor or author to
   `/admin/posts`; an admin gets `h1` Home and the **Your pages** card (the

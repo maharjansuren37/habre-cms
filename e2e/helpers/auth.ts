@@ -3,8 +3,8 @@ import type { TestUser } from "./users.ts";
 
 /**
  * Logs a test user in through the real form and waits for the redirect to
- * the posts list - the shared setup step nearly every spec needs before it
- * can drive an admin screen. `auth.spec.ts` has its own version instead of
+ * Home (an admin) or Posts (an editor or author) - the shared setup step
+ * nearly every spec needs before it can drive an admin screen. `auth.spec.ts` has its own version instead of
  * this one: it exercises login itself, including the failure paths (a wrong
  * password, a redirect back to a protected page), so it needs to control the
  * navigation and the success wait independently rather than assume both.
@@ -25,5 +25,6 @@ export async function logIn(page: Page, user: TestUser): Promise<void> {
     if ((await answer).status() !== 503 || attempt === 2) break;
     await page.waitForTimeout(500);
   }
-  await page.waitForURL("**/admin/posts");
+  // An admin lands on Home; an editor or author is sent on to Posts.
+  await page.waitForURL(/\/admin(\/posts)?$/);
 }
