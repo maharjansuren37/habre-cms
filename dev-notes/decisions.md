@@ -1950,6 +1950,11 @@ Costs:
 - a prompt tested on every configured model;
 - a privacy policy that names all three providers and OpenRouter's upstreams.
 
+**Amended by D372** (2026-10-07, item 18b1): OpenRouter is first, by default,
+in a configured order (`AI_PROVIDERS`); Anthropic and OpenAI direct become
+optional fallbacks (18b2). Credits come from the cost OpenRouter reports. The
+rules on when a run moves on are unchanged.
+
 ## D156 - Email over SMTP with nodemailer; Resend for the hosted platform (2026-10-01)
 
 **Chose:** one email module sending over SMTP through `nodemailer` (no
@@ -4163,3 +4168,185 @@ the field first.
 holding a comma and a multi-dimensional array (F-318).
 Beats: trusting the app to write well-formed values - 18b reads `colours[0]`.
 Costs: none worth naming.
+
+## D370 - An AI proposal holds pages only, no posts (2026-10-07)
+
+**Chose:** the proposal is pages, navigation, SEO text and a brand colour; a
+Blog kind gets a home page pointing at the post list (item 18b1).
+Beats: one or two starter posts.
+Costs: a new blog starts with no posts; starter posts would be content the
+person must delete.
+
+## D371 - A proposal's buttons link only to its own pages (2026-10-07)
+
+**Chose:** `buttonTarget` is a page key of the same proposal, resolved to slugs
+we make; a button without one links to the home page. The AI never writes a
+URL.
+Beats: AI-written links through the allowlist - safe, but a link the person did
+not choose.
+Costs: no outbound links in a generated site.
+
+## D372 - OpenRouter first, by default, in a configured order (2026-10-07)
+
+**Chose:** `AI_PROVIDERS` sets the order, default `openrouter`; any model it
+serves is a setting (`OPENROUTER_MODEL`, default `anthropic/claude-opus-5.5`,
+confirmed on its models list with structured outputs on 2026-10-07); credits
+come from the cost it reports. Anthropic and OpenAI direct become optional
+fallbacks in 18b2. Owner, 2026-10-07; amends D155.
+Beats: Anthropic first with a configured price per model.
+Costs: Anthropic's server-side refusal fallback is lost (a refusal fails the
+run, which D155's refusal rule already allows); OpenRouter is one more company
+in the description's path (`data_collection: "deny"`); its fee on buying
+credits.
+
+## D373 - A response with no reported cost fails the run as `invalid` (2026-10-07)
+
+**Chose:** no `usage.cost` from OpenRouter fails the run as `invalid`, logged.
+Beats: charging an estimate.
+Costs: a run the provider served but did not price is wasted.
+
+## D374 - OpenRouter out of credits (402) counts as unavailable (2026-10-07)
+
+**Chose:** a 402 is `unavailable`, logged at error level, so 18b2's chain moves
+on rather than every run failing.
+Beats: treating it as broken.
+Costs: an empty OpenRouter balance is visible only in the logs while a
+fallback carries the runs.
+
+## D375 - A site's AI allowance defaults to 1,000 credits a month (2026-10-07)
+
+**Chose:** `AI_CREDITS_PER_MONTH` defaults to 1,000 (US$1 of provider cost),
+or `none`; provisional until 18b2 measures a run (D150, D164).
+Beats: no default.
+Costs: a number set before any measurement; the owner's decision in
+`needs-you.md`.
+
+## D376 - Interrupted AI runs are swept by a security-definer function (2026-10-07)
+
+**Chose:** `fail_interrupted_ai_runs()`, owned by the owner and executable by
+the app role, sets every `running` row to `failed` / `interrupted` at startup,
+because the app role sees no `ai_runs` row without a site set.
+Beats: taking `ai_runs` out of row-level security.
+Costs: one function that crosses every site, which must stay that narrow.
+
+## D377 - `ai_runs.site_id` restricts deletion (2026-10-07)
+
+**Chose:** `on delete restrict`, as every site-owned table does; taking the
+site deletes its runs explicitly in `deleteAccount`.
+Beats: `on delete cascade`.
+Costs: each new site-owned table is one more line in `deleteAccount`.
+
+## D378 - `max_tokens` 8000 for a run, not streamed (2026-10-07)
+
+**Chose:** `max_tokens` 8000 (16000 until F-337). The four live runs used
+1,061-1,673 output tokens, and 8000 ends the worst case well inside the
+5-minute limit, so an over-long answer is charged as `invalid` instead of
+timing out uncharged. Model-specific settings such as reasoning effort wait
+for 18b2's measurement.
+Beats: streaming, which a background run does not need; 16000.
+Costs: a proposal near every upper bound would be cut off; a reasoning model's
+reasoning counts against the 8000 (F-342).
+
+## D379 - Every proposed page's first hero heading is its main heading (2026-10-07)
+
+**Chose:** each page's first hero heading becomes its `h1`, not only the home
+page's; a page without a hero falls back to its title (`render.tsx`), since
+`parseDocument` refuses two level-1 headings.
+Beats: an h1 only on the home page.
+Costs: none worth naming.
+
+## D380 - A proposal's text slot refuses every control character (2026-10-07)
+
+**Chose:** newline and tab included, as well as lone surrogates and
+whitespace-only text; the model's instructions say so.
+Beats: allowing newlines in bodies.
+Costs: a model that writes a newline fails the run as `invalid`.
+
+## D381 - Unknown extra fields in a proposal are stripped, not refused (2026-10-07)
+
+**Chose:** Zod's default stripping.
+Beats: `strict()`, which would fail runs over a harmless extra key.
+Costs: none worth naming.
+
+## D382 - Credits are worked out in whole micro-dollars (2026-10-07)
+
+**Chose:** a cost in US dollars becomes whole micro-dollars, then credits
+(US$0.001 each), rounded up - US$0.003 is 3 credits, not 4; any non-zero cost
+is at least 1; reaching the allowance exactly refuses the next run.
+Beats: dividing floats.
+Costs: none worth naming.
+
+## D383 - Every AI variable is validated even when AI is off (2026-10-07)
+
+**Chose:** a malformed `AI_PROVIDERS` or `AI_CREDITS_PER_MONTH` stops startup
+without a key; `none` is `null`, as `STORAGE_LIMIT_MB` does.
+Beats: ignoring them while off.
+Costs: a self-hoster with AI off can still be stopped by a stray value.
+
+## D384 - A run's slots are claimed synchronously, before its first await (2026-10-07)
+
+**Chose:** two runs at once per process and one per site, claimed in memory
+before any await, with the store's running-row check as a second guard. Order:
+busy, allowance, running row, insert. A store error or a non-`AiError` throw
+fails the run `broken`; an unpriceable cost `invalid`.
+Beats: relying on the database check alone.
+Costs: the two-at-once limit is per process, not per installation.
+
+## D385 - Starting a run returns `done`, a promise that never rejects (2026-10-07)
+
+**Chose:** `start` returns the run's id and `done`, so `ai:try` and tests can
+wait for it.
+Beats: polling the row.
+Costs: none worth naming.
+
+## D386 - The startup sweep is not awaited and never stops startup (2026-10-07)
+
+**Chose:** a database failure is logged (`ai_runs_sweep_failed`), as
+`/healthz` reports one.
+Beats: refusing to start.
+Costs: a failed sweep leaves interrupted rows `running` until the next start
+(bounded to six minutes for blocking by D390).
+
+## D387 - `ai:try` parses only the AI variables (2026-10-07)
+
+**Chose:** the script reads `ai-env.server.ts`, not `env.server.ts`, so
+`--fake` works with AI off.
+Beats: importing the web app's whole environment.
+Costs: none worth naming.
+
+## D388 - Any HTTP status not named is `broken` (2026-10-07)
+
+**Chose:** 429, 402 and 5xx are `unavailable`; every other status is `broken`
+- a 404 or 422 is a request we got wrong. The run's own abort sorts as
+`unavailable`, which the runner turns into `timeout`.
+Beats: unknown statuses as `unavailable`.
+Costs: a provider's new transient status fails runs until it is named.
+
+## D389 - The provider schema is a hand-written, shape-only mirror (2026-10-07)
+
+**Chose:** `provider-schema.ts` mirrors the proposal's shape, sections as
+`z.union` so it emits `anyOf` (strict mode has no `oneOf`), optional slots
+nullable; our Zod parse applies the bounds afterwards. A test checks a valid
+proposal passes both.
+Beats: deriving it from `proposalSchema` and stripping bounds.
+Costs: two schemas to keep in step; the drift test checks one direction
+(F-332).
+
+## D390 - A `running` row older than six minutes no longer blocks its site (2026-10-07)
+
+**Chose:** `hasRunningRun` counts only rows created in the last six minutes
+(the 5-minute limit plus a minute), so a lost finish write blocks a site for at
+most six minutes; `ai:try` exits 1 unless the run it reads back succeeded
+(F-329).
+Beats: blocking until the next restart's sweep.
+Costs: the abandoned row stays `running` until a restart (F-339).
+
+## D391 - A failed AI run is charged the cost the provider reported (2026-10-07)
+
+**Chose:** a failed run that reported a cost is charged its credits; one that
+reported none (a timeout, an unreachable provider) stays at 0. The `ai_runs`
+check is `credits = 0` only while `running`. Owner, 2026-10-07 (F-330);
+replaces "a failed run costs no credits".
+Beats: a separate cap on summed `cost_usd`, or a daily cap on failed runs.
+Costs: a site pays for a run that gave it nothing; a timeout can still go
+uncharged (F-341).

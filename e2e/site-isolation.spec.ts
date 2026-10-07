@@ -16,7 +16,7 @@ type Fixture = {
   oneEmail: string;
 };
 
-const TABLES = ["entries", "media", "site_settings"] as const;
+const TABLES = ["entries", "media", "site_settings", "ai_runs"] as const;
 
 let fixture: Fixture;
 
@@ -36,6 +36,10 @@ async function insertRows(siteId: string, authorId: string, tag: string): Promis
     await sql`
       insert into media (site_id, storage_key, filename, mime_type, byte_size, width, height, alt_text, uploaded_by)
       values (${siteId}, ${`e2e-test/${tag}.jpg`}, ${`${tag}.jpg`}, 'image/jpeg', 1000, 10, 10, 'alt', ${authorId})
+    `;
+    await sql`
+      insert into ai_runs (site_id, user_id, kind, description, status)
+      values (${siteId}, ${authorId}, 'website', ${tag}, 'running')
     `;
   });
 }
@@ -58,6 +62,7 @@ test.afterAll(async () => {
   await withDatabase(async (sql) => {
     await sql`delete from entries where author_id = ${fixture.oneUserId}`;
     await sql`delete from media where uploaded_by = ${fixture.oneUserId}`;
+    await sql`delete from ai_runs where site_id = ${fixture.siteOne} and user_id = ${fixture.oneUserId}`;
   });
   await deleteTestUser(fixture.oneEmail);
   await deleteSite(fixture.siteTwo);
@@ -167,5 +172,69 @@ test("the owner sees every row", async () => {
       `;
       expect(row.count, `${table} as the owner`).toBeGreaterThanOrEqual(2);
     }
+  });
+});
+
+/** The error an owner's insert into ai_runs raises, or null when it is accepted (and undone). */
+async function insertRunError(columns: {
+  kind: string;
+  status: string;
+  credits: number;
+  error?: string | null;
+}): Promise<{ code?: string; constraint_name?: string } | null> {
+  const rollback = new Error("rolled back");
+  return withDatabase(async (sql) => {
+    try {
+      await sql.begin(async (tx) => {
+        await tx`
+          insert into ai_runs (site_id, kind, description, status, credits, error)
+          values (${fixture.siteOne}, ${columns.kind}, 'check', ${columns.status},
+                  ${columns.credits}, ${columns.error ?? null})
+        `;
+        throw rollback;
+      });
+      return null;
+    } catch (caught) {
+      return caught === rollback ? null : (caught as { code?: string; constraint_name?: string });
+    }
+  });
+}
+
+test("ai_runs refuses an unknown kind, credits on a running run, and an unknown error code", async () => {
+  const kind = await insertRunError({ kind: "newsletter", status: "running", credits: 0 });
+  expect(kind?.code).toBe("23514");
+  expect(kind?.constraint_name).toBe("ai_runs_kind_check");
+  const credits = await insertRunError({ kind: "website", status: "running", credits: 5 });
+  expect(credits?.code).toBe("23514");
+  expect(credits?.constraint_name).toBe("ai_runs_credits_check");
+  // A failed run is charged what its provider reported (18b1 Step 8).
+  expect(await insertRunError({ kind: "website", status: "failed", credits: 5 })).toBeNull();
+  const code = await insertRunError({
+    kind: "website",
+    status: "failed",
+    credits: 0,
+    error: "exploded",
+  });
+  expect(code?.code).toBe("23514");
+  expect(code?.constraint_name).toBe("ai_runs_error_check");
+  expect(await insertRunError({ kind: "website", status: "succeeded", credits: 5 })).toBeNull();
+});
+
+test("fail_interrupted_ai_runs fails every running run, across sites, for the app role", async () => {
+  const app = appRole();
+  try {
+    const [row] = await app<{ count: number }[]>`select fail_interrupted_ai_runs() as count`;
+    expect(row.count).toBeGreaterThanOrEqual(2);
+  } finally {
+    await app.end();
+  }
+  await withDatabase(async (sql) => {
+    // Only this spec's own runs: site 1 is the development site and keeps real runs.
+    const rows = await sql<{ status: string; error: string }[]>`
+      select status, error from ai_runs
+      where user_id in ${sql([fixture.oneUserId, fixture.twoUserId])}
+    `;
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    for (const run of rows) expect(run).toEqual({ status: "failed", error: "interrupted" });
   });
 });

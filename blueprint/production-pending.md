@@ -81,3 +81,9 @@
 
 - [ ] Run migration `0019_media_colours.sql` (additive, default `'{}'`; no data change).
 - [ ] The admin's Content-Security-Policy gains `img-src blob:`; Caddy sets no CSP of its own, so nothing on the server changes. No new environment variables, accounts or dependencies.
+
+## features/18b1-the-run-with-openrouter
+
+- [ ] Run migration `0020_ai_runs.sql` (new table and the `fail_interrupted_ai_runs()` function; no data change).
+- [ ] `OPENROUTER_API_KEY` (a production key with a credit limit on OpenRouter), optionally `AI_PROVIDERS`, `OPENROUTER_MODEL`, `AI_CREDITS_PER_MONTH`, in `/etc/habre-cms/production.env`.
+- [ ] `openai` in the release's `node_modules`.

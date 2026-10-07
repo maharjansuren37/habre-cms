@@ -50,6 +50,11 @@ async function makeSite(): Promise<void> {
   postTitle = `Leaving Post ${randomInt(1_000_000)}`;
   await withDatabase(async (sql) => {
     await sql`
+      insert into ai_runs (site_id, user_id, kind, description, status)
+      select ${siteId}, id, 'website', 'a run by the leaver', 'running'
+      from users where email = ${author.email}
+    `;
+    await sql`
       insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
       select ${siteId}, 'post', ${postTitle}, ${postTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")},
              ${sql.json(textDocument("Body") as never)}, 'v4', 'published', now(), id
@@ -128,6 +133,12 @@ test("an author leaves from Your account: wrong password refused, right one sign
   await expect(page).toHaveURL("/admin/login?deleted=1");
   await expect(page.getByRole("status")).toContainText("Your account is deleted.");
   expect(await userExists(author.email)).toBe(false);
+  // Leaving keeps the site's runs, with the author nulled.
+  const runs = await withDatabase(
+    (sql) => sql<{ userId: string | null }[]>`
+      select user_id as "userId" from ai_runs where site_id = ${siteId}`,
+  );
+  expect(runs.map((run) => run.userId)).toEqual([null]);
 
   expect(await signInOutcome(browser, author.email, author.password)).toBe("refused");
 
@@ -221,6 +232,7 @@ async function leftOfSite(emails: string[]): Promise<Record<string, number>> {
       entries: await count(sql`select 1 from entries where site_id = ${siteId}`),
       media: await count(sql`select 1 from media where site_id = ${siteId}`),
       members: await count(sql`select 1 from site_members where site_id = ${siteId}`),
+      runs: await count(sql`select 1 from ai_runs where site_id = ${siteId}`),
       users: await count(sql`select 1 from users where email in ${sql(emails)}`),
     };
   });
@@ -263,6 +275,13 @@ async function makeSoleAdminSite(): Promise<void> {
   });
   await insertTestMediaRow({ uploadedBy: editor.email, siteId });
   await insertTestMediaRow({ uploadedBy: editor.email, siteId });
+  await withDatabase(async (sql) => {
+    await sql`
+      insert into ai_runs (site_id, user_id, kind, description, status)
+      select ${siteId}, id, 'blog', 'a run on a taken site', 'running'
+      from users where email = ${editor.email}
+    `;
+  });
 }
 
 test("the last active admin sees what goes, and a wrong address deletes nothing", async ({
@@ -291,7 +310,15 @@ test("the last active admin sees what goes, and a wrong address deletes nothing"
   await expect(address).toHaveAttribute("aria-invalid", "true");
   await expect(address).toHaveValue("not-the-address");
   const left = await leftOfSite([admin.email, deactivated.email, editor.email]);
-  expect(left).toEqual({ sites: 1, settings: 1, entries: 3, media: 2, members: 3, users: 3 });
+  expect(left).toEqual({
+    sites: 1,
+    settings: 1,
+    entries: 3,
+    media: 2,
+    members: 3,
+    runs: 1,
+    users: 3,
+  });
 });
 
 test("the right address and password delete the site, its members, and free its address", async ({
@@ -311,6 +338,7 @@ test("the right address and password delete the site, its members, and free its 
     entries: 0,
     media: 0,
     members: 0,
+    runs: 0,
     users: 0,
   });
   expect(await signInOutcome(browser, editor.email, editor.password)).toBe("refused");

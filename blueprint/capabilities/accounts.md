@@ -25,6 +25,7 @@
 - **accounts.24** - a deletion is refused, deleting nothing, when who is the last active admin changed after the confirm screen loaded *Since:* features/15e2-delete-your-account
 - **accounts.25** - with email on, every other member of a deleted site is emailed that it was deleted *Since:* features/15e2-delete-your-account
 - **accounts.26** - the last active admin of any site can delete their account, and the site's domains go with it *Since:* features/16a-sites-by-host
+- **accounts.27** - taking the site also deletes its AI runs *Since:* features/18b1-the-run-with-openrouter
 
 ## Removed
 - accounts.23 - removed by features/16a-sites-by-host

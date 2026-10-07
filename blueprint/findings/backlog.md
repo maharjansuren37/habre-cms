@@ -524,3 +524,36 @@ File: app/features/brand/logo-colours.ts:95-102
 
 ### F-328 [P3] open - design.md says the upload control is disabled while sending; the code uses aria-disabled on it, Choose and Remove
 File: blueprint/context/design.md:165-168, :508 (*Pending*)
+
+### F-331 [P3] open - The description can still close its own fence
+File: app/features/ai/openrouter-response.ts:18
+
+### F-332 [P3] open - The provider-schema drift test only checks one direction
+File: app/features/ai/openrouter-response.test.ts:162-177; app/features/ai/provider-schema.ts
+
+### F-333 [P3] open - Unexpected errors become `broken` with nothing logged
+File: app/features/ai/run-generation.ts:156; app/features/ai/openrouter-response.ts:119; app/features/ai/openrouter.server.ts:56-62
+
+### F-334 [P3] open - The security definer sweep's search_path omits `pg_temp`
+File: db/migrations/0020_ai_runs.sql:70
+
+### F-335 [P3] open - `openai` 7.30.0 is not in the recorded version lists
+File: AGENTS.md (Stack and versions); blueprint/project-plan.md section 5
+
+### F-336 [P3] unverified - OpenRouter's `finish_reason: "error"` lands as `invalid`, not `unavailable`
+File: app/features/ai/openrouter-response.ts (readCompletion)
+
+### F-338 [P3] open - The ai-runs browser spec can fail when the site-isolation sweep test runs alongside it
+File: e2e/ai-runs.spec.ts:48-51; e2e/site-isolation.spec.ts:223-226
+
+### F-339 [P3] open - An abandoned `running` row stays `running` until the next restart
+File: app/features/ai/runs.server.ts:22-28
+
+### F-340 [P3] open - The finish log still reports an outcome that was never saved
+File: app/features/ai/run-generation.ts:197-210
+
+### F-341 [P3] open - A timeout can still go uncharged through retries, failover or a slow configured model
+File: app/features/ai/openrouter.server.ts:20,51 (`maxRetries: 2`); app/features/ai/run-generation.ts:158
+
+### F-342 [P3] open - The spec understates the `max_tokens` trade-off
+File: blueprint/context/current-work.md:199-201 (Step 10), :308-311 (Decision); app/features/ai/openrouter-response.test.ts:95-99

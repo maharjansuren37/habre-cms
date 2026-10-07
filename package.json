@@ -23,6 +23,7 @@
     "suspend-site": "node --env-file-if-exists=.env scripts/suspend-site.ts",
     "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
     "optimise-media": "node --env-file-if-exists=.env scripts/optimise-media.ts",
+    "ai:try": "node --env-file-if-exists=.env scripts/ai-try.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "isbot": "5.2.2",
     "jose": "6.2.12",
     "nodemailer": "10.0.14",
+    "openai": "7.30.0",
     "postgres": "3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",

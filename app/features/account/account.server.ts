@@ -295,7 +295,7 @@ export type DeleteAccountResult =
 /**
  * Deletes the signed-in person's own account, and the site with it when they
  * are its last active admin. **This is the one place a site is deleted.** Every
- * later site-owned table or service adds its own cleanup here: image variants' R2 keys (17b), `ai_runs` (18),
+ * later site-owned table or service adds its own cleanup here: image variants' R2 keys (17b),
  * `contact_submissions` (19) and cancelling the Stripe subscription (21).
  *
  * One transaction: the site's row is locked first, then the user's (15e1's
@@ -304,7 +304,7 @@ export type DeleteAccountResult =
  * nothing. Leaving: the membership goes before the user
  * (`site_members.user_id` restricts); its foreign keys null the author and
  * uploader of their entries and media, and `email_tokens` cascade from the
- * user. Taking the site: settings, entries, media, memberships, every member's
+ * user (its AI runs stay, the author nulled). Taking the site: AI runs, settings, entries, media, memberships, every member's
  * user and the site row, in that order (settings' keys point at entries and
  * media; the site's domains go before the site, which they restrict). After the commit the caller removes the returned R2 keys and tells
  * the other members. `userId` and `siteId` are the session's.
@@ -334,6 +334,7 @@ export async function deleteAccount(
     const members = await tx<{ id: string; name: string; email: string }[]>`
       select u.id, u.name, u.email from site_members m join users u on u.id = m.user_id
       where m.site_id = ${siteId}`;
+    await tx`delete from ai_runs where site_id = ${siteId}`;
     await tx`delete from site_settings where site_id = ${siteId}`;
     await tx`delete from entries where site_id = ${siteId}`;
     const media = await tx<{ storageKey: string; variantWidths: number[] | null }[]>`

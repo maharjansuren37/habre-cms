@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { aiEnvFields, toAiSettings } from "#app/lib/ai-env.server.ts";
 import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 import {
   emailEnvFields,
@@ -29,13 +30,31 @@ const envSchema = databaseEnvSchema
     ...emailEnvFields,
     // The storage limit (item 15d), parsed to bytes or null. Renamed below.
     ...limitsEnvFields,
+    // AI (item 18b1): validated here, replaced by env.AI below.
+    ...aiEnvFields,
   })
   .superRefine(requireEmailForSignup)
   .superRefine(requireEmailPair)
-  // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit.
-  .transform(({ STORAGE_LIMIT_MB, ...rest }) => ({
-    ...rest,
-    STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
-  }));
+  // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit. And
+  // env.AI: null when AI is off, else the parsed settings.
+  .transform(
+    ({
+      STORAGE_LIMIT_MB,
+      AI_PROVIDERS,
+      OPENROUTER_API_KEY,
+      OPENROUTER_MODEL,
+      AI_CREDITS_PER_MONTH,
+      ...rest
+    }) => ({
+      ...rest,
+      STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
+      AI: toAiSettings({
+        AI_PROVIDERS,
+        OPENROUTER_API_KEY,
+        OPENROUTER_MODEL,
+        AI_CREDITS_PER_MONTH,
+      }),
+    }),
+  );
 
 export const env = parseEnv(envSchema, process.env);

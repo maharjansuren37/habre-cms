@@ -3,7 +3,14 @@ import { createRequestListener } from "@remix-run/node-fetch-server";
 import { createRequestHandler, RouterContextProvider } from "react-router";
 // Imported for its startup check: the server refuses to start misconfigured.
 import "#app/lib/env.server.ts";
+import { failInterruptedRuns } from "#app/features/ai/runs.server.ts";
 import { nonceContext } from "#app/lib/nonce-context.ts";
+
+// Runs a restart interrupted are marked failed, once when this module loads. In
+// production that is once per process; in development Vite reloads this module on
+// edits, so it can run again, which is harmless. Not awaited: never on the request
+// path, and a database problem is logged rather than stopping startup.
+void failInterruptedRuns();
 
 const handleRequest = createRequestHandler(() => import("virtual:react-router/server-build"));
 

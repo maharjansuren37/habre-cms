@@ -290,6 +290,15 @@ not tidying; it is what keeps the open list true.
       OpenAI are needed by 18b2. `open` (rescope review, 2026-10-01;
       providers chosen, architect, 2026-10-01; OpenRouter first and blocks 18b1 Step 7, spec 18b1, 2026-10-07)
 
+- [ ] **Compare four AI runs with OpenRouter's activity page** - manual
+      verification; it needs your OpenRouter login. Item 18b1's Step 7 made
+      four runs on 2026-10-07 with `anthropic/claude-opus-5.5`, which stored
+      costs of US$0.041465, 0.029836, 0.021908 and 0.034184 (42, 30, 22 and
+      35 credits). Check the activity page shows the same four costs. Blocks
+      nothing now; `verify` of item 18b1 names it as not proven, and
+      `preflight` needs it before the v1 deploy. `open` (build 18b1,
+      2026-10-07)
+
 - [ ] **Free plan limits and the paid plan's price** - decision. How much AI
       use and storage Free allows, what the paid plan raises them to, and its
       price. AI use is a monthly allowance of credits, 1 credit = US$0.001 of
