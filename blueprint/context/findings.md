@@ -110,7 +110,7 @@ File: app/features/brand/brand-colours.ts:138-149
 ### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
 File: app/features/media/optimise-image.server.ts:64
 
-### F-354 [P2] fixed - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
+### F-354 [P2] closed - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
 File: app/features/onboarding/start-wait.tsx:78-89
 
 ### F-355 [P2] open - Journey tests assert "Building your site" against a 1-second fake, so they can flake on a slow runner
@@ -118,3 +118,30 @@ File: e2e/onboarding.spec.ts:493-495 (`expectDraft`), :520-526
 
 ### F-363 [P2] fixed - "Two signups at once" can get "Signup is busy" instead of "is taken" when other tests hold the password-check slots
 File: e2e/signup.spec.ts:272; app/features/signup/signup.server.ts:64
+
+### F-364 [P3] open - The review badges the first page "Home page", but Use this draft makes p1 the home page
+File: app/features/onboarding/start-wait.tsx:167; app/features/ai/apply-plan.ts:61
+
+### F-365 [P3] open - Home trusts status 'succeeded' without the parse rule: an unreadable draft is offered as waiting, an unreadable applied one reads "0 pages"
+File: app/features/ai/runs.server.ts:139,151; app/features/admin-shell/home.tsx:97,127
+
+### F-366 [P3] open - On /start the kit's large button loses to the base button rule; Use this draft is 44px beside a 52px link that wraps at 390px
+File: app/features/onboarding/onboarding.module.css:198-209; app/features/onboarding/start-wait.tsx:231
+
+### F-367 [P3] open - The "two applies at once" test proves the claim only when the two POSTs happen to overlap
+File: e2e/onboarding.spec.ts:710-728
+
+### F-368 [P3] open - The 1-second apply timings are hard assertions in CI too
+File: e2e/onboarding.spec.ts:725, :738
+
+### F-369 [P3] open - "Shows an alert and creates nothing" never looks for the alert, and the alert points at a Try again the review lacks
+File: e2e/onboarding.spec.ts:761-771; app/features/onboarding/start-wait.tsx:86-92, :228-229
+
+### F-370 [P3] open - An apply that loses an address race with a concurrent page create answers 500
+File: app/features/ai/apply-run.server.ts:36, :52
+
+### F-371 [P2] unverified - A page published between the gate and the apply transaction has its menu and home page replaced by drafts
+File: app/features/onboarding/start-layout.tsx (gate); app/features/ai/apply-run.server.ts
+
+### F-372 [P3] unverified - Home's loader opens up to nine inSite transactions per load against a pool of five
+File: app/features/admin-shell/home.tsx (loader); app/lib/db.server.ts:5

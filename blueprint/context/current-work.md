@@ -3,7 +3,7 @@
 **From build plan:** item 18b4a
 **Type:** Feature
 **Verified:** 2026-10-08, 0a1f5d7c25e6, 8 of 8 proven (npm run verify 930/930; npm run test:e2e 515 passed, 0 failed, 0 skipped; apply POST 41 ms single, 42/65 ms concurrent, one local sample; screenshots of the review and Home at 1280 and 390, light and dark, no console errors). Screen-reader announcement not heard - needs-you accessibility line
-**Reviewed:** not yet
+**Reviewed:** 2026-10-08, 0a1f5d7c25e6, current, every lens (via reviewer) - 0 blocking; F-364 to F-370 P3 open, F-371 P2 and F-372 P3 unverified, F-354 closed
 
 ## Goal
 
