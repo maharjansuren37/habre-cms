@@ -37,3 +37,19 @@ test("admin paths carrying a backslash or whitespace go to /admin", () => {
     assert.equal(safeRedirect(destination), "/admin", JSON.stringify(destination));
   }
 });
+
+test("a path inside the start flow is kept", () => {
+  for (const destination of [
+    "/start",
+    "/start/about?kind=blog",
+    "/start/0c9d5f3e-1111-4222-8333-444455556666",
+  ]) {
+    assert.equal(safeRedirect(destination), destination);
+  }
+});
+
+test("paths that only begin with /start go to /admin", () => {
+  for (const destination of ["/startx", "/start-here", "/starting/about"]) {
+    assert.equal(safeRedirect(destination), "/admin", destination);
+  }
+});

@@ -3,7 +3,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
-import { siteUrl } from "./helpers/sites.ts";
+import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
   createAdmin,
@@ -269,6 +269,31 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await expect(page.getByText(admin.email).first()).toBeVisible();
 
   expect(violations).toEqual([]);
+});
+
+test("/start carries the admin policy and renders with nothing refused", async ({ page }) => {
+  // Site 1 has published pages, which would send /start to /admin: an empty site's admin.
+  const siteId = await createSite("csp-start");
+  try {
+    const startAdmin = await createSiteAdmin(siteId, "CSP Start Admin");
+    await page.goto("/admin/login?redirectTo=%2Fstart");
+    await page.getByLabel("Email").fill(startAdmin.email);
+    await page.getByLabel("Password").fill(startAdmin.password);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await page.waitForURL("**/start");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "What do you want to create?" }),
+    ).toBeVisible();
+
+    const response = await page.goto("/start");
+    const policy = response?.headers()["content-security-policy"] ?? "";
+    expect(policy).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);
+    expect(policy).toContain("style-src 'self';");
+    expect(policy).not.toContain("unsafe-inline");
+    expect(violations).toEqual([]);
+  } finally {
+    await deleteSite(siteId);
+  }
 });
 
 /** Drags `from` past the 6px threshold and drops it just below the top of `to`. */

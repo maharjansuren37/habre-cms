@@ -152,7 +152,7 @@ cap - land here too. The draft's review and apply are 18b4.
   23:59 UTC says 1 November; on 31 December, 1 January) and the cap (the 11th
   start in the window is refused; a refused start does not count; the window
   ending lets the site start again), each seen failing first.
-- [ ] **Step 4 - `/start`, step 1** - `isPlatformPath` gains `/start` and
+- [x] **Step 4 - `/start`, step 1** - `isPlatformPath` gains `/start` and
   `/start/*`; `safeRedirect` also follows `/start` paths, so signing in
   returns there (journey 6); `app/routes.ts` gains `/start` under
   `features/onboarding/start-layout.tsx` (Steps 5 and 6 add their routes, so
