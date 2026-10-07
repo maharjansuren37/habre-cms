@@ -141,6 +141,20 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
 
 - **No logo gives a wordmark** (`.site-brand.wordmark`): the site's name in
   the preset's heading font and the brand colour.
+- **Settings' Brand section (18a1, owner's spec 2026-10-07).** It sits after
+  Logo and before Site description: two `fieldset`s, Brand colour and Style,
+  swatches and preset cards as real radio inputs. The record did not cover
+  three things:
+  - **A No colour swatch.** Neutral ink is a stored state (`''`), so Settings
+    needs a way back to it. First in the row, drawn as the ink colour, named
+    "No colour (black and white)".
+  - **Swatch and preview colours are set through the CSSOM**
+    (`element.style.setProperty`), never a `style` attribute: the mock's
+    `style="--swatch: ..."` is blocked by the admin's `style-src 'self'` (no
+    nonce, no `unsafe-inline`). A server-rendered swatch shows its colour once
+    the page hydrates; its visible name says it regardless.
+  - **Placement:** the Brand section follows Logo and precedes Site
+    description.
 - **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
   a site looks the way its owner saw it in the editor, and a dark logo never
   disappears on a dark page.

@@ -137,6 +137,19 @@ async function updateSeoDefaults(
   `;
 }
 
+/** Another F-40 sibling: only the brand colour and style preset (item 18a1). */
+async function updateBrand(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  input: { brandColor: string; stylePreset: StylePreset },
+): Promise<void> {
+  await tx`
+    update site_settings
+    set brand_color = ${input.brandColor}, style_preset = ${input.stylePreset}, updated_at = now()
+    where site_id = ${siteId}
+  `;
+}
+
 export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
 
 /**
@@ -155,6 +168,8 @@ export async function saveSiteSettings(
     navigation: NavItem[];
     siteDescription: string;
     language: string;
+    /** Absent leaves both columns as they are (a form from before the Brand section). */
+    brand?: { brandColor: string; stylePreset: StylePreset };
   },
 ): Promise<SaveSettingsResult> {
   try {
@@ -163,6 +178,7 @@ export async function saveSiteSettings(
       await updateHomePage(tx, siteId, input.homePageId);
       await updateNavigation(tx, siteId, input.navigation);
       await updateSeoDefaults(tx, siteId, input);
+      if (input.brand) await updateBrand(tx, siteId, input.brand);
     });
     return "saved";
   } catch (error) {

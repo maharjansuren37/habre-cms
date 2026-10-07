@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  brandColorSchema,
   homePageIdSchema,
   isSettingsFormBodyAllowed,
   languageSchema,
   logoMediaIdSchema,
   siteDescriptionSchema,
   siteTitleSchema,
+  stylePresetSchema,
 } from "./settings-input.ts";
 
 test("site title rejects an empty string", () => {
@@ -101,4 +103,25 @@ test("language rejects a tag that is not in the list", () => {
   assert.equal(result.success, false);
   assert.equal(result.error?.issues[0]?.message, "Choose a language from the list.");
   assert.equal(languageSchema.safeParse("ar").success, false);
+});
+
+test("brand colour accepts no colour and a #rrggbb colour, lowercased", () => {
+  assert.equal(brandColorSchema.parse(""), "");
+  assert.equal(brandColorSchema.parse("#2f6b5a"), "#2f6b5a");
+  assert.equal(brandColorSchema.parse("#2F6B5A"), "#2f6b5a");
+});
+
+test("brand colour refuses anything that is not exactly #rrggbb", () => {
+  for (const bad of ["#2f6b5a;}", "#fff", "red", "2f6b5a", " #2f6b5a", "#2f6b5a ", "#gggggg"]) {
+    assert.equal(brandColorSchema.safeParse(bad).success, false, bad);
+  }
+});
+
+test("style preset accepts the three presets only", () => {
+  for (const ok of ["classic", "modern", "friendly"]) {
+    assert.equal(stylePresetSchema.parse(ok), ok);
+  }
+  for (const bad of ["ornate", "", "Classic"]) {
+    assert.equal(stylePresetSchema.safeParse(bad).success, false, bad);
+  }
 });

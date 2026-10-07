@@ -134,7 +134,7 @@ onboarding.
   `public-site.1`'s test updated and passing (brand and preset are the only
   new settings on public pages).
 
-- [ ] **Step 5 - Brand colour and Style in Settings** - `brandColorSchema`
+- [x] **Step 5 - Brand colour and Style in Settings** - `brandColorSchema`
   (`''` or a colour `parseBrandColor` accepts) and `stylePresetSchema` in
   `settings-input.ts`; an `updateBrand` sibling in `settings.server.ts`
   (F-40's split) inside `saveSiteSettings`'s transaction; the Brand section

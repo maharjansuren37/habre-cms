@@ -190,3 +190,167 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
+/* Brand (item 18a1): the kit's swatch radios and preset cards, from
+ * prototypes/components.css. --swatch is set through the CSSOM. */
+.brandField {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.otherSwatch {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.swatch {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: var(--size-control-md);
+  cursor: pointer;
+}
+
+.swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.swatchDot {
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border-radius: var(--radius-full);
+  background: var(--swatch, var(--color-surface-sunken));
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.swatchInk {
+  --swatch: var(--neutral-900);
+}
+
+.swatch:has(:checked) .swatchDot {
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 0 5px var(--color-text);
+}
+
+.swatch:has(:focus-visible) .swatchDot {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 7px;
+}
+
+.swatchName {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.colourInput {
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  padding: 0;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.colourInput:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.presetCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.presetCard {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.presetCard:hover {
+  background: var(--color-surface-hover);
+}
+
+.presetCard input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.presetCard:has(:checked) {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.presetCard:has(:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.presetTitle {
+  font-weight: var(--weight-semibold);
+}
+
+/* The picture is the preset itself, drawn in the site scope (data-surface and
+ * data-style on the element) with that preset's fonts and corners. */
+.presetSample {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-sans);
+}
+
+.presetAa {
+  font-family: var(--font-family-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.presetText {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.presetButton {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--text-sm);
+}

@@ -3,6 +3,7 @@ import { data, Form, redirect, useNavigation, useRouteLoaderData } from "react-r
 import type { loader as adminLayoutLoader } from "#app/features/admin-shell/layout.tsx";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { listPagesForNav } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -26,12 +27,14 @@ import { NAV_MAX_ITEMS } from "./navigation-input.ts";
 import styles from "./settings.module.css";
 import { saveSiteSettings } from "./settings.server.ts";
 import {
+  brandColorSchema,
   homePageIdSchema,
   isSettingsFormBodyAllowed,
   languageSchema,
   logoMediaIdSchema,
   siteDescriptionSchema,
   siteTitleSchema,
+  stylePresetSchema,
 } from "./settings-input.ts";
 
 // Admin only (project-plan.md's routes table) - an editor or author gets the
@@ -62,8 +65,16 @@ type ActionResult = {
   homePageId: string;
   siteDescription: string;
   language: string;
+  /** What was submitted; `null` when the form carried no Brand section. */
+  brandColor: string | null;
+  stylePreset: string | null;
   /** Beside-the-field refusals; empty when there are none. */
-  errors: { siteDescription?: string; language?: string };
+  errors: {
+    siteDescription?: string;
+    language?: string;
+    brandColor?: string;
+    stylePreset?: string;
+  };
 };
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -83,8 +94,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   const rawLanguage = form.get("language");
   const submittedDescription = String(rawDescription ?? "");
   const submittedLanguage = String(rawLanguage ?? "");
+  // Absent, not just empty, once more (F-107): a post with neither Brand field
+  // leaves the brand as it is. No colour is "" and is sent.
+  const rawBrandColor = form.get("brandColor");
+  const rawStylePreset = form.get("stylePreset");
+  const hasBrand = rawBrandColor !== null || rawStylePreset !== null;
   const rows = parseDraftRows(form);
   const carried = {
+    brandColor: hasBrand ? String(rawBrandColor ?? "") : null,
+    stylePreset: hasBrand ? String(rawStylePreset ?? "") : null,
     draftRows: rows,
     siteTitle: submittedTitle,
     homePageId: submittedHomePageId,
@@ -126,7 +144,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const description = siteDescriptionSchema.safeParse(submittedDescription);
   const language = languageSchema.safeParse(submittedLanguage);
-  if (!description.success || !language.success) {
+  const brandColor = brandColorSchema.safeParse(carried.brandColor ?? "");
+  const stylePreset = stylePresetSchema.safeParse(carried.stylePreset ?? "modern");
+  if (!description.success || !language.success || !brandColor.success || !stylePreset.success) {
     return data(
       {
         problem: "Your changes were not saved.",
@@ -134,6 +154,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         errors: {
           siteDescription: description.error?.issues[0]?.message,
           language: language.error?.issues[0]?.message,
+          brandColor: brandColor.error?.issues[0]?.message,
+          stylePreset: stylePreset.error?.issues[0]?.message,
         },
       } satisfies ActionResult,
       { status: 400 },
@@ -192,6 +214,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     navigation: navResult.items,
     siteDescription: description.data,
     language: language.data,
+    brand:
+      hasBrand && brandColor.success && stylePreset.success
+        ? { brandColor: brandColor.data, stylePreset: stylePreset.data }
+        : undefined,
   });
   // The logo or page was deleted after the checks above - the save rolled back
   // whole, so this is the same answer those checks give (F-106, F-110).
@@ -208,6 +234,17 @@ export async function action({ request, context }: Route.ActionArgs) {
     );
   }
   return redirect("/admin/settings?updated=1");
+}
+
+const STYLE_PRESETS = [
+  { value: "classic", label: "Classic", sample: "Serif headings" },
+  { value: "modern", label: "Modern", sample: "Clean and sharp" },
+  { value: "friendly", label: "Friendly", sample: "Soft and round" },
+] as const;
+
+/** Through the CSSOM, never a style attribute: the admin's style-src has no 'unsafe-inline'. */
+function setSwatchColour(element: HTMLElement | null, colour: string) {
+  element?.style.setProperty("--swatch", colour);
 }
 
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
@@ -242,6 +279,22 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const languageDefault = actionData ? actionData.language : languageOrDefault(settings.language);
   const errors = actionData?.errors ?? {};
   const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
+  const savedColour = settings.brandColor;
+  const submittedColour = parseBrandColor(actionData?.brandColor ?? "");
+  const colourDefault = actionData?.brandColor != null ? submittedColour : savedColour;
+  const submittedPreset = stylePresetSchema.safeParse(actionData?.stylePreset);
+  const presetDefault = submittedPreset.success ? submittedPreset.data : settings.stylePreset;
+  // "Other colour" holds whatever the colour picker says. It starts on the saved
+  // colour (or a neutral green to start from) and is only checked when the
+  // colour in play is neither No colour nor the saved one.
+  const otherIsChecked = colourDefault !== "" && colourDefault !== savedColour;
+  const [otherColour, setOtherColour] = useState(
+    otherIsChecked ? colourDefault : savedColour || "#2f6b5a",
+  );
+  const otherRadioRef = useRef<HTMLInputElement>(null);
+  const selectOther = () => {
+    if (otherRadioRef.current) otherRadioRef.current.checked = true;
+  };
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
 
@@ -323,6 +376,115 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               Choose logo
             </Button>
           )}
+        </fieldset>
+        <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
+          <legend className={styles.logoLabel}>Brand colour</legend>
+          <p id="brandColor-hint" className={styles.navHint}>
+            Buttons and links use it. We adjust the shade where needed so text on your site stays
+            easy to read.
+          </p>
+          {/* A list of swatches, so the logo's colours (item 18a2) are appended here. Each
+              colour reaches its swatch through the CSSOM (setSwatchColour): a style attribute
+              is blocked by the admin's style-src. */}
+          <ul className={styles.swatches}>
+            <li>
+              <label className={`${styles.swatch} ${styles.swatchInk}`}>
+                <input
+                  type="radio"
+                  name="brandColor"
+                  value=""
+                  defaultChecked={colourDefault === ""}
+                />
+                <span className={styles.swatchDot} aria-hidden="true" />
+                <span className={styles.swatchName}>
+                  No colour<span className="visually-hidden"> (black and white)</span>
+                </span>
+              </label>
+            </li>
+            {savedColour && (
+              <li>
+                <label className={styles.swatch}>
+                  <input
+                    type="radio"
+                    name="brandColor"
+                    value={savedColour}
+                    defaultChecked={colourDefault === savedColour}
+                  />
+                  <span
+                    className={styles.swatchDot}
+                    aria-hidden="true"
+                    ref={(el) => setSwatchColour(el, savedColour)}
+                  />
+                  <span className={styles.swatchName}>
+                    <span className="visually-hidden">Saved colour </span>
+                    {savedColour}
+                  </span>
+                </label>
+              </li>
+            )}
+            <li className={styles.otherSwatch}>
+              <label className={styles.swatch}>
+                <input
+                  type="radio"
+                  name="brandColor"
+                  value={otherColour}
+                  ref={otherRadioRef}
+                  defaultChecked={otherIsChecked}
+                />
+                <span
+                  className={styles.swatchDot}
+                  aria-hidden="true"
+                  ref={(el) => setSwatchColour(el, otherColour)}
+                />
+                <span className={styles.swatchName}>Other colour</span>
+              </label>
+              <input
+                type="color"
+                className={styles.colourInput}
+                aria-label="Pick other colour"
+                value={otherColour}
+                // Opening the picker selects Other; so does a new colour (a click is not
+                // needed to change one by keyboard). Focus alone does not, so tabbing
+                // past it changes nothing.
+                onClick={selectOther}
+                onChange={(event) => {
+                  setOtherColour(event.target.value);
+                  selectOther();
+                }}
+              />
+            </li>
+          </ul>
+          {errors.brandColor && <p className={styles.fieldError}>{errors.brandColor}</p>}
+        </fieldset>
+        <fieldset className={styles.brandField} aria-describedby="stylePreset-hint">
+          <legend className={styles.logoLabel}>Style</legend>
+          <p id="stylePreset-hint" className={styles.navHint}>
+            Fonts and corners. Your colour stays the same.
+          </p>
+          <div className={styles.presetCards}>
+            {STYLE_PRESETS.map((preset) => (
+              <label key={preset.value} className={styles.presetCard}>
+                <input
+                  type="radio"
+                  name="stylePreset"
+                  value={preset.value}
+                  defaultChecked={presetDefault === preset.value}
+                />
+                <span
+                  className={styles.presetSample}
+                  data-surface="site"
+                  data-style={preset.value}
+                  aria-hidden="true"
+                >
+                  <span className={styles.presetAa}>Aa</span>
+                  <span className={styles.presetText}>{preset.sample}</span>
+                  <span className={styles.presetButton}>Book</span>
+                </span>
+                <span className={styles.presetTitle}>{preset.label}</span>
+              </label>
+            ))}
+          </div>
+          {errors.stylePreset && <p className={styles.fieldError}>{errors.stylePreset}</p>}
         </fieldset>
         <div className={styles.selectField}>
           <label className={styles.navFieldLabel} htmlFor="siteDescription">
