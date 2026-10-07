@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-07, `main` after `b455f7b`.
+Generated 2026-10-07, `main` after `275cb62`.
 
 ## What this is
 
@@ -34,7 +34,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not yet deployed** (items 13-18a1; each in
+**Built for v1, not yet deployed** (items 13-18a2; each in
 `blueprint/history/features/`, deploy steps in
 `blueprint/production-pending.md`): React Router 8.4.0 (13); the new look
 (13b, `design.md`) - stone and rust admin, light and dark, public sites
@@ -46,9 +46,11 @@ password reset (15c); a storage cap per site (15d); Your account and
 deleting it (15e1-15e2); sites by host and suspend, the Caddy file (16a-16b);
 SEO basics (17); optimised images with `sharp`, `srcset` and
 `optimise-media` (17b); a brand colour and three style presets in
-Settings, with a live preview, on public pages and the canvas (18a1).
+Settings, with a live preview, on public pages and the canvas (18a1);
+a logo upload in Settings, SVG turned into a PNG in the browser, and brand
+colours offered from the logo (18a2).
 
-**Platform v1 (queued):** your logo (18a2) and an AI draft from a description (18b); contact form; Simple
+**Platform v1 (queued):** an AI draft from a description (18b); contact form; Simple
 and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
@@ -104,7 +106,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   style preset, language - in `site_settings`. Brand colour reaches pages as a
   nonce'd inline `<style>`.
 - **Images (D174):** resized on the server with `sharp` into WebP sizes; pages
-  pick the size they show.
+  pick the size they show. A logo's colours are counted at upload (D359).
 - **Data rules:** version check on save; R2 objects before the media row;
   admins deactivate members, never delete them - only deleting your own
   account does (15e2); no state on disk (D9); a limit refuses
@@ -144,8 +146,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18a1 done; nothing in flight; 18a2, 18b and 19-21
-  queued. Last shipped: 18a1
-  (`blueprint/history/features/18a1-brand-colour-and-style.md`).
-- **Next:** `spec` item 18a2, your logo.
+- **Plan:** items 1-18a2 done; nothing in flight; 18b and 19-21 queued.
+  Last shipped: 18a2 (`blueprint/history/features/18a2-your-logo.md`).
+- **Next:** `spec` item 18b, start from a description.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
