@@ -4458,3 +4458,94 @@ cannot redirect a provider (F-347). `OPENAI_ORG_ID`/`_PROJECT_ID` and the
 `*_CUSTOM_HEADERS` variables are still read by the SDKs (F-350, backlog).
 Beats: trusting the SDKs' environment defaults.
 Costs: an option list to keep in step with SDK upgrades.
+
+## D404 - Browser tests drive AI runs through `AI_PROVIDERS=fake` (2026-10-08)
+
+**Chose:** a no-network fake provider, accepted only alone and only when
+`PLATFORM_URL` is loopback or `*.localhost`; markers in the description
+(`[fake:refused]`, `[fake:unavailable]`, `[fake:invalid]`) pick its outcome.
+Beats: seeding rows only (step 2's submit and journey 1 would never run in a
+browser); a fake provider's address (D403 pins every client's address); a
+`NODE_ENV` guard (the browser tests run the production build).
+Costs: a test-only branch in production code, guarded by a check production
+cannot pass.
+
+## D405 - The app's runner uses OpenRouter alone, for now (2026-10-08)
+
+**Chose:** `pickRunAdapter` gives the fake, else the `openrouter` adapter,
+else `null` - never 18b2's chain; a list without `openrouter` leaves
+onboarding off, and listing a direct provider logs `ai_fallbacks_unused`
+(owner, 2026-10-07).
+Beats: the chain as 18b2 built it, whose direct providers have had no live
+run yet.
+Costs: no fallback in the app until the chain is wired in - a change to
+`pickRunAdapter` only. D155's order is unchanged.
+
+## D406 - Daily cap: 10 AI runs per site per 24 hours, in memory (2026-10-08)
+
+**Chose:** the existing limiter's fixed window from the first run, counted
+only when a run starts.
+Beats: no number in the plan; at 1,000 credits and ~30-40 a run, 10 a day
+leaves the monthly allowance as the binding limit.
+Costs: resets on restart, like every other in-memory limit.
+
+## D407 - An onboarding description is 10-2,000 characters after trimming (2026-10-08)
+
+**Chose:** bounds on the trimmed text, checked with Zod in step 2's action.
+Beats: no bound. Short enough to bound input tokens, long enough for a
+paragraph about a business.
+Costs: none known.
+
+## D408 - Onboarding steps read "of 2" until step 3 exists (2026-10-08)
+
+**Chose:** number the steps that are built; 18b5 changes it to "of 3".
+Beats: "of 3" with a step that does not exist yet.
+Costs: one wording change in 18b5.
+
+## D409 - Step 2 is `/start/about`, a GET from step 1 with the kind in the query (2026-10-08)
+
+**Chose:** `/start?kind=` pre-checks a card; `/start/about?kind=&from=<runId>`
+prefills from a run, carrying its id, never the text.
+Beats: storing the kind server-side between steps - state with nowhere to
+live yet, and Back would need it.
+Costs: the kind is re-validated on every step.
+
+## D410 - Signup's emailed link lands on `/start`; sign-in lands on `/admin` (2026-10-08)
+
+**Chose:** Confirm my email goes to `/start`, which the gate passes on to
+`/admin` when onboarding is not offered.
+Beats: `/admin` bouncing to `/start` while offered, which would trap someone
+who chose Start blank instead until they publish.
+Costs: someone who leaves onboarding has no way back until 18b4's Home.
+
+## D411 - Signing in may return to `/start` (2026-10-08)
+
+**Chose:** `safeRedirect` follows `/start` paths as well as `/admin`.
+Beats: losing the onboarding step on sign-in (journey 6).
+Costs: one more allowed prefix to keep exact (`/startx` is refused).
+
+## D412 - A suspended site is not offered an AI run (2026-10-08)
+
+**Chose:** the onboarding gate redirects to `/admin` when the site is
+suspended, as when AI is off or anything is published.
+Beats: letting a site the operator took down for abuse keep spending
+credits.
+Costs: none known.
+
+## D413 - The onboarding gate is the layout's middleware, not a loader (2026-10-08)
+
+**Chose:** `start-layout.tsx` runs `startGate` as route middleware, so it
+covers step 2's action and the wait's retry too.
+Beats: a layout loader, which does not run for a POST and would let a site
+with published content start runs.
+Costs: none known.
+
+## D414 - The wait polls every 2 seconds with `useRevalidator` (2026-10-08)
+
+**Chose:** revalidate while the run is `running`, stop otherwise; a
+`running` row older than six minutes shows as failed `timeout`. The status
+rule shared by the loader and Try again lives in `run-view.ts`; the route
+module is `start-wait.tsx`.
+Beats: a stream or SSE (D154), and a meta refresh (a full reload each time,
+losing focus).
+Costs: one loader request per open wait page every 2 seconds.

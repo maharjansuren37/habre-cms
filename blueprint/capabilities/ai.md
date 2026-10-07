@@ -1,7 +1,7 @@
 # Capability: ai
 
-- **ai.1** - with no key for the first provider in `AI_PROVIDERS` (`OPENROUTER_API_KEY` by default) the app starts with AI off *Since:* features/18b1-the-run-with-openrouter · *Changed:* features/18b2-fallbacks
-- **ai.2** - an unknown or repeated name in `AI_PROVIDERS`, a malformed `AI_CREDITS_PER_MONTH` or price, or a listed provider missing its key, model or price while AI is on, stops the app at startup with a message naming the variable *Since:* features/18b1-the-run-with-openrouter · *Changed:* features/18b2-fallbacks
+- **ai.1** - with no key for the first provider in `AI_PROVIDERS` (`OPENROUTER_API_KEY` by default) the app starts with AI off; `fake`, which needs no key, turns it on *Since:* features/18b1-the-run-with-openrouter · *Changed:* features/18b3-onboarding-start
+- **ai.2** - an unknown or repeated name in `AI_PROVIDERS`, `fake` listed with another provider or with a `PLATFORM_URL` that is not loopback or `*.localhost`, a malformed `AI_CREDITS_PER_MONTH` or price, or a listed provider missing its key, model or price while AI is on, stops the app at startup with a message naming the variable *Since:* features/18b1-the-run-with-openrouter · *Changed:* features/18b3-onboarding-start
 - **ai.3** - every page of a valid proposal expands to a document the editor's save accepts, its buttons linking only to the proposal's own pages *Since:* features/18b1-the-run-with-openrouter
 - **ai.4** - a third run while two are running is refused as busy and records nothing *Since:* features/18b1-the-run-with-openrouter
 - **ai.5** - a site with no credits left this month cannot start a run *Since:* features/18b1-the-run-with-openrouter
