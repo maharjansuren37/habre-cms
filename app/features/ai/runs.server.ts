@@ -77,22 +77,37 @@ export type StoredRun = {
   cachedInputTokens: number | null;
   cacheWriteTokens: number | null;
   outputTokens: number | null;
+  description: string;
   credits: number;
   createdAt: Date;
   finishedAt: Date | null;
   result: unknown;
 };
 
-/** One run of a site, for `ai:try`. */
+/** One run of a site. */
 export async function findRun(siteId: string, runId: string): Promise<StoredRun | null> {
   return inSite(siteId, async (tx) => {
     const [row] = await tx<StoredRun[]>`
-      select id, kind, status, error, provider, model,
+      select id, kind, description, status, error, provider, model,
         input_tokens as "inputTokens", cached_input_tokens as "cachedInputTokens",
         cache_write_tokens as "cacheWriteTokens", output_tokens as "outputTokens",
         credits, created_at as "createdAt", finished_at as "finishedAt", result
       from ai_runs
       where id = ${runId} and site_id = ${siteId}
+    `;
+    return row ?? null;
+  });
+}
+
+/** The site's running run, within the six-minute window `hasRunningRun` uses. */
+export async function findRunningRun(siteId: string): Promise<{ id: string } | null> {
+  return inSite(siteId, async (tx) => {
+    const [row] = await tx<{ id: string }[]>`
+      select id from ai_runs
+      where site_id = ${siteId} and status = 'running'
+        and created_at > now() - interval '6 minutes'
+      order by created_at desc
+      limit 1
     `;
     return row ?? null;
   });

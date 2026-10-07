@@ -26,3 +26,15 @@ export function createAiAdapter(settings: AiSettings): AiAdapter {
     })),
   );
 }
+
+/**
+ * The adapter the app's runner uses (18b3 Step 2): the fake, else OpenRouter
+ * alone, else none - never the fallback chain, whose direct providers have had
+ * no live run yet. Wiring the chain in later changes only this function.
+ */
+export function pickRunAdapter(settings: AiSettings | null): AiAdapter | null {
+  const provider = settings?.providers.find(
+    (candidate) => candidate.name === "fake" || candidate.name === "openrouter",
+  );
+  return provider ? createProviderAdapter(provider) : null;
+}

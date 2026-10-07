@@ -122,7 +122,7 @@ cap - land here too. The draft's review and apply are 18b4.
   `fake,openrouter`, and `fake` with `PLATFORM_URL=https://app.habre.ai`,
   each stop startup naming `AI_PROVIDERS`; each marker gives its outcome
   through `createRunner` - and each new case was seen failing first.
-- [ ] **Step 2 - the app's runner, OpenRouter alone** - `providers.server.ts`
+- [x] **Step 2 - the app's runner, OpenRouter alone** - `providers.server.ts`
   gains `pickRunAdapter(settings): AiAdapter | null` - the fake when
   `AI_PROVIDERS` is `fake`, else `createOpenRouterAdapter` for the
   `openrouter` entry, else `null`; never the chain. New
