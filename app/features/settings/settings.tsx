@@ -3,11 +3,8 @@ import { data, Form, redirect, useNavigation, useRouteLoaderData } from "react-r
 import type { loader as adminLayoutLoader } from "#app/features/admin-shell/layout.tsx";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import {
-  deriveBrandShades,
-  LIGHT_SITE_SURFACE,
-  parseBrandColor,
-} from "#app/features/brand/brand-colours.ts";
+import { applyBrandProperties } from "#app/features/brand/apply-brand.ts";
+import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { listPagesForNav } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -251,25 +248,6 @@ function setSwatchColour(element: HTMLElement | null, colour: string) {
   element?.style.setProperty("--swatch", colour);
 }
 
-/** The preview's five brand roles, set through the CSSOM like the swatches' colours. */
-function applyBrandToPreview(element: HTMLElement | null, colour: string) {
-  if (!element) return;
-  const parsed = parseBrandColor(colour);
-  const shades = parsed ? deriveBrandShades(parsed, LIGHT_SITE_SURFACE) : null;
-  const properties = {
-    "--color-primary": shades?.primary,
-    "--color-primary-hover": shades?.primaryHover,
-    "--color-on-primary": shades?.onPrimary,
-    "--color-primary-subtle": shades?.primarySubtle,
-    "--color-focus-ring": shades?.focusRing,
-  };
-  // No colour removes them, so the site scope's ink shows through.
-  for (const [name, value] of Object.entries(properties)) {
-    if (value) element.style.setProperty(name, value);
-    else element.style.removeProperty(name);
-  }
-}
-
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
   const { updated, pages } = loaderData;
   // This route only renders nested inside the layout that provides this data
@@ -325,7 +303,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const [previewPreset, setPreviewPreset] = useState<string>(presetDefault);
   const previewFrameRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    applyBrandToPreview(previewFrameRef.current, previewColour);
+    applyBrandProperties(previewFrameRef.current, previewColour);
   }, [previewColour]);
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
@@ -529,7 +507,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           </fieldset>
           {/* The mock's half-size preview (start-brand.html): an image to assistive technology,
             so its contents are presentational and add nothing to the page's outline. The
-            frame's colours are set through the CSSOM (applyBrandToPreview). */}
+            frame's colours are set through the CSSOM (applyBrandProperties). */}
           <div className={styles.preview}>
             <div
               className={styles.previewWindow}

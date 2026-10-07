@@ -164,7 +164,7 @@ onboarding.
   `e2e/content-security-policy.spec.ts` sees no violation on Settings while
   doing so.
 
-- [ ] **Step 7 - The canvas in the site's brand** - the editor layout's
+- [x] **Step 7 - The canvas in the site's brand** - the editor layout's
   loader returns the site's brand colour and preset; the canvas
   (`document-editor.client.tsx`, already `data-surface="site"`) gets
   `data-style` and the derived properties through CSSOM. *Done when:* in

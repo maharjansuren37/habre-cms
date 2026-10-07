@@ -323,3 +323,52 @@ test("the preview starts on the saved colour and style", async ({ page }) => {
     await deleteSite(site.id);
   }
 });
+
+test("the editor's canvas is drawn in the site's brand, its selection ring still Habre's rust", async ({
+  page,
+}) => {
+  const site = await brandedSite(BRAND, "classic");
+  try {
+    const admin = await createSiteAdmin(site.id, "Brand Canvas Admin");
+    const id = await withDatabase(async (sql) => {
+      const document = inSection(buttonBlock("Go", "/posts"), {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "Canvas heading" }],
+      });
+      const [row] = await sql<{ id: string }[]>`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, author_id)
+        select ${site.id}, 'page', 'Canvas Page', 'canvas-page',
+               ${sql.json(document as never)}, 'v4', 'draft', id
+        from users where email = ${admin.email}
+        returning id
+      `;
+      return row.id;
+    });
+    // Chromium reports every refusal on the console; the brand reaches the
+    // canvas through CSSOM, which the admin's style-src 'self' allows.
+    const violations: string[] = [];
+    page.on("console", (message) => {
+      if (message.text().includes("Content Security Policy")) violations.push(message.text());
+    });
+    await logIn(page, admin);
+    await page.goto(`/admin/pages/${id}`);
+    const textbox = page.getByRole("textbox", { name: "Page content" });
+    await expect(textbox).toBeVisible();
+    await expect(textbox.locator('[data-node="button"]')).toHaveCSS(
+      "background-color",
+      "rgb(47, 107, 90)",
+    );
+    const heading = textbox.getByRole("heading", { name: "Canvas heading" });
+    await expect(heading).toHaveCSS("font-family", /^"?Source Serif 4/);
+    // The ring is Habre's rust-700, not the site's colour.
+    await heading.click();
+    await expect(textbox.locator('[class*="selectedBlock"]')).toHaveCSS(
+      "outline-color",
+      "rgb(180, 68, 28)",
+    );
+    expect(violations).toEqual([]);
+  } finally {
+    await deleteSite(site.id);
+  }
+});

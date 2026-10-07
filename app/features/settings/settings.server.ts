@@ -19,6 +19,23 @@ export type SiteSettings = {
 
 export type StylePreset = "classic" | "modern" | "friendly";
 
+/** Just the brand - what the editor's canvas needs, without the logo and menu. */
+export async function getSiteBrand(
+  siteId: string,
+): Promise<{ brandColor: string; stylePreset: StylePreset }> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ brandColor: string; stylePreset: string }[]>`
+      select brand_color as "brandColor", style_preset as "stylePreset"
+      from site_settings where site_id = ${siteId}
+    `,
+  );
+  return {
+    brandColor: parseBrandColor(row.brandColor),
+    stylePreset: readStylePreset(row.stylePreset),
+  };
+}
+
 function readStylePreset(value: string): StylePreset {
   return value === "classic" || value === "friendly" ? value : "modern";
 }
