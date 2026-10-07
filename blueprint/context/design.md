@@ -194,6 +194,11 @@ URLs so Back works: 1 What do you want to create? (Website, Blog, Business,
 Portfolio) - 2 Tell us about it - 3 Make it yours (optional: logo, brand
 colour, style; Skip keeps the AI's colour and Modern). Step 1 offers "Start
 blank instead".
+Step 2 (item 18b3, not mocked): "Step 2 of 2", `h1` Tell us about it, a
+lede, one labelled textarea "About your <kind>" with the hint "10 to 2,000
+characters.", primary **Build my site**, ghost **Back** to `/start?kind=`; a
+refusal is a `role="alert"` banner with the text kept. Building leads to the
+wait, `/start/:runId` (see *Screens*).
 
 **Admin shell** (sidebar from 769px; a top bar with Menu below that):
 - Site card: name, address, View site
@@ -232,7 +237,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 | Your account: name, email, password, delete account | applies | **built** (item 15e1: name, email, password; item 15e2 steps 3-4: delete built in full - leaving, the last admin taking the site) - item 15e1 (name, email, password) and 15e2 (delete): `/admin/account` in the shell for every role, linked from the shell's foot until item 21's Plan makes the account menu; the Users edit screen's shape - `h1` Your account, a `section` with an `h2` and one form per thing (Name, Email, Password), a `role="status"` banner after each save. Email and password ask for the current password. With email on, a new email waits for `/confirm-email` (the `/verify` shape, D251): "We sent a link to *address*" shows meanwhile. **Delete (15e2, spec 2026-10-05):** a Delete account `section` ending in a link to `/admin/account/delete`, Media's delete-confirmation shape - a heading, what goes (leaving: your content stays as "Deleted account"; the last active admin: the site's address, its counts and the other members' names, plus a typed-address field), the current password, a `.danger` **Delete my account** and Cancel. Afterwards `/login` with a `role="status"` "Your account is deleted." |
 | Plan | applies | deferred to item 21 (Stripe's hosted pages, D160) |
 | First run | applies | **mocked**: onboarding (`start.html`, `start-brand.html`) and Home straight after the AI draft (`home.html`) |
-| The AI drafting your site (a wait of seconds to a minute) | applies | **deferred to item 18** - mock it in that item's spec: what is happening, no dead spinner, what to do if it fails |
+| The AI drafting your site (a wait of seconds to a minute) | applies | **built** (item 18b3, `/start/:runId`, the `.flow` page): running - `h1` Building your site, a `role="status"` line "Writing your pages, menu and search descriptions. This usually takes about a minute." (after 120 seconds "This is taking longer than usual. It stops by itself after five minutes."), an indeterminate `<progress>` labelled Building your site, a muted "n seconds so far" outside the live region, polled every 2 seconds; no spinner, no fake percentages; `noscript` Check progress. Failed - `h1` Couldn't build your site, the same status line "Something went wrong on our side. Try again, or start blank.", primary **Try again** and secondary **Change the description** (refused: "The AI wouldn't write a site from that description. Change it and try again, or start blank.", only Change the description, as primary); a refused retry is a `role="alert"` banner. Succeeded - a placeholder, `h1` Your draft is ready and the page titles (18b4 replaces it with the review) |
 | Home (state, next steps, this month's allowance) | applies | **mocked** (`home.html`) |
 | Pages, Blog lists, with search, filter, pagination | applies | conventions carried over (below); the kit's table |
 | Editor | applies | **mocked**, two states (`editor.html`) |

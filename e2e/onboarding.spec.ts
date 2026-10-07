@@ -302,3 +302,157 @@ test.describe("step 2, Tell us about it", () => {
     expect(await runRows()).toHaveLength(0);
   });
 });
+
+// Item 18b3, Step 6: /start/:runId, the wait. States are seeded and advanced as
+// the owner, so no assertion races the fake provider's timer.
+const UUID_PATH = /\/start\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+async function seedRun(
+  status: string,
+  options: { error?: string; kind?: string; description?: string; ageSeconds?: number } = {},
+): Promise<string> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      insert into ai_runs (site_id, kind, description, status, error, created_at, finished_at)
+      values (${siteId}, ${options.kind ?? "business"}, ${options.description ?? "A bakery called Crumb."},
+              ${status}, ${options.error ?? null},
+              now() - make_interval(secs => ${options.ageSeconds ?? 5}),
+              ${status === "running" ? null : new Date()})
+      returning id
+    `;
+    return row.id;
+  });
+}
+
+test.describe("the wait", () => {
+  test.describe.configure({ mode: "serial" });
+
+  test("a running run shows Building your site and a progress element", async ({ page }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    await expect(page.getByRole("status")).toContainText(
+      "Writing your pages, menu and search descriptions. This usually takes about a minute.",
+    );
+    await expect(page.getByRole("progressbar", { name: "Building your site" })).toBeVisible();
+    await expect(page.getByText(/\d+ seconds? so far/)).toBeVisible();
+  });
+
+  test("a succeeded run shows its page titles within 5 seconds, without a reload", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    await page.evaluate("window.__noReload = true");
+    const proposal = {
+      siteDescription: "A bakery.",
+      brandColor: "#aa5500",
+      pages: [
+        {
+          key: "p1",
+          title: "Welcome home",
+          seoTitle: "Home",
+          seoDescription: "Fresh bread.",
+          sections: [{ kind: "text", heading: "Hello", paragraphs: ["One."] }],
+        },
+        {
+          key: "p2",
+          title: "<b>Our story</b>",
+          seoTitle: "About",
+          seoDescription: "About us.",
+          sections: [{ kind: "text", heading: "Hi", paragraphs: ["Two."] }],
+        },
+      ],
+      navigation: ["p1", "p2"],
+    };
+    await withDatabase(async (sql) => {
+      await sql`
+        update ai_runs set status = 'succeeded', finished_at = now(), result = ${sql.json(proposal)}
+        where id = ${runId}
+      `;
+    });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
+      timeout: 5000,
+    });
+    const titles = page.getByRole("list").getByRole("listitem");
+    await expect(titles).toHaveText(["Welcome home", "<b>Our story</b>"]);
+    expect(await page.evaluate("window.__noReload === true")).toBe(true);
+  });
+
+  test("a failed timeout run offers Try again, which starts a new run", async ({ page }) => {
+    const runId = await seedRun("failed", { error: "timeout", kind: "blog" });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site");
+    await expect(page.getByRole("status")).toContainText(
+      "Something went wrong on our side. Try again, or start blank.",
+    );
+    await expect(page.getByRole("link", { name: "Change the description" })).toHaveAttribute(
+      "href",
+      `/start/about?kind=blog&from=${runId}`,
+    );
+    await page.getByRole("button", { name: "Try again" }).click();
+    await page.waitForURL((url) => UUID_PATH.test(url.pathname) && !url.pathname.includes(runId));
+    const rows = await runRows();
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((row) => row.kind === "blog")).toHaveLength(2);
+  });
+
+  test("a refused run offers only Change the description, and a retry is refused", async ({
+    page,
+  }) => {
+    const runId = await seedRun("failed", { error: "refused", kind: "blog", description: "Tea." });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("status")).toContainText(
+      "The AI wouldn't write a site from that description. Change it and try again, or start blank.",
+    );
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+    await page.getByRole("link", { name: "Change the description" }).click();
+    await page.waitForURL("**/start/about?**");
+    await expect(page.getByLabel("About your blog")).toHaveValue("Tea.");
+
+    const status = await page.evaluate(async (id) => {
+      const body = new URLSearchParams({ intent: "retry" });
+      const response = await fetch(`/start/${id}`, { method: "POST", body });
+      return response.status;
+    }, runId);
+    expect(status).toBe(400);
+    expect(await runRows()).toHaveLength(1);
+  });
+
+  test("another site's run and a non-uuid are Not Found", async ({ page }) => {
+    const otherSite = await createSite("onboarding-other");
+    try {
+      const otherRun = await withDatabase(async (sql) => {
+        const [row] = await sql<{ id: string }[]>`
+          insert into ai_runs (site_id, kind, description, status)
+          values (${otherSite}, 'website', 'theirs', 'running') returning id
+        `;
+        return row.id;
+      });
+      await logInThenOpen(page, "/start");
+      const foreign = await page.goto(`/start/${otherRun}`);
+      expect(foreign?.status()).toBe(404);
+      const bad = await page.goto("/start/not-a-uuid");
+      expect(bad?.status()).toBe(404);
+    } finally {
+      await deleteSite(otherSite);
+    }
+  });
+
+  test("an applied run goes to /admin", async ({ page }) => {
+    const runId = await seedRun("applied");
+    await logInThenOpen(page, "/start");
+    await page.goto(`/start/${runId}`);
+    await page.waitForURL("**/admin/posts");
+  });
+
+  test("a running run created seven minutes ago shows Couldn't build your site", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running", { ageSeconds: 7 * 60 });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+});

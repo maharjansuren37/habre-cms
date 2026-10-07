@@ -188,7 +188,7 @@ cap - land here too. The draft's review and apply are 18b4.
   seeded as the owner) gets the allowance banner naming the 1st of next
   month and no new row; a site with a seeded `running` row is sent from
   `/start` and `/start/about` to that run's page.
-- [ ] **Step 6 - `/start/:runId`, the wait** - `start-run.tsx`: loader
+- [x] **Step 6 - `/start/:runId`, the wait** - `start-run.tsx`: loader
   (`findRun` in the member's site; not a uuid or not found -> 404; `applied`
   -> `/admin`; a `running` row older than six minutes - its finish write
   lost, the window `hasRunningRun` uses - is shown as failed `timeout`;
@@ -313,6 +313,7 @@ cap - land here too. The draft's review and apply are 18b4.
 - **A suspended site is not offered a run.** Beat: letting a site the
   operator took down for abuse keep spending AI credits.
 - **The gate runs as the layout's middleware, not a loader** (autopilot, Step 5): loaders do not run for a POST, so step 2's action and the wait's retry would otherwise start runs for a site with published content. Beat: the loader the spec named.
+- **The wait's route module is `start-wait.tsx`, not `start-run.tsx`** (autopilot, Step 6): `start-run.ts` (Step 3's cap) already holds that name, and the generated `+types/start-run` resolved to it. The status rule shared by the loader and retry lives in `run-view.ts`.
 - **The wait polls every 2 seconds with `useRevalidator`.** Beat: a stream or
   SSE (D154), and a meta refresh (a full reload every time, losing focus).
 

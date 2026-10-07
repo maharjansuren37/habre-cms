@@ -29,6 +29,7 @@ export default [
   layout("features/onboarding/start-layout.tsx", [
     route("start", "features/onboarding/start.tsx"),
     route("start/about", "features/onboarding/start-about.tsx"),
+    route("start/:runId", "features/onboarding/start-wait.tsx"),
   ]),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.ts"),
