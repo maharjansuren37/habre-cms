@@ -57,6 +57,11 @@ test("a page titled Confirm email gets the numbered address", () => {
   assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
 });
 
+test("a page titled Start gets the numbered address, because /start is onboarding (F-353)", () => {
+  const base = slugFromTitle("Start", "page");
+  assert.equal(nextFreeSlug(base, [...RESERVED_PAGE_SLUGS]), `${base}-2`);
+});
+
 test("no address can be robots.txt or sitemap.xml, because an address never keeps a dot", () => {
   for (const title of ["robots.txt", "sitemap.xml", "Robots.TXT", "sitemap . xml"]) {
     for (const type of ["page", "post"] as const) {

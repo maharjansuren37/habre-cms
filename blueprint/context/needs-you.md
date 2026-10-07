@@ -139,7 +139,9 @@ not tidying; it is what keeps the open list true.
       Settings' Site description and Language; from item 18a1, Settings'
       Brand section - the colour swatches, Other colour, the Style cards and
       the preview's name; from item 18a2, Upload logo with its busy state and
-      refusals, and the "from your logo" swatches).
+      refusals, and the "from your logo" swatches; from item 18b3, `/start`'s
+      kind cards, Tell us about it with its field error and refusal banners,
+      and the wait's progress, its announced finish and failure states).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -149,7 +151,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch

@@ -110,5 +110,11 @@ File: app/features/brand/brand-colours.ts:138-149
 ### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
 File: app/features/media/optimise-image.server.ts:64
 
+### F-354 [P2] open - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
+File: app/features/onboarding/start-wait.tsx:78-89
+
+### F-355 [P2] open - Journey tests assert "Building your site" against a 1-second fake, so they can flake on a slow runner
+File: e2e/onboarding.spec.ts:493-495 (`expectDraft`), :520-526
+
 ### F-363 [P2] fixed - "Two signups at once" can get "Signup is busy" instead of "is taken" when other tests hold the password-check slots
 File: e2e/signup.spec.ts:272; app/features/signup/signup.server.ts:64

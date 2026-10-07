@@ -432,7 +432,7 @@ test("Send it again sends a second email and only the newest link stays valid", 
   expect(await isConfirmed(email)).toBe(false);
   await page.goto(`/verify?token=${tokenFromMail(second)}`);
   await page.getByRole("button", { name: "Confirm my email" }).click();
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/start");
   expect(await isConfirmed(email)).toBe(true);
 });
 
@@ -525,6 +525,8 @@ test("journey 1: sign up, open the emailed link, confirm, and land in your own e
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Confirm your email");
     await page.getByRole("button", { name: "Confirm my email" }).click();
 
+    await page.waitForURL("**/start");
+    await page.getByRole("link", { name: "Start blank instead" }).click();
     await page.waitForURL("**/admin/posts");
     await expect(page.getByRole("complementary")).toContainText(signup.address);
     await expect(page.getByText(title)).toHaveCount(0);
@@ -567,7 +569,7 @@ test("a scanner opening the link first does not use it up", async ({ page, reque
 
   await page.goto(signup.link);
   await page.getByRole("button", { name: "Confirm my email" }).click();
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/start");
 });
 
 test("pressing Confirm twice signs no one in the second time", async ({
@@ -578,7 +580,7 @@ test("pressing Confirm twice signs no one in the second time", async ({
   const signup = await signUpAndGetLink(page);
   await page.goto(signup.link);
   await page.getByRole("button", { name: "Confirm my email" }).click();
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/start");
 
   const again = await request.post("/verify", {
     headers: { Origin: baseURL ?? "", "X-Forwarded-For": randomIp() },
@@ -619,7 +621,7 @@ test("a token of an already confirmed account says so, with a link to log in", a
   const signup = await signUpAndGetLink(page);
   await page.goto(signup.link);
   await page.getByRole("button", { name: "Confirm my email" }).click();
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/start");
   await page.context().clearCookies();
 
   await page.goto(signup.link);

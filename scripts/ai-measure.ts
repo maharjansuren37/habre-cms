@@ -72,6 +72,7 @@ async function aiMeasure(): Promise<number> {
   await mkdir(outDir, { recursive: true });
   const records: AttemptRecord[] = [];
   for (const provider of settings.providers) {
+    if (provider.name === "fake") continue; // nothing to measure
     const adapter = createProviderAdapter(provider);
     for (const sample of MEASURE_SAMPLES) {
       for (let attempt = 1; attempt <= repeat; attempt++) {
