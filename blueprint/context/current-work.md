@@ -3,7 +3,7 @@
 **From build plan:** item 18b3
 **Type:** Feature
 **Verified:** 2026-10-07, 3a65cb2e7186, 7 of 7 proven (screen-reader pass and provider p95 owed, needs-you.md)
-**Reviewed:** not yet
+**Reviewed:** 2026-10-07, 3d1667446c62, current, every lens - 1 blocking (F-353 fixed, re-reviewed, awaiting your close)
 
 ## Goal
 
