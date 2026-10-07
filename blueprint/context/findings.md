@@ -109,3 +109,33 @@ File: app/features/brand/brand-colours.ts:138-149
 
 ### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
 File: app/features/media/optimise-image.server.ts:64
+
+### F-353 [P1] fixed - `start` is not a reserved page slug, so a page called "Start" can never be seen on its site
+File: app/features/content/slug.ts:20-30 (`RESERVED_PAGE_SLUGS`); app/lib/host-routing.ts:62-66
+
+### F-354 [P2] open - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
+File: app/features/onboarding/start-wait.tsx:78-89
+
+### F-355 [P2] open - Journey tests assert "Building your site" against a 1-second fake, so they can flake on a slow runner
+File: e2e/onboarding.spec.ts:493-495 (`expectDraft`), :520-526
+
+### F-356 [P3] open - On the failed state at 390px, "Change the description" wraps with its text off-centre
+File: app/features/onboarding/onboarding.module.css (`.actions`, `.primaryLink`, `.secondaryLink`)
+
+### F-357 [P3] open - Onboarding CSS uses literals where tokens exist
+File: app/features/onboarding/onboarding.module.css
+
+### F-358 [P3] open - A site-level busy refusal says "Habre is busy building other sites"
+File: app/features/onboarding/start-run.ts:44; app/features/ai/run-generation.ts:220,236
+
+### F-359 [P3] open - The host-split Playwright server pins only `OPENROUTER_API_KEY=`, not `AI_PROVIDERS=`
+File: playwright.config.ts:57
+
+### F-360 [P3] open - The wait page's title is always "Building your site"
+File: app/features/onboarding/start-wait.tsx:15-17
+
+### F-361 [P3] open - AI-written page titles are used as React keys
+File: app/features/onboarding/start-wait.tsx:83
+
+### F-362 [P3] open - No unit test that `/start` is a platform path
+File: app/lib/content-security-policy.test.ts; app/lib/host-routing.test.ts

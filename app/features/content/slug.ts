@@ -27,6 +27,7 @@ export const RESERVED_PAGE_SLUGS = [
   "forgot-password",
   "reset-password",
   "confirm-email",
+  "start",
 ] as const;
 
 export function slugFromTitle(title: string, type: EntryType): string {

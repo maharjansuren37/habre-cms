@@ -2,7 +2,7 @@
 
 **From build plan:** item 18b3
 **Type:** Feature
-**Verified:** not yet
+**Verified:** 2026-10-07, 3a65cb2e7186, 7 of 7 proven (screen-reader pass and provider p95 owed, needs-you.md)
 **Reviewed:** not yet
 
 ## Goal
@@ -221,6 +221,7 @@ cap - land here too. The draft's review and apply are 18b4.
   build your site, and Change the description (marker removed) -> Build my
   site ends on Your draft is ready. The full suite, `npm run test:e2e`,
   passes locally.
+- [x] **Repair F-353 - `start` is not a reserved page slug** - add `"start"` to `RESERVED_PAGE_SLUGS` (`app/features/content/slug.ts`). *Done when:* `node --test app/features/content/slug.test.ts` shows a page titled Start getting `start-2`, seen failing first (`actual: 'start'`).
 
 ## Files and areas
 
