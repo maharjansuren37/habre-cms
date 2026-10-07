@@ -832,7 +832,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
   }
 
   async function expectDraft(page: Page): Promise<void> {
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    // Final states only (F-355): the 1-second fake can finish before "Building your site" shows.
     await expect(page).toHaveURL(UUID_PATH);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
       timeout: 15_000,
@@ -853,6 +853,17 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
     await expectDraft(page);
+
+    // Use this draft -> Home -> Edit the home page -> the first page's editor.
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL(/\/admin$/);
+    await expect(page.getByText("Your website is ready")).toBeVisible();
+    const pages = page.getByRole("region", { name: "Your pages" });
+    await expect(pages.getByRole("listitem").filter({ hasText: "Home" })).toBeVisible();
+    await expect(pages.getByRole("listitem").filter({ hasText: "About" })).toBeVisible();
+    await page.getByRole("link", { name: "Edit the home page" }).click();
+    await page.waitForURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Home");
   });
 
   test("as full page loads: each step opened by its address", async ({ page }) => {

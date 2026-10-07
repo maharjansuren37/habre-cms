@@ -233,7 +233,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   "25% of this month's AI allowance used.", and no figure in credits or
   tokens anywhere on the page; on the host-split server (AI off) there is
   no AI meter and the storage meter remains.
-- [ ] **Step 8 - from the emailed link to Home** - `design.md`: *Screens*'
+- [x] **Step 8 - from the emailed link to Home** - `design.md`: *Screens*'
   AI-drafting row gains the review as built, the Home row built (with the
   two differences from the mock), First run row updated; journey 1 notes
   Preview and Publish as 18b4b. *Done when:* `e2e/onboarding.spec.ts`'s
