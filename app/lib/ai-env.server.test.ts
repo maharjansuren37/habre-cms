@@ -34,9 +34,9 @@ test("blank optional variables count as unset", () => {
 });
 
 test("OPENROUTER_MODEL overrides the default model", () => {
-  assert.equal(
-    parse({ OPENROUTER_API_KEY: "k", OPENROUTER_MODEL: "openai/gpt-x" }).AI?.providers[0]?.model,
-    "openai/gpt-x",
+  assert.deepEqual(
+    parse({ OPENROUTER_API_KEY: "k", OPENROUTER_MODEL: "openai/gpt-x" }).AI?.providers[0],
+    { name: "openrouter", apiKey: "k", model: "openai/gpt-x" },
   );
 });
 
@@ -196,4 +196,45 @@ test("a full three-provider configuration parses in the order given", () => {
       price: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
     },
   ]);
+});
+
+test("AI_PROVIDERS=fake alone turns AI on with a loopback or .localhost platform, needing no key", () => {
+  for (const PLATFORM_URL of [
+    "http://127.0.0.1:3100",
+    "http://app.localhost:3000",
+    "http://localhost:3000",
+    "http://[::1]:3000",
+  ]) {
+    assert.deepEqual(parse({ AI_PROVIDERS: "fake", PLATFORM_URL }).AI, {
+      providers: [{ name: "fake" }],
+      creditsPerMonth: 1000,
+    });
+  }
+});
+
+test("fake listed with another provider is refused naming AI_PROVIDERS", () => {
+  for (const AI_PROVIDERS of ["fake,openrouter", "openrouter,fake"]) {
+    assert.throws(
+      () => parse({ AI_PROVIDERS, OPENROUTER_API_KEY: "k", PLATFORM_URL: "http://127.0.0.1:3100" }),
+      /AI_PROVIDERS fake must be the only name listed/,
+      AI_PROVIDERS,
+    );
+  }
+});
+
+test("fake on a platform that is not loopback or .localhost is refused naming AI_PROVIDERS", () => {
+  for (const PLATFORM_URL of ["https://app.habre.ai", "http://evil-localhost.com", undefined]) {
+    assert.throws(
+      () => parse({ AI_PROVIDERS: "fake", PLATFORM_URL }),
+      /AI_PROVIDERS=fake is for local testing only/,
+      String(PLATFORM_URL),
+    );
+  }
+});
+
+test("the fake refusal never contains the platform address", () => {
+  assert.throws(
+    () => parse({ AI_PROVIDERS: "fake", PLATFORM_URL: "https://secretvalue.example" }),
+    (error: Error) => /AI_PROVIDERS/.test(error.message) && !error.message.includes("secretvalue"),
+  );
 });
