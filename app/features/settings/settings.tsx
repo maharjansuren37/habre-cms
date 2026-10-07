@@ -3,7 +3,11 @@ import { data, Form, redirect, useNavigation, useRouteLoaderData } from "react-r
 import type { loader as adminLayoutLoader } from "#app/features/admin-shell/layout.tsx";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
+import {
+  deriveBrandShades,
+  LIGHT_SITE_SURFACE,
+  parseBrandColor,
+} from "#app/features/brand/brand-colours.ts";
 import { listPagesForNav } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -247,6 +251,25 @@ function setSwatchColour(element: HTMLElement | null, colour: string) {
   element?.style.setProperty("--swatch", colour);
 }
 
+/** The preview's five brand roles, set through the CSSOM like the swatches' colours. */
+function applyBrandToPreview(element: HTMLElement | null, colour: string) {
+  if (!element) return;
+  const parsed = parseBrandColor(colour);
+  const shades = parsed ? deriveBrandShades(parsed, LIGHT_SITE_SURFACE) : null;
+  const properties = {
+    "--color-primary": shades?.primary,
+    "--color-primary-hover": shades?.primaryHover,
+    "--color-on-primary": shades?.onPrimary,
+    "--color-primary-subtle": shades?.primarySubtle,
+    "--color-focus-ring": shades?.focusRing,
+  };
+  // No colour removes them, so the site scope's ink shows through.
+  for (const [name, value] of Object.entries(properties)) {
+    if (value) element.style.setProperty(name, value);
+    else element.style.removeProperty(name);
+  }
+}
+
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
   const { updated, pages } = loaderData;
   // This route only renders nested inside the layout that provides this data
@@ -291,10 +314,19 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const [otherColour, setOtherColour] = useState(
     otherIsChecked ? colourDefault : savedColour || "#2f6b5a",
   );
-  const otherRadioRef = useRef<HTMLInputElement>(null);
-  const selectOther = () => {
-    if (otherRadioRef.current) otherRadioRef.current.checked = true;
-  };
+  // Which swatch is chosen. Controlled, because a radio checked by script would not tell
+  // React it changed (its value tracker would swallow the next click on the one it unchecked).
+  const [colourChoice, setColourChoice] = useState<"none" | "saved" | "other">(
+    otherIsChecked ? "other" : colourDefault === "" ? "none" : "saved",
+  );
+  const previewColour =
+    colourChoice === "other" ? otherColour : colourChoice === "saved" ? savedColour : "";
+  // What the preview shows for Style: the saved choice to start with, then whatever is picked.
+  const [previewPreset, setPreviewPreset] = useState<string>(presetDefault);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    applyBrandToPreview(previewFrameRef.current, previewColour);
+  }, [previewColour]);
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const homePage = pageById.get(homePageIdDefault);
 
@@ -377,115 +409,169 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             </Button>
           )}
         </fieldset>
-        <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
-          <legend className={styles.logoLabel}>Brand colour</legend>
-          <p id="brandColor-hint" className={styles.navHint}>
-            Buttons and links use it. We adjust the shade where needed so text on your site stays
-            easy to read.
-          </p>
-          {/* A list of swatches, so the logo's colours (item 18a2) are appended here. Each
+        <div className={styles.brandArea}>
+          <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
+            <legend className={styles.logoLabel}>Brand colour</legend>
+            <p id="brandColor-hint" className={styles.navHint}>
+              Buttons and links use it. We adjust the shade where needed so text on your site stays
+              easy to read.
+            </p>
+            {/* A list of swatches, so the logo's colours (item 18a2) are appended here. Each
               colour reaches its swatch through the CSSOM (setSwatchColour): a style attribute
               is blocked by the admin's style-src. */}
-          <ul className={styles.swatches}>
-            <li>
-              <label className={`${styles.swatch} ${styles.swatchInk}`}>
-                <input
-                  type="radio"
-                  name="brandColor"
-                  value=""
-                  defaultChecked={colourDefault === ""}
-                />
-                <span className={styles.swatchDot} aria-hidden="true" />
-                <span className={styles.swatchName}>
-                  No colour<span className="visually-hidden"> (black and white)</span>
-                </span>
-              </label>
-            </li>
-            {savedColour && (
+            <ul className={styles.swatches}>
               <li>
+                <label className={`${styles.swatch} ${styles.swatchInk}`}>
+                  <input
+                    type="radio"
+                    name="brandColor"
+                    value=""
+                    checked={colourChoice === "none"}
+                    onChange={() => setColourChoice("none")}
+                  />
+                  <span className={styles.swatchDot} aria-hidden="true" />
+                  <span className={styles.swatchName}>
+                    No colour<span className="visually-hidden"> (black and white)</span>
+                  </span>
+                </label>
+              </li>
+              {savedColour && (
+                <li>
+                  <label className={styles.swatch}>
+                    <input
+                      type="radio"
+                      name="brandColor"
+                      value={savedColour}
+                      checked={colourChoice === "saved"}
+                      onChange={() => setColourChoice("saved")}
+                    />
+                    <span
+                      className={styles.swatchDot}
+                      aria-hidden="true"
+                      ref={(el) => setSwatchColour(el, savedColour)}
+                    />
+                    <span className={styles.swatchName}>
+                      <span className="visually-hidden">Saved colour </span>
+                      {savedColour}
+                    </span>
+                  </label>
+                </li>
+              )}
+              <li className={styles.otherSwatch}>
                 <label className={styles.swatch}>
                   <input
                     type="radio"
                     name="brandColor"
-                    value={savedColour}
-                    defaultChecked={colourDefault === savedColour}
+                    value={otherColour}
+                    checked={colourChoice === "other"}
+                    onChange={() => setColourChoice("other")}
                   />
                   <span
                     className={styles.swatchDot}
                     aria-hidden="true"
-                    ref={(el) => setSwatchColour(el, savedColour)}
+                    ref={(el) => setSwatchColour(el, otherColour)}
                   />
-                  <span className={styles.swatchName}>
-                    <span className="visually-hidden">Saved colour </span>
-                    {savedColour}
-                  </span>
+                  <span className={styles.swatchName}>Other colour</span>
                 </label>
-              </li>
-            )}
-            <li className={styles.otherSwatch}>
-              <label className={styles.swatch}>
                 <input
-                  type="radio"
-                  name="brandColor"
+                  type="color"
+                  className={styles.colourInput}
+                  aria-label="Pick other colour"
                   value={otherColour}
-                  ref={otherRadioRef}
-                  defaultChecked={otherIsChecked}
+                  // Opening the picker selects Other; so does a new colour (a click is not
+                  // needed to change one by keyboard). Focus alone does not, so tabbing
+                  // past it changes nothing.
+                  onClick={() => setColourChoice("other")}
+                  onChange={(event) => {
+                    setOtherColour(event.target.value);
+                    setColourChoice("other");
+                  }}
                 />
-                <span
-                  className={styles.swatchDot}
-                  aria-hidden="true"
-                  ref={(el) => setSwatchColour(el, otherColour)}
-                />
-                <span className={styles.swatchName}>Other colour</span>
-              </label>
-              <input
-                type="color"
-                className={styles.colourInput}
-                aria-label="Pick other colour"
-                value={otherColour}
-                // Opening the picker selects Other; so does a new colour (a click is not
-                // needed to change one by keyboard). Focus alone does not, so tabbing
-                // past it changes nothing.
-                onClick={selectOther}
-                onChange={(event) => {
-                  setOtherColour(event.target.value);
-                  selectOther();
-                }}
-              />
-            </li>
-          </ul>
-          {errors.brandColor && <p className={styles.fieldError}>{errors.brandColor}</p>}
-        </fieldset>
-        <fieldset className={styles.brandField} aria-describedby="stylePreset-hint">
-          <legend className={styles.logoLabel}>Style</legend>
-          <p id="stylePreset-hint" className={styles.navHint}>
-            Fonts and corners. Your colour stays the same.
-          </p>
-          <div className={styles.presetCards}>
-            {STYLE_PRESETS.map((preset) => (
-              <label key={preset.value} className={styles.presetCard}>
-                <input
-                  type="radio"
-                  name="stylePreset"
-                  value={preset.value}
-                  defaultChecked={presetDefault === preset.value}
-                />
-                <span
-                  className={styles.presetSample}
-                  data-surface="site"
-                  data-style={preset.value}
-                  aria-hidden="true"
-                >
-                  <span className={styles.presetAa}>Aa</span>
-                  <span className={styles.presetText}>{preset.sample}</span>
-                  <span className={styles.presetButton}>Book</span>
-                </span>
-                <span className={styles.presetTitle}>{preset.label}</span>
-              </label>
-            ))}
+              </li>
+            </ul>
+            {errors.brandColor && <p className={styles.fieldError}>{errors.brandColor}</p>}
+          </fieldset>
+          <fieldset
+            className={styles.brandField}
+            aria-describedby="stylePreset-hint"
+            onChange={(event) => {
+              if (event.target instanceof HTMLInputElement) setPreviewPreset(event.target.value);
+            }}
+          >
+            <legend className={styles.logoLabel}>Style</legend>
+            <p id="stylePreset-hint" className={styles.navHint}>
+              Fonts and corners. Your colour stays the same.
+            </p>
+            <div className={styles.presetCards}>
+              {STYLE_PRESETS.map((preset) => (
+                <label key={preset.value} className={styles.presetCard}>
+                  <input
+                    type="radio"
+                    name="stylePreset"
+                    value={preset.value}
+                    defaultChecked={presetDefault === preset.value}
+                  />
+                  <span
+                    className={styles.presetSample}
+                    data-surface="site"
+                    data-style={preset.value}
+                    aria-hidden="true"
+                  >
+                    <span className={styles.presetAa}>Aa</span>
+                    <span className={styles.presetText}>{preset.sample}</span>
+                    <span className={styles.presetButton}>Book</span>
+                  </span>
+                  <span className={styles.presetTitle}>{preset.label}</span>
+                </label>
+              ))}
+            </div>
+            {errors.stylePreset && <p className={styles.fieldError}>{errors.stylePreset}</p>}
+          </fieldset>
+          {/* The mock's half-size preview (start-brand.html): an image to assistive technology,
+            so its contents are presentational and add nothing to the page's outline. The
+            frame's colours are set through the CSSOM (applyBrandToPreview). */}
+          <div className={styles.preview}>
+            <div
+              className={styles.previewWindow}
+              role="img"
+              aria-label="Preview of your site with this logo, colour and style"
+            >
+              <div
+                className={styles.previewFrame}
+                ref={previewFrameRef}
+                data-surface="site"
+                data-style={previewPreset}
+                aria-hidden="true"
+              >
+                <div className={styles.previewBar}>
+                  <span className={styles.previewBrand}>
+                    {logo ? (
+                      <img src={logo.url} alt="" className={styles.previewLogo} />
+                    ) : (
+                      <span className={styles.previewWordmark} data-preview="name">
+                        {settings.siteTitle}
+                      </span>
+                    )}
+                  </span>
+                  <span className={styles.previewMenu}>Home &nbsp; About &nbsp; Contact</span>
+                </div>
+                <div className={styles.previewBody}>
+                  <p className={styles.previewHeading} data-preview="heading">
+                    Welcome to your site
+                  </p>
+                  <p className={styles.previewText}>A few words about what you do and who for.</p>
+                  <span className={styles.previewButton} data-preview="button">
+                    Get in touch
+                  </span>
+                  <span className={styles.previewLink} data-preview="link">
+                    Read more
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className={styles.previewCaption}>Your home page, as visitors will see it.</p>
           </div>
-          {errors.stylePreset && <p className={styles.fieldError}>{errors.stylePreset}</p>}
-        </fieldset>
+        </div>
         <div className={styles.selectField}>
           <label className={styles.navFieldLabel} htmlFor="siteDescription">
             Site description

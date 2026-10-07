@@ -152,7 +152,7 @@ onboarding.
   `getByRole("radio")`); at 390px Settings does not scroll sideways;
   Settings meets contrast in light and dark (`e2e/contrast.spec.ts`).
 
-- [ ] **Step 6 - The live preview** - the half-size preview from
+- [x] **Step 6 - The live preview** - the half-size preview from
   `start-brand.html` beside the fields (stacked on a phone): the site's name
   or logo, a menu, a heading, a paragraph, a primary button and a link, in
   the site scope, with `data-style` and the derived properties applied

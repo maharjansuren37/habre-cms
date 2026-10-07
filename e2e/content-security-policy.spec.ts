@@ -256,6 +256,15 @@ test("the editor's toolbar, menu, link dialog, picker and panel, then posts, med
   await page.getByText(filename).click();
   await expect(page.getByRole("button", { name: "Change logo" })).toBeVisible();
 
+  // The brand preview takes its colours and style through the CSSOM, not a style attribute.
+  const colourPicker = page.getByLabel("Pick other colour", { exact: true });
+  await colourPicker.click();
+  await colourPicker.fill("#c9a25e");
+  await page.getByRole("radio", { name: "Friendly" }).check();
+  await expect(
+    page.getByRole("img", { name: /^Preview of your site/ }).locator("[data-preview='button']"),
+  ).toHaveCSS("background-color", /^rgb\(/);
+
   await page.goto("/admin/users");
   await expect(page.getByText(admin.email).first()).toBeVisible();
 

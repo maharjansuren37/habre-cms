@@ -236,19 +236,89 @@ test("arrow keys move between swatches and between style cards", async ({ page }
   }
 });
 
-test("Settings does not scroll sideways at 390px", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const site = await openSettings(page, BRAND, "classic");
-  try {
-    await expect(page.getByRole("group", { name: "Brand colour" })).toBeVisible();
-    const overflow = (await page.evaluate(`(() => {
+// 1152px is just under the width where the preview moves beside the form.
+for (const width of [390, 1152]) {
+  test(`Settings does not scroll sideways at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const site = await openSettings(page, BRAND, "classic");
+    try {
+      await expect(page.getByRole("group", { name: "Brand colour" })).toBeVisible();
+      const overflow = (await page.evaluate(`(() => {
       const root = document.documentElement;
       if (root.scrollWidth <= root.clientWidth) return [];
       return [...document.body.querySelectorAll("*")]
         .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 0.5)
         .map((el) => el.tagName.toLowerCase() + (el.className ? "." + String(el.className).split(" ")[0] : ""));
     })()`)) as string[];
-    expect(overflow).toEqual([]);
+      expect(overflow).toEqual([]);
+    } finally {
+      await deleteSite(site.id);
+    }
+  });
+}
+
+// Item 18a1, Step 6: the live preview. Everything happens in the browser, before Save.
+
+function preview(page: Page) {
+  return page.getByRole("img", { name: /^Preview of your site/ });
+}
+
+test("the preview follows Other colour and the style cards before Save, with no request", async ({
+  page,
+}) => {
+  const site = await openSettings(page, "", "modern");
+  try {
+    const button = preview(page).locator("[data-preview='button']");
+    const heading = preview(page).locator("[data-preview='heading']");
+    // Ink and Inter to start with: no colour, Modern.
+    await expect(button).toHaveCSS("background-color", "rgb(23, 23, 23)");
+    await expect(heading).not.toHaveCSS("font-family", /^"?Nunito/);
+    await page.waitForLoadState("networkidle");
+
+    // Fonts are the page's own requests for a preset's face; anything that talks to the
+    // server's data (fetch, XHR, a document) would be a round trip.
+    const requests: string[] = [];
+    page.on("request", (request) => {
+      if (request.resourceType() !== "font") {
+        requests.push(`${request.resourceType()} ${request.url()}`);
+      }
+    });
+
+    const picker = page.getByLabel("Pick other colour", { exact: true });
+    await picker.click();
+    await picker.fill(BRAND);
+    await expect(button).toHaveCSS("background-color", "rgb(47, 107, 90)");
+    await page.getByRole("radio", { name: "Friendly" }).check();
+    await expect(heading).toHaveCSS("font-family", /^"?Nunito/);
+    await page.getByRole("radio", { name: NO_COLOUR }).check();
+    await expect(button).toHaveCSS("background-color", "rgb(23, 23, 23)");
+    await page.getByRole("radio", { name: "Other colour", exact: true }).check();
+    await expect(button).toHaveCSS("background-color", "rgb(47, 107, 90)");
+    expect(requests).toEqual([]);
+
+    // Nothing was saved: a reload shows the saved values again.
+    await page.reload();
+    await expect(page.getByRole("radio", { name: NO_COLOUR })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "Modern" })).toBeChecked();
+    await expect(button).toHaveCSS("background-color", "rgb(23, 23, 23)");
+    await expect(heading).not.toHaveCSS("font-family", /^"?Nunito/);
+    expect(await savedBrand(site.id)).toEqual({ brandColor: "", stylePreset: "modern" });
+  } finally {
+    await deleteSite(site.id);
+  }
+});
+
+test("the preview starts on the saved colour and style", async ({ page }) => {
+  const site = await openSettings(page, BRAND, "classic");
+  try {
+    await expect(preview(page).locator("[data-preview='button']")).toHaveCSS(
+      "background-color",
+      "rgb(47, 107, 90)",
+    );
+    await expect(preview(page).locator("[data-preview='heading']")).toHaveCSS(
+      "font-family",
+      /^"?Source Serif 4/,
+    );
   } finally {
     await deleteSite(site.id);
   }

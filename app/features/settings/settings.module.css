@@ -354,3 +354,118 @@
   color: var(--color-on-primary);
   font-size: var(--text-sm);
 }
+
+/* The live preview (item 18a1, Step 6), from prototypes/components.css .brand-preview:
+ * the page drawn at 200% and scaled to half, in the site scope. Stacked under the fields on
+ * a phone; on a wide screen it sits beside the form. Colours arrive through the CSSOM. */
+.brandArea {
+  display: grid;
+  gap: var(--space-4);
+  position: relative;
+}
+
+.preview {
+  min-width: 0;
+}
+
+.previewWindow {
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.previewFrame {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  width: 200%;
+  min-height: 200%;
+  transform: scale(0.5);
+  transform-origin: 0 0;
+  font-family: var(--font-family-sans);
+}
+
+.previewBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.previewBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.previewLogo {
+  display: block;
+  max-height: 2.25rem;
+  width: auto;
+}
+
+.previewWordmark {
+  font-family: var(--font-family-heading);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+}
+
+.previewMenu {
+  color: var(--color-text-muted);
+}
+
+.previewBody {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.previewHeading {
+  margin: 0;
+  font-family: var(--font-family-heading);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.previewText {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.previewButton {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.previewLink {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.previewCaption {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* 76rem: the preview's right edge is 1191px from the window's left at any width, so
+ * below this it would push the page sideways. */
+@media (min-width: 76rem) {
+  .preview {
+    position: absolute;
+    top: 0;
+    left: calc(100% + var(--space-5) + var(--space-5));
+    width: 22rem;
+  }
+}
