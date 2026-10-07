@@ -407,6 +407,20 @@ export async function listPublishedPosts(
   );
 }
 
+/** Whether the site has any published page or post - onboarding is offered only while it has none (18b3). */
+export async function hasPublishedEntries(siteId: string): Promise<boolean> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ exists: boolean }[]>`
+    select exists(
+      select 1 from entries
+      where site_id = ${siteId} and status = 'published'
+    ) as "exists"
+  `,
+  );
+  return row.exists;
+}
+
 /** Whether `/`'s placeholder should link to `/posts` - only asked when no
  *  home page is shown, so a page at `/` costs no extra query (item 9's D-12). */
 export async function hasPublishedPosts(siteId: string): Promise<boolean> {

@@ -138,7 +138,7 @@ cap - land here too. The draft's review and apply are 18b4.
   `openrouter,anthropic,openai` each give an adapter whose answer reports
   provider `openrouter` (its HTTP call stubbed, as 18b1's adapter tests do),
   never a fallback; `anthropic` alone gives `null`. `npm run verify` green.
-- [ ] **Step 3 - the gate, the refusals and the daily cap** -
+- [x] **Step 3 - the gate, the refusals and the daily cap** -
   `entries.server.ts`: `hasPublishedEntries(siteId)`, any page or post. A
   pure `app/features/onboarding/start-gate.ts` (offered, or `/admin` when AI
   is off, the site is suspended or anything is published) and
