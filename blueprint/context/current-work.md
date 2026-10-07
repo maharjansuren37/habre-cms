@@ -3,7 +3,7 @@
 **From build plan:** item 18a1 (item 18 -> 18a your brand -> 18a1; split proposed with this spec)
 **Type:** Feature
 **Verified:** not yet
-**Reviewed:** 2026-10-07, 4277b1fbeb32, current, every lens - 1 blocking
+**Reviewed:** 2026-10-07, 9f7da7d1c732, current (re-review of F-312), every lens - 0 open blocking; F-312 fixed, re-review found it closed, awaiting a person (autopilot)
 
 ## Goal
 
