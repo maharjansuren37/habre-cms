@@ -317,19 +317,72 @@ test.describe("step 2, Tell us about it", () => {
   });
 });
 
+// The shape app/features/ai/test-proposal.ts's validProposal() has, inlined: the
+// browser specs' tsconfig does not include app/.
+function validProposal() {
+  const hero = {
+    kind: "hero",
+    heading: "Welcome",
+    body: "We make bread.",
+    buttonLabel: "Visit",
+    buttonTarget: "p2",
+  };
+  const text = { kind: "text", heading: "Details", paragraphs: ["One.", "Two."] };
+  return {
+    siteDescription: "A bakery.",
+    brandColor: "#aa5500",
+    pages: [
+      {
+        key: "p1",
+        title: "Home",
+        seoTitle: "Home - Bakery",
+        seoDescription: "Fresh bread.",
+        sections: [
+          hero,
+          { kind: "image-text", heading: "Our story", body: "Since 1999." },
+          { kind: "cta", heading: "Talk to us", body: "We reply fast.", buttonLabel: "Contact" },
+          text,
+        ],
+      },
+      {
+        key: "p2",
+        title: "About",
+        seoTitle: "About",
+        seoDescription: "About us.",
+        sections: [text],
+      },
+    ],
+    navigation: ["p1", "p2"],
+  };
+}
+
+// A review section, found by its h2 (a section without a label is not a region).
+function sectionOf(page: Page, title: string) {
+  return page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { level: 2, name: title, exact: true }) });
+}
+
 // Item 18b3, Step 6: /start/:runId, the wait. States are seeded and advanced as
 // the owner, so no assertion races the fake provider's timer.
 const UUID_PATH = /\/start\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 async function seedRun(
   status: string,
-  options: { error?: string; kind?: string; description?: string; ageSeconds?: number } = {},
+  options: {
+    error?: string;
+    kind?: string;
+    description?: string;
+    ageSeconds?: number;
+    result?: unknown;
+  } = {},
 ): Promise<string> {
   return withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
-      insert into ai_runs (site_id, kind, description, status, error, created_at, finished_at)
+      insert into ai_runs (site_id, kind, description, status, error, result, created_at, finished_at)
       values (${siteId}, ${options.kind ?? "business"}, ${options.description ?? "A bakery called Crumb."},
               ${status}, ${options.error ?? null},
+              ${options.result === undefined ? null : sql.json(options.result as never)},
               now() - make_interval(secs => ${options.ageSeconds ?? 5}),
               ${status === "running" ? null : new Date()})
       returning id
@@ -352,46 +405,100 @@ test.describe("the wait", () => {
     await expect(page.getByText(/\d+ seconds? so far/)).toBeVisible();
   });
 
-  test("a succeeded run shows its page titles within 5 seconds, without a reload", async ({
+  test("a running run becoming succeeded changes the same status element, without a reload", async ({
     page,
   }) => {
     const runId = await seedRun("running");
     await logInThenOpen(page, `/start/${runId}`);
+    const status = page.getByRole("status");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    await expect(status).toContainText("Writing your pages");
     await page.evaluate("window.__noReload = true");
-    const proposal = {
-      siteDescription: "A bakery.",
-      brandColor: "#aa5500",
-      pages: [
-        {
-          key: "p1",
-          title: "Welcome home",
-          seoTitle: "Home",
-          seoDescription: "Fresh bread.",
-          sections: [{ kind: "text", heading: "Hello", paragraphs: ["One."] }],
-        },
-        {
-          key: "p2",
-          title: "<b>Our story</b>",
-          seoTitle: "About",
-          seoDescription: "About us.",
-          sections: [{ kind: "text", heading: "Hi", paragraphs: ["Two."] }],
-        },
-      ],
-      navigation: ["p1", "p2"],
-    };
+    await status.evaluate((element) => {
+      (element as unknown as { __mark: number }).__mark = 1;
+    });
     await withDatabase(async (sql) => {
       await sql`
-        update ai_runs set status = 'succeeded', finished_at = now(), result = ${sql.json(proposal)}
+        update ai_runs set status = 'succeeded', finished_at = now(),
+          result = ${sql.json(validProposal() as never)}
         where id = ${runId}
       `;
     });
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
-      timeout: 5000,
-    });
-    const titles = page.getByRole("list").getByRole("listitem");
-    await expect(titles).toHaveText(["Welcome home", "<b>Our story</b>"]);
+    await expect(status).toHaveText("Your draft is ready to review.", { timeout: 5000 });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready");
+    expect(
+      await status.evaluate((element) => (element as unknown as { __mark?: number }).__mark),
+    ).toBe(1);
     expect(await page.evaluate("window.__noReload === true")).toBe(true);
+  });
+
+  test("a succeeded run shows the review: pages, sections, search text, menu, colour", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("status")).toHaveText("Your draft is ready to review.");
+    const pageHeadings = page.getByRole("heading", { level: 2 });
+    await expect(pageHeadings).toHaveText(["Home", "About", "Menu", "Your site"]);
+
+    const home = sectionOf(page, "Home");
+    await expect(home.getByText("Home page", { exact: true })).toBeVisible();
+    await expect(home.getByRole("listitem")).toHaveText([
+      "Hero: Welcome",
+      "Image and text: Our story",
+      "Call to action: Talk to us",
+      "Text: Details",
+    ]);
+    await expect(home.getByRole("term")).toHaveText(["Title in search results", "Description"]);
+    await expect(home.getByRole("definition")).toHaveText(["Home - Bakery", "Fresh bread."]);
+    const about = sectionOf(page, "About");
+    await expect(about.getByRole("listitem")).toHaveText(["Text: Details"]);
+    await expect(about.getByRole("definition")).toHaveText(["About", "About us."]);
+
+    await expect(sectionOf(page, "Menu").getByRole("listitem")).toHaveText(["Home", "About"]);
+    const site = sectionOf(page, "Your site");
+    await expect(site.getByText("A bakery.")).toBeVisible();
+    await expect(site.getByText("#aa5500")).toBeVisible();
+    await expect(page.getByText("2 places for a photo are empty.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Change the description" })).toHaveAttribute(
+      "href",
+      `/start/about?kind=business&from=${runId}`,
+    );
+    await expect(page.getByRole("button", { name: "Use this draft" })).toHaveCount(0);
+  });
+
+  test("a site with a brand colour set shows no colour in the review", async ({ page }) => {
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set brand_color = '#336699' where site_id = ${siteId}`;
+    });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready");
+    await expect(page.getByText("Brand colour")).toHaveCount(0);
+    await expect(page.getByText("#aa5500")).toHaveCount(0);
+    await expect(page.getByText("#336699")).toHaveCount(0);
+  });
+
+  test("a succeeded run whose result is {} reads as failed and offers Try again", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: {} });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site");
+    await expect(page.getByRole("status")).toContainText("Something went wrong on our side.");
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+
+  test("the review has no horizontal scroll at 390px", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready");
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
   });
 
   test("a failed timeout run offers Try again, which starts a new run", async ({ page }) => {
@@ -516,8 +623,9 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
       timeout: 15_000,
     });
-    await expect(page.getByRole("listitem").filter({ hasText: /^Home$/ })).toBeVisible();
-    await expect(page.getByRole("listitem").filter({ hasText: /^About$/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Home" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "About" })).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText("Your draft is ready to review.");
     await expect(page).toHaveURL(UUID_PATH);
   }
 

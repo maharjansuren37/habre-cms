@@ -122,7 +122,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   `null` with a logo or a colour already set, else the proposal's; the
   description is `null` when one is set; the photo count counts heroes and
   image-and-text sections.
-- [ ] **Step 2 - the review and the live region** - `start-wait.tsx`'s
+- [x] **Step 2 - the review and the live region** - `start-wait.tsx`'s
   succeeded state renders the review from `reviewSummary` and from
   `planApply`'s colour and description (the loader reads `getSiteSettings`
   and passes no taken slugs - the review shows no addresses); a
