@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-07, `main` after `044d3bb` (D155 amended by 18b1's spec).
+Generated 2026-10-07, `main` after `4eb211d` (18b1 shipped).
 
 ## What this is
 
@@ -34,25 +34,21 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not yet deployed** (items 13-18a2; each in
+**Built for v1, not yet deployed** (items 13-18b1; each in
 `blueprint/history/features/`, deploy steps in
-`blueprint/production-pending.md`): React Router 8.4.0 (13); the new look
-(13b, `design.md`) - stone and rust admin, light and dark, public sites
-neutral and light only (D168); the TipTap editor on one v4 document per
-entry, sections of 1-3 columns, templates (14a1-14c2, `0009` deletes old
-content); sites, memberships and row-level security (15a); signup by invite
-with an emailed confirm link (15b, `0012` deletes every account, D261);
-password reset (15c); a storage cap per site (15d); Your account and
-deleting it (15e1-15e2); sites by host and suspend, the Caddy file (16a-16b);
-SEO basics (17); optimised images with `sharp`, `srcset` and
-`optimise-media` (17b); a brand colour and three style presets in
-Settings, with a live preview, on public pages and the canvas (18a1);
-a logo upload in Settings, SVG turned into a PNG in the browser, and brand
-colours offered from the logo (18a2).
+`blueprint/production-pending.md`): React Router 8 (13); the new look (13b,
+`design.md`, D168); the TipTap editor, one v4 document per entry, sections
+and templates (14a1-14c2, `0009` deletes old content); sites, memberships
+and row-level security (15a); invite signup with email confirm (15b, `0012`
+deletes every account, D261); password reset (15c); storage cap (15d); Your
+account and deleting it (15e1-15e2); sites by host, suspend, the Caddy file
+(16a-16b); SEO basics (17); optimised images (17b); brand colour and style
+presets (18a1); logo upload with colours from it (18a2); the AI run engine
+through OpenRouter, no screens yet - `ai_runs`, the proposal, credits,
+`npm run ai:try` (18b1).
 
-**Platform v1 (queued):** an AI draft from a description (18b1-18b5);
-contact form; Simple
-and Pro; Stripe billing for Launch. Limits apply from the first signup;
+**Platform v1 (queued):** fallbacks and the AI screens (18b2-18b5); contact
+form; Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -77,8 +73,8 @@ constraint** - each new runtime dependency is a recorded decision.
 - `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
   and CI (D254).
 - `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
-- **v1 adds, pinned when installed:** `openai` (18b1, for OpenRouter),
-  `@anthropic-ai/sdk` (18b2) (D155), `stripe` (D160).
+- `openai` 7.30.0, pinned exactly, calls OpenRouter (D372). **v1 adds,
+  pinned when installed:** `@anthropic-ai/sdk` (18b2), `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -112,7 +108,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   admins deactivate members, never delete them - only deleting your own
   account does (15e2); no state on disk (D9); a limit refuses
   the action, never the published site (D150); AI use is a monthly credit
-  allowance (D164); **AI output is untrusted, writes drafts only**.
+  allowance, failed runs charged their reported cost (D164, D391); **AI
+  output is untrusted, writes drafts only**.
 
 ### Auth boundary
 
@@ -130,7 +127,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 - **AI:** `AI_PROVIDERS` order, **OpenRouter first**, any model, credits
   from its reported cost; Anthropic and OpenAI direct as priced fallbacks;
-  moves on only when unavailable - **never on a refusal** (D155, amended).
+  moves on only when unavailable - **never on a refusal** (D155, D372).
 - **Email:** SMTP via Resend (D156). **Payments:** Stripe's hosted pages;
   webhooks set the plan (D149, D160).
 
@@ -148,7 +145,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18a2 done; 18b1 spec'd in `current-work.md`, not built;
-  18b2-18b5 and 19-21 queued. Last shipped: 18a2.
-- **Next:** `build` item 18b1, the run with OpenRouter.
+- **Plan:** items 1-18b1 done; nothing in flight; 18b2-18b5 and 19-21
+  queued. Last shipped: 18b1.
+- **Next:** `spec` item 18b2, Fallbacks.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

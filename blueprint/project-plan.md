@@ -172,9 +172,11 @@ dependency is a decision recorded in `dev-notes/decisions.md`.
   **8.0.2**, both pinned exactly. Development and CI send to Mailpit
   (`axllent/mailpit:v1.31.4`), a local SMTP catcher (D254); production uses
   Resend over SMTP.
+- **AI:** `openai` **7.30.0**, pinned exactly, calls OpenRouter (D155, D372);
+  installed with item 18b1. `@anthropic-ai/sdk` (18b2) pinned when installed.
 - **Installed with their item, not at scaffold:** `jose` (item 1), TipTap (item
   14a1), `aws4fetch` and `image-size` (item 5), `nodemailer` (item 15b),
-  `sharp` (item 17b) - so
+  `sharp` (item 17b), `openai` (item 18b1) - so
   no package sits in `package.json` with nothing calling it. Versions above stay
   the pins.
 - **Testing:** `node:test` (built in) for unit tests; `@playwright/test`
