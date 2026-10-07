@@ -110,7 +110,7 @@ File: app/features/brand/brand-colours.ts:138-149
 ### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
 File: app/features/media/optimise-image.server.ts:64
 
-### F-354 [P2] open - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
+### F-354 [P2] fixed - The wait's live region is removed when the draft succeeds, so "Your draft is ready" is never announced
 File: app/features/onboarding/start-wait.tsx:78-89
 
 ### F-355 [P2] open - Journey tests assert "Building your site" against a 1-second fake, so they can flake on a slow runner
