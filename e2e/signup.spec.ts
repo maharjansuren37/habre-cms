@@ -288,7 +288,10 @@ test("two signups at once for one address: one wins, the other sees the taken er
 
   await Promise.all(
     pages.map((page) =>
-      expect(page.getByRole("heading", { level: 1 }).or(page.getByRole("alert"))).toBeVisible(),
+      // The losing page shows its h1 and the alert together: either will do.
+      expect(
+        page.getByRole("heading", { level: 1 }).or(page.getByRole("alert")).first(),
+      ).toBeVisible(),
     ),
   );
   await expect.poll(() => pages.filter((page) => /\/signup\/sent/.test(page.url())).length).toBe(1);

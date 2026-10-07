@@ -154,7 +154,10 @@ test("canceling a delete leaves the post exactly as it was", async ({ page }) =>
 
   await page.getByRole("link", { name: /^Delete Keep this one/ }).click();
   await page.waitForURL(new RegExp(`${id}/delete`));
-  await expect(page.getByText("Keep this one")).toBeVisible();
+  // The URL changes before the delete screen replaces the list, where the
+  // title appears twice (its link and the Delete link's hidden text).
+  await expect(page.getByRole("heading", { level: 1, name: "Delete this post?" })).toBeVisible();
+  await expect(page.getByRole("main").getByText("Keep this one", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Cancel" }).click();
   await page.waitForURL("**/admin/posts");
