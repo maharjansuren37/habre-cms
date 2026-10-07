@@ -1,16 +1,22 @@
 import { Link, redirect } from "react-router";
+import { allowanceSummary } from "#app/features/ai/allowance-summary.ts";
+import { startOfUtcMonth } from "#app/features/ai/credits.ts";
 import { runner } from "#app/features/ai/runner.server.ts";
 import {
   appliedRunPageCount,
   findLatestFinishedRun,
   hasAppliedRun,
+  runStore,
 } from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { hasPublishedEntries, listEntries } from "#app/features/content/entries.server.ts";
+import { storageUsed } from "#app/features/media/media.server.ts";
+import { storageSummary } from "#app/features/media/storage-limit.ts";
 import { startGate } from "#app/features/onboarding/start-gate.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
+import { Meter } from "#app/lib/ui/meter.tsx";
 import type { Route } from "./+types/home";
 import styles from "./home.module.css";
 import { homeState } from "./home-state.ts";
@@ -29,13 +35,18 @@ export async function loader({ context }: Route.LoaderArgs) {
   if (user.role !== "admin") throw redirect("/admin/posts");
   // The first page of the list is the first 20 (PAGE_SIZE); `total` says
   // whether Pages holds more.
-  const [list, { suspended }, published, applied, latestFinished] = await Promise.all([
-    listEntries(user.siteId, "page", user, { status: "all", q: "", page: 1 }),
-    findMemberSite(user.siteId),
-    hasPublishedEntries(user.siteId),
-    hasAppliedRun(user.siteId),
-    findLatestFinishedRun(user.siteId),
-  ]);
+  const now = new Date();
+  const [list, { suspended }, published, applied, latestFinished, storedBytes, creditsUsed] =
+    await Promise.all([
+      listEntries(user.siteId, "page", user, { status: "all", q: "", page: 1 }),
+      findMemberSite(user.siteId),
+      hasPublishedEntries(user.siteId),
+      hasAppliedRun(user.siteId),
+      findLatestFinishedRun(user.siteId),
+      storageUsed(user.siteId),
+      // Only while AI is on: with it off the card has no AI meter.
+      runner === null ? 0 : runStore.creditsUsedSince(user.siteId, startOfUtcMonth(now)),
+    ]);
   const offered =
     startGate({ aiOn: runner !== null, suspended, published, applied }).kind === "offer";
   const state = homeState({
@@ -58,12 +69,17 @@ export async function loader({ context }: Route.LoaderArgs) {
     total: list.total,
     state,
     ready,
+    storage: storageSummary(storedBytes, env.STORAGE_LIMIT_BYTES),
+    allowance:
+      runner === null || env.AI === null
+        ? null
+        : allowanceSummary(creditsUsed, env.AI.creditsPerMonth, now),
     reviewRunId: state === "review" ? (latestFinished?.id ?? null) : null,
   };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { pages, total, state, ready, reviewRunId } = loaderData;
+  const { pages, total, state, ready, reviewRunId, storage, allowance } = loaderData;
 
   return (
     <>
@@ -166,6 +182,29 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               )}
             </>
           )}
+        </section>
+        <section className={styles.card} aria-labelledby="month-title">
+          <h2 id="month-title" className={styles.cardTitle}>
+            This month
+          </h2>
+          {allowance && (
+            <Meter
+              label="AI allowance"
+              text={allowance.text}
+              value={allowance.value}
+              max={allowance.max}
+            />
+          )}
+          <Meter
+            label="Storage"
+            text={
+              storage.limitText
+                ? `${storage.usedText} of ${storage.limitText} used`
+                : `${storage.usedText} used`
+            }
+            value={storage.value}
+            max={storage.max}
+          />
         </section>
       </div>
     </>

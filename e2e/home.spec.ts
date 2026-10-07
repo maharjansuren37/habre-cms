@@ -210,3 +210,37 @@ test("with AI off, Home shows no panel", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Start from a description" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Review your draft" })).toHaveCount(0);
 });
+
+test("This month shows the AI allowance as a percentage, never credits or tokens", async ({
+  page,
+}) => {
+  await withDatabase(async (sql) => {
+    // Two runs this month holding 250 credits; one from last month, not counted.
+    await sql`
+      insert into ai_runs (site_id, kind, description, status, credits, created_at, finished_at)
+      values (${siteId}, 'business', 'A', 'failed', 100, now(), now()),
+             (${siteId}, 'business', 'B', 'failed', 150, now(), now()),
+             (${siteId}, 'business', 'C', 'failed', 400, date_trunc('month', now()) - interval '1 day', now())
+    `;
+  });
+  await logIn(page, admin);
+  const card = page.getByRole("region", { name: "This month" });
+  const meter = card.getByRole("meter", { name: "AI allowance" });
+  await expect(meter).toHaveAttribute("value", "250");
+  await expect(card.getByText("25% of this month's AI allowance used.")).toBeVisible();
+  await expect(card.getByRole("meter", { name: "Storage" })).toBeVisible();
+  const body = (await page.locator("body").innerText()).toLowerCase();
+  expect(body).not.toMatch(/credit|token/);
+});
+
+test("with AI off, This month has no AI meter and keeps storage", async ({ page }) => {
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
+  await page.goto(`${off}/admin/login`);
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL(/\/admin$/);
+  const card = page.getByRole("region", { name: "This month" });
+  await expect(card.getByRole("meter", { name: "Storage" })).toBeVisible();
+  await expect(card.getByRole("meter", { name: "AI allowance" })).toHaveCount(0);
+});

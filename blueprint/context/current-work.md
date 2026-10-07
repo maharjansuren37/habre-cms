@@ -217,7 +217,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   Start from a description -> `/start`; with an unused succeeded run,
   Review your draft -> its page; a site with a published page, and the
   host-split server (AI off), show none of those.
-- [ ] **Step 7 - This month: the AI meter** - a pure
+- [x] **Step 7 - This month: the AI meter** - a pure
   `app/features/ai/allowance-summary.ts`: `allowanceSummary(used,
   allowance, now)` -> `{ text, value, max }` - "N% of this month's AI
   allowance used. Renews on 1 November." (whole percent, rounded down, at
