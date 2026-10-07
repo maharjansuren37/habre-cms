@@ -87,7 +87,7 @@ export async function action({ request }: Route.ActionArgs) {
     env.JWT_SECRET,
   );
   logSecurityEvent({ event: "email_verified", userId: confirmed.userId });
-  return redirect("/admin", { headers: { "Set-Cookie": await serializeSessionCookie(session) } });
+  return redirect("/start", { headers: { "Set-Cookie": await serializeSessionCookie(session) } });
 }
 
 export default function Verify({ actionData, loaderData }: Route.ComponentProps) {

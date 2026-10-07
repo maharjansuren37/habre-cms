@@ -209,7 +209,7 @@ cap - land here too. The draft's review and apply are 18b4.
   anyway is refused with no new row; another site's run id and
   `/start/not-a-uuid` are Not Found; an `applied` row goes to `/admin`; a
   `running` row created seven minutes ago shows Couldn't build your site.
-- [ ] **Step 7 - from the emailed link to the draft** - `verify.tsx`
+- [x] **Step 7 - from the emailed link to the draft** - `verify.tsx`
   redirects to `/start` (the gate passes it on to `/admin` when not
   offered). Update the signup specs that expect `/admin` after Confirm.
   *Done when:* `e2e/onboarding.spec.ts` walks journey 1 as far as it is

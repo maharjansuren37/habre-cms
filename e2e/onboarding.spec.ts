@@ -1,6 +1,8 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { textDocument } from "./helpers/documents.ts";
+import { createInvite, deleteInvites, randomAddress } from "./helpers/invites.ts";
+import { tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
@@ -24,10 +26,22 @@ test.afterEach(async () => {
   await deleteSite(siteId);
 });
 
+// Fills the login form the page is on. Tries again once when the login answers
+// 503 ("Login is busy."), as helpers/auth.ts's logIn does (F-231): another
+// worker can hold both password slots.
 async function signIn(page: Page, user: TestUser): Promise<void> {
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: "Log in" }).click();
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await page.getByLabel("Email").fill(user.email);
+    await page.getByLabel("Password").fill(user.password);
+    const answer = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        /^\/admin\/login(\.data)?$/.test(new URL(response.url()).pathname),
+    );
+    await page.getByRole("button", { name: "Log in" }).click();
+    if ((await answer).status() !== 503 || attempt === 2) return;
+    await page.waitForTimeout(500);
+  }
 }
 
 async function logInThenOpen(page: Page, path: string): Promise<void> {
@@ -454,5 +468,100 @@ test.describe("the wait", () => {
     await logInThenOpen(page, `/start/${runId}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site");
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+});
+
+// Item 18b3, Step 7: journey 1 as far as it is built, from the emailed link to
+// the draft, on the primary server's fake provider (one real run each).
+test.describe("journey 1, from the emailed link to the draft", () => {
+  test.describe.configure({ mode: "serial" });
+
+  const made: { addresses: string[]; codes: string[] } = { addresses: [], codes: [] };
+
+  test.afterEach(async () => {
+    for (const address of made.addresses.splice(0)) {
+      const ids = await withDatabase(
+        (sql) => sql<{ id: string }[]>`select id from sites where subdomain = ${address}`,
+      );
+      for (const { id } of ids) await deleteSite(id);
+    }
+    await deleteInvites(made.codes.splice(0));
+  });
+
+  /** Signs up with an invite, opens the emailed link and presses Confirm. */
+  async function signUpAndConfirm(page: Page): Promise<void> {
+    const address = randomAddress();
+    const code = await createInvite();
+    made.addresses.push(address);
+    made.codes.push(code);
+    const email = `e2e-${randomInt(1e9)}-${Date.now()}@example.test`;
+    await page.goto("/signup");
+    await page.getByLabel("Your name").fill("Lena Novak");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill("a long enough password");
+    await page.getByLabel("Your website’s address").fill(address);
+    await page.getByLabel("Invite code").fill(code);
+    await page.getByRole("button", { name: "Create my website" }).click();
+    await expect(page).toHaveURL(/\/signup\/sent/);
+    const [mail] = await waitForMail(email, 1);
+    await page.goto(`/verify?token=${tokenFromMail(mail)}`);
+    await page.getByRole("button", { name: "Confirm my email" }).click();
+    await page.waitForURL("**/start");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("What do you want to create?");
+  }
+
+  async function expectDraft(page: Page): Promise<void> {
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    await expect(page).toHaveURL(UUID_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
+      timeout: 15_000,
+    });
+    await expect(page.getByRole("listitem").filter({ hasText: /^Home$/ })).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: /^About$/ })).toBeVisible();
+    await expect(page).toHaveURL(UUID_PATH);
+  }
+
+  test("through the app's own links: Confirm, Business, Continue, a description, the draft", async ({
+    page,
+  }) => {
+    await signUpAndConfirm(page);
+    await page.getByRole("radio", { name: /Business/ }).check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell us about it");
+    await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
+    await page.getByRole("button", { name: "Build my site" }).click();
+    await expectDraft(page);
+  });
+
+  test("as full page loads: each step opened by its address", async ({ page }) => {
+    await signUpAndConfirm(page);
+    await page.goto("/start?kind=business");
+    await expect(page.getByRole("radio", { name: /Business/ })).toBeChecked();
+    await page.goto("/start/about?kind=business");
+    await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
+    await page.getByRole("button", { name: "Build my site" }).click();
+    await page.waitForURL(UUID_PATH);
+    const runUrl = page.url();
+    await page.goto(runUrl);
+    await expectDraft(page);
+  });
+
+  test("an unavailable provider ends on Couldn't build; Change the description then succeeds", async ({
+    page,
+  }) => {
+    await signUpAndConfirm(page);
+    await page.goto("/start/about?kind=business");
+    await page.getByLabel("About your business").fill("Crumb, a bakery. [fake:unavailable]");
+    await page.getByRole("button", { name: "Build my site" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site", {
+      timeout: 15_000,
+    });
+    await expect(page).toHaveURL(UUID_PATH);
+    await page.getByRole("link", { name: "Change the description" }).click();
+    const about = page.getByLabel("About your business");
+    await expect(about).toHaveValue("Crumb, a bakery. [fake:unavailable]");
+    await about.fill("Crumb, a bakery for the neighbourhood.");
+    await page.getByRole("button", { name: "Build my site" }).click();
+    await expectDraft(page);
   });
 });
