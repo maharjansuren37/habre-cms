@@ -110,5 +110,5 @@ File: app/features/brand/brand-colours.ts:138-149
 ### F-326 [P2] open - Shrinking to the 64px sample blends wordmark strokes with an opaque background, giving washed-out or near-white colours
 File: app/features/media/optimise-image.server.ts:64
 
-### F-363 [P2] unverified - "Two signups at once" can get "Signup is busy" instead of "is taken" when other tests hold the password-check slots
+### F-363 [P2] fixed - "Two signups at once" can get "Signup is busy" instead of "is taken" when other tests hold the password-check slots
 File: e2e/signup.spec.ts:272; app/features/signup/signup.server.ts:64

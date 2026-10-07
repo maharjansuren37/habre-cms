@@ -1,5 +1,5 @@
 import { createHash, randomInt } from "node:crypto";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { type Browser, expect, type Locator, type Page, test } from "@playwright/test";
 import { textDocument } from "./helpers/documents.ts";
 import { createInvite, deleteInvites, hashInvite, randomAddress } from "./helpers/invites.ts";
 import { messagesTo, tokenFromMail, waitForMail } from "./helpers/mail.ts";
@@ -269,9 +269,12 @@ test("a reserved address is refused", async ({ page }) => {
   expect(count).toBe(0);
 });
 
-test("two signups at once for one address: one wins, the other sees the taken error", async ({
-  browser,
-}) => {
+// One attempt at the race: two people submit the same address at once. Signup
+// takes one of the two password-check slots login shares
+// (login-rate-limit.server.ts), so a login on the other worker can refuse one
+// of them as busy before the race reaches the database (F-363). Such an
+// attempt tested nothing: it is closed and reported as null.
+async function raceTwoSignups(browser: Browser) {
   const address = randomAddress();
   const people = await Promise.all([newSignup(), newSignup()]);
   tracked.addresses.push(address);
@@ -286,14 +289,39 @@ test("two signups at once for one address: one wins, the other sees the taken er
     pages.map((page) => page.getByRole("button", { name: "Create my website" }).click()),
   );
 
+  // Each page ends on the sent screen or with an alert.
   await Promise.all(
     pages.map((page) =>
-      // The losing page shows its h1 and the alert together: either will do.
-      expect(
-        page.getByRole("heading", { level: 1 }).or(page.getByRole("alert")).first(),
-      ).toBeVisible(),
+      expect
+        .poll(
+          async () =>
+            /\/signup\/sent/.test(page.url()) || (await page.getByRole("alert").count()) > 0,
+        )
+        .toBe(true),
     ),
   );
+  const alerts = await Promise.all(
+    pages.map(async (page) =>
+      (await page.getByRole("alert").count()) > 0 ? page.getByRole("alert").innerText() : "",
+    ),
+  );
+  if (alerts.some((text) => text.includes("is busy"))) {
+    await Promise.all(contexts.map((context) => context.close()));
+    return null;
+  }
+  return { pages, contexts };
+}
+
+test("two signups at once for one address: one wins, the other sees the taken error", async ({
+  browser,
+}) => {
+  let race: Awaited<ReturnType<typeof raceTwoSignups>> = null;
+  for (let attempt = 1; attempt <= 3 && race === null; attempt++) {
+    race = await raceTwoSignups(browser);
+  }
+  if (race === null) throw new Error("all three attempts were refused as busy (F-363)");
+  const { pages, contexts } = race;
+
   await expect.poll(() => pages.filter((page) => /\/signup\/sent/.test(page.url())).length).toBe(1);
   const loser = pages.find((page) => !/\/signup\/sent/.test(page.url()));
   expect(loser).toBeDefined();

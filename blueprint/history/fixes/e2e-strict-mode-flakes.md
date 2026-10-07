@@ -1,4 +1,4 @@
-# Fix: Two browser tests trip Playwright's strict mode at random
+# Fix: Two browser tests fail at random - strict mode, and the signup race refused as busy
 
 **Type:** Fix
 **Quick:** yes - `e2e/manage-posts.spec.ts` and `e2e/signup.spec.ts` only, both tests; no product code, no stored data, contract, dependency or variable; Behaviour changes none; nothing `quality-bar.md` names; reproduced by Playwright (the probe in Step 1)
@@ -43,6 +43,8 @@ noise teaches people to merge past it.
   not this repository; caching the browser is a separate `ci` change if it
   recurs.
 - Any other `getByText` / `.or()` in the suite - not seen failing.
+- The number of password-check slots (2, F-231's guard for the public
+  site) - the app is right; only the test assumed it had both slots.
 
 ## Build steps
 
@@ -58,11 +60,27 @@ noise teaches people to merge past it.
   `E2E_SKIP_R2=1`; (c) `npm run lint` passes. Runs locally, needs the
   development database (`docker compose up -d`); CI's `e2e` job runs both
   tests on the PR.
+- [x] **Step 2 - repeat the signup race when it was refused as busy (F-363)**
+  - signup takes one of the two `passwordCheckSlots` login shares
+  (`app/features/auth/login-rate-limit.server.ts:25`), so a login on the
+  other worker can make one of the two signups "Signup is busy." before the
+  race reaches the database (PR #44, CI run 37683844073). In
+  `e2e/signup.spec.ts:272`, run the race as an attempt - a fresh address,
+  two fresh invites, two contexts - wait until each page is on
+  `/signup/sent` or shows an alert, and when either alert says "busy", close
+  both and try again, at most 3 attempts; fail naming the busy refusals if
+  all 3 were. The assertions after it are unchanged: exactly one page on
+  `/signup/sent`, the other's alert says "is taken". *Done when:* (a) red:
+  before the repair, `npx playwright test e2e/manage-posts.spec.ts
+  e2e/signup.spec.ts -g "canceling a delete leaves|two signups at once"
+  --repeat-each=10` on 2 workers shows the "Signup is busy" failure; (b)
+  after it, the same command passes 20 of 20; (c) `npm run lint` passes;
+  (d) CI's `e2e` on PR #44 is green.
 
 ## Files and areas
 
 - `e2e/manage-posts.spec.ts` (lines 155-157)
-- `e2e/signup.spec.ts` (line 289-293)
+- `e2e/signup.spec.ts` (lines 272-302)
 
 ## Data and contracts
 
