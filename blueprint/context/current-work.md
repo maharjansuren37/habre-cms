@@ -141,7 +141,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   row to succeeded changes the `role="status"` text to "Your draft is ready
   to review." without a reload (the region is the same element - located
   once, before the update); no horizontal scroll at 390px.
-- [ ] **Step 3 - Use this draft** - `entries.server.ts` exports
+- [x] **Step 3 - Use this draft** - `entries.server.ts` exports
   `insertPageDraftsIn(tx, siteId, authorId, pages)` (the insert columns
   `insertDraft` uses, inside a given transaction) and
   `listPageSlugsIn(tx, siteId)`; `settings.server.ts` exports an

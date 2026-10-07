@@ -171,6 +171,37 @@ async function updateBrand(
   `;
 }
 
+/**
+ * What "Use this draft" writes (18b4a), in the caller's transaction: only the
+ * fields that are not `null`, so a description or colour the person already set
+ * is left alone. The menu and the home page are always replaced.
+ */
+export async function applyDraftSettingsIn(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  input: {
+    navigation: NavItem[];
+    homePageId: string;
+    siteDescription: string | null;
+    brandColor: string | null;
+  },
+): Promise<void> {
+  await updateNavigation(tx, siteId, input.navigation);
+  await updateHomePage(tx, siteId, input.homePageId);
+  if (input.siteDescription !== null) {
+    await tx`
+      update site_settings set site_description = ${input.siteDescription}, updated_at = now()
+      where site_id = ${siteId}
+    `;
+  }
+  if (input.brandColor !== null) {
+    await tx`
+      update site_settings set brand_color = ${input.brandColor}, updated_at = now()
+      where site_id = ${siteId}
+    `;
+  }
+}
+
 export type SaveSettingsResult = "saved" | "logo-gone" | "home-page-gone";
 
 /**

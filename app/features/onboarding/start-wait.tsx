@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { data, Form, Link, redirect, useNavigation, useRevalidator } from "react-router";
 import { z } from "zod";
 import { planApply, reviewSummary } from "#app/features/ai/apply-plan.ts";
+import { applyRun } from "#app/features/ai/apply-run.server.ts";
 import { proposalSchema } from "#app/features/ai/proposal.ts";
 import { findRun, type StoredRun } from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
@@ -82,6 +83,14 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const { siteId, id: userId } = context.get(userContext);
   const run = await findThisRun(siteId, params.runId);
   const form = await request.formData();
+  if (form.get("intent") === "apply") {
+    const result = await applyRun(siteId, run.id, userId);
+    if (result.ok || result.reason === "not_succeeded") throw redirect("/admin");
+    return data(
+      { applyError: "This draft can no longer be used. Try again, or start blank." },
+      { status: 400 },
+    );
+  }
   if (form.get("intent") !== "retry" || !viewOf(run).canRetry) {
     throw data("Bad Request", { status: 400 });
   }
@@ -97,7 +106,12 @@ export default function StartRun({ loaderData, actionData }: Route.ComponentProp
   const { runId, kind, state, error, seconds, canRetry, review } = loaderData;
   const revalidator = useRevalidator();
   const navigation = useNavigation();
-  const isRetrying = navigation.state !== "idle" && navigation.formMethod === "POST";
+  const pendingIntent =
+    navigation.state !== "idle" && navigation.formMethod === "POST"
+      ? navigation.formData?.get("intent")
+      : null;
+  const isRetrying = pendingIntent === "retry";
+  const isApplying = pendingIntent === "apply";
 
   // Poll while the run is going; the interval is cleared the moment it is not.
   useEffect(() => {
@@ -211,12 +225,28 @@ export default function StartRun({ loaderData, actionData }: Route.ComponentProp
               className={styles.banner}
             />
           )}
-          <div className={styles.actions}>{change}</div>
+          {actionData && "applyError" in actionData && (
+            <Message tone="error" title={actionData.applyError} className={styles.banner} />
+          )}
+          <div className={styles.actions}>
+            {change}
+            <Form method="post">
+              <input type="hidden" name="intent" value="apply" />
+              <Button
+                type="submit"
+                variant="primary"
+                className={styles.large}
+                isPending={isApplying}
+              >
+                {isApplying ? "Applying…" : "Use this draft"}
+              </Button>
+            </Form>
+          </div>
         </>
       )}
       {state === "failed" && (
         <>
-          {actionData?.refusal && (
+          {actionData && "refusal" in actionData && (
             <Message tone="error" title={actionData.refusal} className={styles.banner} />
           )}
           <div className={styles.actions}>

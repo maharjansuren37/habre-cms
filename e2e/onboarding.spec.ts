@@ -4,7 +4,7 @@ import { textDocument } from "./helpers/documents.ts";
 import { createInvite, deleteInvites, randomAddress } from "./helpers/invites.ts";
 import { tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
-import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
+import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Item 18b3, Step 4: /start, step 1. The primary server runs AI_PROVIDERS=fake
@@ -466,7 +466,7 @@ test.describe("the wait", () => {
       "href",
       `/start/about?kind=business&from=${runId}`,
     );
-    await expect(page.getByRole("button", { name: "Use this draft" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Use this draft" })).toBeVisible();
   });
 
   test("a site with a brand colour set shows no colour in the review", async ({ page }) => {
@@ -580,6 +580,196 @@ test.describe("the wait", () => {
 
 // Item 18b3, Step 7: journey 1 as far as it is built, from the emailed link to
 // the draft, on the primary server's fake provider (one real run each).
+// Item 18b4a, Step 3: Use this draft. Read back as the owner.
+type DraftPage = {
+  id: string;
+  title: string;
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  blocksFormat: string;
+  status: string;
+  blocks: unknown;
+};
+
+async function pagesOfSite(): Promise<DraftPage[]> {
+  return withDatabase(
+    (sql) => sql<DraftPage[]>`
+      select id, title, slug, seo_title as "seoTitle", seo_description as "seoDescription",
+        blocks_format as "blocksFormat", status, blocks
+      from entries where site_id = ${siteId} and type = 'page' order by created_at, title desc
+    `,
+  );
+}
+
+async function settingsOfSite() {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<
+      {
+        navigation: { label: string; pageId: string }[];
+        homePageId: string | null;
+        siteDescription: string;
+        brandColor: string;
+        runStatus: string;
+      }[]
+    >`
+      select navigation, home_page_id as "homePageId", site_description as "siteDescription",
+        brand_color as "brandColor",
+        (select status from ai_runs where site_id = ${siteId} order by created_at desc limit 1) as "runStatus"
+      from site_settings where site_id = ${siteId}
+    `;
+    return row;
+  });
+}
+
+function applyForm(page: Page, runId: string) {
+  return page.request.post(`/start/${runId}`, {
+    form: { intent: "apply" },
+    headers: { Origin: new URL(page.url()).origin },
+    maxRedirects: 0,
+  });
+}
+
+test.describe("use this draft", () => {
+  test.describe.configure({ mode: "serial" });
+
+  test("Use this draft creates the draft pages, menu, home page and settings, and publishes nothing", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    expect(new URL(page.url()).pathname).toMatch(/^\/admin(\/posts)?$/);
+
+    const pages = await pagesOfSite();
+    expect(pages.map((row) => row.title).sort()).toEqual(["About", "Home"]);
+    const home = pages.find((row) => row.title === "Home") as DraftPage;
+    const about = pages.find((row) => row.title === "About") as DraftPage;
+    expect(home).toMatchObject({
+      slug: "home",
+      seoTitle: "Home - Bakery",
+      seoDescription: "Fresh bread.",
+      blocksFormat: "v4",
+      status: "draft",
+    });
+    expect(about).toMatchObject({
+      slug: "about",
+      seoTitle: "About",
+      seoDescription: "About us.",
+      blocksFormat: "v4",
+      status: "draft",
+    });
+    expect(JSON.stringify(home.blocks)).toContain('"href":"/about"');
+
+    const settings = await settingsOfSite();
+    expect(settings.navigation).toEqual([
+      { label: "Home", pageId: home.id },
+      { label: "About", pageId: about.id },
+    ]);
+    expect(settings.homePageId).toBe(home.id);
+    expect(settings.siteDescription).toBe("A bakery.");
+    expect(settings.brandColor).toBe("#aa5500");
+    expect(settings.runStatus).toBe("applied");
+  });
+
+  test("a colour already set is kept", async ({ page }) => {
+    await withDatabase(async (sql) => {
+      await sql`update site_settings set brand_color = '#336699' where site_id = ${siteId}`;
+    });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    const settings = await settingsOfSite();
+    expect(settings.brandColor).toBe("#336699");
+    expect(settings.runStatus).toBe("applied");
+  });
+
+  test("a page already at /about makes the draft's About /about-2", async ({ page }) => {
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, author_id)
+        select ${siteId}, 'page', 'Old about', 'about', ${sql.json(textDocument("Old.") as never)}, 'v4',
+               'draft', id
+        from users where email = ${admin.email}
+      `;
+    });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    const pages = await pagesOfSite();
+    expect(pages.find((row) => row.title === "About")?.slug).toBe("about-2");
+    expect(pages.find((row) => row.title === "Old about")?.slug).toBe("about");
+    const home = pages.find((row) => row.title === "Home") as DraftPage;
+    expect(JSON.stringify(home.blocks)).toContain('"href":"/about-2"');
+  });
+
+  test("two applies at once create one set of pages, and each answers in under 1 s", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    const started = Date.now();
+    const answers = await Promise.all(
+      [0, 1].map(async () => {
+        const response = await applyForm(page, runId);
+        return { status: response.status(), ms: Date.now() - started };
+      }),
+    );
+    console.log(`apply POST (two at once) answered in ${answers.map((a) => a.ms).join(", ")} ms`);
+    for (const answer of answers) {
+      expect(answer.status).toBe(302);
+      expect(answer.ms).toBeLessThan(1000);
+    }
+    expect(await pagesOfSite()).toHaveLength(2);
+  });
+
+  test("a single apply answers in under 1 s", async ({ page }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    const started = Date.now();
+    const response = await applyForm(page, runId);
+    const ms = Date.now() - started;
+    console.log(`apply POST answered in ${ms} ms`);
+    expect(response.status()).toBe(302);
+    expect(ms).toBeLessThan(1000);
+    expect(await pagesOfSite()).toHaveLength(2);
+  });
+
+  test("the public site still shows the placeholder, and a draft's address is Not Found", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    const address = await withDatabase(async (sql) => {
+      const [row] = await sql<{ subdomain: string }[]>`
+        select subdomain from sites where id = ${siteId}
+      `;
+      return row.subdomain;
+    });
+    await page.goto(siteUrl("/", address));
+    await expect(page.getByText("This site is being set up.")).toBeVisible();
+    const response = await page.goto(siteUrl("/about", address));
+    expect(response?.status()).toBe(404);
+  });
+
+  test("a draft that no longer parses shows an alert and creates nothing", async ({ page }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    await withDatabase(async (sql) => {
+      await sql`update ai_runs set result = ${sql.json({} as never)} where id = ${runId}`;
+    });
+    const response = await applyForm(page, runId);
+    expect(response.status()).toBe(400);
+    expect(await pagesOfSite()).toHaveLength(0);
+    expect((await settingsOfSite()).runStatus).toBe("succeeded");
+  });
+});
+
 test.describe("journey 1, from the emailed link to the draft", () => {
   test.describe.configure({ mode: "serial" });
 
