@@ -113,6 +113,31 @@ export async function findRunningRun(siteId: string): Promise<{ id: string } | n
   });
 }
 
+/** Whether the site has used an AI draft: onboarding closes once it has (18b4a). */
+export async function hasAppliedRun(siteId: string): Promise<boolean> {
+  return inSite(siteId, async (tx) => {
+    const rows = await tx`
+      select 1 from ai_runs where site_id = ${siteId} and status = 'applied' limit 1
+    `;
+    return rows.length > 0;
+  });
+}
+
+/** The site's newest finished draft, used or not, for Home's panel (18b4a). */
+export async function findLatestFinishedRun(
+  siteId: string,
+): Promise<{ id: string; status: "succeeded" | "applied" } | null> {
+  return inSite(siteId, async (tx) => {
+    const [row] = await tx<{ id: string; status: "succeeded" | "applied" }[]>`
+      select id, status from ai_runs
+      where site_id = ${siteId} and status in ('succeeded', 'applied')
+      order by created_at desc
+      limit 1
+    `;
+    return row ?? null;
+  });
+}
+
 /**
  * Marks every run a restart interrupted as failed, across all sites, through the
  * security definer function (no site is set at startup). Never throws: a database

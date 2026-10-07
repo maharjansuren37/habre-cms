@@ -171,7 +171,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   page's address is Not Found on the site host; the apply POST answers in
   **under 1 s** (quality-bar *Admin saves*), timed in the test on the local
   run, recorded with its figure in verify's evidence.
-- [ ] **Step 4 - onboarding closes after a draft is used** -
+- [x] **Step 4 - onboarding closes after a draft is used** -
   `start-gate.ts` takes `applied` (the site has a run with status
   `applied`); `runs.server.ts` gains `hasAppliedRun(siteId)` and
   `findLatestFinishedRun(siteId)` (the newest `succeeded` or `applied` run,

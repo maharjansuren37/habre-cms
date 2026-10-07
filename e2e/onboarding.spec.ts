@@ -563,9 +563,10 @@ test.describe("the wait", () => {
 
   test("an applied run goes to /admin", async ({ page }) => {
     const runId = await seedRun("applied");
-    await logInThenOpen(page, "/start");
+    // Not through /start: an applied run closes onboarding, so it would redirect too.
+    await logInThenOpen(page, "/admin/settings");
     await page.goto(`/start/${runId}`);
-    await page.waitForURL("**/admin/posts");
+    await page.waitForURL(/\/admin(\/posts)?$/);
   });
 
   test("a running run created seven minutes ago shows Couldn't build your site", async ({
@@ -767,6 +768,29 @@ test.describe("use this draft", () => {
     expect(response.status()).toBe(400);
     expect(await pagesOfSite()).toHaveLength(0);
     expect((await settingsOfSite()).runStatus).toBe("succeeded");
+  });
+
+  test("once a draft is used, /start, its steps and the run's page go to /admin, and a retry starts no run", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    const failedId = await seedRun("failed", { error: "timeout" });
+    await logInThenOpen(page, `/start/${runId}`);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    for (const path of ["/start", "/start/about?kind=blog", `/start/${runId}`]) {
+      await page.goto(path);
+      expect(new URL(page.url()).pathname, path).toMatch(/^\/admin(\/posts)?$/);
+    }
+    const before = (await runRows()).length;
+    const response = await page.request.post(`/start/${failedId}`, {
+      form: { intent: "retry" },
+      headers: { Origin: new URL(page.url()).origin },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(302);
+    expect(response.headers().location).toMatch(/\/admin$/);
+    expect(await runRows()).toHaveLength(before);
   });
 });
 
