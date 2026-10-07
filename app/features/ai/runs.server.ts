@@ -1,4 +1,5 @@
 import { inSite, sql } from "#app/lib/db.server.ts";
+import { proposalSchema } from "./proposal.ts";
 import type { RunKind, RunStore } from "./run-generation.ts";
 
 // The database store for the run's lifecycle (18b1 Step 6, D154). Every query
@@ -120,6 +121,23 @@ export async function hasAppliedRun(siteId: string): Promise<boolean> {
       select 1 from ai_runs where site_id = ${siteId} and status = 'applied' limit 1
     `;
     return rows.length > 0;
+  });
+}
+
+/**
+ * How many pages the site's used draft had, for Home's ready panel (18b4a); 0
+ * when there is no applied run or its stored result no longer parses.
+ */
+export async function appliedRunPageCount(siteId: string): Promise<number> {
+  return inSite(siteId, async (tx) => {
+    const [row] = await tx<{ result: unknown }[]>`
+      select result from ai_runs
+      where site_id = ${siteId} and status = 'applied'
+      order by created_at desc
+      limit 1
+    `;
+    const parsed = proposalSchema.safeParse(row?.result);
+    return parsed.success ? parsed.data.pages.length : 0;
   });
 }
 

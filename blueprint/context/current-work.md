@@ -197,7 +197,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   is `aria-current="page"` on Home; no horizontal scroll at 390px;
   `e2e/content-security-policy.spec.ts`'s admin check covers `/admin`; the
   whole browser suite passes after the landing change.
-- [ ] **Step 6 - Home's panel** - a pure
+- [x] **Step 6 - Home's panel** - a pure
   `app/features/admin-shell/home-state.ts` picks it: `ready` (applied,
   nothing published), `review` (offered, the latest finished run succeeded),
   `start` (offered) or `none`. The loader adds the state (published?,

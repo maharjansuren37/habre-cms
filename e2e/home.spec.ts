@@ -1,7 +1,8 @@
 import { randomInt } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
+import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
@@ -110,4 +111,102 @@ test("Home does not scroll sideways at 390px", async ({ page }) => {
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
     true,
   );
+});
+
+// Item 18b4a, Step 6: Home's panel. Runs are seeded as the owner, so nothing
+// waits on the fake provider.
+function proposal() {
+  const text = { kind: "text", heading: "Details", paragraphs: ["One."] };
+  return {
+    siteDescription: "A bakery.",
+    brandColor: "#aa5500",
+    pages: [
+      { key: "p1", title: "Front", seoTitle: "Front", seoDescription: "Bread.", sections: [text] },
+      { key: "p2", title: "About", seoTitle: "About", seoDescription: "Us.", sections: [text] },
+    ],
+    navigation: ["p1", "p2"],
+  };
+}
+
+async function seedRun(status: "succeeded" | "applied", result: unknown = proposal()) {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ id: string }[]>`
+      insert into ai_runs (site_id, kind, description, status, result, finished_at)
+      values (${siteId}, 'business', 'A bakery.', ${status}, ${sql.json(result as never)}, now())
+      returning id
+    `;
+    return row.id;
+  });
+}
+
+async function useDraft(page: Page, runId: string) {
+  await page.goto(`/start/${runId}`);
+  await page.getByRole("button", { name: "Use this draft" }).click();
+  await page.waitForURL(/\/admin$/);
+}
+
+test("after a draft is used, Home says the website is ready and Edit the home page opens it", async ({
+  page,
+}) => {
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await useDraft(page, runId);
+
+  await expect(page.getByText("Not published yet")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Your website is ready. What would you like to change?",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("We drafted 2 pages from your description.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add your logo" })).toHaveAttribute(
+    "href",
+    "/admin/settings",
+  );
+  await expect(page.getByRole("link", { name: "Change the menu" })).toHaveAttribute(
+    "href",
+    "/admin/settings",
+  );
+  await expect(page.getByRole("link", { name: "Start from a description" })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Edit the home page" }).click();
+  await page.waitForURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Front");
+});
+
+test("an admin of an empty site is offered Start from a description", async ({ page }) => {
+  await logIn(page, admin);
+  await page.getByRole("link", { name: "Start from a description" }).click();
+  await page.waitForURL("**/start");
+});
+
+test("an unused succeeded run is offered as Review your draft", async ({ page }) => {
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await expect(page.getByRole("link", { name: "Start from a description" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Review your draft" }).click();
+  await page.waitForURL(`**/start/${runId}`);
+});
+
+test("a site with a published page shows no panel", async ({ page }) => {
+  await seedPage("Live", "live", "published");
+  await seedRun("succeeded");
+  await logIn(page, admin);
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Start from a description" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Review your draft" })).toHaveCount(0);
+  await expect(page.getByText("Not published yet")).toHaveCount(0);
+});
+
+test("with AI off, Home shows no panel", async ({ page }) => {
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
+  await page.goto(`${off}/admin/login`);
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL(/\/admin$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Start from a description" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Review your draft" })).toHaveCount(0);
 });

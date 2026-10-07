@@ -8,6 +8,76 @@
   line-height: var(--leading-tight);
 }
 
+/* The panel that tops Home: the ready state, or the way into a draft. */
+.ready {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  margin-bottom: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ready > * {
+  margin: 0;
+}
+
+.readyTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.primaryLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-control-lg);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.primaryLink:hover {
+  border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
+}
+
+.suggestList {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.suggest {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-control-lg);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.suggest:hover {
+  background: var(--color-surface-hover);
+}
+
 /* A grid, so the cards that join it later (This month) sit beside Your pages. */
 .grid {
   display: grid;

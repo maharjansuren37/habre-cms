@@ -1,8 +1,19 @@
 import { Link, redirect } from "react-router";
+import { runner } from "#app/features/ai/runner.server.ts";
+import {
+  appliedRunPageCount,
+  findLatestFinishedRun,
+  hasAppliedRun,
+} from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { listEntries } from "#app/features/content/entries.server.ts";
+import { hasPublishedEntries, listEntries } from "#app/features/content/entries.server.ts";
+import { startGate } from "#app/features/onboarding/start-gate.ts";
+import { getSiteSettings } from "#app/features/settings/settings.server.ts";
+import { findMemberSite } from "#app/features/sites/find-site.server.ts";
+import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/home";
 import styles from "./home.module.css";
+import { homeState } from "./home-state.ts";
 
 const STATUS_LABEL = { draft: "Draft", published: "Published" } as const;
 
@@ -18,18 +29,109 @@ export async function loader({ context }: Route.LoaderArgs) {
   if (user.role !== "admin") throw redirect("/admin/posts");
   // The first page of the list is the first 20 (PAGE_SIZE); `total` says
   // whether Pages holds more.
-  const list = await listEntries(user.siteId, "page", user, { status: "all", q: "", page: 1 });
-  return { pages: list.entries, total: list.total };
+  const [list, { suspended }, published, applied, latestFinished] = await Promise.all([
+    listEntries(user.siteId, "page", user, { status: "all", q: "", page: 1 }),
+    findMemberSite(user.siteId),
+    hasPublishedEntries(user.siteId),
+    hasAppliedRun(user.siteId),
+    findLatestFinishedRun(user.siteId),
+  ]);
+  const offered =
+    startGate({ aiOn: runner !== null, suspended, published, applied }).kind === "offer";
+  const state = homeState({
+    published,
+    applied,
+    offered,
+    latestFinished: latestFinished?.status ?? null,
+  });
+  // Only the ready panel needs the draft's size and the page to edit first. With
+  // no home page set (the person changed it), Edit the home page is not offered.
+  const ready =
+    state === "ready"
+      ? {
+          pageCount: await appliedRunPageCount(user.siteId),
+          homePageId: (await getSiteSettings(user.siteId, env.R2_PUBLIC_URL)).homePageId,
+        }
+      : null;
+  return {
+    pages: list.entries,
+    total: list.total,
+    state,
+    ready,
+    reviewRunId: state === "review" ? (latestFinished?.id ?? null) : null,
+  };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { pages, total } = loaderData;
+  const { pages, total, state, ready, reviewRunId } = loaderData;
 
   return (
     <>
       <div className={styles.header}>
         <h1 className={styles.title}>Home</h1>
       </div>
+      {state === "ready" && ready && (
+        <>
+          <section className={styles.ready} aria-labelledby="ready-title">
+            <span className={`${styles.badge} ${styles.draft}`}>Not published yet</span>
+            <h2 id="ready-title" className={styles.readyTitle}>
+              Your website is ready. What would you like to change?
+            </h2>
+            <p className={styles.muted}>
+              We drafted {ready.pageCount} {ready.pageCount === 1 ? "page" : "pages"} from your
+              description. Look them over and change anything - nobody sees them before you publish.
+            </p>
+            {ready.homePageId && (
+              <p>
+                <Link className={styles.primaryLink} to={`/admin/pages/${ready.homePageId}`}>
+                  Edit the home page
+                </Link>
+              </p>
+            )}
+          </section>
+          <section aria-labelledby="change-title">
+            <h2 id="change-title" className="visually-hidden">
+              Things to change
+            </h2>
+            <ul className={styles.suggestList}>
+              <li>
+                <Link className={styles.suggest} to="/admin/settings">
+                  Add your logo
+                </Link>
+              </li>
+              <li>
+                <Link className={styles.suggest} to="/admin/settings">
+                  Change the menu
+                </Link>
+              </li>
+            </ul>
+          </section>
+        </>
+      )}
+      {state === "review" && reviewRunId && (
+        <section className={styles.ready} aria-labelledby="offer-title">
+          <h2 id="offer-title" className={styles.readyTitle}>
+            Your draft is waiting.
+          </h2>
+          <p>
+            <Link className={styles.primaryLink} to={`/start/${reviewRunId}`}>
+              Review your draft
+            </Link>
+          </p>
+        </section>
+      )}
+      {state === "start" && (
+        <section className={styles.ready} aria-labelledby="offer-title">
+          <h2 id="offer-title" className={styles.readyTitle}>
+            Let Habre draft your site from a short description.
+          </h2>
+          <p>
+            <Link className={styles.primaryLink} to="/start">
+              Start from a description
+            </Link>
+          </p>
+        </section>
+      )}
       <div className={styles.grid}>
         <section className={styles.card} aria-labelledby="pages-title">
           <h2 id="pages-title" className={styles.cardTitle}>
