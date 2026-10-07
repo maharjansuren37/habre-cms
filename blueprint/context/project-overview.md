@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-07, `main` after `4eb211d` (18b1 shipped).
+Generated 2026-10-07, `main` after `d953231` (18b2 shipped).
 
 ## What this is
 
@@ -34,7 +34,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not yet deployed** (items 13-18b1; each in
+**Built for v1, not yet deployed** (items 13-18b2; each in
 `blueprint/history/features/`, deploy steps in
 `blueprint/production-pending.md`): React Router 8 (13); the new look (13b,
 `design.md`, D168); the TipTap editor, one v4 document per entry, sections
@@ -45,9 +45,10 @@ account and deleting it (15e1-15e2); sites by host, suspend, the Caddy file
 (16a-16b); SEO basics (17); optimised images (17b); brand colour and style
 presets (18a1); logo upload with colours from it (18a2); the AI run engine
 through OpenRouter, no screens yet - `ai_runs`, the proposal, credits,
-`npm run ai:try` (18b1).
+`npm run ai:try` (18b1); Anthropic and OpenAI direct as priced fallbacks,
+the chain, `npm run ai:measure` - live direct runs still owed (18b2, D392).
 
-**Platform v1 (queued):** fallbacks and the AI screens (18b2-18b5); contact
+**Platform v1 (queued):** the AI screens (18b3-18b5); contact
 form; Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
@@ -73,8 +74,9 @@ constraint** - each new runtime dependency is a recorded decision.
 - `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
   and CI (D254).
 - `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
-- `openai` 7.30.0, pinned exactly, calls OpenRouter (D372). **v1 adds,
-  pinned when installed:** `@anthropic-ai/sdk` (18b2), `stripe` (D160).
+- `openai` 7.30.0 (OpenRouter and OpenAI direct, D372) and
+  `@anthropic-ai/sdk` 0.131.0, both pinned exactly. **v1 adds, pinned when
+  installed:** `stripe` (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -127,7 +129,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 - **AI:** `AI_PROVIDERS` order, **OpenRouter first**, any model, credits
   from its reported cost; Anthropic and OpenAI direct as priced fallbacks;
-  moves on only when unavailable - **never on a refusal** (D155, D372).
+  moves on only when unavailable - **never on a refusal** (D155, D372,
+  D393); each non-last attempt gets 150 s (D398).
 - **Email:** SMTP via Resend (D156). **Payments:** Stripe's hosted pages;
   webhooks set the plan (D149, D160).
 
@@ -145,7 +148,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18b1 done; nothing in flight; 18b2-18b5 and 19-21
-  queued. Last shipped: 18b1.
-- **Next:** `spec` item 18b2, Fallbacks.
+- **Plan:** items 1-18b2 done; nothing in flight; 18b3-18b5 and 19-21
+  queued. Last shipped: 18b2.
+- **Next:** `spec` item 18b3, Onboarding steps 1-2 and the wait.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
