@@ -17,7 +17,7 @@ import type { AiAdapter, GenerateInput } from "./run-generation.ts";
 const MAX_TOKENS = 8000;
 
 export function createAnthropicAdapter(
-  settings: Exclude<ProviderSettings, { name: "openrouter" }>,
+  settings: Extract<ProviderSettings, { name: "anthropic" | "openai" }>,
 ): AiAdapter {
   const client = new Anthropic(anthropicClientOptions(settings.apiKey));
 

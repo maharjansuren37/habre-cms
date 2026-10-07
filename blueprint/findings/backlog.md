@@ -566,3 +566,24 @@ File: app/features/ai/chat-completion.ts:131-146; app/features/ai/anthropic-resp
 
 ### F-352 [P3] unverified - Step 6's "Anthropic shows cache reads on a second run" probably cannot pass
 File: app/features/ai/anthropic.server.ts:31; app/features/ai/instructions.ts
+
+### F-356 [P3] open - On the failed state at 390px, "Change the description" wraps with its text off-centre
+File: app/features/onboarding/onboarding.module.css (`.actions`, `.primaryLink`, `.secondaryLink`)
+
+### F-357 [P3] open - Onboarding CSS uses literals where tokens exist
+File: app/features/onboarding/onboarding.module.css
+
+### F-358 [P3] open - A site-level busy refusal says "Habre is busy building other sites"
+File: app/features/onboarding/start-run.ts:44; app/features/ai/run-generation.ts:220,236
+
+### F-359 [P3] open - The host-split Playwright server pins only `OPENROUTER_API_KEY=`, not `AI_PROVIDERS=`
+File: playwright.config.ts:57
+
+### F-360 [P3] open - The wait page's title is always "Building your site"
+File: app/features/onboarding/start-wait.tsx:15-17
+
+### F-361 [P3] open - AI-written page titles are used as React keys
+File: app/features/onboarding/start-wait.tsx:83
+
+### F-362 [P3] open - No unit test that `/start` is a platform path
+File: app/lib/content-security-policy.test.ts; app/lib/host-routing.test.ts

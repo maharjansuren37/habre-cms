@@ -8,7 +8,8 @@ import { z } from "zod";
 const optional = <Schema extends z.ZodType>(schema: Schema) =>
   z.preprocess((value) => (value === "" ? undefined : value), schema);
 
-const KNOWN_PROVIDERS = ["openrouter", "anthropic", "openai"] as const;
+// `fake` is for the browser tests: no network, no key (item 18b3).
+const KNOWN_PROVIDERS = ["openrouter", "anthropic", "openai", "fake"] as const;
 type ProviderName = (typeof KNOWN_PROVIDERS)[number];
 
 const isProviderName = (name: string): name is ProviderName =>
@@ -24,8 +25,45 @@ const providers = z.string().transform((value, context): ProviderName[] => {
     });
     return z.NEVER;
   }
+  if (names.includes("fake") && names.length > 1) {
+    context.addIssue({
+      code: "custom",
+      message: "AI_PROVIDERS fake must be the only name listed",
+    });
+    return z.NEVER;
+  }
   return names as ProviderName[];
 });
+
+// The platform hosts `fake` may run on: this machine only. `new URL` keeps
+// the brackets on an IPv6 host.
+const isLocalHost = (hostname: string) =>
+  hostname === "localhost" ||
+  hostname.endsWith(".localhost") ||
+  hostname === "[::1]" ||
+  /^127(\.\d{1,3}){3}$/.test(hostname);
+
+// `fake` answers without a provider, so a real platform must never run it.
+// The message names AI_PROVIDERS, never the address.
+export function requireLocalPlatformForFake(
+  fields: { AI_PROVIDERS: readonly string[] },
+  platformUrl: string | undefined,
+  context: z.RefinementCtx,
+) {
+  if (!fields.AI_PROVIDERS.includes("fake")) return;
+  let local = false;
+  try {
+    local = platformUrl !== undefined && isLocalHost(new URL(platformUrl).hostname);
+  } catch {}
+  if (!local) {
+    context.addIssue({
+      code: "custom",
+      path: ["AI_PROVIDERS"],
+      message:
+        "AI_PROVIDERS=fake is for local testing only: PLATFORM_URL must be localhost, a *.localhost name, 127.0.0.1 or [::1]",
+    });
+  }
+}
 
 const creditsPerMonth = z
   .string()
@@ -88,6 +126,7 @@ export const aiEnvFields = {
 };
 
 export type ProviderSettings =
+  | { name: "fake" }
   | { name: "openrouter"; apiKey: string; model: string }
   | { name: "anthropic" | "openai"; apiKey: string; model: string; price: Price };
 
@@ -106,6 +145,10 @@ export const toAiSettings = (
   fields: AiEnvFields,
   missing: (variable: string) => void,
 ): AiSettings | null => {
+  // `fake` needs no key, and is the only name listed when it is listed.
+  if (fields.AI_PROVIDERS[0] === "fake") {
+    return { providers: [{ name: "fake" }], creditsPerMonth: fields.AI_CREDITS_PER_MONTH };
+  }
   const apiKey = {
     openrouter: fields.OPENROUTER_API_KEY,
     anthropic: fields.ANTHROPIC_API_KEY,
@@ -116,6 +159,7 @@ export const toAiSettings = (
 
   const providers: ProviderSettings[] = [];
   for (const name of fields.AI_PROVIDERS) {
+    if (name === "fake") continue;
     const key = apiKey[name];
     if (!key) {
       missing(`${name.toUpperCase()}_API_KEY`);
@@ -141,5 +185,8 @@ export const reportMissing = (context: z.RefinementCtx) => (variable: string) =>
   });
 
 export const aiEnvSchema = z
-  .object(aiEnvFields)
+  .object({ ...aiEnvFields, PLATFORM_URL: z.string().optional() })
+  .superRefine((fields, context) =>
+    requireLocalPlatformForFake(fields, fields.PLATFORM_URL, context),
+  )
   .transform((fields, context) => ({ AI: toAiSettings(fields, reportMissing(context)) }));

@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { aiEnvFields, reportMissing, toAiSettings } from "#app/lib/ai-env.server.ts";
+import {
+  aiEnvFields,
+  reportMissing,
+  requireLocalPlatformForFake,
+  toAiSettings,
+} from "#app/lib/ai-env.server.ts";
 import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 import {
   emailEnvFields,
@@ -35,6 +40,9 @@ const envSchema = databaseEnvSchema
   })
   .superRefine(requireEmailForSignup)
   .superRefine(requireEmailPair)
+  .superRefine((fields, context) =>
+    requireLocalPlatformForFake(fields, fields.PLATFORM_URL, context),
+  )
   // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit. And
   // env.AI: null when AI is off, else the parsed settings.
   .transform(

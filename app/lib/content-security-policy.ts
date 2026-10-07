@@ -2,13 +2,15 @@ export type PolicyArea = "public" | "admin";
 
 /**
  * Paths that belong to the platform host (item 16a): `/admin` and under it,
- * `/signup` and under it, and `/verify`, `/forgot-password`, `/reset-password`
- * and `/confirm-email` exactly.
+ * `/start` and under it (item 18b3), `/signup` and under it, and `/verify`,
+ * `/forgot-password`, `/reset-password` and `/confirm-email` exactly.
  */
 export function isPlatformPath(pathname: string): boolean {
   return (
     pathname === "/admin" ||
     pathname.startsWith("/admin/") ||
+    pathname === "/start" ||
+    pathname.startsWith("/start/") ||
     pathname === "/signup" ||
     pathname.startsWith("/signup/") ||
     pathname === "/verify" ||
