@@ -3,7 +3,7 @@
 **From build plan:** item 18b5
 **Type:** Feature
 **Verified:** not yet
-**Reviewed:** not yet
+**Reviewed:** 2026-10-08, d83de86c63ff, current, every lens - 0 blocking
 
 ## Goal
 
