@@ -605,3 +605,18 @@ File: blueprint/context/design.md:240
 
 ### F-374 [P3] unverified - The 390px test is titled "the actions do not wrap", but the row probably does wrap; it checks only the link's own height
 File: e2e/onboarding.spec.ts:504
+
+### F-377 [P3] open - Home's action refuses a non-admin without logging it
+File: app/features/admin-shell/home.tsx:103
+
+### F-378 [P3] open - Publish website's gate and update are separate statements
+File: app/features/admin-shell/home.tsx:106-111; app/features/content/entries.server.ts (`publishDraftPages`)
+
+### F-379 [P3] open - The preview bar's English text carries the site's language
+File: app/features/preview/preview-layout.tsx:68
+
+### F-380 [P3] open - /admin?published=1 shows "Your website is published." whatever the state
+File: app/features/admin-shell/home.tsx:83, :140
+
+### F-381 [P3] open - Duplicate React keys in the preview's menu
+File: app/features/public-site/layout.tsx:100
