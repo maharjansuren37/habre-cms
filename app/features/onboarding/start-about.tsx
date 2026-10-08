@@ -60,7 +60,7 @@ export async function action({ context, request }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  throw redirect(`/start/${result.runId}`);
+  throw redirect(`/start/${result.runId}/brand`);
 }
 
 export default function StartAbout({ loaderData, actionData }: Route.ComponentProps) {
@@ -76,8 +76,9 @@ export default function StartAbout({ loaderData, actionData }: Route.ComponentPr
         <span className={styles.bars} aria-hidden="true">
           <span className={`${styles.bar} ${styles.done}`} />
           <span className={`${styles.bar} ${styles.done}`} />
+          <span className={styles.bar} />
         </span>
-        <span>Step 2 of 2</span>
+        <span>Step 2 of 3</span>
       </div>
       <h1 className={styles.heading}>Tell us about it</h1>
       <p className={styles.lede}>

@@ -54,12 +54,15 @@ export function BrandFields({
   saved,
   submitted,
   aiColour,
+  split,
 }: {
   saved: SavedBrand;
   submitted?: SubmittedBrand | undefined;
   /** `undefined`: Settings, no AI swatch. `null`: offer Let the AI choose with no colour yet.
    *  A `#rrggbb`: the colour the AI suggested. */
   aiColour?: string | null | undefined;
+  /** Onboarding step 3: from 1024px the preview sits beside the fields and stays in view. */
+  split?: boolean;
 }) {
   const offersAi = aiColour !== undefined;
   const errors = submitted?.errors ?? {};
@@ -122,7 +125,7 @@ export function BrandFields({
     <>
       <input type="hidden" name="logoMediaId" value={logo?.id ?? ""} />
       <LogoField logo={logo} onChange={changeLogo} />
-      <div className={styles.brandArea}>
+      <div className={split ? `${styles.brandArea} ${styles.brandAreaSplit}` : styles.brandArea}>
         <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
           <legend className={styles.logoLabel}>Brand colour</legend>
           <p id="brandColor-hint" className={styles.navHint}>

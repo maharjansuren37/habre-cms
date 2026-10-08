@@ -60,6 +60,11 @@
   padding: var(--space-8) var(--space-4) var(--space-8);
 }
 
+/* Make it yours: the kit's flow__main--wide, room for fields beside the preview. */
+.mainWide {
+  max-width: 72rem;
+}
+
 .steps {
   display: flex;
   align-items: center;

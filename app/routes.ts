@@ -30,6 +30,7 @@ export default [
     route("start", "features/onboarding/start.tsx"),
     route("start/about", "features/onboarding/start-about.tsx"),
     route("start/:runId", "features/onboarding/start-wait.tsx"),
+    route("start/:runId/brand", "features/onboarding/start-brand.tsx"),
   ]),
   // The admin's preview of the site (item 18b4b): a platform path in the site's look.
   layout("features/preview/preview-layout.tsx", [

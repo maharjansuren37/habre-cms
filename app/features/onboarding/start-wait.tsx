@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { data, Form, Link, redirect, useNavigation, useRevalidator } from "react-router";
-import { z } from "zod";
 import { planApply, reviewSummary } from "#app/features/ai/apply-plan.ts";
 import { applyRun } from "#app/features/ai/apply-run.server.ts";
 import { proposalSchema } from "#app/features/ai/proposal.ts";
-import { findRun, type StoredRun } from "#app/features/ai/runs.server.ts";
+import type { StoredRun } from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -15,6 +14,7 @@ import styles from "./onboarding.module.css";
 import { runView } from "./run-view.ts";
 import { refusalMessage } from "./start-refusals.ts";
 import { startRun } from "./start-run.server.ts";
+import { findThisRun } from "./this-run.server.ts";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Building your site - Habre" }];
@@ -22,13 +22,6 @@ export function meta(_: Route.MetaArgs) {
 
 const POLL_MS = 2000;
 const SLOW_AFTER_SECONDS = 120;
-
-async function findThisRun(siteId: string, runId: string | undefined) {
-  const id = z.uuid().safeParse(runId);
-  const run = id.success ? await findRun(siteId, id.data) : null;
-  if (!run) throw data("Not Found", { status: 404 });
-  return run;
-}
 
 /** One rule for the loader and the retry action: does the stored result still read as a proposal? */
 function resultParses(result: unknown): boolean {

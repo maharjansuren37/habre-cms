@@ -92,7 +92,7 @@ and both go on to the run's page. Journey 1 then reads as `design.md` has it.
   suggested by AI", a dashed ring when there is no colour yet. *Done when:*
   `brand-swatches` unit tests cover the row with and without the AI's colour,
   a logo change keeping it, and that Settings' row is unchanged (`npm test`).
-- [ ] **Step 4 - Make it yours, saved or skipped** - the route
+- [x] **Step 4 - Make it yours, saved or skipped** - the route
   `start/:runId/brand` (`start-brand.tsx`): the loader finds this site's run
   (Not Found otherwise, like the wait), reads the settings and, for a
   succeeded run whose result parses, the proposal's colour; the action
@@ -194,6 +194,14 @@ and both go on to the run's page. Journey 1 then reads as `design.md` has it.
   Start blank).
 - **Settings and step 3 share one Brand component** - beat a copy of
   Settings' 200 lines, whose rules (brand-swatches, brand.10) would drift.
+
+- **Step 3's wide main is a route `handle: { wide: true }` read by the
+  shared onboarding layout; the two columns are a `split` prop on
+  `BrandFields`** (Step 4) - beat a class in `onboarding.module.css`, which
+  cannot reach the component's module classes. Settings does not pass
+  `split`, so it is unchanged.
+- **`findThisRun` moved to `onboarding/this-run.server.ts`** (Step 4), shared
+  by the wait and step 3 rather than copied.
 
 ## Production needs
 

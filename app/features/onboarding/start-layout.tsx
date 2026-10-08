@@ -1,4 +1,4 @@
-import { Link, Outlet, redirect } from "react-router";
+import { Link, Outlet, redirect, useMatches } from "react-router";
 import { runner } from "#app/features/ai/runner.server.ts";
 import { hasAppliedRun } from "#app/features/ai/runs.server.ts";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
@@ -33,6 +33,8 @@ export const middleware: Route.MiddlewareFunction[] = [
 ];
 
 export default function StartLayout() {
+  // A step that needs room (Make it yours: fields beside a preview) says so in its `handle`.
+  const wide = useMatches().some((match) => (match.handle as { wide?: boolean } | undefined)?.wide);
   return (
     <div className={styles.flow}>
       <header className={styles.topbar}>
@@ -46,7 +48,7 @@ export default function StartLayout() {
           Start blank instead
         </Link>
       </header>
-      <main className={styles.main}>
+      <main className={wide ? `${styles.main} ${styles.mainWide}` : styles.main}>
         <Outlet />
       </main>
     </div>

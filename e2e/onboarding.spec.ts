@@ -1,11 +1,13 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
+import sharp from "sharp";
 import { textDocument } from "./helpers/documents.ts";
 import { createInvite, deleteInvites, randomAddress } from "./helpers/invites.ts";
 import { tokenFromMail, waitForMail } from "./helpers/mail.ts";
 import { insertTestMediaRow } from "./helpers/media.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
+import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Item 18b3, Step 4: /start, step 1. The primary server runs AI_PROVIDERS=fake
@@ -58,7 +60,7 @@ test("a new admin of an empty site sees step 1, and Continue is reachable by key
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("What do you want to create?");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  await expect(page.getByText("Step 1 of 2")).toBeVisible();
+  await expect(page.getByText("Step 1 of 3")).toBeVisible();
   await expect(page.getByRole("link", { name: "Start blank instead" })).toHaveAttribute(
     "href",
     "/admin",
@@ -161,6 +163,7 @@ test("step 1 has no horizontal scroll at 390px", async ({ page }) => {
 // Item 18b3, Step 5: /start/about. Tests that start a run share one serial
 // block: the process allows two runs at once, and parallel workers could be
 // refused as busy.
+const BRAND_PATH = /\/start\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/brand$/;
 type RunRow = { kind: string; description: string; status: string };
 
 async function runRows(): Promise<RunRow[]> {
@@ -179,7 +182,7 @@ test.describe("step 2, Tell us about it", () => {
   test("shows the step with a labelled textarea, a hint and Back", async ({ page }) => {
     await openAbout(page, "blog");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell us about it");
-    await expect(page.getByText("Step 2 of 2")).toBeVisible();
+    await expect(page.getByText("Step 2 of 3")).toBeVisible();
     await expect(
       page.getByText(
         "A sentence or two is enough: what it's called, what you do and who it's for.",
@@ -212,11 +215,13 @@ test.describe("step 2, Tell us about it", () => {
     expect(await runRows()).toHaveLength(0);
   });
 
-  test("a valid description starts a run and lands on its page", async ({ page }) => {
+  test("a valid description starts a run and lands on Make it yours", async ({ page }) => {
     await openAbout(page, "portfolio");
     await page.getByLabel("About your portfolio").fill("  Photos of mountains by Lena.  ");
     await page.getByRole("button", { name: "Build my site" }).click();
-    await page.waitForURL(/\/start\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    await page.waitForURL(BRAND_PATH);
+    await expect(page.getByText("Step 3 of 3")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Make it yours");
     const rows = await runRows();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -845,6 +850,201 @@ test.describe("use this draft", () => {
   });
 });
 
+// Item 18b5, Step 4: /start/:runId/brand, Make it yours. Runs are seeded, so
+// no assertion races the fake provider.
+type BrandRow = { logoMediaId: string | null; brandColor: string; stylePreset: string };
+
+async function brandOfSite(): Promise<BrandRow> {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<BrandRow[]>`
+      select logo_media_id as "logoMediaId", brand_color as "brandColor",
+        style_preset as "stylePreset"
+      from site_settings where site_id = ${siteId}
+    `;
+    return row;
+  });
+}
+
+function brandForm(page: Page, runId: string, fields: Record<string, string>) {
+  return page.request.post(`/start/${runId}/brand`, {
+    form: fields,
+    headers: { Origin: new URL(page.url()).origin },
+    maxRedirects: 0,
+  });
+}
+
+test.describe("step 3, Make it yours", () => {
+  test.describe.configure({ mode: "serial" });
+
+  test("shows Step 3 of 3, one h1, the lede, Finish and Skip for now (a link)", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    await expect(page.getByText("Step 3 of 3")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Make it yours");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(
+      page.getByText("Optional. You can change all of this later in Settings."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Finish" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Skip for now" })).toHaveAttribute(
+      "href",
+      `/start/${runId}`,
+    );
+    await expect(page.getByRole("link", { name: "Back" })).toHaveCount(0);
+  });
+
+  test("Finish with Other colour and Friendly saves both and opens the run's page", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const picker = page.getByLabel("Pick other colour", { exact: true });
+    await picker.click();
+    await picker.fill("#336699");
+    await expect(page.getByRole("radio", { name: "Other colour", exact: true })).toBeChecked();
+    await page.getByRole("radio", { name: "Friendly" }).check();
+    await page.getByRole("button", { name: "Finish" }).click();
+    await page.waitForURL(`**/start/${runId}`);
+    expect(await brandOfSite()).toEqual({
+      logoMediaId: null,
+      brandColor: "#336699",
+      stylePreset: "friendly",
+    });
+  });
+
+  test("Skip for now saves nothing", async ({ page }) => {
+    await withDatabase(async (sql) => {
+      await sql`
+        update site_settings set brand_color = '#336699', style_preset = 'classic'
+        where site_id = ${siteId}
+      `;
+    });
+    const before = await brandOfSite();
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    await page.getByRole("radio", { name: "Friendly" }).check();
+    await page.getByRole("link", { name: "Skip for now" }).click();
+    await page.waitForURL(`**/start/${runId}`);
+    expect(await brandOfSite()).toEqual(before);
+  });
+
+  test("a succeeded run's step 3 shows its colour as suggested by AI, checked", async ({
+    page,
+  }) => {
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const ai = page.getByRole("radio", { name: /suggested by AI/ });
+    await expect(ai).toBeChecked();
+    await expect(ai).toHaveAccessibleName(/#aa5500/);
+  });
+
+  test("a running run's step 3 offers Let the AI choose, and Finish with it leaves no colour", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const ai = page.getByRole("radio", { name: "Let the AI choose" });
+    await expect(ai).toBeChecked();
+    await page.getByRole("button", { name: "Finish" }).click();
+    await page.waitForURL(`**/start/${runId}`);
+    expect((await brandOfSite()).brandColor).toBe("");
+  });
+
+  test("another site's run and a non-uuid are Not Found", async ({ page }) => {
+    const otherSite = await createSite("onboarding-other");
+    try {
+      const [other] = await withDatabase(
+        (sql) => sql<{ id: string }[]>`
+          insert into ai_runs (site_id, kind, description, status)
+          values (${otherSite}, 'business', 'Theirs.', 'running') returning id
+        `,
+      );
+      await logInThenOpen(page, "/start");
+      const foreign = await page.goto(`/start/${other.id}/brand`);
+      expect(foreign?.status()).toBe(404);
+      const bad = await page.goto("/start/not-a-uuid/brand");
+      expect(bad?.status()).toBe(404);
+    } finally {
+      await deleteSite(otherSite);
+    }
+  });
+
+  test("a POST for a site with a published page changes nothing (the gate)", async ({ page }) => {
+    const runId = await seedRun("running");
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
+        select ${siteId}, 'page', 'About', 'about', ${sql.json(textDocument("Hello.") as never)}, 'v4',
+               'published', now(), id
+        from users where email = ${admin.email}
+      `;
+    });
+    const before = await brandOfSite();
+    await page.goto("/admin/login");
+    await signIn(page, admin);
+    await page.waitForURL("**/admin");
+    const response = await brandForm(page, runId, {
+      logoMediaId: "",
+      brandColor: "#336699",
+      stylePreset: "friendly",
+    });
+    expect(response.status()).toBe(302);
+    expect(response.headers().location).toMatch(/\/admin$/);
+    expect(await brandOfSite()).toEqual(before);
+  });
+
+  test("an invalid colour posted by hand is refused with the banner and the choices kept", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const before = await brandOfSite();
+    const answer = await page.evaluate(async (id) => {
+      const body = new URLSearchParams({
+        logoMediaId: "",
+        brandColor: "red",
+        stylePreset: "friendly",
+      });
+      const response = await fetch(`/start/${id}/brand`, { method: "POST", body });
+      return response.status;
+    }, runId);
+    expect(answer).toBe(400);
+    expect(await brandOfSite()).toEqual(before);
+
+    // In the page: the checked swatch carries a bad colour, as a hand-edited form would.
+    await page.getByRole("radio", { name: "Friendly" }).check();
+    await page.getByRole("radio", { name: "Let the AI choose" }).evaluate((el) => {
+      (el as unknown as { value: string }).value = "red";
+    });
+    await page.getByRole("button", { name: "Finish" }).click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Friendly" })).toBeChecked();
+    expect(await brandOfSite()).toEqual(before);
+  });
+
+  test("a logo uploaded on step 3 becomes the site's logo on Finish", async ({ page }) => {
+    test.skip(skipWithoutStorage, STORAGE_REASON);
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const buffer = await sharp({
+      create: { width: 200, height: 100, channels: 3, background: { r: 47, g: 107, b: 90 } },
+    })
+      .png()
+      .toBuffer();
+    await page.getByLabel("Upload logo").setInputFiles({
+      name: "step3-logo.png",
+      mimeType: "image/png",
+      buffer,
+    });
+    await expect(page.getByRole("button", { name: "Change logo" })).toBeVisible();
+    await page.getByRole("button", { name: "Finish" }).click();
+    await page.waitForURL(`**/start/${runId}`);
+    expect((await brandOfSite()).logoMediaId).not.toBeNull();
+  });
+});
+
 test.describe("journey 1, from the emailed link to the draft", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -882,6 +1082,13 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("What do you want to create?");
   }
 
+  /** Build my site opens Make it yours; Skip for now goes on to the run's page. */
+  async function skipStepThree(page: Page): Promise<void> {
+    await page.waitForURL(BRAND_PATH);
+    await page.getByRole("link", { name: "Skip for now" }).click();
+    await page.waitForURL(UUID_PATH);
+  }
+
   async function expectDraft(page: Page): Promise<void> {
     // Final states only (F-355): the 1-second fake can finish before "Building your site" shows.
     await expect(page).toHaveURL(UUID_PATH);
@@ -903,6 +1110,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tell us about it");
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
+    await skipStepThree(page);
     await expectDraft(page);
 
     // Use this draft -> Home -> Edit the home page -> the first page's editor.
@@ -927,6 +1135,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
+    await skipStepThree(page);
     await expectDraft(page);
     await page.getByRole("button", { name: "Use this draft" }).click();
     await page.waitForURL(/\/admin$/);
@@ -967,7 +1176,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.goto("/start/about?kind=business");
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
-    await page.waitForURL(UUID_PATH);
+    await skipStepThree(page);
     const runUrl = page.url();
     await page.goto(runUrl);
     await expectDraft(page);
@@ -980,6 +1189,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.goto("/start/about?kind=business");
     await page.getByLabel("About your business").fill("Crumb, a bakery. [fake:unavailable]");
     await page.getByRole("button", { name: "Build my site" }).click();
+    await skipStepThree(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site", {
       timeout: 15_000,
     });
@@ -989,6 +1199,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await expect(about).toHaveValue("Crumb, a bakery. [fake:unavailable]");
     await about.fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
+    await skipStepThree(page);
     await expectDraft(page);
   });
 });

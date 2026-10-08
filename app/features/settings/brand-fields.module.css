@@ -304,3 +304,26 @@
     width: 22rem;
   }
 }
+
+/* Onboarding step 3 (the kit's brand-step): fields in the left column, the preview in the
+ * right one and sticky. After the 76rem rule above so it replaces its absolute placement. */
+@media (min-width: 64rem) {
+  .brandAreaSplit {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: start;
+    column-gap: var(--space-8);
+  }
+
+  .brandAreaSplit > .brandField {
+    grid-column: 1;
+  }
+
+  .brandAreaSplit > .preview {
+    position: sticky;
+    top: var(--space-6);
+    left: auto;
+    width: auto;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
