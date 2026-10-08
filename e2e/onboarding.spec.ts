@@ -420,6 +420,7 @@ test.describe("the wait", () => {
     const runId = await seedRun("running");
     await logInThenOpen(page, `/start/${runId}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Building your site");
+    await expect(page).toHaveTitle("Building your site - Habre");
     await expect(page.getByRole("status")).toContainText(
       "Writing your pages, menu and search descriptions. This usually takes about a minute.",
     );
@@ -448,6 +449,7 @@ test.describe("the wait", () => {
     });
     await expect(status).toHaveText("Your draft is ready to review.", { timeout: 5000 });
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready");
+    await expect(page).toHaveTitle("Your draft is ready - Habre");
     expect(
       await status.evaluate((element) => (element as unknown as { __mark?: number }).__mark),
     ).toBe(1);
@@ -547,6 +549,7 @@ test.describe("the wait", () => {
     const runId = await seedRun("failed", { error: "timeout", kind: "blog" });
     await logInThenOpen(page, `/start/${runId}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Couldn't build your site");
+    await expect(page).toHaveTitle("Couldn't build your site - Habre");
     await expect(page.getByRole("status")).toContainText(
       "Something went wrong on our side. Try again, or start blank.",
     );
@@ -951,9 +954,10 @@ test.describe("step 3, Make it yours", () => {
   }) => {
     const runId = await seedRun("succeeded", { result: validProposal() });
     await logInThenOpen(page, `/start/${runId}/brand`);
-    const ai = page.getByRole("radio", { name: /suggested by AI/ });
+    const ai = page.getByRole("radio", { name: /suggested by AI/i });
     await expect(ai).toBeChecked();
     await expect(ai).toHaveAccessibleName(/#aa5500/);
+    await expect(page.getByText("Suggested by AI", { exact: true })).toBeVisible();
   });
 
   test("a running run's step 3 offers Let the AI choose, and Finish with it leaves no colour", async ({
@@ -1041,6 +1045,7 @@ test.describe("step 3, Make it yours", () => {
     expect(Math.abs(preview.y - logo.y)).toBeLessThanOrEqual(8);
     expect(finish.x + finish.width).toBeLessThan(preview.x);
     expect(skip.x + skip.width).toBeLessThan(preview.x);
+    expect(skip.x).toBeLessThan(finish.x);
   });
 
   test("at 390px the preview comes after Style, in one column (F-384)", async ({ page }) => {

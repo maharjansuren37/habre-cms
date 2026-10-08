@@ -157,14 +157,14 @@ test("the slot is released after a success, so a later run starts", async (t) =>
   }
 });
 
-test("a second run for a site whose first is still running is refused as busy", async (t) => {
+test("a second run for a site whose first is still running is refused as site_busy", async (t) => {
   quiet();
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const g = gate();
   const runner = createRunner({ store, adapter: gatedAdapter(g), allowance: null });
   const first = await started(runner.start("s1", "u1", input));
-  assert.deepEqual(await runner.start("s1", "u2", input), { ok: false, reason: "busy" });
+  assert.deepEqual(await runner.start("s1", "u2", input), { ok: false, reason: "site_busy" });
   assert.equal(rows.length, 1);
   g.release();
   await first.done;
@@ -172,7 +172,34 @@ test("a second run for a site whose first is still running is refused as busy", 
   await again.done;
 });
 
-test("two starts for one site at the same moment: one runs, one is busy", async (t) => {
+test("a site with a running row left by something else is refused as site_busy and frees its slot", async (t) => {
+  quiet();
+  t.after(() => mock.restoreAll());
+  const { store, rows } = memoryStore();
+  rows.push({ id: "other", siteId: "s1", status: "running" });
+  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  assert.deepEqual(await runner.start("s1", "u1", input), { ok: false, reason: "site_busy" });
+  assert.equal(rows.length, 1);
+  const other = await started(runner.start("s2", "u2", input));
+  const third = await started(runner.start("s3", "u3", input));
+  await Promise.all([other.done, third.done]);
+});
+
+test("a site with a run in flight hears site_busy even while both slots are taken", async (t) => {
+  quiet();
+  t.after(() => mock.restoreAll());
+  const { store, rows } = memoryStore();
+  const g = gate();
+  const runner = createRunner({ store, adapter: gatedAdapter(g), allowance: null });
+  const first = await started(runner.start("s1", "u1", input));
+  const second = await started(runner.start("s2", "u2", input));
+  assert.deepEqual(await runner.start("s1", "u1", input), { ok: false, reason: "site_busy" });
+  assert.equal(rows.length, 2);
+  g.release();
+  await Promise.all([first.done, second.done]);
+});
+
+test("two starts for one site at the same moment: one runs, one is refused", async (t) => {
   quiet();
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();

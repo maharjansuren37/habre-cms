@@ -4765,3 +4765,22 @@ the F-01 rule.
 Beats: reading `formData()` unchecked, which lets any signed-up admin make
 the server buffer a large body.
 Costs: the wait's action and Publish website are not capped yet (F-389).
+
+## D438 - A site's own run in flight is refused as `site_busy` (2026-10-08)
+
+**Chose:** `start()` checks the site before the slot count and refuses a
+second run for a site with its own reason, `site_busy`, worded "A draft for
+your site is already being built. Wait for it to finish, then try again."
+`busy` now means only "both process slots are taken". F-358.
+Beats: sending the person to the running run's page, which needs the run's
+id - the in-memory `sitesInFlight` check has none.
+Costs: one more refusal reason for every caller's `switch` to handle.
+
+## D439 - The AI's suggested colour is labelled visibly (2026-10-08)
+
+**Chose:** once the AI's colour is known, Make it yours' Let the AI choose
+swatch shows the hex and a visible "Suggested by AI" under it. F-386.
+Beats: keeping the label screen-reader only and recording that as intended
+in `design.md` - the swatch saves `''`, not the hex, and only the label
+tells the person the colour will follow the AI.
+Costs: the hex sits off-centre under its dot (F-392).

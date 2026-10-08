@@ -65,7 +65,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 function PreviewBar() {
   return (
-    <aside aria-label="Preview" className={styles.bar}>
+    <aside aria-label="Preview" lang="en" className={styles.bar}>
       <div className={styles.barInner}>
         <p className={styles.text}>Preview - nobody else can see this until you publish.</p>
         {/* Plain <a>: the admin reloads with its own look and policy. */}

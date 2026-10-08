@@ -96,8 +96,9 @@ export function Chrome({
           {navLinks.length > 0 && (
             <nav aria-label="Site">
               <ul className={styles.navList}>
-                {navLinks.map((link) => (
-                  <li key={link.href}>
+                {navLinks.map((link, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: the list is rebuilt on every render and never reordered in place
+                  <li key={index}>
                     {/* Plain <a>, not <Link> - a page item's href is a known
                         internal path, but a URL item's is whatever the admin
                         typed (external, mailto:, a fragment), and this list

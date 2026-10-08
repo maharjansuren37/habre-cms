@@ -59,7 +59,7 @@ export interface RunStore {
 
 export type StartResult =
   | { ok: true; runId: string; done: Promise<void> }
-  | { ok: false; reason: "busy" | "allowance" };
+  | { ok: false; reason: "busy" | "site_busy" | "allowance" };
 
 type AiErrorDetails = {
   usage: Usage;
@@ -217,9 +217,8 @@ export function createRunner(options: RunnerOptions) {
   /** Returns once the run is recorded as running; `done` settles when it finishes and never rejects. */
   async function start(siteId: string, userId: string, input: StartInput): Promise<StartResult> {
     // Claimed before the first await: two starts in the same tick cannot both pass.
-    if (slotsInUse >= MAX_CONCURRENT_RUNS || sitesInFlight.has(siteId)) {
-      return { ok: false, reason: "busy" };
-    }
+    if (sitesInFlight.has(siteId)) return { ok: false, reason: "site_busy" };
+    if (slotsInUse >= MAX_CONCURRENT_RUNS) return { ok: false, reason: "busy" };
     slotsInUse += 1;
     sitesInFlight.add(siteId);
     const release = () => {
@@ -235,7 +234,7 @@ export function createRunner(options: RunnerOptions) {
       }
       if (await store.hasRunningRun(siteId)) {
         release();
-        return { ok: false, reason: "busy" };
+        return { ok: false, reason: "site_busy" };
       }
       runId = await store.insertRunning({ siteId, userId, ...input });
     } catch (error) {

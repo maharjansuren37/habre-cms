@@ -8,6 +8,7 @@ import {
   hasAppliedRun,
   runStore,
 } from "#app/features/ai/runs.server.ts";
+import { clientIp } from "#app/features/auth/client-ip.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import {
   hasPublishedEntries,
@@ -20,6 +21,7 @@ import { startGate } from "#app/features/onboarding/start-gate.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
+import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 import { siteOrigin } from "#app/lib/site-origin.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
@@ -79,8 +81,9 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         }
       : null;
   return {
-    // A flag read as a boolean, nothing echoed (item 18b4b).
-    justPublished: new URL(request.url).searchParams.get("published") === "1",
+    // A flag read as a boolean, nothing echoed (item 18b4b); the banner needs
+    // something to be published.
+    justPublished: new URL(request.url).searchParams.get("published") === "1" && published,
     siteUrl: siteOrigin(subdomain, env.SITES_URL),
     pages: list.entries,
     total: list.total,
@@ -100,7 +103,17 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 // loader's redirect does not run for a POST.
 export async function action({ context, request }: Route.ActionArgs) {
   const user = context.get(userContext);
-  if (user.role !== "admin") throw data("Not Found", { status: 404 });
+  if (user.role !== "admin") {
+    // The same event requireRole logs (F-82), with the same fields.
+    logSecurityEvent({
+      event: "request_refused",
+      reason: "role",
+      path: new URL(request.url).pathname,
+      role: user.role,
+      ip: clientIp(request.headers),
+    });
+    throw data("Not Found", { status: 404 });
+  }
   const form = await request.formData();
   if (form.get("intent") !== "publish") throw redirect("/admin");
   const [published, applied] = await Promise.all([

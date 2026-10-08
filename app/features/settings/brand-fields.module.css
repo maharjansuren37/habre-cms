@@ -97,6 +97,10 @@
   color: var(--color-text-muted);
 }
 
+.swatchNote {
+  display: block;
+}
+
 .colourInput {
   width: var(--size-control-md);
   height: var(--size-control-md);

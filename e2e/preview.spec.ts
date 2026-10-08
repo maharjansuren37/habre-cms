@@ -83,6 +83,7 @@ test("an admin's /admin/preview shows the draft home page in the site's look, ma
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Front");
 
   const bar = page.getByRole("complementary", { name: "Preview" });
+  await expect(bar).toHaveAttribute("lang", "en");
   await expect(bar).toContainText("Preview - nobody else can see this until you publish.");
   await expect(bar.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/admin");
 
