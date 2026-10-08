@@ -266,7 +266,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   site whose only finished run is `succeeded` with result `{}` sees Start
   from a description and no Review your draft; a site with an `applied` run
   whose result is `{}` shows Your website is ready and no "0 pages".
-- [ ] **Step 11 - /start's large buttons and wrapping (F-366)** -
+- [x] **Step 11 - /start's large buttons and wrapping (F-366)** -
   `onboarding.module.css`: the large rule becomes `.actions .large` (beats
   the kit's `.button` regardless of stylesheet order); `.actions` gains
   `flex-wrap: wrap` and `align-items: center`. Covers `start.tsx`,

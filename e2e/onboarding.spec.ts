@@ -501,6 +501,26 @@ test.describe("the wait", () => {
     );
   });
 
+  test("at 390px the large buttons are 52px tall and the actions do not wrap (F-366)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    const use = page.getByRole("button", { name: "Use this draft" });
+    const change = page.getByRole("link", { name: "Change the description" });
+    await expect(use).toBeVisible();
+    expect((await use.boundingBox())?.height).toBe(52);
+    expect((await change.boundingBox())?.height).toBe(52);
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
+    await page.goto("/start");
+    const next = page.getByRole("button", { name: "Continue" });
+    await expect(next).toBeVisible();
+    expect((await next.boundingBox())?.height).toBe(52);
+  });
+
   test("a failed timeout run offers Try again, which starts a new run", async ({ page }) => {
     const runId = await seedRun("failed", { error: "timeout", kind: "blog" });
     await logInThenOpen(page, `/start/${runId}`);

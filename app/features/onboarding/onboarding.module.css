@@ -197,13 +197,15 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
 
 /* The kit's large button. */
-.large {
+.actions .large {
   min-height: var(--size-control-lg);
   padding: 0 var(--space-6);
 }
