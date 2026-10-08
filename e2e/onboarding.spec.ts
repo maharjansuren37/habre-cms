@@ -296,6 +296,22 @@ test.describe("step 2, Tell us about it", () => {
     await expect(page.getByLabel("About your blog")).toHaveValue("");
   });
 
+  test("a POST to /start/about over 32 KB is refused with 413 and starts no run (F-382)", async ({
+    page,
+  }) => {
+    await page.goto("/admin/login");
+    await signIn(page, admin);
+    await page.waitForURL("**/admin");
+    const origin = new URL(page.url()).origin;
+    const response = await page.request.post(`${origin}/start/about`, {
+      headers: { Origin: origin },
+      form: { kind: "business", description: "x".repeat(33 * 1024) },
+      maxRedirects: 0,
+    });
+    expect([response.status(), response.headers().location]).toEqual([413, undefined]);
+    expect(await runRows()).toHaveLength(0);
+  });
+
   test("a POST to /start/about for a site with a published page starts no run", async ({
     page,
   }) => {
@@ -995,6 +1011,69 @@ test.describe("step 3, Make it yours", () => {
     expect(await brandOfSite()).toEqual(before);
   });
 
+  test("a POST to step 3 over 16 KB is refused with 413 and saves nothing (F-382)", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const before = await brandOfSite();
+    const response = await brandForm(page, runId, {
+      logoMediaId: "",
+      brandColor: "#336699",
+      stylePreset: "friendly",
+      padding: "x".repeat(17 * 1024),
+    });
+    expect(response.status()).toBe(413);
+    expect(await brandOfSite()).toEqual(before);
+  });
+
+  test("on a wide screen the preview sits beside the Logo, Finish and Skip stay left of it (F-384)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const logo = await page.getByText("Logo", { exact: true }).boundingBox();
+    const preview = await page.getByRole("img", { name: /Preview of your site/ }).boundingBox();
+    const finish = await page.getByRole("button", { name: "Finish" }).boundingBox();
+    const skip = await page.getByRole("link", { name: "Skip for now" }).boundingBox();
+    if (!logo || !preview || !finish || !skip) throw new Error("step 3 did not lay out");
+    expect(Math.abs(preview.y - logo.y)).toBeLessThanOrEqual(8);
+    expect(finish.x + finish.width).toBeLessThan(preview.x);
+    expect(skip.x + skip.width).toBeLessThan(preview.x);
+  });
+
+  test("at 390px the preview comes after Style, in one column (F-384)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const style = await page.getByRole("radio", { name: "Classic" }).locator("..").boundingBox();
+    const preview = await page.getByRole("img", { name: /Preview of your site/ }).boundingBox();
+    if (!style || !preview) throw new Error("step 3 did not lay out");
+    expect(preview.y).toBeGreaterThan(style.y + style.height);
+    expect(preview.x).toBeLessThan(40);
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
+  });
+
+  for (const width of [1280, 390]) {
+    test(`at ${width}px the lede and the logo hint have room below them (F-383)`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      const runId = await seedRun("running");
+      await logInThenOpen(page, `/start/${runId}/brand`);
+      const lede = await page.getByText("Optional. You can change all of this").boundingBox();
+      const logoLabel = await page.getByText("Logo", { exact: true }).boundingBox();
+      const hint = await page.getByText("PNG, JPEG, WebP, GIF or SVG").boundingBox();
+      const colour = await page.getByText("Brand colour", { exact: true }).boundingBox();
+      if (!lede || !logoLabel || !hint || !colour) throw new Error("step 3 did not lay out");
+      expect(logoLabel.y - (lede.y + lede.height)).toBeGreaterThanOrEqual(16);
+      expect(colour.y - (hint.y + hint.height)).toBeGreaterThanOrEqual(16);
+    });
+  }
+
   test("an invalid colour posted by hand is refused with the banner and the choices kept", async ({
     page,
   }) => {
@@ -1219,7 +1298,9 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     ]);
   });
 
-  test("as full page loads: each step opened by its address", async ({ page }) => {
+  test("as full page loads, Skip for now: Use this draft leaves Modern and writes the AI's colour", async ({
+    page,
+  }) => {
     await signUpAndConfirm(page);
     await page.goto("/start?kind=business");
     await expect(page.getByRole("radio", { name: /Business/ })).toBeChecked();
@@ -1246,6 +1327,79 @@ test.describe("journey 1, from the emailed link to the draft", () => {
       `,
     );
     expect(saved).toEqual({ brandColor: "#aa5500", stylePreset: "modern" });
+  });
+
+  test.describe("with JavaScript off, every step a document load or post", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("Confirm -> step 1 -> step 2 -> Make it yours (Classic, Finish) -> review -> Use this draft -> Home -> Preview -> Publish -> View your site", async ({
+      page,
+    }) => {
+      await signUpAndConfirm(page);
+      const address = made.addresses[made.addresses.length - 1];
+      await page.goto("/start?kind=business");
+      await expect(page.getByRole("radio", { name: /Business/ })).toBeChecked();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.waitForURL("**/start/about?kind=business");
+      await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
+      await page.getByRole("button", { name: "Build my site" }).click();
+
+      // Make it yours: opened by its address, Classic chosen, Finish is a document POST.
+      await page.waitForURL(BRAND_PATH);
+      await page.goto(page.url());
+      await expect(page.getByText("Step 3 of 3")).toBeVisible();
+      await page.getByRole("radio", { name: "Classic" }).check();
+      await page.getByRole("button", { name: "Finish" }).click();
+      await page.waitForURL(UUID_PATH);
+
+      // The review: the page does not update itself without a script, so load it until the run ends.
+      const runUrl = page.url();
+      await expect(async () => {
+        await page.goto(runUrl);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your draft is ready", {
+          timeout: 1_000,
+        });
+      }).toPass({ timeout: 20_000 });
+      await expect(page.getByRole("heading", { level: 2, name: "About" })).toBeVisible();
+      await page.getByRole("button", { name: "Use this draft" }).click();
+      await page.waitForURL(/\/admin$/);
+      await page.goto("/admin");
+      await expect(page).toHaveURL(/\/admin$/);
+      await expect(page.getByText("Your website is ready")).toBeVisible();
+
+      // Preview, opened by its address: Classic, the drafted home page and its menu.
+      const previewHref = await page.getByRole("link", { name: "Preview" }).getAttribute("href");
+      await page.goto(previewHref ?? "");
+      await expect(page).toHaveURL(/\/admin\/preview$/);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+      await expect(page.locator("html")).toHaveAttribute("data-style", "classic");
+      await expect(page.getByRole("navigation", { name: "Site" }).getByRole("link")).toHaveText([
+        "Home",
+        "About",
+      ]);
+
+      // Back to Home, then Publish website (a document POST).
+      await page.getByRole("link", { name: "Back to Home" }).click();
+      await page.waitForURL(/\/admin$/);
+      await page.getByRole("button", { name: "Publish website" }).click();
+      await page.waitForURL(/\/admin\?published=1$/);
+      await page.goto(page.url());
+      const banner = page.getByRole("status");
+      await expect(banner).toContainText("Your website is published.");
+
+      // View your site, opened by its address.
+      const siteHref = await banner
+        .getByRole("link", { name: "View your site" })
+        .getAttribute("href");
+      await page.goto(siteHref ?? "");
+      await expect(page).toHaveURL(siteUrl("/", address));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+      await expect(page.locator("html")).toHaveAttribute("data-style", "classic");
+      await expect(page.getByRole("navigation", { name: "Site" }).getByRole("link")).toHaveText([
+        "Home",
+        "About",
+      ]);
+    });
   });
 
   test("an unavailable provider ends on Couldn't build; Change the description then succeeds", async ({

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { applyBrandProperties } from "#app/features/brand/apply-brand.ts";
 import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { colourWord } from "#app/features/brand/logo-colours.ts";
@@ -55,6 +55,7 @@ export function BrandFields({
   submitted,
   aiColour,
   split,
+  children,
 }: {
   saved: SavedBrand;
   submitted?: SubmittedBrand | undefined;
@@ -63,6 +64,8 @@ export function BrandFields({
   aiColour?: string | null | undefined;
   /** Onboarding step 3: from 1024px the preview sits beside the fields and stays in view. */
   split?: boolean;
+  /** With `split`: rendered under Style, in the fields' column (onboarding's Finish and Skip). */
+  children?: ReactNode;
 }) {
   const offersAi = aiColour !== undefined;
   const errors = submitted?.errors ?? {};
@@ -124,8 +127,14 @@ export function BrandFields({
   return (
     <>
       <input type="hidden" name="logoMediaId" value={logo?.id ?? ""} />
-      <LogoField logo={logo} onChange={changeLogo} />
+      {!split && <LogoField logo={logo} onChange={changeLogo} />}
       <div className={split ? `${styles.brandArea} ${styles.brandAreaSplit}` : styles.brandArea}>
+        {/* Split: the Logo is the first row of the fields' column, so the preview starts beside it. */}
+        {split && (
+          <div className={styles.splitCell}>
+            <LogoField logo={logo} onChange={changeLogo} />
+          </div>
+        )}
         <fieldset className={styles.brandField} aria-describedby="brandColor-hint">
           <legend className={styles.logoLabel}>Brand colour</legend>
           <p id="brandColor-hint" className={styles.navHint}>
@@ -341,6 +350,7 @@ export function BrandFields({
           </div>
           <p className={styles.previewCaption}>Your home page, as visitors will see it.</p>
         </div>
+        {split && children && <div className={styles.splitCell}>{children}</div>}
       </div>
     </>
   );

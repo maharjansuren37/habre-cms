@@ -5,6 +5,7 @@ import { userContext } from "#app/features/auth/user-context.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/start-about";
+import { isAboutBodyAllowed } from "./body-size.ts";
 import styles from "./onboarding.module.css";
 import { refusalMessage } from "./start-refusals.ts";
 import { startRun } from "./start-run.server.ts";
@@ -40,6 +41,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 export async function action({ context, request }: Route.ActionArgs) {
   const { siteId, id: userId } = context.get(userContext);
+  if (!isAboutBodyAllowed(request.headers)) throw data("Request too large", { status: 413 });
   const form = await request.formData();
   const values = {
     kind: String(form.get("kind") ?? ""),

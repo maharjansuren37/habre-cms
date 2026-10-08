@@ -125,23 +125,5 @@ File: app/features/auth/login.tsx:99, :160; app/root.tsx (brand `<style nonce>`)
 ### F-376 [P2] open - The 1-second publish timing is asserted on every run, CI included
 File: e2e/home.spec.ts:316
 
-### F-382 [P2] open - Make it yours reads a request body of any size before checking it
-File: app/features/onboarding/start-brand.tsx:40 (also start-about.tsx:43)
-
-### F-383 [P2] open - Make it yours has no spacing between its blocks - the lede sits on the Logo label, the logo hint on Brand colour
-File: app/features/onboarding/start-brand.tsx:84-90; app/features/settings/brand-fields.tsx:124-128
-
-### F-384 [P2] open - Step 3's preview starts beside Brand colour, not beside the Logo, leaving blank space top right
-File: app/features/settings/brand-fields.tsx:127-128; brand-fields.module.css (.brandAreaSplit)
-
-### F-385 [P2] open - Journey 1 is walked to the end only through the app's links, not also by full page loads as Step 5 asks
-File: e2e/onboarding.spec.ts:1218-1249
-
-### F-386 [P3] open - Once the AI's colour is known, the swatch shows only the hex - "suggested by AI" is screen-reader only
-File: app/features/settings/brand-fields.tsx:183-189
-
-### F-387 [P3] open - Two step 3 assertions cannot fail on what they claim
-File: e2e/onboarding.spec.ts:~1018 (choices kept), ~951 (Finish with Let the AI choose)
-
-### F-388 [P3] open - The keyboard test focuses the radios by script, so keyboard reach is not shown
-File: e2e/onboarding.spec.ts (step 3 keyboard test: `ai.focus()`, `modern.focus()`)
+### F-389 [P2] open - The wait's action and Publish website still read a request body of any size
+File: app/features/onboarding/start-wait.tsx:76-77; app/features/admin-shell/home.tsx:104

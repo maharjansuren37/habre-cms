@@ -620,3 +620,18 @@ File: app/features/admin-shell/home.tsx:83, :140
 
 ### F-381 [P3] open - Duplicate React keys in the preview's menu
 File: app/features/public-site/layout.tsx:100
+
+### F-386 [P3] open - Once the AI's colour is known, the swatch shows only the hex - "suggested by AI" is screen-reader only
+File: app/features/settings/brand-fields.tsx:183-189
+
+### F-387 [P3] open - Two step 3 assertions cannot fail on what they claim
+File: e2e/onboarding.spec.ts:~1018 (choices kept), ~951 (Finish with Let the AI choose)
+
+### F-388 [P3] open - The keyboard test focuses the radios by script, so keyboard reach is not shown
+File: e2e/onboarding.spec.ts (step 3 keyboard test: `ai.focus()`, `modern.focus()`)
+
+### F-390 [P3] open - `body-size.ts` has no unit test, unlike every sibling body-size helper
+File: app/features/onboarding/body-size.ts:8
+
+### F-391 [P3] open - Step 3 puts Finish before Skip for now, where steps 1-2 and the mock end on the primary
+File: app/features/onboarding/start-brand.tsx:101-108

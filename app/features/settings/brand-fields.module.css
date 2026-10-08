@@ -203,6 +203,10 @@
   min-width: 0;
 }
 
+.splitCell {
+  min-width: 0;
+}
+
 .previewWindow {
   overflow: hidden;
   aspect-ratio: 16 / 10;
@@ -307,6 +311,10 @@
 
 /* Onboarding step 3 (the kit's brand-step): fields in the left column, the preview in the
  * right one and sticky. After the 76rem rule above so it replaces its absolute placement. */
+.brandAreaSplit {
+  row-gap: var(--space-6);
+}
+
 @media (min-width: 64rem) {
   .brandAreaSplit {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
@@ -314,7 +322,8 @@
     column-gap: var(--space-8);
   }
 
-  .brandAreaSplit > .brandField {
+  .brandAreaSplit > .brandField,
+  .brandAreaSplit > .splitCell {
     grid-column: 1;
   }
 
@@ -324,6 +333,6 @@
     left: auto;
     width: auto;
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 4;
   }
 }

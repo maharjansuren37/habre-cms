@@ -4698,3 +4698,70 @@ existed); the published banner is a `?published=1` flag read as a boolean.
 Beats: a new token; a shared link-button component; a session flash (no
 flash store exists).
 Costs: `?published=1` shows the banner whatever the state (F-380).
+
+## D431 - Make it yours is `/start/:runId/brand`, after the run starts (2026-10-08)
+
+**Chose:** step 3 at `/start/:runId/brand`, reached when Build my site has
+already started the run; Finish and Skip for now go on to `/start/:runId`.
+Beats: `/start/brand` before the run (the AI would wait on a step the
+person may take minutes over); a query string (a real path per step, so
+Back works between them).
+Costs: step 3 cannot change what the run was asked for.
+
+## D432 - Let the AI choose; Use this draft writes the AI's colour whenever none is set (2026-10-08)
+
+**Chose:** step 3's colour row offers Let the AI choose (value `''`)
+instead of No colour, and Use this draft writes the proposal's colour
+whenever the site has no colour, logo or not. Supersedes D417's "and there
+is no logo".
+Beats: keeping the logo condition (a person who uploads a logo but keeps
+the AI's colour would silently get none); a stored "AI's colour" flag (a
+migration for one case).
+Costs: a site that chose No colour in Settings and comes back to
+onboarding gets the AI's colour unless it picks another; No colour is only
+in Settings.
+
+## D433 - No Back on step 3; Skip for now writes nothing (2026-10-08)
+
+**Chose:** no Back button; Skip for now is a link to the run's page that
+saves nothing.
+Beats: the mock's Back (step 2 sends a running site to the run's page, so
+it would bounce); a Skip that resets to Modern (it would undo a style saved
+in Settings after Start blank).
+Costs: the way to a new description is the wait's Change the description.
+
+## D434 - Settings and step 3 share one Brand component (2026-10-08)
+
+**Chose:** `app/features/settings/brand-fields.tsx` holds the Logo field,
+the Brand colour row, Style and the preview for both screens; an `aiColour`
+prop (`undefined` in Settings) adds the AI swatch.
+Beats: a copy of Settings' 200 lines, whose rules (brand-swatches,
+brand.10) would drift.
+Costs: a change to Settings' Brand section changes step 3 too.
+
+## D435 - Step 3's layout: a route `handle` and a `split` prop (2026-10-08)
+
+**Chose:** step 3's wide main is a route `handle: { wide: true }` read by
+the shared onboarding layout; the two columns are a `split` prop on
+`BrandFields`, which with it renders the Logo in the first column and takes
+Finish and Skip as `children` (F-384). Settings passes no `split`.
+Beats: a class in `onboarding.module.css`, which cannot reach the
+component's module classes.
+Costs: `BrandFields` has two layouts to keep working.
+
+## D436 - `findThisRun` is shared in `onboarding/this-run.server.ts` (2026-10-08)
+
+**Chose:** the wait and step 3 find the site's run through one function.
+Beats: a copy in each route.
+Costs: none worth noting.
+
+## D437 - Onboarding's posts are capped before they are read (2026-10-08)
+
+**Chose:** step 3's action refuses a body over 16 KB with 413
+(`isSettingsFormBodyAllowed`, Settings' cap for the same fields); Build
+my site's over 32 KB (`body-size.ts`: 2,000 characters at four bytes,
+percent-encoded, is 24 KB). A missing Content-Length is refused. F-382,
+the F-01 rule.
+Beats: reading `formData()` unchecked, which lets any signed-up admin make
+the server buffer a large body.
+Costs: the wait's action and Publish website are not capped yet (F-389).

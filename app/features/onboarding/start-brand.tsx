@@ -6,6 +6,7 @@ import { BrandFields } from "#app/features/settings/brand-fields.tsx";
 import { getSiteSettings, saveBrandStep } from "#app/features/settings/settings.server.ts";
 import {
   brandColorSchema,
+  isSettingsFormBodyAllowed,
   logoMediaIdSchema,
   stylePresetSchema,
 } from "#app/features/settings/settings-input.ts";
@@ -36,6 +37,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
 
 export async function action({ context, params, request }: Route.ActionArgs) {
   const { siteId } = context.get(userContext);
+  if (!isSettingsFormBodyAllowed(request.headers)) throw data("Request too large", { status: 413 });
   const run = await findThisRun(siteId, params.runId);
   const form = await request.formData();
   const values = {
@@ -77,32 +79,34 @@ export default function StartBrand({ loaderData, actionData }: Route.ComponentPr
   const isSaving = navigation.state !== "idle" && navigation.formMethod === "POST";
 
   return (
-    <Form method="post">
-      <div className={styles.steps}>
-        <span className={styles.bars} aria-hidden="true">
-          <span className={`${styles.bar} ${styles.done}`} />
-          <span className={`${styles.bar} ${styles.done}`} />
-          <span className={`${styles.bar} ${styles.done}`} />
-        </span>
-        <span>Step 3 of 3</span>
+    <Form method="post" className={styles.brandForm}>
+      <div>
+        <div className={styles.steps}>
+          <span className={styles.bars} aria-hidden="true">
+            <span className={`${styles.bar} ${styles.done}`} />
+            <span className={`${styles.bar} ${styles.done}`} />
+            <span className={`${styles.bar} ${styles.done}`} />
+          </span>
+          <span>Step 3 of 3</span>
+        </div>
+        <h1 className={styles.heading}>Make it yours</h1>
+        <p className={styles.lede}>Optional. You can change all of this later in Settings.</p>
       </div>
-      <h1 className={styles.heading}>Make it yours</h1>
-      <p className={styles.lede}>Optional. You can change all of this later in Settings.</p>
 
       {actionData?.problem && (
         <Message tone="error" title={actionData.problem} className={styles.banner} />
       )}
 
-      <BrandFields saved={settings} submitted={actionData?.values} aiColour={aiColour} split />
-
-      <div className={styles.actions}>
-        <Button type="submit" variant="primary" className={styles.large} isPending={isSaving}>
-          {isSaving ? "Saving…" : "Finish"}
-        </Button>
-        <Link to={`/start/${runId}`} className={styles.secondaryLink}>
-          Skip for now
-        </Link>
-      </div>
+      <BrandFields saved={settings} submitted={actionData?.values} aiColour={aiColour} split>
+        <div className={styles.actions}>
+          <Button type="submit" variant="primary" className={styles.large} isPending={isSaving}>
+            {isSaving ? "Saving…" : "Finish"}
+          </Button>
+          <Link to={`/start/${runId}`} className={styles.secondaryLink}>
+            Skip for now
+          </Link>
+        </div>
+      </BrandFields>
     </Form>
   );
 }

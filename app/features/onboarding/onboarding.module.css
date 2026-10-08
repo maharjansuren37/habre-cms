@@ -396,3 +396,15 @@
 .secondaryLink:hover {
   background: var(--color-surface-hover);
 }
+
+/* Make it yours: the kit's brand-step. The form is a grid, so the head, the banner and the
+ * fields have room between them; step 2's margins on the banner and actions give way to it. */
+.brandForm {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.brandForm .banner,
+.brandForm .actions {
+  margin-top: 0;
+}
