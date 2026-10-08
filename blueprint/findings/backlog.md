@@ -587,3 +587,21 @@ File: app/features/onboarding/start-wait.tsx:83
 
 ### F-362 [P3] open - No unit test that `/start` is a platform path
 File: app/lib/content-security-policy.test.ts; app/lib/host-routing.test.ts
+
+### F-367 [P3] open - The "two applies at once" test proves the claim only when the two POSTs happen to overlap
+File: e2e/onboarding.spec.ts:710-728
+
+### F-368 [P3] open - The 1-second apply timings are hard assertions in CI too
+File: e2e/onboarding.spec.ts:725, :738
+
+### F-370 [P3] open - An apply that loses an address race with a concurrent page create answers 500
+File: app/features/ai/apply-run.server.ts:36, :52
+
+### F-372 [P3] unverified - Home's loader opens up to nine inSite transactions per load against a pool of five
+File: app/features/admin-shell/home.tsx (loader); app/lib/db.server.ts:5
+
+### F-373 [P3] open - design.md's AI-drafting row still says the first page is badged Home page and a failed apply is an alert banner
+File: blueprint/context/design.md:240
+
+### F-374 [P3] unverified - The 390px test is titled "the actions do not wrap", but the row probably does wrap; it checks only the link's own height
+File: e2e/onboarding.spec.ts:504

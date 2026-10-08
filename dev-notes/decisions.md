@@ -4549,3 +4549,89 @@ module is `start-wait.tsx`.
 Beats: a stream or SSE (D154), and a meta refresh (a full reload each time,
 losing focus).
 Costs: one loader request per open wait page every 2 seconds.
+
+## D415 - Item 18b4 splits into 18b4a and 18b4b (2026-10-08)
+
+**Chose:** 18b4a is the review, Use this draft and Home; 18b4b is Preview
+and Publish website (owner).
+Beats: one item of ~10 steps; leaving Preview and Publish unplanned, which
+would leave journey 1 without an end.
+Costs: until 18b4b, Home's ready panel ends at Edit the home page.
+
+## D416 - A site uses one AI draft in v1 (2026-10-08)
+
+**Chose:** once a run is `applied`, onboarding is no longer offered - the
+gate sends `/start*` to `/admin`, and Try again starts nothing.
+Beats: a second apply adding a second set of pages (`home-2`, `about-2`)
+and replacing the menu under the first.
+Costs: before applying, only Change the description and Try again remain;
+after, the person edits the drafts by hand.
+
+## D417 - Apply fills the description and colour only when unset; it replaces the menu and home page (2026-10-08)
+
+**Chose:** the site description is written only when it is `''`; the brand
+colour only when it is `''` and there is no logo (D167). The menu and
+`home_page_id` are replaced.
+Beats: overwriting what a person typed in Settings after Start blank;
+keeping a menu that points at none of the new pages.
+Costs: a site that chose Start blank and built a menu loses it on apply.
+
+## D418 - Home is the admin's landing; editors and authors keep Posts (2026-10-08)
+
+**Chose:** an admin's `/admin` is Home, first in the sidebar; an editor or
+author on `/admin` is redirected to `/admin/posts` (not a 404).
+Beats: Home for every role, whose content (the draft, the AI allowance) is
+admin-only, leaving an empty screen for authors.
+Costs: two landings to keep in step with the sidebar.
+
+## D419 - Drafted page addresses come from titles, never the proposal (2026-10-08)
+
+**Chose:** `slugFromTitle` then `nextFreeSlug` against stored pages,
+`RESERVED_PAGE_SLUGS` and earlier pages of the same proposal (F-353's
+carry-forward); buttons point at those addresses.
+Beats: trusting AI-written addresses.
+Costs: an apply racing a concurrent page create on the same address
+answers 500 (F-370, backlog).
+
+## D420 - The run is claimed first in the apply transaction (2026-10-08)
+
+**Chose:** `update ai_runs set status = 'applied' where ... and status =
+'succeeded' returning result` opens the transaction; the row lock
+serialises concurrent applies and the loser sees no row and creates nothing.
+Beats: an advisory lock, or a read-then-write check.
+Costs: none known.
+
+## D421 - A succeeded run whose proposal no longer parses reads as failed `invalid` (2026-10-08)
+
+**Chose:** `runView` takes whether the result parses; the wait, Try again
+and Home (`findLatestFinishedRun`) all apply it. Pressing Use this draft on
+such a run redirects to its own page, which shows the failed state with Try
+again (F-369).
+Beats: a 500, a review with nothing in it, or a 400 banner inside a review
+that has no Try again.
+Costs: the stored result is re-parsed on every read.
+
+## D422 - The AI meter shows a percentage used, rounded down, capped at 100 (2026-10-08)
+
+**Chose:** "N% of this month's AI allowance used. Renews on <date>." on a
+native `<meter>` whose value is capped at the allowance; "No monthly AI
+limit." and no meter without one. Never credits or tokens.
+Beats: credits left (the mock).
+Costs: someone at 99.9% reads 99%.
+
+## D423 - The home page is `p1`, else the first page - one helper (2026-10-08)
+
+**Chose:** `homePageKey(proposal)` decides it for both the review's Home
+page badge and the apply's `home_page_id` (F-364).
+Beats: badging by position, which disagreed with apply when `p1` was not
+first.
+Costs: none known.
+
+## D424 - Home's smaller rules (2026-10-08)
+
+**Chose:** Your pages shows the first 20 and links to Pages only past 20;
+the ready panel omits Edit the home page when `home_page_id` is null and
+drops "We drafted N pages" when N is 0; N is counted from the applied run's
+re-parsed result.
+Beats: a stored page count (a new column), or a panel with a dead link.
+Costs: one parse per Home load while a draft is applied and unpublished.
