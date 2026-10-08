@@ -893,6 +893,49 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Home");
   });
 
+  test("on to the end: Preview, Back to Home, Publish website, View your site", async ({
+    page,
+    context,
+  }) => {
+    await signUpAndConfirm(page);
+    const address = made.addresses[made.addresses.length - 1];
+    await page.getByRole("radio", { name: /Business/ }).check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
+    await page.getByRole("button", { name: "Build my site" }).click();
+    await expectDraft(page);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL(/\/admin$/);
+
+    // Preview opens in a new page: the drafted home page and its menu.
+    const opened = context.waitForEvent("page");
+    await page.getByRole("link", { name: "Preview" }).click();
+    const preview = await opened;
+    await preview.waitForURL("**/admin/preview");
+    await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+    const menu = preview.getByRole("navigation", { name: "Site" });
+    await expect(menu.getByRole("link")).toHaveText(["Home", "About"]);
+
+    // Back to Home, then Publish website.
+    await preview.getByRole("link", { name: "Back to Home" }).click();
+    await preview.waitForURL(/\/admin$/);
+    await preview.getByRole("button", { name: "Publish website" }).click();
+    await preview.waitForURL(/\/admin\?published=1$/);
+    const banner = preview.getByRole("status");
+    await expect(banner).toContainText("Your website is published.");
+
+    // View your site opens the site itself.
+    const siteOpened = context.waitForEvent("page");
+    await banner.getByRole("link", { name: "View your site" }).click();
+    const site = await siteOpened;
+    await site.waitForURL(siteUrl("/", address));
+    await expect(site.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+    await expect(site.getByRole("navigation", { name: "Site" }).getByRole("link")).toHaveText([
+      "Home",
+      "About",
+    ]);
+  });
+
   test("as full page loads: each step opened by its address", async ({ page }) => {
     await signUpAndConfirm(page);
     await page.goto("/start?kind=business");

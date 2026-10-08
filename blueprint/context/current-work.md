@@ -150,7 +150,7 @@ live with a link to it.
   page leaves its other draft pages draft; the publish POST answers in
   **under 1 s** (quality-bar *Admin saves*), timed in the test, one local
   sample recorded in verify's evidence; no horizontal scroll at 390px.
-- [ ] **Step 5 - journey 1 to the end** - `design.md`: the Home row (the
+- [x] **Step 5 - journey 1 to the end** - `design.md`: the Home row (the
   ready panel's Publish website and Preview, the published banner, the
   half-size preview cut with its reason), a new Preview row, the First run
   row and journey 1 marked built. *Done when:* `e2e/onboarding.spec.ts`'s
