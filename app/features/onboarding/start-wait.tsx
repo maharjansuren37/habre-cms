@@ -16,8 +16,14 @@ import { refusalMessage } from "./start-refusals.ts";
 import { startRun } from "./start-run.server.ts";
 import { findThisRun } from "./this-run.server.ts";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Building your site - Habre" }];
+export function meta({ loaderData }: Route.MetaArgs) {
+  const title =
+    loaderData?.state === "succeeded"
+      ? "Your draft is ready"
+      : loaderData?.state === "failed"
+        ? "Couldn't build your site"
+        : "Building your site";
+  return [{ title: `${title} - Habre` }];
 }
 
 const POLL_MS = 2000;

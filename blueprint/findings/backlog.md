@@ -579,7 +579,7 @@ File: app/features/onboarding/start-run.ts:44; app/features/ai/run-generation.ts
 ### F-359 [P3] open - The host-split Playwright server pins only `OPENROUTER_API_KEY=`, not `AI_PROVIDERS=`
 File: playwright.config.ts:57
 
-### F-360 [P3] open - The wait page's title is always "Building your site"
+### F-360 [P3] closed - The wait page's title is always "Building your site"
 File: app/features/onboarding/start-wait.tsx:15-17
 
 ### F-361 [P3] open - AI-written page titles are used as React keys

@@ -54,7 +54,7 @@ the owner chose this group on 2026-10-08.
   passes with those tests, each seen failing before the change; the existing
   "third run is refused as busy" test still expects `busy`.
 
-- [ ] **Step 2 - The wait's title follows its state (F-360)** - `meta` in
+- [x] **Step 2 - The wait's title follows its state (F-360)** - `meta` in
   `onboarding/start-wait.tsx` reads `loaderData.state`: running "Building your
   site - Habre", succeeded "Your draft is ready - Habre", failed "Couldn't
   build your site - Habre"; with no `loaderData` (an error) it keeps the
