@@ -31,6 +31,10 @@ export default [
     route("start/about", "features/onboarding/start-about.tsx"),
     route("start/:runId", "features/onboarding/start-wait.tsx"),
   ]),
+  // The admin's preview of the site (item 18b4b): a platform path in the site's look.
+  layout("features/preview/preview-layout.tsx", [
+    route("admin/preview", "features/preview/preview-home.tsx"),
+  ]),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.tsx"),
     route("admin/posts", "features/content/post-list.tsx"),

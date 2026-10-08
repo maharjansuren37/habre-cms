@@ -86,7 +86,7 @@ live with a link to it.
   unknown slug and `/posts/hello` to the site origin; `https://…`,
   `mailto:`, `#top` and `//evil.example` unchanged. `npm run verify`
   passes (the public pages' browser tests stay green in Step 2's run).
-- [ ] **Step 2 - the preview of the home page** - `content-security-policy.ts`:
+- [x] **Step 2 - the preview of the home page** - `content-security-policy.ts`:
   `PolicyArea` gains `"preview"`, which `areaForPath` returns for
   `/admin/preview` and under; its policy is the public one (style nonce, no
   `blob:`). `app/root.tsx`: the site look (`data-surface="site"`,
@@ -229,6 +229,16 @@ live with a link to it.
   load on every Home visit) or rendering the document inside the admin with
   the brand applied through the CSSOM. Beat: building it; the Preview link
   shows the real thing.
+- **The preview's links to the live site use the site's subdomain origin**
+  (`siteOrigin`, the address the sidebar's View site uses), not
+  `mainOrigin`: the platform has no own-domain lookup for a member's site,
+  and the subdomain redirects to the main address (D173). (build, Step 2)
+- **The preview bar is `--color-surface-sunken`** - `--color-surface-2`
+  does not exist; inside the site scope it is `--neutral-100`, light on
+  every device. (build, Step 2)
+- **A refused preview (editor, author) shows only "Page not found."**, no
+  bar or site chrome: the layout's loader never ran, so there is no site
+  to draw. (build, Step 2)
 - **The published banner is a `?published=1` flag** read as a boolean.
   Beat: a session flash (no flash store exists).
 

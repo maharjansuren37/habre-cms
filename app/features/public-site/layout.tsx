@@ -9,7 +9,7 @@ import type { Route } from "./+types/layout";
 import styles from "./layout.module.css";
 import { FALLBACK_SITE_TITLE, publicTitle } from "./public-title.ts";
 
-type NavLink = { label: string; href: string };
+export type NavLink = { label: string; href: string };
 
 /**
  * The saved navigation, resolved to real hrefs: a `url` item passes through
@@ -70,13 +70,16 @@ export async function loader({ context }: Route.LoaderArgs) {
  * Router's error-boundary docs), so without this shared shell a 404 would
  * lose the chrome around it rather than sit inside it (item 4b's D-5).
  */
-function Chrome({
+export function Chrome({
   settings,
   navLinks,
+  homeHref = "/",
   children,
 }: {
   settings: Pick<SiteSettings, "siteTitle" | "logoUrl">;
   navLinks: NavLink[];
+  /** Where the logo and name lead: `/`, or the preview's home (item 18b4b). */
+  homeHref?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -85,7 +88,7 @@ function Chrome({
         <div className={styles.headerInner}>
           <Link
             className={settings.logoUrl ? styles.brand : `${styles.brand} ${styles.wordmark}`}
-            to="/"
+            to={homeHref}
           >
             {settings.logoUrl && <img src={settings.logoUrl} alt="" className={styles.logo} />}
             {settings.siteTitle}

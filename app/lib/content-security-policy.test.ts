@@ -93,3 +93,20 @@ test("/confirm-email is admin; near misses are public (15e1)", () => {
   assert.equal(areaForPath("/confirm-email/x"), "public");
   assert.equal(areaForPath("/confirm-emails"), "public");
 });
+
+test("/admin/preview and the paths under it are the preview area; near misses stay admin (18b4b)", () => {
+  assert.equal(areaForPath("/admin/preview"), "preview");
+  assert.equal(areaForPath("/admin/preview/about"), "preview");
+  assert.equal(areaForPath("/admin/previewx"), "admin");
+  assert.equal(areaForPath("/admin"), "admin");
+});
+
+test("the preview policy is the public one: a style nonce and no blob: images (18b4b)", () => {
+  const preview = contentSecurityPolicy({ nonce: "abc123==", area: "preview", imageBaseUrl: R2 });
+  const publicPolicy = contentSecurityPolicy({
+    nonce: "abc123==",
+    area: "public",
+    imageBaseUrl: R2,
+  });
+  assert.equal(preview, publicPolicy);
+});

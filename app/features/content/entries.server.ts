@@ -535,6 +535,17 @@ export async function findPublishedPageSlugs(
   );
 }
 
+/** Every page of the site, whatever its status - the preview's menu and link
+ *  rewriting (item 18b4b). */
+export async function listPageSlugs(siteId: string): Promise<{ id: string; slug: string }[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<{ id: string; slug: string }[]>`
+    select id, slug from entries where site_id = ${siteId} and type = 'page'
+  `,
+  );
+}
+
 /** One published entry's full content, for its own page. */
 type PublicBase = {
   title: string;
@@ -655,4 +666,25 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
   const { blocks, blocksFormat, slug, ...page } = row;
   assertKnownFormat(slug, "page", blocksFormat);
   return { ...page, document: blocks };
+}
+
+/**
+ * The home page whatever its status, for the admin's preview (item 18b4b).
+ * `findHomePage` without the published filter; only what the preview draws.
+ */
+export async function findPreviewHomePage(
+  siteId: string,
+): Promise<{ slug: string; title: string; document: Document } | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ slug: string; title: string; blocks: Document; blocksFormat: string }[]>`
+    select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat"
+    from site_settings s
+      join entries e on e.id = s.home_page_id and e.site_id = s.site_id
+    where s.site_id = ${siteId} and e.type = 'page'
+  `,
+  );
+  if (!row) return null;
+  assertKnownFormat(row.slug, "page", row.blocksFormat);
+  return { slug: row.slug, title: row.title, document: row.blocks };
 }

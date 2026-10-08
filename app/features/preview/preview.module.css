@@ -1,0 +1,30 @@
+/* The preview bar (item 18b4b): a full-width band above the site's header,
+ * inside the site's light scope, so it is light whatever the device. */
+.bar {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.barInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-5);
+}
+
+.text {
+  margin: 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
