@@ -1,8 +1,8 @@
 # Fix: v1 journey polish (tidy batch)
 
 **Type:** Fix
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-08, 8e2c4d7a2e9d, 6 of 6 proven (Step 4 by screenshot; F-356's wrap no longer reproduces at 390px)
+**Reviewed:** 2026-10-08, 8e2c4d7a2e9d, current, every lens (via reviewer) - 0 blocking
 
 ## Goal
 
