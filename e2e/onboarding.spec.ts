@@ -778,14 +778,21 @@ test.describe("use this draft", () => {
     expect(response?.status()).toBe(404);
   });
 
-  test("a draft that no longer parses shows an alert and creates nothing", async ({ page }) => {
+  test("pressing Use this draft on a draft that no longer parses returns to its failed page and creates nothing", async ({
+    page,
+  }) => {
     const runId = await seedRun("succeeded", { result: validProposal() });
     await logInThenOpen(page, `/start/${runId}`);
     await withDatabase(async (sql) => {
       await sql`update ai_runs set result = ${sql.json({} as never)} where id = ${runId}`;
     });
-    const response = await applyForm(page, runId);
-    expect(response.status()).toBe(400);
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await expect(page.getByRole("heading", { name: "Couldn't build your site" })).toBeVisible();
+    await expect(
+      page.getByText("Something went wrong on our side. Try again, or start blank."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    expect(page.url()).toMatch(new RegExp(`/start/${runId}$`));
     expect(await pagesOfSite()).toHaveLength(0);
     expect((await settingsOfSite()).runStatus).toBe("succeeded");
   });

@@ -275,7 +275,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   bounding box is 52px tall, Change the description's text sits on one line
   (box height 52px), and there is no horizontal scroll; step 1's Continue is
   also 52px.
-- [ ] **Step 12 - an unusable draft returns to its failed page (F-369)** -
+- [x] **Step 12 - an unusable draft returns to its failed page (F-369)** -
   `start-wait.tsx`'s action: `applyRun`'s `invalid` redirects to
   `/start/<runId>`, whose loader already shows the failed `invalid` state
   with Try again - the same in the JS and no-JS flows. The `applyError`

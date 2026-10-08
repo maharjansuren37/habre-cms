@@ -119,13 +119,13 @@ File: e2e/onboarding.spec.ts:493-495 (`expectDraft`), :520-526
 ### F-363 [P2] fixed - "Two signups at once" can get "Signup is busy" instead of "is taken" when other tests hold the password-check slots
 File: e2e/signup.spec.ts:272; app/features/signup/signup.server.ts:64
 
-### F-364 [P3] open - The review badges the first page "Home page", but Use this draft makes p1 the home page
+### F-364 [P3] fixed - The review badges the first page "Home page", but Use this draft makes p1 the home page
 File: app/features/onboarding/start-wait.tsx:167; app/features/ai/apply-plan.ts:61
 
-### F-365 [P3] open - Home trusts status 'succeeded' without the parse rule: an unreadable draft is offered as waiting, an unreadable applied one reads "0 pages"
+### F-365 [P3] fixed - Home trusts status 'succeeded' without the parse rule: an unreadable draft is offered as waiting, an unreadable applied one reads "0 pages"
 File: app/features/ai/runs.server.ts:139,151; app/features/admin-shell/home.tsx:97,127
 
-### F-366 [P3] open - On /start the kit's large button loses to the base button rule; Use this draft is 44px beside a 52px link that wraps at 390px
+### F-366 [P3] fixed - On /start the kit's large button loses to the base button rule; Use this draft is 44px beside a 52px link that wraps at 390px
 File: app/features/onboarding/onboarding.module.css:198-209; app/features/onboarding/start-wait.tsx:231
 
 ### F-367 [P3] open - The "two applies at once" test proves the claim only when the two POSTs happen to overlap
@@ -134,7 +134,7 @@ File: e2e/onboarding.spec.ts:710-728
 ### F-368 [P3] open - The 1-second apply timings are hard assertions in CI too
 File: e2e/onboarding.spec.ts:725, :738
 
-### F-369 [P3] open - "Shows an alert and creates nothing" never looks for the alert, and the alert points at a Try again the review lacks
+### F-369 [P3] fixed - "Shows an alert and creates nothing" never looks for the alert, and the alert points at a Try again the review lacks
 File: e2e/onboarding.spec.ts:761-771; app/features/onboarding/start-wait.tsx:86-92, :228-229
 
 ### F-370 [P3] open - An apply that loses an address race with a concurrent page create answers 500

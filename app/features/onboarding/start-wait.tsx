@@ -86,10 +86,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (form.get("intent") === "apply") {
     const result = await applyRun(siteId, run.id, userId);
     if (result.ok || result.reason === "not_succeeded") throw redirect("/admin");
-    return data(
-      { applyError: "This draft can no longer be used. Try again, or start blank." },
-      { status: 400 },
-    );
+    // invalid: the loader reads an unparseable succeeded run as failed, with Try again.
+    throw redirect(`/start/${run.id}`);
   }
   if (form.get("intent") !== "retry" || !viewOf(run).canRetry) {
     throw data("Bad Request", { status: 400 });
@@ -224,9 +222,6 @@ export default function StartRun({ loaderData, actionData }: Route.ComponentProp
               } empty. Add your own from each page's editor.`}
               className={styles.banner}
             />
-          )}
-          {actionData && "applyError" in actionData && (
-            <Message tone="error" title={actionData.applyError} className={styles.banner} />
           )}
           <div className={styles.actions}>
             {change}
