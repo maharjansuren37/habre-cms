@@ -2,8 +2,8 @@
 
 **From build plan:** item 18b4a
 **Type:** Feature
-**Verified:** 2026-10-08, 0a1f5d7c25e6, 8 of 8 proven (npm run verify 930/930; npm run test:e2e 515 passed, 0 failed, 0 skipped; apply POST 41 ms single, 42/65 ms concurrent, one local sample; screenshots of the review and Home at 1280 and 390, light and dark, no console errors). Screen-reader announcement not heard - needs-you accessibility line
-**Reviewed:** 2026-10-08, 0a1f5d7c25e6, current, every lens (via reviewer) - 0 blocking; F-364 to F-370 P3 open, F-371 P2 and F-372 P3 unverified, F-354 closed
+**Verified:** 2026-10-08, b45ba7ebfd18, 12 of 12 proven (npm run verify 932/932; npm run test:e2e 518 passed, 0 failed, 0 skipped; apply POST 41 ms single, 34/60 ms concurrent, one local sample; Steps 9-12: each new test seen red then green; F-366 heights measured in Chromium at 390px; screenshot of the failed page after an unusable apply, Couldn't build + Try again). Screen-reader announcement not heard - needs-you accessibility line
+**Reviewed:** 2026-10-08, b45ba7ebfd18, changed (Steps 9-12, 37d103a..5dd8237), every lens (via reviewer) - 0 blocking; F-364, F-365, F-366, F-369 closed; F-373 P3 open, F-374 P3 unverified
 
 ## Goal
 
@@ -437,8 +437,9 @@ P3s worth fixing before ship; F-367, F-368, F-370 can wait; F-371 (P2) and
 F-372 unverified.
 
 **Next, in order:**
-1. Owner chose to fix F-364/365/366/369 first (2026-10-08): `build` Steps
-   9-12 (spec'd above), then `verify` and `review` again.
+1. Done: Steps 9-12 built (autopilot, `2834970`..`5dd8237`), verified and
+   reviewed; F-364/365/366/369 closed. Owner reads `git log -p 37d103a..HEAD`.
+   Open from that pass: F-373 (design.md row, P3), F-374 (test title, P3).
 2. `ship` (squash-merge; check `git log origin/main..main` first - memory
    note on unpushed main). Push is a separate yes.
 
