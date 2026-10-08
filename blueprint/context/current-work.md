@@ -74,7 +74,7 @@ and both go on to the run's page. Journey 1 then reads as `design.md` has it.
   `e2e/manage-settings.spec.ts` pass unchanged (locally, with R2, so the
   logo tests run); `npm run verify` passes; Settings at 1280 and 390 matches
   a screenshot taken before the move.
-- [ ] **Step 2 - Use this draft writes the AI's colour whenever none is
+- [x] **Step 2 - Use this draft writes the AI's colour whenever none is
   set** - `planApply` drops `hasLogo` (`ApplySite` loses it; `applyRun` and
   the wait's loader stop reading the logo). *Done when:* an `apply-plan`
   unit test shows a site with a logo and no colour gets the proposal's

@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { textDocument } from "./helpers/documents.ts";
 import { createInvite, deleteInvites, randomAddress } from "./helpers/invites.ts";
 import { tokenFromMail, waitForMail } from "./helpers/mail.ts";
+import { insertTestMediaRow } from "./helpers/media.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
@@ -704,6 +705,29 @@ test.describe("use this draft", () => {
     await page.waitForURL((url) => !url.pathname.startsWith("/start"));
     const settings = await settingsOfSite();
     expect(settings.brandColor).toBe("#336699");
+    expect(settings.runStatus).toBe("applied");
+  });
+
+  test("a site with a logo and no colour gets the proposal's colour, listed first in the review", async ({
+    page,
+  }) => {
+    const mediaId = await insertTestMediaRow({ uploadedBy: admin.email, siteId });
+    await withDatabase(async (sql) => {
+      await sql`
+        update site_settings set logo_media_id = ${mediaId}, site_description = 'Mine.'
+        where site_id = ${siteId}
+      `;
+    });
+    const runId = await seedRun("succeeded", { result: validProposal() });
+    await logInThenOpen(page, `/start/${runId}`);
+    // The description is set, so the colour is the first thing "Your site" lists.
+    const site = sectionOf(page, "Your site");
+    await expect(site.getByRole("term")).toHaveText(["Brand colour"]);
+    await expect(site.getByText("#aa5500")).toBeVisible();
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL((url) => !url.pathname.startsWith("/start"));
+    const settings = await settingsOfSite();
+    expect(settings.brandColor).toBe("#aa5500");
     expect(settings.runStatus).toBe("applied");
   });
 

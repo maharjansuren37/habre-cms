@@ -58,7 +58,6 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     const settings = await getSiteSettings(siteId, env.R2_PUBLIC_URL);
     const plan = planApply(proposal.data, {
       takenPageSlugs: [],
-      hasLogo: settings.logoMediaId !== null,
       brandColor: settings.brandColor,
       siteDescription: settings.siteDescription,
     });
