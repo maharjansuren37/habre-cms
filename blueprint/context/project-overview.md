@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-08, `main` after `60458c1` (18b3 shipped).
+Generated 2026-10-08, `main` after `e4c6f1a` (18b4a shipped).
 
 ## What this is
 
@@ -34,19 +34,18 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not deployed** (13-18b3; archives in `blueprint/history/`,
-deploy steps in `blueprint/production-pending.md`): React Router 8 (13);
-the new look (13b, `design.md`); TipTap, one v4 document per entry, sections and templates
-(14a1-14c2, `0009` deletes old content); sites, memberships, row-level
-security (15a); invite signup (15b, `0012` deletes every account); password
-reset (15c); storage cap (15d); Your account, deleting it (15e1-15e2); sites
-by host, suspend, Caddy (16a-16b); SEO basics (17); optimised images
-(17b); brand colour and style presets (18a1); logo upload and its colours (18a2); the AI run engine -
-`ai_runs`, proposal, credits, `ai:try` (18b1); Anthropic and OpenAI direct
-fallbacks, `ai:measure`, live runs owed (18b2, D392); onboarding `/start`
-steps 1-2 and the wait, daily cap, test-only `fake` provider (18b3).
+**Built for v1, not deployed** (13-18b4a; archives in `blueprint/history/`,
+deploy steps in `blueprint/production-pending.md`): React Router 8 (13); the
+new look (13b); TipTap v4 documents, sections, templates (14a1-14c2, `0009`
+deletes old content); sites and row-level security (15a); invite signup (15b,
+`0012` deletes every account); password reset (15c); storage cap (15d); Your
+account (15e1-15e2); sites by host, suspend, Caddy (16a-16b); SEO (17);
+optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
+run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
+`/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
+this draft, Home with the AI meter (18b4a).
 
-**Platform v1 (queued):** the AI screens (18b4-18b5); contact
+**Platform v1 (queued):** Preview and Publish (18b4b), Make it yours (18b5); contact
 form; Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
@@ -147,7 +146,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18b3 done; nothing in flight; 18b4-18b5 and 19-21
-  queued. Last shipped: 18b3.
-- **Next:** `spec` item 18b4, Review and apply.
+- **Plan:** items 1-18b4a done; nothing in flight; 18b4b, 18b5 and 19-21
+  queued. Last shipped: 18b4a.
+- **Next:** `spec` item 18b4b, Preview and Publish website.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
