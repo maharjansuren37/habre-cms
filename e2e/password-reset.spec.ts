@@ -248,14 +248,14 @@ test("journey 7: forgot, reset, signed in here and out everywhere else", async (
       "At least 12 characters",
     );
     await choose(b, NEW_PASSWORD);
-    await b.waitForURL("**/admin/posts");
+    await b.waitForURL("**/admin");
     await expect(b.getByRole("heading", { level: 1 })).toBeVisible();
     // Their own site, after the redirect and again on a full page load (F-246).
     await expect(
       b.getByRole("complementary").getByText(admin.siteTitle, { exact: true }),
     ).toBeVisible();
     await b.reload();
-    await expect(b).toHaveURL(/\/admin\/posts$/);
+    await expect(b).toHaveURL(/\/admin$/);
     await expect(
       b.getByRole("complementary").getByText(admin.siteTitle, { exact: true }),
     ).toBeVisible();
@@ -270,7 +270,7 @@ test("journey 7: forgot, reset, signed in here and out everywhere else", async (
   await loginAttempt(page, admin.email, admin.password);
   await expect(page.getByText("That email and password don’t match.")).toBeVisible();
   await loginAttempt(page, admin.email, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("a scanner opening the link does not use it up", async ({ page, playwright, baseURL }) => {
@@ -284,7 +284,7 @@ test("a scanner opening the link does not use it up", async ({ page, playwright,
 
   await page.goto(link);
   await choose(page, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("a link works once", async ({ page, baseURL }) => {
@@ -292,7 +292,7 @@ test("a link works once", async ({ page, baseURL }) => {
   const link = await linkFor(page, admin.email);
   await page.goto(link);
   await choose(page, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await page.context().clearCookies();
 
   const again = await page.goto(link);
@@ -312,7 +312,7 @@ test("a link works once", async ({ page, baseURL }) => {
   await loginAttempt(page, admin.email, "another passphrase 99");
   await expect(page.getByText("That email and password don’t match.")).toBeVisible();
   await loginAttempt(page, admin.email, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("only the newest link works", async ({ page }) => {
@@ -346,7 +346,7 @@ test("an expired link shows the expired state and changes nothing", async ({ pag
   });
   expect(await resp.text()).toContain(EXPIRED);
   await loginAttempt(page, admin.email, admin.password);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("a membership deactivated after the request refuses the reset", async ({ page }) => {
@@ -385,7 +385,7 @@ test("a short password is explained beside the field and the link still works", 
     "At least 12 characters Use at least 12 characters for the password.",
   );
   await choose(page, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 });
 
 test("the login page links to the reset page; with email off it asks for an admin", async ({
@@ -419,7 +419,7 @@ test("a completed reset lifts the login lock on that email", async ({ page, brow
 
   await page.goto(await linkFor(page, admin.email));
   await choose(page, NEW_PASSWORD);
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
 
   const fresh = await browser.newContext({
     baseURL,
@@ -428,7 +428,7 @@ test("a completed reset lifts the login lock on that email", async ({ page, brow
   try {
     const other = await fresh.newPage();
     await loginAttempt(other, admin.email, NEW_PASSWORD);
-    await expect(other).toHaveURL(/\/admin\/posts$/);
+    await expect(other).toHaveURL(/\/admin$/);
   } finally {
     await fresh.close();
   }

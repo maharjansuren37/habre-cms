@@ -1,5 +1,6 @@
 import { Link, Outlet, redirect } from "react-router";
 import { runner } from "#app/features/ai/runner.server.ts";
+import { hasAppliedRun } from "#app/features/ai/runs.server.ts";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
@@ -13,11 +14,12 @@ import { startGate } from "./start-gate.ts";
 // this layout (step 2's, the wait's retry) would otherwise skip the gate.
 const gateMiddleware: Route.MiddlewareFunction = async ({ context }) => {
   const { siteId } = context.get(userContext);
-  const [{ suspended }, published] = await Promise.all([
+  const [{ suspended }, published, applied] = await Promise.all([
     findMemberSite(siteId),
     hasPublishedEntries(siteId),
+    hasAppliedRun(siteId),
   ]);
-  const gate = startGate({ aiOn: runner !== null, suspended, published });
+  const gate = startGate({ aiOn: runner !== null, suspended, published, applied });
   if (gate.kind === "redirect") throw redirect(gate.to);
 };
 

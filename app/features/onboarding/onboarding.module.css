@@ -197,13 +197,15 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
 
 /* The kit's large button. */
-.large {
+.actions .large {
   min-height: var(--size-control-lg);
   padding: 0 var(--space-6);
 }
@@ -288,10 +290,75 @@
   accent-color: var(--color-primary);
 }
 
-.titles {
-  margin: var(--space-6) 0 0;
+/* The review (18b4a): one section per drafted page, the menu, and the site. */
+.reviewSection {
+  margin-top: var(--space-6);
+}
+
+.reviewTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.reviewHeading {
+  margin: 0;
+  font-family: var(--font-family-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle);
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.reviewList {
+  margin: 0 0 var(--space-3);
   padding-left: var(--space-6);
   line-height: var(--leading-reading);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.facts dd {
+  margin: 0 0 var(--space-2);
+}
+
+.colour {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* --swatch is set through the CSSOM. */
+.colourSwatch {
+  flex: none;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--swatch, var(--color-surface-sunken));
 }
 
 .primaryLink,

@@ -96,7 +96,7 @@ async function signInOutcome(
     await page.getByRole("button", { name: "Log in" }).click();
     const refusal = page.getByText("That email and password don’t match.");
     return await Promise.race([
-      page.waitForURL("**/admin/posts").then(() => "signed in" as const),
+      page.waitForURL(/\/admin(\/posts)?$/).then(() => "signed in" as const),
       refusal.waitFor().then(() => "refused" as const),
       page
         .getByText("Login is busy.")
@@ -525,7 +525,7 @@ test("with email off, deleting a site with a member sends nothing and still succ
   await page.getByLabel("Email").fill(admin.email);
   await page.getByLabel("Password").fill(admin.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL("**/admin/posts");
+  await page.waitForURL("**/admin");
   await page.goto(`${off}/admin/account/delete`);
   await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
   await submitDelete(page, admin.password);

@@ -36,10 +36,10 @@ test("logging in from a protected page returns to that page", async ({ page }) =
 
   await logIn(page);
 
-  // /admin itself redirects to the posts list (item 3) - the same admin area
+  // An admin lands on Home at /admin (item 18b4a) - the same admin area
   // the protected page asked for.
-  await expect(page).toHaveURL("/admin/posts");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
+  await expect(page).toHaveURL("/admin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home");
 });
 
 test("signed out, opening /admin/pages sends you to login and back to /admin/pages", async ({
@@ -94,11 +94,11 @@ test("five failed logins lock the email, even for the right password", async ({ 
 test("a logged-in visitor to the login page is sent to the admin", async ({ page }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 
   await page.goto("/admin/login");
 
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 });
 
 test("a cross-site POST is refused before reaching the action", async ({ request }) => {
@@ -135,12 +135,12 @@ test("a deactivated user is refused with the same message", async ({ page }) => 
 test("revoking a user's sessions sends them to login on their next request", async ({ page }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 
   await revokeSessions(user.email);
   await page.reload();
 
-  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fposts");
+  await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin");
 });
 
 test("a session ending during a client-side navigation returns to that page after login", async ({
@@ -148,7 +148,7 @@ test("a session ending during a client-side navigation returns to that page afte
 }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 
   await revokeSessions(user.email);
   // A nav link, not page.goto: the browser fetches /admin/pages.data, and the
@@ -166,7 +166,7 @@ test("logging out ends the session, including any copy of its cookie", async ({
 }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
   const sessionCookies = await context.cookies();
 
   await page.getByRole("button", { name: "Log out" }).click();
@@ -185,7 +185,9 @@ test("a client-side navigation to New post after the session is gone goes to log
 }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
+  await page.goto("/admin/posts");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
 
   await page.context().clearCookies();
   await page.getByRole("link", { name: "New post" }).first().click();
@@ -198,7 +200,7 @@ test("a client-side navigation to New page after the session is gone goes to log
 }) => {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
   await page.goto("/admin/pages");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pages");
 

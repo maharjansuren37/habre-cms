@@ -103,7 +103,7 @@ test("an admin resets another user's password, and the old password stops workin
 
   await page.getByLabel("Password").fill(newPassword);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 });
 
 test("deactivating a user ends their session immediately and blocks login; reactivating restores it", async ({
@@ -118,7 +118,7 @@ test("deactivating a user ends their session immediately and blocks login; react
     "X-Forwarded-For": `10.${randomInt(256)}.${randomInt(256)}.16`,
   });
   await logIn(targetPage, target);
-  await expect(targetPage).toHaveURL("/admin/posts");
+  await expect(targetPage).toHaveURL("/admin");
 
   await logIn(page, admin);
   await page.goto("/admin/users");
@@ -138,7 +138,7 @@ test("deactivating a user ends their session immediately and blocks login; react
   await expect(page.getByText("User reactivated.")).toBeVisible();
 
   await targetPage.getByRole("button", { name: "Log in" }).click();
-  await expect(targetPage).toHaveURL("/admin/posts");
+  await expect(targetPage).toHaveURL("/admin");
 
   await targetContext.close();
 });

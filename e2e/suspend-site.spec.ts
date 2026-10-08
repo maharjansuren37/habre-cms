@@ -128,12 +128,12 @@ test("a suspended site's admin sees a standing notice on every screen, until uns
     await logIn(page, admin);
     const notice = page.getByText(NOTICE, { exact: true });
 
-    // A full page load of /admin, which lands on the posts list.
+    // A full page load of /admin, which is Home for an admin.
     await page.goto("/admin");
     await expect(notice).toBeVisible();
     await expect(page.getByText("Visitors see Not Found instead of its pages.")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home");
 
     // The banner around the title carries no role: it is a fact, not an outcome.
     const banner = notice.locator("xpath=ancestor::div[1]/..");

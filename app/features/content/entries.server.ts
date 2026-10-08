@@ -123,7 +123,7 @@ export async function findEntryForUser(
  * `JSON.stringify`: the column is jsonb, and a string would be stored as a JSON
  * string rather than the value itself.
  */
-function storedContent(input: DocumentInput) {
+function storedContent(input: Pick<DocumentInput, "document">) {
   return { blocks: sql.json(input.document as never), blocks_format: BLOCKS_FORMAT_V4 };
 }
 
@@ -198,6 +198,53 @@ async function insertDraft(
   `;
     return toEntry(row);
   });
+}
+
+/** Every page address of the site, for the apply plan's collision search. */
+export async function listPageSlugsIn(tx: TransactionSql, siteId: string): Promise<string[]> {
+  const rows = await tx<{ slug: string }[]>`
+    select slug from entries where site_id = ${siteId} and type = 'page'
+  `;
+  return rows.map((row) => row.slug);
+}
+
+/**
+ * Draft pages with addresses already chosen (the apply plan's), in the caller's
+ * transaction, in order. Returns their ids in the same order. No social image.
+ */
+export async function insertPageDraftsIn(
+  tx: TransactionSql,
+  siteId: string,
+  authorId: string,
+  pages: {
+    title: string;
+    slug: string;
+    seoTitle: string;
+    seoDescription: string;
+    document: Document;
+  }[],
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const page of pages) {
+    const [row] = await tx<{ id: string }[]>`
+      insert into entries ${sql({
+        site_id: siteId,
+        type: "page",
+        title: page.title,
+        seo_title: page.seoTitle,
+        seo_description: page.seoDescription,
+        social_image_media_id: null,
+        slug: page.slug,
+        ...storedContent({ document: page.document }),
+        status: "draft",
+        author_id: authorId,
+      })}
+      returning id
+    `;
+    if (!row) throw new Error("entries insert returned no row");
+    ids.push(row.id);
+  }
+  return ids;
 }
 
 export type UpdateResult =

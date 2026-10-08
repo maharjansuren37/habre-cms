@@ -20,9 +20,7 @@ test.afterEach(async () => {
   await deleteTestUser(user.email);
 });
 
-test("logIn tries again once when the login answers busy, and lands on the posts list", async ({
-  page,
-}) => {
+test("logIn tries again once when the login answers busy, and lands on Home", async ({ page }) => {
   let posts = 0;
   await page.route(
     (url) => url.pathname === "/admin/login" || url.pathname === "/admin/login.data",
@@ -36,6 +34,6 @@ test("logIn tries again once when the login answers busy, and lands on the posts
 
   await logIn(page, user);
 
-  await expect(page).toHaveURL(/\/admin\/posts$/);
+  await expect(page).toHaveURL(/\/admin$/);
   expect(posts).toBe(2);
 });

@@ -12,10 +12,11 @@ export type RunView = {
  * What the wait shows for a run, and whether it may be retried - one rule for the
  * loader and the retry action. A `running` row past the window had its finish
  * write lost, so it reads as a failed `timeout`. A refused run is not retried: the
- * same description would be refused again.
+ * same description would be refused again. A `succeeded` run whose result no
+ * longer parses as a proposal reads as a failed `invalid` and may be retried.
  */
 export function runView(
-  run: { status: string; error: string | null; createdAt: Date },
+  run: { status: string; error: string | null; createdAt: Date; resultParses: boolean },
   now: Date,
 ): RunView {
   const age = now.getTime() - run.createdAt.getTime();
@@ -23,6 +24,9 @@ export function runView(
   if (run.status === "running") {
     if (age > STALE_RUN_MS) return { state: "failed", error: "timeout", seconds, canRetry: true };
     return { state: "running", error: null, seconds, canRetry: false };
+  }
+  if (run.status === "succeeded" && !run.resultParses) {
+    return { state: "failed", error: "invalid", seconds, canRetry: true };
   }
   if (run.status === "succeeded" || run.status === "applied") {
     return { state: run.status, error: null, seconds, canRetry: false };

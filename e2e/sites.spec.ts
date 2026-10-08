@@ -37,7 +37,7 @@ async function logIn(page: Page, user: TestUser) {
 
 async function signIn(page: Page, user: TestUser) {
   await logIn(page, user);
-  await expect(page).toHaveURL("/admin/posts");
+  await expect(page).toHaveURL("/admin");
 }
 
 test.describe("a person signs in only through an active membership", () => {
@@ -61,12 +61,12 @@ test.describe("a person signs in only through an active membership", () => {
 
   test("a user whose membership is removed loses an open session", async ({ page }) => {
     await logIn(page, user);
-    await expect(page).toHaveURL("/admin/posts");
+    await expect(page).toHaveURL("/admin");
 
     await removeMembership(user.email);
     await page.reload();
 
-    await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fposts");
+    await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin");
   });
 
   test("a user deactivated through site_members cannot log in", async ({ page }) => {
@@ -78,12 +78,12 @@ test.describe("a person signs in only through an active membership", () => {
 
   test("a user deactivated through site_members loses an open session", async ({ page }) => {
     await logIn(page, user);
-    await expect(page).toHaveURL("/admin/posts");
+    await expect(page).toHaveURL("/admin");
 
     await deactivateUser(user.email);
     await page.reload();
 
-    await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin%2Fposts");
+    await expect(page).toHaveURL("/admin/login?redirectTo=%2Fadmin");
   });
 });
 
@@ -93,8 +93,8 @@ test("an admin of a second site can log in and reach the admin", async ({ page }
     const admin = await createSiteAdmin(siteId);
     await logIn(page, admin);
 
-    await expect(page).toHaveURL("/admin/posts");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Posts");
+    await expect(page).toHaveURL("/admin");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home");
   } finally {
     await deleteSite(siteId);
   }

@@ -527,7 +527,7 @@ test("journey 1: sign up, open the emailed link, confirm, and land in your own e
 
     await page.waitForURL("**/start");
     await page.getByRole("link", { name: "Start blank instead" }).click();
-    await page.waitForURL("**/admin/posts");
+    await page.waitForURL("**/admin");
     await expect(page.getByRole("complementary")).toContainText(signup.address);
     await expect(page.getByText(title)).toHaveCount(0);
     await page.goto("/admin/pages");
