@@ -340,6 +340,14 @@ test("Publish website publishes every draft page, no post, and Home says so", as
   ]);
 });
 
+test("/admin?published=1 shows no published banner when nothing is published", async ({ page }) => {
+  await seedPage("Only Draft", "only-draft");
+  await logIn(page, admin);
+  await page.goto("/admin?published=1");
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await expect(page.getByText("Your website is published.")).toHaveCount(0);
+});
+
 test("an editor's intent=publish POST is Not Found and publishes nothing", async ({ page }) => {
   const runId = await seedRun("succeeded");
   await logIn(page, admin);

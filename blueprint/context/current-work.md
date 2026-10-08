@@ -87,7 +87,7 @@ the owner chose this group on 2026-10-08.
   dark and "Change the description" reads centred on its own line; `npm run
   lint` passes.
 
-- [ ] **Step 5 - Home and the preview (F-377, F-380, F-379, F-381)** - in
+- [x] **Step 5 - Home and the preview (F-377, F-380, F-379, F-381)** - in
   `admin-shell/home.tsx`: the action calls `logSecurityEvent({ event:
   "request_refused", reason: "role", path, role, ip })` before its 404, the
   same fields `requireRole` logs; the loader's `justPublished` becomes
