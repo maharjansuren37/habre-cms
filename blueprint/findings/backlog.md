@@ -567,10 +567,10 @@ File: app/features/ai/chat-completion.ts:131-146; app/features/ai/anthropic-resp
 ### F-352 [P3] unverified - Step 6's "Anthropic shows cache reads on a second run" probably cannot pass
 File: app/features/ai/anthropic.server.ts:31; app/features/ai/instructions.ts
 
-### F-356 [P3] open - On the failed state at 390px, "Change the description" wraps with its text off-centre
+### F-356 [P3] fixed - On the failed state at 390px, "Change the description" wraps with its text off-centre
 File: app/features/onboarding/onboarding.module.css (`.actions`, `.primaryLink`, `.secondaryLink`)
 
-### F-357 [P3] open - Onboarding CSS uses literals where tokens exist
+### F-357 [P3] fixed - Onboarding CSS uses literals where tokens exist
 File: app/features/onboarding/onboarding.module.css
 
 ### F-358 [P3] closed - A site-level busy refusal says "Habre is busy building other sites"

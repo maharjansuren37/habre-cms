@@ -77,7 +77,7 @@ the owner chose this group on 2026-10-08.
   regex made case-insensitive if needed); the 390px test (:1115) still
   passes; the whole onboarding spec passes.
 
-- [ ] **Step 4 - Onboarding's action links (F-356, F-357)** - in
+- [x] **Step 4 - Onboarding's action links (F-356, F-357)** - in
   `onboarding/onboarding.module.css`, `.primaryLink`, `.secondaryLink` and
   `.back` get `justify-content: center; text-align: center`; the
   `inset 0 0 0 1px` (:152) and `1px solid` (:375) use `var(--border-width)`.
