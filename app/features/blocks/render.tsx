@@ -37,11 +37,16 @@ import { imageSizes } from "./image-sizes.ts";
  *
  * Sections, columns and blocks take `content.module.css`, the one stylesheet
  * the editor's canvas shares (item 14a1, step 3), so both stack the same way.
+ *
+ * `hrefFor` rewrites a button's and an inline link's address; the admin's
+ * preview uses it to keep links inside the preview. The public site passes
+ * nothing, so its output is unchanged.
  */
 export function renderDocument(
   document: Document,
   type: "post" | "page",
   mediaById: Readonly<Record<string, DocumentMedia>>,
+  hrefFor: (href: string) => string = (href) => href,
 ) {
   const mainHeading = type === "page" ? findMainHeading(document) : undefined;
   const firstImage = blocksOf(document).find(
@@ -74,6 +79,7 @@ export function renderDocument(
                       mediaById,
                       block === firstImage,
                       section.content.length,
+                      hrefFor,
                     ),
                   )}
                 </div>
@@ -95,6 +101,7 @@ function renderDocumentBlock(
   mediaById: Readonly<Record<string, DocumentMedia>>,
   isFirstImage: boolean,
   columns: number,
+  hrefFor: (href: string) => string,
 ) {
   // A space is not "rendered" (it cannot keep a section alive) but still takes
   // room between the blocks that are.
@@ -102,11 +109,11 @@ function renderDocumentBlock(
   if (!isRenderedBlock(block, mediaById)) return null;
   switch (block.type) {
     case "paragraph":
-      return <p key={key}>{renderText(block.content)}</p>;
+      return <p key={key}>{renderText(block.content, hrefFor)}</p>;
     case "heading": {
       const level = block.attrs.level === 1 && block !== mainHeading ? 2 : block.attrs.level;
       const Tag = HEADING_TAGS[level - 1] ?? "h6";
-      return <Tag key={key}>{renderText(block.content)}</Tag>;
+      return <Tag key={key}>{renderText(block.content, hrefFor)}</Tag>;
     }
     case "bulletList":
     case "orderedList": {
@@ -116,7 +123,7 @@ function renderDocumentBlock(
           {block.content.map((item, index) =>
             isEmptyBlock(item.content[0]) ? null : (
               // biome-ignore lint/suspicious/noArrayIndexKey: v4 nodes carry no id (D169)
-              <li key={index}>{renderText(item.content[0].content)}</li>
+              <li key={index}>{renderText(item.content[0].content, hrefFor)}</li>
             ),
           )}
         </List>
@@ -128,7 +135,7 @@ function renderDocumentBlock(
           {block.content.map((paragraph, index) =>
             isEmptyBlock(paragraph) ? null : (
               // biome-ignore lint/suspicious/noArrayIndexKey: v4 nodes carry no id (D169)
-              <p key={index}>{renderText(paragraph.content)}</p>
+              <p key={index}>{renderText(paragraph.content, hrefFor)}</p>
             ),
           )}
         </blockquote>
@@ -153,7 +160,7 @@ function renderDocumentBlock(
       return (
         <a
           key={key}
-          href={block.attrs.href}
+          href={hrefFor(block.attrs.href)}
           className={`${content.button} ${block.attrs.style === "outline" ? content.outline : content.filled}`}
         >
           {block.attrs.label}
@@ -170,14 +177,14 @@ function renderDocumentBlock(
 
 /** One text node's marks nest as `<a><strong><em>text</em></strong></a>` - only
  *  the marks actually present. */
-function renderText(nodes: TextNode[] = []) {
-  return nodes.map((node, index) => {
+function renderText(nodes: TextNode[] | undefined, hrefFor: (href: string) => string) {
+  return (nodes ?? []).map((node, index) => {
     let element: React.ReactNode = node.text;
     const marks = node.marks ?? [];
     if (marks.some((mark) => mark.type === "italic")) element = <em>{element}</em>;
     if (marks.some((mark) => mark.type === "bold")) element = <strong>{element}</strong>;
     const link = marks.find((mark) => mark.type === "link");
-    if (link) element = <a href={link.attrs.href}>{element}</a>;
+    if (link) element = <a href={hrefFor(link.attrs.href)}>{element}</a>;
     // biome-ignore lint/suspicious/noArrayIndexKey: v4 nodes carry no id (D169)
     return <Fragment key={index}>{element}</Fragment>;
   });
