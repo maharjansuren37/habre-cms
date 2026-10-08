@@ -26,6 +26,13 @@ test("the busy refusal asks to try again in a minute", () => {
   );
 });
 
+test("the site_busy refusal says a draft is already being built", () => {
+  assert.equal(
+    refusalMessage("site_busy", new Date()),
+    "A draft for your site is already being built. Wait for it to finish, then try again.",
+  );
+});
+
 test("the daily refusal says ten drafts were started today", () => {
   assert.equal(
     refusalMessage("daily", new Date()),

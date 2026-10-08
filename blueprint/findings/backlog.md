@@ -573,7 +573,7 @@ File: app/features/onboarding/onboarding.module.css (`.actions`, `.primaryLink`,
 ### F-357 [P3] open - Onboarding CSS uses literals where tokens exist
 File: app/features/onboarding/onboarding.module.css
 
-### F-358 [P3] open - A site-level busy refusal says "Habre is busy building other sites"
+### F-358 [P3] closed - A site-level busy refusal says "Habre is busy building other sites"
 File: app/features/onboarding/start-run.ts:44; app/features/ai/run-generation.ts:220,236
 
 ### F-359 [P3] open - The host-split Playwright server pins only `OPENROUTER_API_KEY=`, not `AI_PROVIDERS=`
