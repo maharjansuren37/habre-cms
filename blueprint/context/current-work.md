@@ -115,7 +115,7 @@ live with a link to it.
   signed-out visitor is sent to sign in; `e2e/content-security-policy.spec.ts`
   covers `/admin/preview` with no CSP violation; no horizontal scroll at
   390px; the existing public-site browser tests pass.
-- [ ] **Step 3 - every page in the preview** - new `preview-page.tsx` at
+- [x] **Step 3 - every page in the preview** - new `preview-page.tsx` at
   `admin/preview/:slug`: the site's page by slug whatever its status
   (`findPreviewPage(siteId, slug)`), the home page's slug redirecting to
   `/admin/preview`, a missing slug Not Found inside the preview chrome;

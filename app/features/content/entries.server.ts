@@ -688,3 +688,27 @@ export async function findPreviewHomePage(
   assertKnownFormat(row.slug, "page", row.blocksFormat);
   return { slug: row.slug, title: row.title, document: row.blocks };
 }
+
+/**
+ * A page by its address whatever its status, for the admin's preview (item
+ * 18b4b). `isHomePage` is computed as `findPublishedEntry` does: the home
+ * page's own preview address redirects to the preview's root.
+ */
+export async function findPreviewPage(
+  siteId: string,
+  slug: string,
+): Promise<{ title: string; document: Document; isHomePage: boolean } | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ title: string; blocks: Document; blocksFormat: string; isHomePage: boolean }[]>`
+    select e.title, e.blocks, e.blocks_format as "blocksFormat",
+      coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
+        as "isHomePage"
+    from entries e
+    where e.site_id = ${siteId} and e.type = 'page' and e.slug = ${slug}
+  `,
+  );
+  if (!row) return null;
+  assertKnownFormat(slug, "page", row.blocksFormat);
+  return { title: row.title, document: row.blocks, isHomePage: row.isHomePage };
+}

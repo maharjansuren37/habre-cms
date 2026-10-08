@@ -34,6 +34,7 @@ export default [
   // The admin's preview of the site (item 18b4b): a platform path in the site's look.
   layout("features/preview/preview-layout.tsx", [
     route("admin/preview", "features/preview/preview-home.tsx"),
+    route("admin/preview/:slug", "features/preview/preview-page.tsx"),
   ]),
   layout("features/admin-shell/layout.tsx", [
     route("admin", "features/admin-shell/home.tsx"),

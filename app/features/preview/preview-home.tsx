@@ -1,4 +1,3 @@
-import { useRouteLoaderData } from "react-router";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { findPreviewHomePage } from "#app/features/content/entries.server.ts";
 import { resolveDocumentMedia } from "#app/features/public-site/document-media.server.ts";
@@ -6,10 +5,8 @@ import pageStyles from "#app/features/public-site/page-body.module.css";
 import { PageBody } from "#app/features/public-site/page-body.tsx";
 import listStyles from "#app/features/public-site/post-list.module.css";
 import type { Route } from "./+types/preview-home";
-import { previewHref } from "./preview-href.ts";
 import type { loader as previewLayoutLoader } from "./preview-layout.tsx";
-
-const LAYOUT_ID = "features/preview/preview-layout";
+import { PREVIEW_LAYOUT_ID as LAYOUT_ID, usePreviewHref } from "./use-preview-href.ts";
 
 export function meta({ matches }: Route.MetaArgs) {
   const layout = matches.find((match) => match?.id === LAYOUT_ID)?.loaderData as
@@ -36,23 +33,9 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function PreviewHome({ loaderData }: Route.ComponentProps) {
-  // The layout always renders around this route (app/routes.ts); missing data
-  // is a bug, so fail loudly rather than show a made-up title.
-  const layout = useRouteLoaderData<typeof previewLayoutLoader>(LAYOUT_ID);
-  if (!layout) throw new Error("The preview layout's data is missing.");
+  const { hrefFor, layout } = usePreviewHref();
   if (loaderData.kind === "page") {
-    const links = {
-      pageSlugs: new Set(layout.pageSlugs),
-      homeSlug: layout.homeSlug,
-      siteOrigin: layout.siteOrigin,
-    };
-    return (
-      <PageBody
-        page={loaderData.page}
-        mediaById={loaderData.mediaById}
-        hrefFor={(href) => previewHref(href, links)}
-      />
-    );
+    return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} hrefFor={hrefFor} />;
   }
   return (
     <main className={listStyles.home}>

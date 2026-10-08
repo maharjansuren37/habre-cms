@@ -1,7 +1,13 @@
 import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
-import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
+import {
+  createSite,
+  createSiteAdmin,
+  createSiteWithAddress,
+  deleteSite,
+  siteUrl,
+} from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Item 18b4b, Step 2: the preview of the home page. Each test makes its own
@@ -27,11 +33,18 @@ test.afterEach(async () => {
 
 function proposal() {
   const text = { kind: "text", heading: "Details", paragraphs: ["One."] };
+  const hero = {
+    kind: "hero",
+    heading: "Front",
+    body: "Fresh bread.",
+    buttonLabel: "See more",
+    buttonTarget: "p2",
+  };
   return {
     siteDescription: "A bakery.",
     brandColor: "#aa5500",
     pages: [
-      { key: "p1", title: "Front", seoTitle: "Front", seoDescription: "Bread.", sections: [text] },
+      { key: "p1", title: "Front", seoTitle: "Front", seoDescription: "Bread.", sections: [hero] },
       { key: "p2", title: "About", seoTitle: "About", seoDescription: "Us.", sections: [text] },
     ],
     navigation: ["p1", "p2"],
@@ -132,4 +145,72 @@ test("the preview does not scroll sideways at 390px", async ({ page }) => {
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
     true,
   );
+});
+
+// Step 3: every page of the site, drafts included.
+test("following the menu opens each drafted page's preview with one h1", async ({ page }) => {
+  await useDraft(page);
+  await page.goto("/admin/preview");
+  const menu = page.getByRole("navigation", { name: "Site" });
+  await menu.getByRole("link", { name: "About" }).click();
+  await page.waitForURL("**/admin/preview/about");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("About");
+  await expect(page.getByRole("complementary", { name: "Preview" })).toBeVisible();
+
+  await menu.getByRole("link", { name: "Front" }).click();
+  await page.waitForURL(/\/admin\/preview$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Front");
+});
+
+test("the hero's button leads to the drafted page's preview address", async ({ page }) => {
+  await useDraft(page);
+  await page.goto("/admin/preview");
+  const button = page.getByRole("main").getByRole("link", { name: "See more" });
+  await expect(button).toHaveAttribute("href", "/admin/preview/about");
+  await button.click();
+  await page.waitForURL("**/admin/preview/about");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("About");
+});
+
+test("the site name in the header leads back to /admin/preview", async ({ page }) => {
+  await useDraft(page);
+  await page.goto("/admin/preview/about");
+  const brand = page.getByRole("banner").getByRole("link", { name: address });
+  await expect(brand).toHaveAttribute("href", "/admin/preview");
+  await brand.click();
+  await page.waitForURL(/\/admin\/preview$/);
+});
+
+test("the home page's own preview address lands on /admin/preview", async ({ page }) => {
+  await useDraft(page);
+  await page.goto("/admin/preview/front");
+  await page.waitForURL(/\/admin\/preview$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Front");
+});
+
+test("another site's page is Not Found in the preview", async ({ page }) => {
+  await useDraft(page);
+  const other = await createSite("preview-other");
+  try {
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status)
+        values (${other}, 'page', 'Elsewhere', 'elsewhere',
+                ${sql.json({ type: "doc", content: [] } as never)}, 'v4', 'draft')
+      `;
+    });
+    const response = await page.goto("/admin/preview/elsewhere");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText("Page not found.")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Preview" })).toBeVisible();
+  } finally {
+    await deleteSite(other);
+  }
+});
+
+test("a draft page's address on the site host is still Not Found", async ({ page }) => {
+  await useDraft(page);
+  const response = await page.goto(siteUrl("/about", address));
+  expect(response?.status()).toBe(404);
 });
