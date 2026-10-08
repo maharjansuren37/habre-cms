@@ -27,7 +27,6 @@ export type ApplyPlan = {
 
 export type ApplySite = {
   takenPageSlugs: string[];
-  hasLogo: boolean;
   brandColor: string;
   siteDescription: string;
 };
@@ -41,8 +40,7 @@ export function homePageKey(proposal: Proposal): string {
 
 /**
  * Unset is the empty string, as `site_settings` stores it (`site_description`
- * and `brand_color` both default to ''). The colour is also left alone with a
- * logo, whose colours the person chose from (D167).
+ * and `brand_color` both default to '').
  */
 export function planApply(proposal: Proposal, site: ApplySite): ApplyPlan {
   const taken = [...site.takenPageSlugs, ...RESERVED_PAGE_SLUGS];
@@ -66,7 +64,7 @@ export function planApply(proposal: Proposal, site: ApplySite): ApplyPlan {
     navigation: proposal.navigation.map((key) => ({ key, label: titles.get(key) as string })),
     homeKey: homePageKey(proposal),
     siteDescription: site.siteDescription === "" ? proposal.siteDescription : null,
-    brandColor: site.hasLogo || site.brandColor !== "" ? null : proposal.brandColor,
+    brandColor: site.brandColor !== "" ? null : proposal.brandColor,
   };
 }
 

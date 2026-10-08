@@ -124,3 +124,6 @@ File: app/features/auth/login.tsx:99, :160; app/root.tsx (brand `<style nonce>`)
 
 ### F-376 [P2] open - The 1-second publish timing is asserted on every run, CI included
 File: e2e/home.spec.ts:316
+
+### F-389 [P2] open - The wait's action and Publish website still read a request body of any size
+File: app/features/onboarding/start-wait.tsx:76-77; app/features/admin-shell/home.tsx:104

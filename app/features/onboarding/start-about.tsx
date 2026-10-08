@@ -5,6 +5,7 @@ import { userContext } from "#app/features/auth/user-context.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/start-about";
+import { isAboutBodyAllowed } from "./body-size.ts";
 import styles from "./onboarding.module.css";
 import { refusalMessage } from "./start-refusals.ts";
 import { startRun } from "./start-run.server.ts";
@@ -40,6 +41,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 export async function action({ context, request }: Route.ActionArgs) {
   const { siteId, id: userId } = context.get(userContext);
+  if (!isAboutBodyAllowed(request.headers)) throw data("Request too large", { status: 413 });
   const form = await request.formData();
   const values = {
     kind: String(form.get("kind") ?? ""),
@@ -60,7 +62,7 @@ export async function action({ context, request }: Route.ActionArgs) {
       { status: 400 },
     );
   }
-  throw redirect(`/start/${result.runId}`);
+  throw redirect(`/start/${result.runId}/brand`);
 }
 
 export default function StartAbout({ loaderData, actionData }: Route.ComponentProps) {
@@ -76,8 +78,9 @@ export default function StartAbout({ loaderData, actionData }: Route.ComponentPr
         <span className={styles.bars} aria-hidden="true">
           <span className={`${styles.bar} ${styles.done}`} />
           <span className={`${styles.bar} ${styles.done}`} />
+          <span className={styles.bar} />
         </span>
-        <span>Step 2 of 2</span>
+        <span>Step 2 of 3</span>
       </div>
       <h1 className={styles.heading}>Tell us about it</h1>
       <p className={styles.lede}>

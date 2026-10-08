@@ -7,7 +7,6 @@ import { type Draft, section, validProposal } from "./test-proposal.ts";
 
 const emptySite: ApplySite = {
   takenPageSlugs: [],
-  hasLogo: false,
   brandColor: "",
   siteDescription: "",
 };
@@ -107,13 +106,14 @@ test("without a p1 page the review and the plan both name the first page as home
   assert.equal(plan.homeKey, "p2");
 });
 
-test("the colour is the proposal's when the site has no logo and no colour", () => {
+test("the colour is the proposal's when the site has no colour", () => {
   assert.equal(planApply(parsed(validProposal()), emptySite).brandColor, "#aa5500");
 });
 
-test("the colour is left alone when the site has a logo", () => {
+test("the colour is the proposal's when the site has a logo and no colour", () => {
+  // A logo no longer matters: planApply is not given one (a stray field is ignored).
   const site = { ...emptySite, hasLogo: true };
-  assert.equal(planApply(parsed(validProposal()), site).brandColor, null);
+  assert.equal(planApply(parsed(validProposal()), site).brandColor, "#aa5500");
 });
 
 test("the colour is left alone when the site already has one", () => {

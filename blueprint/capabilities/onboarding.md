@@ -3,7 +3,7 @@
 - **onboarding.1** - with AI on, pressing Confirm my email on signup's link lands the new admin on What do you want to create? *Since:* features/18b3-onboarding-start
 - **onboarding.2** - `/start` and its steps send to the admin when AI is off, the site is suspended, anything is published or the site has used an AI draft, and are Not Found to a member who is not an admin *Since:* features/18b3-onboarding-start · *Changed:* features/18b4a-review-apply-home
 - **onboarding.3** - Tell us about it refuses a description under 10 or over 2,000 characters, keeping the text and starting no run *Since:* features/18b3-onboarding-start
-- **onboarding.4** - Build my site starts a run and opens its page, which shows the draft's review once it succeeds, without a reload *Since:* features/18b3-onboarding-start · *Changed:* features/18b4a-review-apply-home
+- **onboarding.4** - Build my site starts a run and opens Make it yours, whose Finish and Skip for now open the run's page, which shows the draft's review once it succeeds, without a reload *Since:* features/18b3-onboarding-start · *Changed:* features/18b5-make-it-yours
 - **onboarding.5** - a site out of this month's allowance is refused with the date it renews, and no run starts *Since:* features/18b3-onboarding-start
 - **onboarding.6** - runs started from onboarding go to OpenRouter alone, never to a fallback provider, even when `AI_PROVIDERS` lists one *Since:* features/18b3-onboarding-start
 - **onboarding.7** - an 11th run in 24 hours for one site is refused, and no run starts *Since:* features/18b3-onboarding-start
@@ -17,5 +17,9 @@
 - **onboarding.15** - the page the review marks Home page is the page Use this draft makes the home page *Since:* features/18b4a-review-apply-home
 - **onboarding.16** - pressing Use this draft on a draft that no longer reads as a valid proposal returns to its page showing Couldn't build your site and Try again, and creates nothing *Since:* features/18b4a-review-apply-home
 - **onboarding.17** - using a draft twice, or twice at once, creates its pages once *Since:* features/18b4a-review-apply-home
-- **onboarding.18** - using a draft writes the site description only when it is empty, and the brand colour only when the site has no logo and no colour *Since:* features/18b4a-review-apply-home
+- **onboarding.18** - using a draft writes the site description only when it is empty, and the brand colour only when the site has no colour *Since:* features/18b4a-review-apply-home · *Changed:* features/18b5-make-it-yours
 - **onboarding.19** - a drafted page never takes the address of an existing page or a reserved address *Since:* features/18b4a-review-apply-home
+- **onboarding.20** - Make it yours' Finish saves the logo, brand colour and style chosen, and Skip for now saves none of them *Since:* features/18b5-make-it-yours
+- **onboarding.21** - Make it yours offers Let the AI choose, checked when the site has no colour, named with the AI's colour once the run has suggested one *Since:* features/18b5-make-it-yours
+- **onboarding.22** - another site's run's Make it yours is Not Found *Since:* features/18b5-make-it-yours
+- **onboarding.23** - a new admin goes from Confirm my email through all three steps, the review, Use this draft and Preview to a published site in the style chosen on step 3 *Since:* features/18b5-make-it-yours

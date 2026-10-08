@@ -240,6 +240,31 @@ export async function saveSiteSettings(
   }
 }
 
+/**
+ * Onboarding step 3's Finish (18b5): the logo, brand colour and style in one
+ * transaction. The action checks the logo is this site's media first; if it is
+ * deleted in between, the foreign key refuses the write and nothing is saved.
+ */
+export async function saveBrandStep(
+  siteId: string,
+  input: { logoMediaId: string | null; brandColor: string; stylePreset: StylePreset },
+): Promise<"saved" | "logo-gone"> {
+  try {
+    await inSite(siteId, async (tx) => {
+      await tx`
+        update site_settings
+        set logo_media_id = ${input.logoMediaId}, brand_color = ${input.brandColor},
+          style_preset = ${input.stylePreset}, updated_at = now()
+        where site_id = ${siteId}
+      `;
+    });
+    return "saved";
+  } catch (error) {
+    if (isForeignKeyViolation(error, "site_settings_logo_media_id_fkey")) return "logo-gone";
+    throw error;
+  }
+}
+
 const FOREIGN_KEY_VIOLATION = "23503";
 
 export function isForeignKeyViolation(error: unknown, constraint: string): boolean {

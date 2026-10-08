@@ -34,17 +34,13 @@ export async function applyRun(
       if (!proposal.success) throw new InvalidDraft();
 
       const takenPageSlugs = await listPageSlugsIn(tx, siteId);
-      const [settings] = await tx<
-        { logoMediaId: string | null; brandColor: string; siteDescription: string }[]
-      >`
-        select logo_media_id as "logoMediaId", brand_color as "brandColor",
-          site_description as "siteDescription"
+      const [settings] = await tx<{ brandColor: string; siteDescription: string }[]>`
+        select brand_color as "brandColor", site_description as "siteDescription"
         from site_settings where site_id = ${siteId}
       `;
       if (!settings) throw new Error("site_settings row missing");
       const plan = planApply(proposal.data, {
         takenPageSlugs,
-        hasLogo: settings.logoMediaId !== null,
         brandColor: settings.brandColor,
         siteDescription: settings.siteDescription,
       });

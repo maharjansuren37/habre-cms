@@ -57,8 +57,9 @@ export default function Start({ loaderData }: Route.ComponentProps) {
         <span className={styles.bars} aria-hidden="true">
           <span className={`${styles.bar} ${styles.done}`} />
           <span className={styles.bar} />
+          <span className={styles.bar} />
         </span>
-        <span>Step 1 of 2</span>
+        <span>Step 1 of 3</span>
       </div>
       <h1 className={styles.heading}>What do you want to create?</h1>
       <p className={styles.lede}>
