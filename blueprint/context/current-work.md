@@ -127,7 +127,7 @@ live with a link to it.
   `/admin/preview/<home slug>` lands on `/admin/preview`; a slug of another
   site's page is Not Found (two sites, D151); the draft page's address on
   the site host is still Not Found.
-- [ ] **Step 4 - Publish website** - `entries.server.ts` gains
+- [x] **Step 4 - Publish website** - `entries.server.ts` gains
   `publishDraftPages(siteId): Promise<number>` - one `inSite` update:
   `status = 'published'`, `published_at = coalesce(published_at, now())`,
   `version + 1`, `updated_at = now()`, where `site_id`, `type = 'page'`,
@@ -239,6 +239,10 @@ live with a link to it.
 - **A refused preview (editor, author) shows only "Page not found."**, no
   bar or site chrome: the layout's loader never ran, so there is no site
   to draw. (build, Step 2)
+- **A link styled as the secondary button is `home.module.css`'s
+  `.secondaryLink`** (Preview, View your site) - no shared link-button
+  class existed; it mirrors `.primaryLink` with the secondary look. (build,
+  Step 4)
 - **The published banner is a `?published=1` flag** read as a boolean.
   Beat: a session flash (no flash store exists).
 

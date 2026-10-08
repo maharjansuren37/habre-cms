@@ -53,6 +53,36 @@
   background: var(--color-primary-hover);
 }
 
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A link that looks like the secondary button (Preview, View your site). */
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-control-lg);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.secondaryLink:hover {
+  background: var(--color-surface-hover);
+}
+
+.banner {
+  margin-bottom: var(--space-5);
+}
+
 .suggestList {
   display: grid;
   gap: var(--space-3);

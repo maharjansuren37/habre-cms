@@ -712,3 +712,24 @@ export async function findPreviewPage(
   assertKnownFormat(slug, "page", row.blocksFormat);
   return { title: row.title, document: row.blocks, isHomePage: row.isHomePage };
 }
+
+/**
+ * Publishes every draft page of the site in one statement (item 18b4b): the
+ * end of onboarding. Pages only, never posts; `published_at` keeps an earlier
+ * value; `version` moves so an editor open on one gets the usual stale answer.
+ * Returns how many it published.
+ */
+export async function publishDraftPages(siteId: string): Promise<number> {
+  const rows = await inSite(
+    siteId,
+    (tx) => tx`
+    update entries
+    set status = 'published', published_at = coalesce(published_at, now()),
+      version = version + 1, updated_at = now()
+    where site_id = ${siteId} and type = 'page' and status = 'draft'
+      and blocks_format = any(${readableFormats("page")})
+    returning id
+  `,
+  );
+  return rows.length;
+}
