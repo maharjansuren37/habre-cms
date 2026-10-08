@@ -141,18 +141,24 @@ export async function appliedRunPageCount(siteId: string): Promise<number> {
   });
 }
 
-/** The site's newest finished draft, used or not, for Home's panel (18b4a). */
+/**
+ * The site's newest finished draft, used or not, for Home's panel (18b4a); null
+ * when there is none or the newest is a succeeded run whose stored result no
+ * longer parses (the review reads that as failed, F-365). The result is not returned.
+ */
 export async function findLatestFinishedRun(
   siteId: string,
 ): Promise<{ id: string; status: "succeeded" | "applied" } | null> {
   return inSite(siteId, async (tx) => {
-    const [row] = await tx<{ id: string; status: "succeeded" | "applied" }[]>`
-      select id, status from ai_runs
+    const [row] = await tx<{ id: string; status: "succeeded" | "applied"; result: unknown }[]>`
+      select id, status, result from ai_runs
       where site_id = ${siteId} and status in ('succeeded', 'applied')
       order by created_at desc
       limit 1
     `;
-    return row ?? null;
+    if (!row) return null;
+    if (row.status === "succeeded" && !proposalSchema.safeParse(row.result).success) return null;
+    return { id: row.id, status: row.status };
   });
 }
 

@@ -94,8 +94,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               Your website is ready. What would you like to change?
             </h2>
             <p className={styles.muted}>
-              We drafted {ready.pageCount} {ready.pageCount === 1 ? "page" : "pages"} from your
-              description. Look them over and change anything - nobody sees them before you publish.
+              {ready.pageCount > 0 &&
+                `We drafted ${ready.pageCount} ${ready.pageCount === 1 ? "page" : "pages"} from your description. `}
+              Look them over and change anything - nobody sees them before you publish.
             </p>
             {ready.homePageId && (
               <p>

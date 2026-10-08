@@ -256,7 +256,7 @@ is "AI suggests, the user applies" made real; nothing is published.
   `index === 0`. *Done when:* `apply-plan.test.ts` (seen failing first): a
   proposal ordered `[p2, p1]` gives `reviewSummary(…).homeKey` `p1` equal to
   `planApply(…).homeKey`; without `p1`, both are the first page's key.
-- [ ] **Step 10 - Home applies the parse rule (F-365)** -
+- [x] **Step 10 - Home applies the parse rule (F-365)** -
   `findLatestFinishedRun` selects `result` and returns `null` for a
   `succeeded` row whose result fails `proposalSchema` (an `applied` row is
   returned as is); its return shape is unchanged. Home's ready panel drops

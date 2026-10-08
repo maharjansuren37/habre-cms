@@ -244,3 +244,19 @@ test("with AI off, This month has no AI meter and keeps storage", async ({ page 
   await expect(card.getByRole("meter", { name: "Storage" })).toBeVisible();
   await expect(card.getByRole("meter", { name: "AI allowance" })).toHaveCount(0);
 });
+
+// F-365: Home applies the same parse rule as the review page.
+test("an unreadable succeeded run is not offered as Review your draft", async ({ page }) => {
+  await seedRun("succeeded", {});
+  await logIn(page, admin);
+  await expect(page.getByRole("link", { name: "Start from a description" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Review your draft" })).toHaveCount(0);
+});
+
+test("an unreadable applied run does not say how many pages were drafted", async ({ page }) => {
+  await seedRun("applied", {});
+  await logIn(page, admin);
+  await expect(page.getByText("Your website is ready")).toBeVisible();
+  await expect(page.getByText("We drafted")).toHaveCount(0);
+  await expect(page.getByText(/0 pages/)).toHaveCount(0);
+});
