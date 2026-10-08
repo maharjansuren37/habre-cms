@@ -2,8 +2,8 @@
 
 **From build plan:** item 18b4b
 **Type:** Feature
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-08, 050ab914717b, 5 of 5 steps' done-whens proven (browser specs 91 passed; full suite 538 passed in Step 5; screenshots at 1280 and 390; sign-in redirect walked; publish 87 ms, one local sample)
+**Reviewed:** 2026-10-08, 050ab914717b, current (7fd0e55..774cc02), every lens, via reviewer - 0 blocking (F-375, F-376 P2; F-377 to F-381 P3; all open)
 
 ## Goal
 
