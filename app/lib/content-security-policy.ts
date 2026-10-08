@@ -1,4 +1,4 @@
-export type PolicyArea = "public" | "admin";
+export type PolicyArea = "public" | "admin" | "preview";
 
 /**
  * Paths that belong to the platform host (item 16a): `/admin` and under it,
@@ -20,16 +20,22 @@ export function isPlatformPath(pathname: string): boolean {
   );
 }
 
-/** Admin and platform screens get the admin policy; everything else is the public site. */
+/**
+ * Admin and platform screens get the admin policy; `/admin/preview` and under
+ * it (item 18b4b) are a site's page shown on the platform host, so they get
+ * the public policy; everything else is the public site.
+ */
 export function areaForPath(pathname: string): PolicyArea {
+  if (pathname === "/admin/preview" || pathname.startsWith("/admin/preview/")) return "preview";
   return isPlatformPath(pathname) ? "admin" : "public";
 }
 
 /**
  * The Content-Security-Policy header for one HTML response (F-100). Scripts
  * run only from this origin or with this response's nonce; styles only from
- * this origin, plus on public pages the nonce, for the brand `<style>` (18a1:
- * only declarations built from derived hex values, never a stored string).
+ * this origin, plus on public pages and the admin's preview of them (18b4b)
+ * the nonce, for the brand `<style>` (18a1: only declarations built from
+ * derived hex values, never a stored string).
  * The admin once also allowed inline styles and `data:` images, which
  * Editor.js needed; item 14a3 dropped both, once nothing in the editor
  * needed them - TipTap runs with `injectCSS: false` and the toolbar, chip and
@@ -42,8 +48,8 @@ export function areaForPath(pathname: string): PolicyArea {
  */
 export function contentSecurityPolicy(options: {
   nonce: string;
-  /** Public pages also allow this response's nonce for the one brand
-   *  `<style>` (18a1); the admin allows this origin only. */
+  /** Public and preview pages also allow this response's nonce for the one
+   *  brand `<style>` (18a1); the admin allows this origin only. */
   area: PolicyArea;
   imageBaseUrl: string;
 }): string {
@@ -53,7 +59,7 @@ export function contentSecurityPolicy(options: {
   const directives: Record<string, string> = {
     "default-src": "'self'",
     "script-src": `'self' 'nonce-${nonce}'`,
-    "style-src": area === "public" ? `'self' 'nonce-${nonce}'` : "'self'",
+    "style-src": area !== "admin" ? `'self' 'nonce-${nonce}'` : "'self'",
     "img-src": area === "admin" ? `'self' ${imageOrigin} blob:` : `'self' ${imageOrigin}`,
     "font-src": "'self'",
     "connect-src": "'self'",

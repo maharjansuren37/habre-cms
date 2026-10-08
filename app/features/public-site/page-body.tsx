@@ -10,14 +10,16 @@ import styles from "./page-body.module.css";
 export function PageBody({
   page,
   mediaById,
+  hrefFor,
 }: {
   page: Pick<PublicPage, "title" | "document">;
   mediaById: Record<string, DocumentMedia>;
+  hrefFor?: (href: string) => string;
 }) {
   return (
     <main className={styles.article}>
       {findMainHeading(page.document) ? null : <h1 className={styles.title}>{page.title}</h1>}
-      {renderDocument(page.document, "page", mediaById)}
+      {renderDocument(page.document, "page", mediaById, hrefFor)}
     </main>
   );
 }

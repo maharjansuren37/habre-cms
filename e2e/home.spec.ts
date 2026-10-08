@@ -3,19 +3,22 @@ import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
 import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
-import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
+import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { setRole, type TestUser, withDatabase } from "./helpers/users.ts";
 
 // Item 18b4a, Step 5: Home at /admin. Each test makes its own site and members,
 // never site 1.
 let siteId: string;
+let address: string;
 let admin: TestUser;
 
 test.beforeEach(async ({ page }) => {
   await page.setExtraHTTPHeaders({
     "X-Forwarded-For": `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`,
   });
-  siteId = await createSite("home");
+  const site = await createSiteWithAddress("home");
+  siteId = site.id;
+  address = site.address;
   admin = await createSiteAdmin(siteId, "Home Admin");
 });
 
@@ -159,7 +162,18 @@ test("after a draft is used, Home says the website is ready and Edit the home pa
       name: "Your website is ready. What would you like to change?",
     }),
   ).toBeVisible();
-  await expect(page.getByText("We drafted 2 pages from your description.")).toBeVisible();
+  await expect(
+    page.getByText(
+      "We drafted 2 pages from your description. Look them over, change anything, then publish - nobody sees it before that.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publish website" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Preview" })).toHaveAttribute(
+    "href",
+    "/admin/preview",
+  );
+  const suggestions = page.getByRole("region", { name: "Things to change" }).getByRole("link");
+  await expect(suggestions).toHaveText(["Edit the home page", "Add your logo", "Change the menu"]);
   await expect(page.getByRole("link", { name: "Add your logo" })).toHaveAttribute(
     "href",
     "/admin/settings",
@@ -259,4 +273,117 @@ test("an unreadable applied run does not say how many pages were drafted", async
   await expect(page.getByText("Your website is ready")).toBeVisible();
   await expect(page.getByText("We drafted")).toHaveCount(0);
   await expect(page.getByText(/0 pages/)).toHaveCount(0);
+});
+
+// Item 18b4b, Step 4: Preview and Publish website.
+test("Preview opens the preview in a new page", async ({ page, context }) => {
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await useDraft(page, runId);
+  const opened = context.waitForEvent("page");
+  await page.getByRole("link", { name: "Preview" }).click();
+  const preview = await opened;
+  await preview.waitForURL("**/admin/preview");
+  await expect(preview.getByRole("complementary", { name: "Preview" })).toBeVisible();
+});
+
+async function draftStatuses(type: "page" | "post") {
+  return withDatabase(
+    async (sql) =>
+      sql<{ status: string; published_at: Date | null }[]>`
+      select status, published_at from entries where site_id = ${siteId} and type = ${type}
+    `,
+  );
+}
+
+test("Publish website publishes every draft page, no post, and Home says so", async ({ page }) => {
+  await withDatabase(async (sql) => {
+    await sql`
+      insert into entries (site_id, type, title, slug, blocks, blocks_format, status, author_id)
+      select ${siteId}, 'post', 'Draft Post', 'draft-post', ${sql.json(textDocument("Hi.") as never)}, 'v4',
+             'draft', id from users where email = ${admin.email}
+    `;
+  });
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await useDraft(page, runId);
+
+  const started = Date.now();
+  await page.getByRole("button", { name: "Publish website" }).click();
+  await page.waitForURL(/\/admin\?published=1$/);
+  const elapsed = Date.now() - started;
+  console.log(`publish website: click to /admin?published=1 in ${elapsed} ms`);
+  expect(elapsed).toBeLessThan(1000);
+
+  const banner = page.getByRole("status");
+  await expect(banner).toContainText("Your website is published.");
+  await expect(banner.getByRole("link", { name: "View your site" })).toHaveAttribute(
+    "href",
+    siteUrl("/", address),
+  );
+  await expect(page.getByText("Not published yet")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Publish website" })).toHaveCount(0);
+
+  const pages = await draftStatuses("page");
+  expect(pages).toHaveLength(2);
+  for (const row of pages) {
+    expect(row.status).toBe("published");
+    expect(row.published_at).not.toBeNull();
+  }
+  expect((await draftStatuses("post")).map((row) => row.status)).toEqual(["draft"]);
+
+  await page.goto(siteUrl("/", address));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Front");
+  await expect(page.getByRole("navigation", { name: "Site" }).getByRole("link")).toHaveText([
+    "Front",
+    "About",
+  ]);
+});
+
+test("an editor's intent=publish POST is Not Found and publishes nothing", async ({ page }) => {
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await useDraft(page, runId);
+  await setRole(admin.email, "editor");
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post(`${origin}/admin`, {
+    form: { intent: "publish" },
+    headers: { Origin: origin },
+  });
+  expect(response.status()).toBe(404);
+  expect((await draftStatuses("page")).map((row) => row.status)).toEqual(["draft", "draft"]);
+});
+
+test("intent=publish on a site that already has a published page changes nothing", async ({
+  page,
+}) => {
+  const runId = await seedRun("succeeded");
+  await logIn(page, admin);
+  await useDraft(page, runId);
+  await seedPage("Live", "live", "published");
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post(`${origin}/admin`, {
+    form: { intent: "publish" },
+    headers: { Origin: origin },
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(302);
+  expect(new URL(response.headers().location ?? "", origin).pathname).toBe("/admin");
+  const statuses = (await draftStatuses("page")).map((row) => row.status).sort();
+  expect(statuses).toEqual(["draft", "draft", "published"]);
+});
+
+test("Home does not scroll sideways at 390px with the ready panel or the banner", async ({
+  page,
+}) => {
+  const runId = await seedRun("succeeded");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await logIn(page, admin);
+  await useDraft(page, runId);
+  const fits = "document.documentElement.scrollWidth <= window.innerWidth";
+  await expect(page.getByRole("button", { name: "Publish website" })).toBeVisible();
+  expect(await page.evaluate(fits)).toBe(true);
+  await page.getByRole("button", { name: "Publish website" }).click();
+  await expect(page.getByRole("status")).toContainText("Your website is published.");
+  expect(await page.evaluate(fits)).toBe(true);
 });

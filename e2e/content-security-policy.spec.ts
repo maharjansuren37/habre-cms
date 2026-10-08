@@ -11,6 +11,7 @@ import {
   deleteEntriesBy,
   deleteTestUser,
   type TestUser,
+  withDatabase,
 } from "./helpers/users.ts";
 
 // F-100: the policy is proven by walking every screen with it enforced and
@@ -134,6 +135,37 @@ test("the public site renders with nothing refused by the policy", async ({ page
   expect(missing?.status()).toBe(404);
 
   expect(violations).toEqual([]);
+});
+
+test("/admin/preview carries the public-style policy with a style nonce and renders with nothing refused (18b4b)", async ({
+  page,
+}) => {
+  const siteId = await createSite("csp-preview");
+  try {
+    const previewAdmin = await createSiteAdmin(siteId, "CSP Preview Admin");
+    await withDatabase(async (sql) => {
+      const [entry] = await sql<{ id: string }[]>`
+        insert into entries (site_id, type, title, slug, blocks, blocks_format, status, author_id)
+        select ${siteId}, 'page', 'Preview Home', 'preview-home',
+               ${sql.json(textDocument("Drafted text.") as never)}, 'v4', 'draft', id
+        from users where email = ${previewAdmin.email}
+        returning id
+      `;
+      await sql`
+        update site_settings set home_page_id = ${entry.id}, brand_color = '#aa5500'
+        where site_id = ${siteId}
+      `;
+    });
+    await logIn(page, previewAdmin);
+    const response = await page.goto("/admin/preview");
+    const policy = response?.headers()["content-security-policy"] ?? "";
+    expect(policy).toMatch(/style-src 'self' 'nonce-[A-Za-z0-9+/=]+';/);
+    expect(policy).not.toContain("unsafe-inline");
+    await expect(page.getByText("Drafted text.")).toBeVisible();
+    expect(violations).toEqual([]);
+  } finally {
+    await deleteSite(siteId);
+  }
 });
 
 test("a published page's image loads under the public policy with nothing refused", async ({

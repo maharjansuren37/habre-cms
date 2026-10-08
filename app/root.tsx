@@ -12,6 +12,7 @@ import {
   useRouteLoaderData,
 } from "react-router";
 import { clientIp } from "#app/features/auth/client-ip.ts";
+import type { loader as previewLayoutLoader } from "#app/features/preview/preview-layout.tsx";
 import type { loader as publicLayoutLoader } from "#app/features/public-site/layout.tsx";
 import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
@@ -116,10 +117,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // marker on the error is the only thing that knows the host.
   const error = useRouteError();
   const onPlatform = isRouteErrorResponse(error) && error.data === PLATFORM_NOT_FOUND;
-  const siteLook = areaForPath(pathname) === "public" && !onPlatform;
+  const area = areaForPath(pathname);
+  // The admin's preview (item 18b4b) wears the site's look too, on the platform host.
+  const siteLook = (area === "public" && !onPlatform) || area === "preview";
   // The public layout's loader runs beside a child's 404, so its data is here
-  // for the public 404 too. Admin, platform and error pages outside a site stay `en`.
-  const publicData = useRouteLoaderData<typeof publicLayoutLoader>("features/public-site/layout");
+  // for the public 404 too; the preview layout's does the same for the preview.
+  // Admin, platform and error pages outside a site stay `en`.
+  const publicLayoutData = useRouteLoaderData<typeof publicLayoutLoader>(
+    "features/public-site/layout",
+  );
+  const previewLayoutData = useRouteLoaderData<typeof previewLayoutLoader>(
+    "features/preview/preview-layout",
+  );
+  const publicData = area === "preview" ? previewLayoutData : publicLayoutData;
   const lang = siteLook ? (publicData?.language ?? "en") : "en";
   return (
     <html

@@ -4635,3 +4635,66 @@ drops "We drafted N pages" when N is 0; N is counted from the applied run's
 re-parsed result.
 Beats: a stored page count (a new column), or a panel with a dead link.
 Costs: one parse per Home load while a draft is applied and unpublished.
+
+## D425 - The preview lives on the platform host, under `/admin/preview`, admins only (2026-10-08)
+
+**Chose:** `/admin/preview` and `/admin/preview/:slug` on the platform host,
+behind `requireRole(["admin"])`; a refused visitor sees only "Page not
+found.", with no bar or site chrome, because the layout's loader never ran.
+Beats: a signed preview token on the site host (a second auth path, and a
+draft reachable by anyone holding the link); the site host reading the
+admin cookie (host-only by design, D6).
+Costs: the preview is not on the site's own address, so its links are
+rewritten (D427).
+
+## D426 - A third CSP area, `preview`, with the public policy (2026-10-08)
+
+**Chose:** `PolicyArea` gains `"preview"` for `/admin/preview` and under,
+with the public policy (style nonce, no `blob:`), so the brand `<style>`
+applies.
+Beats: setting the brand through the CSSOM (a second way to apply the
+brand, and a flash before hydration).
+Costs: one more area for `areaForPath` to get right.
+
+## D427 - Links in the preview stay in the preview where they can (2026-10-08)
+
+**Chose:** one pure function, `previewHref`, through `renderDocument`'s
+optional `hrefFor` (identity by default, so public output is unchanged):
+the site's pages go to their preview addresses, any other site-relative
+link goes to the live site at its subdomain origin (`siteOrigin`, the
+address the sidebar's View site uses), external links unchanged.
+`mainOrigin` lost because the platform has no own-domain lookup for a
+member's site, and the subdomain redirects to the main address (D173).
+Beats: leaving links as they are (every click a platform 404).
+Costs: a link to the live site from a preview takes one redirect.
+
+## D428 - Publish website publishes every draft page, never posts, once (2026-10-08)
+
+**Chose:** `publishDraftPages(siteId)`, one statement, only while nothing
+on the site is published and a draft was used; afterwards each page is
+published from its editor. Changes 18b4a's note that it would publish "the
+menu's pages": a page taken out of the menu would otherwise stay a draft
+with no word about it.
+Beats: the menu's pages; a site-wide publish available any time, which
+could make an editor's unfinished pages public.
+Costs: no way to publish the whole site again later.
+
+## D429 - The ready panel's half-size live preview is cut (2026-10-08)
+
+**Chose:** a Preview link (new tab) instead of `home.html`'s
+`.ready__preview`.
+Beats: an iframe (`frame-ancestors 'self'` on the preview and a second full
+page load on every Home visit); rendering the document inside the admin
+with the brand applied through the CSSOM.
+Costs: Home no longer shows the site at a glance.
+
+## D430 - Preview and publish's smaller rules (2026-10-08)
+
+**Chose:** the preview bar is `--color-surface-sunken` (`--color-surface-2`
+does not exist; in the site scope it is `--neutral-100`, light on every
+device); a link styled as the secondary button is `home.module.css`'s
+`.secondaryLink`, mirroring `.primaryLink` (no shared link-button class
+existed); the published banner is a `?published=1` flag read as a boolean.
+Beats: a new token; a shared link-button component; a session flash (no
+flash store exists).
+Costs: `?published=1` shows the banner whatever the state (F-380).

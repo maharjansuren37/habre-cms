@@ -118,3 +118,9 @@ File: e2e/signup.spec.ts:272; app/features/signup/signup.server.ts:64
 
 ### F-371 [P2] unverified - A page published between the gate and the apply transaction has its menu and home page replaced by drafts
 File: app/features/onboarding/start-layout.tsx (gate); app/features/ai/apply-run.server.ts
+
+### F-375 [P2] open - Signing in on the way to the preview leaves the brand colour refused until a reload
+File: app/features/auth/login.tsx:99, :160; app/root.tsx (brand `<style nonce>`)
+
+### F-376 [P2] open - The 1-second publish timing is asserted on every run, CI included
+File: e2e/home.spec.ts:316

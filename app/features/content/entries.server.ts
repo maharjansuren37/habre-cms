@@ -535,6 +535,17 @@ export async function findPublishedPageSlugs(
   );
 }
 
+/** Every page of the site, whatever its status - the preview's menu and link
+ *  rewriting (item 18b4b). */
+export async function listPageSlugs(siteId: string): Promise<{ id: string; slug: string }[]> {
+  return inSite(
+    siteId,
+    (tx) => tx<{ id: string; slug: string }[]>`
+    select id, slug from entries where site_id = ${siteId} and type = 'page'
+  `,
+  );
+}
+
 /** One published entry's full content, for its own page. */
 type PublicBase = {
   title: string;
@@ -655,4 +666,70 @@ export async function findHomePage(siteId: string): Promise<PublicPage | null> {
   const { blocks, blocksFormat, slug, ...page } = row;
   assertKnownFormat(slug, "page", blocksFormat);
   return { ...page, document: blocks };
+}
+
+/**
+ * The home page whatever its status, for the admin's preview (item 18b4b).
+ * `findHomePage` without the published filter; only what the preview draws.
+ */
+export async function findPreviewHomePage(
+  siteId: string,
+): Promise<{ slug: string; title: string; document: Document } | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ slug: string; title: string; blocks: Document; blocksFormat: string }[]>`
+    select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat"
+    from site_settings s
+      join entries e on e.id = s.home_page_id and e.site_id = s.site_id
+    where s.site_id = ${siteId} and e.type = 'page'
+  `,
+  );
+  if (!row) return null;
+  assertKnownFormat(row.slug, "page", row.blocksFormat);
+  return { slug: row.slug, title: row.title, document: row.blocks };
+}
+
+/**
+ * A page by its address whatever its status, for the admin's preview (item
+ * 18b4b). `isHomePage` is computed as `findPublishedEntry` does: the home
+ * page's own preview address redirects to the preview's root.
+ */
+export async function findPreviewPage(
+  siteId: string,
+  slug: string,
+): Promise<{ title: string; document: Document; isHomePage: boolean } | null> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ title: string; blocks: Document; blocksFormat: string; isHomePage: boolean }[]>`
+    select e.title, e.blocks, e.blocks_format as "blocksFormat",
+      coalesce(e.id = (select home_page_id from site_settings where site_id = ${siteId}), false)
+        as "isHomePage"
+    from entries e
+    where e.site_id = ${siteId} and e.type = 'page' and e.slug = ${slug}
+  `,
+  );
+  if (!row) return null;
+  assertKnownFormat(slug, "page", row.blocksFormat);
+  return { title: row.title, document: row.blocks, isHomePage: row.isHomePage };
+}
+
+/**
+ * Publishes every draft page of the site in one statement (item 18b4b): the
+ * end of onboarding. Pages only, never posts; `published_at` keeps an earlier
+ * value; `version` moves so an editor open on one gets the usual stale answer.
+ * Returns how many it published.
+ */
+export async function publishDraftPages(siteId: string): Promise<number> {
+  const rows = await inSite(
+    siteId,
+    (tx) => tx`
+    update entries
+    set status = 'published', published_at = coalesce(published_at, now()),
+      version = version + 1, updated_at = now()
+    where site_id = ${siteId} and type = 'page' and status = 'draft'
+      and blocks_format = any(${readableFormats("page")})
+    returning id
+  `,
+  );
+  return rows.length;
 }
