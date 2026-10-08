@@ -20,6 +20,9 @@
 - **onboarding.18** - using a draft writes the site description only when it is empty, and the brand colour only when the site has no colour *Since:* features/18b4a-review-apply-home · *Changed:* features/18b5-make-it-yours
 - **onboarding.19** - a drafted page never takes the address of an existing page or a reserved address *Since:* features/18b4a-review-apply-home
 - **onboarding.20** - Make it yours' Finish saves the logo, brand colour and style chosen, and Skip for now saves none of them *Since:* features/18b5-make-it-yours
-- **onboarding.21** - Make it yours offers Let the AI choose, checked when the site has no colour, named with the AI's colour once the run has suggested one *Since:* features/18b5-make-it-yours
+- **onboarding.21** - Make it yours offers Let the AI choose, checked when the site has no colour, showing the AI's colour and a visible Suggested by AI once the run has suggested one *Since:* features/18b5-make-it-yours · *Changed:* fixes/v1-journey-polish
 - **onboarding.22** - another site's run's Make it yours is Not Found *Since:* features/18b5-make-it-yours
 - **onboarding.23** - a new admin goes from Confirm my email through all three steps, the review, Use this draft and Preview to a published site in the style chosen on step 3 *Since:* features/18b5-make-it-yours
+- **onboarding.24** - a run refused because the site already has one says "A draft for your site is already being built. Wait for it to finish, then try again." *Since:* fixes/v1-journey-polish
+- **onboarding.25** - the run's page title names its state - "Building your site", "Your draft is ready" or "Couldn't build your site" *Since:* fixes/v1-journey-polish
+- **onboarding.26** - Make it yours' actions end on Finish, with Skip for now before it *Since:* fixes/v1-journey-polish

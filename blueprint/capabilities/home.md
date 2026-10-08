@@ -9,3 +9,5 @@
 - **home.7** - while the website is ready, Home offers Publish website and a Preview that opens in a new tab *Since:* features/18b4b-preview-publish
 - **home.8** - Publish website publishes every draft page of the site at once, no post, and Home then says the website is published with a link to it *Since:* features/18b4b-preview-publish
 - **home.9** - Publish website changes nothing once anything on the site is published *Since:* features/18b4b-preview-publish
+- **home.10** - `/admin?published=1` shows "Your website is published." only when something is published *Since:* fixes/v1-journey-polish
+- **home.11** - a non-admin's Publish website POST is Not Found and logged as `request_refused` with reason `role` *Since:* fixes/v1-journey-polish

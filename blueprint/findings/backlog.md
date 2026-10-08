@@ -567,23 +567,8 @@ File: app/features/ai/chat-completion.ts:131-146; app/features/ai/anthropic-resp
 ### F-352 [P3] unverified - Step 6's "Anthropic shows cache reads on a second run" probably cannot pass
 File: app/features/ai/anthropic.server.ts:31; app/features/ai/instructions.ts
 
-### F-356 [P3] closed - On the failed state at 390px, "Change the description" wraps with its text off-centre
-File: app/features/onboarding/onboarding.module.css (`.actions`, `.primaryLink`, `.secondaryLink`)
-
-### F-357 [P3] closed - Onboarding CSS uses literals where tokens exist
-File: app/features/onboarding/onboarding.module.css
-
-### F-358 [P3] closed - A site-level busy refusal says "Habre is busy building other sites"
-File: app/features/onboarding/start-run.ts:44; app/features/ai/run-generation.ts:220,236
-
 ### F-359 [P3] open - The host-split Playwright server pins only `OPENROUTER_API_KEY=`, not `AI_PROVIDERS=`
 File: playwright.config.ts:57
-
-### F-360 [P3] closed - The wait page's title is always "Building your site"
-File: app/features/onboarding/start-wait.tsx:15-17
-
-### F-361 [P3] closed - AI-written page titles are used as React keys
-File: app/features/onboarding/start-wait.tsx:83
 
 ### F-362 [P3] open - No unit test that `/start` is a platform path
 File: app/lib/content-security-policy.test.ts; app/lib/host-routing.test.ts
@@ -612,26 +597,14 @@ File: app/features/admin-shell/home.tsx:103
 ### F-378 [P3] open - Publish website's gate and update are separate statements
 File: app/features/admin-shell/home.tsx:106-111; app/features/content/entries.server.ts (`publishDraftPages`)
 
-### F-379 [P3] closed - The preview bar's English text carries the site's language
-File: app/features/preview/preview-layout.tsx:68
-
-### F-380 [P3] closed - /admin?published=1 shows "Your website is published." whatever the state
-File: app/features/admin-shell/home.tsx:83, :140
-
-### F-381 [P3] closed - Duplicate React keys in the preview's menu
-File: app/features/public-site/layout.tsx:100
-
-### F-386 [P3] closed - Once the AI's colour is known, the swatch shows only the hex - "suggested by AI" is screen-reader only
-File: app/features/settings/brand-fields.tsx:183-189
-
 ### F-387 [P3] open - Two step 3 assertions cannot fail on what they claim
 File: e2e/onboarding.spec.ts:~1018 (choices kept), ~951 (Finish with Let the AI choose)
 
 ### F-388 [P3] open - The keyboard test focuses the radios by script, so keyboard reach is not shown
 File: e2e/onboarding.spec.ts (step 3 keyboard test: `ai.focus()`, `modern.focus()`)
 
-### F-390 [P3] closed - `body-size.ts` has no unit test, unlike every sibling body-size helper
-File: app/features/onboarding/body-size.ts:8
+### F-392 [P3] open - The AI swatch's hex sits off-centre under its dot now that "Suggested by AI" is under it
+File: app/features/settings/brand-fields.tsx:194-199; app/features/settings/brand-fields.module.css:100
 
-### F-391 [P3] closed - Step 3 puts Finish before Skip for now, where steps 1-2 and the mock end on the primary
-File: app/features/onboarding/start-brand.tsx:101-108
+### F-393 [P3] open - "Two starts for one site at the same moment" no longer checks the refusal's reason
+File: app/features/ai/run-generation.test.ts:202-214
