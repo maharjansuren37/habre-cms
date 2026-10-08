@@ -53,10 +53,15 @@ export type SubmittedBrand = {
 export function BrandFields({
   saved,
   submitted,
+  aiColour,
 }: {
   saved: SavedBrand;
   submitted?: SubmittedBrand | undefined;
+  /** `undefined`: Settings, no AI swatch. `null`: offer Let the AI choose with no colour yet.
+   *  A `#rrggbb`: the colour the AI suggested. */
+  aiColour?: string | null | undefined;
 }) {
+  const offersAi = aiColour !== undefined;
   const errors = submitted?.errors ?? {};
   const [logo, setLogo] = useState<Logo | null>(
     saved.logoMediaId && saved.logoUrl
@@ -88,15 +93,17 @@ export function BrandFields({
   // Which swatch is chosen. Controlled, because a radio checked by script would not tell
   // React it changed (its value tracker would swallow the next click on the one it unchecked).
   const [colourChoice, setColourChoice] = useState<ColourChoice>(
-    startsOnLogoColour
-      ? colourDefault
-      : otherIsChecked
-        ? "other"
-        : colourDefault === ""
-          ? "none"
-          : "saved",
+    offersAi && colourDefault === ""
+      ? "ai"
+      : startsOnLogoColour
+        ? colourDefault
+        : otherIsChecked
+          ? "other"
+          : colourDefault === ""
+            ? "none"
+            : "saved",
   );
-  const previewColour = choiceColour(colourChoice, savedColour, otherColour);
+  const previewColour = choiceColour(colourChoice, savedColour, otherColour, aiColour);
   // A chosen colour never moves by itself when the logo changes or goes.
   function changeLogo(next: Logo | null) {
     const kept = choiceAfterLogoChange(colourChoice, savedColour, next?.colours ?? [], otherColour);
@@ -126,91 +133,128 @@ export function BrandFields({
         colour reaches its swatch through the CSSOM (setSwatchColour): a style attribute
         is blocked by the admin's style-src. */}
           <ul className={styles.swatches}>
-            {brandSwatches(savedColour, logo?.colours ?? [], colourChoice, otherColour).map(
-              (swatch) => {
-                if (swatch.kind === "none") {
-                  return (
-                    <li key={swatch.key}>
-                      <label className={`${styles.swatch} ${styles.swatchInk}`}>
-                        <input
-                          type="radio"
-                          name="brandColor"
-                          value=""
-                          checked={swatch.checked}
-                          onChange={() => setColourChoice("none")}
-                        />
-                        <span className={styles.swatchDot} aria-hidden="true" />
-                        <span className={styles.swatchName}>
-                          No colour<span className="visually-hidden"> (black and white)</span>
-                        </span>
-                      </label>
-                    </li>
-                  );
-                }
-                if (swatch.kind === "other") {
-                  return (
-                    <li key={swatch.key} className={styles.otherSwatch}>
-                      <label className={styles.swatch}>
-                        <input
-                          type="radio"
-                          name="brandColor"
-                          value={swatch.value}
-                          checked={swatch.checked}
-                          onChange={() => setColourChoice("other")}
-                        />
-                        <span
-                          className={styles.swatchDot}
-                          aria-hidden="true"
-                          ref={(el) => setSwatchColour(el, swatch.value)}
-                        />
-                        <span className={styles.swatchName}>Other colour</span>
-                      </label>
+            {brandSwatches(
+              savedColour,
+              logo?.colours ?? [],
+              colourChoice,
+              otherColour,
+              offersAi ? { colour: aiColour } : undefined,
+            ).map((swatch) => {
+              if (swatch.kind === "none") {
+                return (
+                  <li key={swatch.key}>
+                    <label className={`${styles.swatch} ${styles.swatchInk}`}>
                       <input
-                        type="color"
-                        className={styles.colourInput}
-                        aria-label="Pick other colour"
-                        value={otherColour}
-                        // Opening the picker selects Other; so does a new colour (a click is not
-                        // needed to change one by keyboard). Focus alone does not, so tabbing
-                        // past it changes nothing.
-                        onClick={() => setColourChoice("other")}
-                        onChange={(event) => {
-                          setOtherColour(event.target.value);
-                          setColourChoice("other");
-                        }}
+                        type="radio"
+                        name="brandColor"
+                        value=""
+                        checked={swatch.checked}
+                        onChange={() => setColourChoice("none")}
                       />
-                    </li>
-                  );
-                }
-                const isLogo = swatch.kind === "logo";
+                      <span className={styles.swatchDot} aria-hidden="true" />
+                      <span className={styles.swatchName}>
+                        No colour<span className="visually-hidden"> (black and white)</span>
+                      </span>
+                    </label>
+                  </li>
+                );
+              }
+              if (swatch.kind === "ai") {
+                const aiHex = swatch.colour ?? null;
                 return (
                   <li key={swatch.key}>
                     <label className={styles.swatch}>
                       <input
                         type="radio"
                         name="brandColor"
+                        value=""
+                        checked={swatch.checked}
+                        onChange={() => setColourChoice("ai")}
+                      />
+                      <span
+                        className={`${styles.swatchDot} ${aiHex ? "" : styles.swatchAiPending}`}
+                        aria-hidden="true"
+                        ref={(el) => setSwatchColour(el, aiHex ?? "")}
+                      />
+                      <span className={styles.swatchName}>
+                        {aiHex ? (
+                          <>
+                            <span className="visually-hidden">
+                              {capitalise(colourWord(aiHex))}, suggested by AI{" "}
+                            </span>
+                            {aiHex}
+                          </>
+                        ) : (
+                          "Let the AI choose"
+                        )}
+                      </span>
+                    </label>
+                  </li>
+                );
+              }
+              if (swatch.kind === "other") {
+                return (
+                  <li key={swatch.key} className={styles.otherSwatch}>
+                    <label className={styles.swatch}>
+                      <input
+                        type="radio"
+                        name="brandColor"
                         value={swatch.value}
                         checked={swatch.checked}
-                        onChange={() => setColourChoice(isLogo ? swatch.value : "saved")}
+                        onChange={() => setColourChoice("other")}
                       />
                       <span
                         className={styles.swatchDot}
                         aria-hidden="true"
                         ref={(el) => setSwatchColour(el, swatch.value)}
                       />
-                      <span className={styles.swatchName}>
-                        <span className="visually-hidden">
-                          {isLogo
-                            ? `${capitalise(colourWord(swatch.value))} from your logo, `
-                            : "Saved colour "}
-                        </span>
-                        {swatch.value}
-                      </span>
+                      <span className={styles.swatchName}>Other colour</span>
                     </label>
+                    <input
+                      type="color"
+                      className={styles.colourInput}
+                      aria-label="Pick other colour"
+                      value={otherColour}
+                      // Opening the picker selects Other; so does a new colour (a click is not
+                      // needed to change one by keyboard). Focus alone does not, so tabbing
+                      // past it changes nothing.
+                      onClick={() => setColourChoice("other")}
+                      onChange={(event) => {
+                        setOtherColour(event.target.value);
+                        setColourChoice("other");
+                      }}
+                    />
                   </li>
                 );
-              },
-            )}
+              }
+              const isLogo = swatch.kind === "logo";
+              return (
+                <li key={swatch.key}>
+                  <label className={styles.swatch}>
+                    <input
+                      type="radio"
+                      name="brandColor"
+                      value={swatch.value}
+                      checked={swatch.checked}
+                      onChange={() => setColourChoice(isLogo ? swatch.value : "saved")}
+                    />
+                    <span
+                      className={styles.swatchDot}
+                      aria-hidden="true"
+                      ref={(el) => setSwatchColour(el, swatch.value)}
+                    />
+                    <span className={styles.swatchName}>
+                      <span className="visually-hidden">
+                        {isLogo
+                          ? `${capitalise(colourWord(swatch.value))} from your logo, `
+                          : "Saved colour "}
+                      </span>
+                      {swatch.value}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
           </ul>
           {errors.brandColor && <p className={styles.fieldError}>{errors.brandColor}</p>}
         </fieldset>

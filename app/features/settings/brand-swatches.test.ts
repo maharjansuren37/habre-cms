@@ -92,3 +92,57 @@ test("none, saved and other choices never move when the logo changes", () => {
     });
   }
 });
+
+test("with the AI's colour offered, Let the AI choose replaces No colour and carries the colour", () => {
+  const list = brandSwatches(RUST, [GREEN], "ai", "#111111", { colour: GOLD });
+  assert.deepEqual(kinds(list), ["ai:", `saved:${RUST}`, `logo:${GREEN}`, "other:#111111"]);
+  assert.equal(list[0]?.colour, GOLD);
+  assert.equal(list[0]?.checked, true);
+  assert.equal(
+    list.some((s) => s.kind === "none"),
+    false,
+  );
+});
+
+test("with the AI offered but no colour yet, its swatch carries none and can be unchecked", () => {
+  const list = brandSwatches("", [], "other", GREEN, { colour: null });
+  assert.deepEqual(kinds(list), ["ai:", `other:${GREEN}`]);
+  assert.equal(list[0]?.colour, null);
+  assert.equal(list[0]?.checked, false);
+  assert.equal(checkedOf(list).length, 1);
+});
+
+test("only the AI choice checks the AI swatch", () => {
+  const list = brandSwatches("", [GREEN], "ai", "#111111", { colour: null });
+  assert.deepEqual(
+    checkedOf(list).map((s) => s.kind),
+    ["ai"],
+  );
+});
+
+test("choiceColour gives the AI's colour for the AI choice, or no colour", () => {
+  assert.equal(choiceColour("ai", RUST, "#111111", GOLD), GOLD);
+  assert.equal(choiceColour("ai", RUST, "#111111", null), "");
+  assert.equal(choiceColour("ai", RUST, "#111111"), "");
+});
+
+test("a logo change keeps the AI choice chosen", () => {
+  assert.deepEqual(choiceAfterLogoChange("ai", "", [GREEN], "#111111"), {
+    choice: "ai",
+    other: "#111111",
+  });
+  assert.deepEqual(choiceAfterLogoChange("ai", "", [], "#111111"), {
+    choice: "ai",
+    other: "#111111",
+  });
+});
+
+test("Settings' row, asked for without the AI, still starts with No colour", () => {
+  const list = brandSwatches(RUST, [GREEN], "none", "#111111");
+  assert.equal(list[0]?.kind, "none");
+  assert.equal(
+    list.some((s) => s.kind === "ai"),
+    false,
+  );
+  assert.equal("colour" in (list[0] ?? {}), false);
+});

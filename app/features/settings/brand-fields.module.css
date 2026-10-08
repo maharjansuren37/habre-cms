@@ -74,6 +74,13 @@
   --swatch: var(--neutral-900);
 }
 
+/* Let the AI choose before the AI has a colour: a dashed ring, no fill. */
+.swatchAiPending {
+  background: transparent;
+  box-shadow: none;
+  border: 2px dashed var(--color-border-strong);
+}
+
 .swatch:has(:checked) .swatchDot {
   box-shadow:
     0 0 0 3px var(--color-surface),

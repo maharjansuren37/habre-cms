@@ -83,7 +83,7 @@ and both go on to the run's page. Journey 1 then reads as `design.md` has it.
   logo row by the owner URL, applies, and finds the proposal's colour saved
   and listed in the review first (no R2 needed - the media row is inserted,
   never uploaded).
-- [ ] **Step 3 - The Let the AI choose swatch** - `brandSwatches` gains an
+- [x] **Step 3 - The Let the AI choose swatch** - `brandSwatches` gains an
   `ai` kind (value `''`, carrying the AI's colour or none) offered only when
   asked for, replacing No colour in that row; `choiceColour` and
   `choiceAfterLogoChange` handle it (a logo change keeps it chosen, brand.10).
