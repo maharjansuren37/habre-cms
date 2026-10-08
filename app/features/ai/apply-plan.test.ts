@@ -89,6 +89,24 @@ test("the home page is p1", () => {
   assert.equal(planApply(parsed(validProposal()), emptySite).homeKey, "p1");
 });
 
+test("the review names p1 as the home page even when it is not the first page", () => {
+  const proposal = titled("About", "Welcome");
+  proposal.pages = [proposal.pages[1], proposal.pages[0]];
+  const plan = planApply(parsed(proposal), emptySite);
+  assert.equal(reviewSummary(parsed(proposal)).homeKey, "p1");
+  assert.equal(reviewSummary(parsed(proposal)).homeKey, plan.homeKey);
+});
+
+test("without a p1 page the review and the plan both name the first page as home", () => {
+  const proposal = titled("About", "Welcome");
+  proposal.pages[0].key = "p2";
+  proposal.pages[1].key = "p3";
+  proposal.navigation = ["p2", "p3"];
+  const plan = planApply(parsed(proposal), emptySite);
+  assert.equal(reviewSummary(parsed(proposal)).homeKey, "p2");
+  assert.equal(plan.homeKey, "p2");
+});
+
 test("the colour is the proposal's when the site has no logo and no colour", () => {
   assert.equal(planApply(parsed(validProposal()), emptySite).brandColor, "#aa5500");
 });

@@ -160,11 +160,11 @@ export default function StartRun({ loaderData, actionData }: Route.ComponentProp
           <p className={styles.lede}>
             Here is what Habre wrote from your description. Nothing is public until you publish it.
           </p>
-          {review.pages.map((page, index) => (
+          {review.pages.map((page) => (
             <section key={page.key} className={styles.reviewSection}>
               <div className={styles.reviewTitle}>
                 <h2 className={styles.reviewHeading}>{page.title}</h2>
-                {index === 0 && <span className={styles.badge}>Home page</span>}
+                {page.key === review.homeKey && <span className={styles.badge}>Home page</span>}
               </div>
               <ol className={styles.reviewList}>
                 {page.sections.map((section, at) => (

@@ -32,6 +32,13 @@ export type ApplySite = {
   siteDescription: string;
 };
 
+/** The proposal's instructions make p1 the home page; fall back to the first page if absent. */
+export function homePageKey(proposal: Proposal): string {
+  return proposal.pages.some((page) => page.key === "p1")
+    ? "p1"
+    : (proposal.pages[0] as { key: string }).key;
+}
+
 /**
  * Unset is the empty string, as `site_settings` stores it (`site_description`
  * and `brand_color` both default to ''). The colour is also left alone with a
@@ -57,8 +64,7 @@ export function planApply(proposal: Proposal, site: ApplySite): ApplyPlan {
       document: documents[page.key] as Document,
     })),
     navigation: proposal.navigation.map((key) => ({ key, label: titles.get(key) as string })),
-    // The proposal's instructions make p1 the home page; fall back to the first page if absent.
-    homeKey: titles.has("p1") ? "p1" : (proposal.pages[0] as { key: string }).key,
+    homeKey: homePageKey(proposal),
     siteDescription: site.siteDescription === "" ? proposal.siteDescription : null,
     brandColor: site.hasLogo || site.brandColor !== "" ? null : proposal.brandColor,
   };
@@ -73,6 +79,7 @@ export type ReviewSummary = {
     sections: { kindName: string; heading: string }[];
   }[];
   menu: string[];
+  homeKey: string;
   emptyPhotoCount: number;
 };
 
@@ -96,6 +103,7 @@ export function reviewSummary(proposal: Proposal): ReviewSummary {
       sections: page.sections.map((s) => ({ kindName: KIND_NAMES[s.kind], heading: s.heading })),
     })),
     menu: proposal.navigation.map((key) => titles.get(key) as string),
+    homeKey: homePageKey(proposal),
     emptyPhotoCount: sections.filter((s) => s.kind === "hero" || s.kind === "image-text").length,
   };
 }

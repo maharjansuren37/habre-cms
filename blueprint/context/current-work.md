@@ -246,6 +246,46 @@ is "AI suggests, the user applies" made real; nothing is published.
   `/admin/pages/<uuid>`. `npm run verify` and the full `npm run test:e2e`
   pass locally.
 
+### Review fixes (owner, 2026-10-08: fix before ship)
+
+- [x] **Step 9 - the review badges the page apply makes home (F-364)** -
+  `apply-plan.ts` exports `homePageKey(proposal)` (`p1` when present, else
+  the first page - the rule now inline in `planApply`); `planApply` and
+  `reviewSummary` both call it, and `ReviewSummary` gains `homeKey`.
+  `start-wait.tsx` badges the page whose `key === review.homeKey`, not
+  `index === 0`. *Done when:* `apply-plan.test.ts` (seen failing first): a
+  proposal ordered `[p2, p1]` gives `reviewSummary(…).homeKey` `p1` equal to
+  `planApply(…).homeKey`; without `p1`, both are the first page's key.
+- [ ] **Step 10 - Home applies the parse rule (F-365)** -
+  `findLatestFinishedRun` selects `result` and returns `null` for a
+  `succeeded` row whose result fails `proposalSchema` (an `applied` row is
+  returned as is); its return shape is unchanged. Home's ready panel drops
+  the "We drafted N pages from your description." sentence when the count is
+  0, keeping "Look them over and change anything - nobody sees them before
+  you publish." *Done when:* in `e2e/home.spec.ts`: an admin of an empty
+  site whose only finished run is `succeeded` with result `{}` sees Start
+  from a description and no Review your draft; a site with an `applied` run
+  whose result is `{}` shows Your website is ready and no "0 pages".
+- [ ] **Step 11 - /start's large buttons and wrapping (F-366)** -
+  `onboarding.module.css`: the large rule becomes `.actions .large` (beats
+  the kit's `.button` regardless of stylesheet order); `.actions` gains
+  `flex-wrap: wrap` and `align-items: center`. Covers `start.tsx`,
+  `start-about.tsx` and `start-wait.tsx`, which all use it. *Done when:* in
+  `e2e/onboarding.spec.ts` at 390px, on the review, Use this draft's
+  bounding box is 52px tall, Change the description's text sits on one line
+  (box height 52px), and there is no horizontal scroll; step 1's Continue is
+  also 52px.
+- [ ] **Step 12 - an unusable draft returns to its failed page (F-369)** -
+  `start-wait.tsx`'s action: `applyRun`'s `invalid` redirects to
+  `/start/<runId>`, whose loader already shows the failed `invalid` state
+  with Try again - the same in the JS and no-JS flows. The `applyError`
+  banner and its message go. *Done when:* `e2e/onboarding.spec.ts`'s
+  "a draft that no longer parses" test presses **Use this draft** (not a
+  raw POST) after corrupting the result, and sees Couldn't build your site,
+  Something went wrong on our side, and a Try again button; the URL is still
+  the run's page; no pages exist and the run is still `succeeded`. Then
+  `npm run verify` and the full `npm run test:e2e` pass locally.
+
 ## Files and areas
 
 - new `app/features/ai/apply-plan.ts`, `apply-run.server.ts`,
@@ -330,6 +370,11 @@ is "AI suggests, the user applies" made real; nothing is published.
   it.
 - **The AI meter shows a percentage used, rounded down, capped at 100**
   (plan: never tokens or credits). Beat: credits left (the mock).
+- **The home page is `p1`, else the first page - one helper, `homePageKey`,
+  for the review and the apply** (F-364). Beat: badging by position.
+- **An unusable draft's apply redirects to its own page** (F-369), which
+  shows the failed `invalid` state. Beat: a 400 banner inside a review that
+  has no Try again.
 
 ## Production needs
 
@@ -343,6 +388,9 @@ None. No migration, no new variable. Production already needs
 - Adds to `onboarding`: the review lists each drafted page with its sections, search title and description, the menu, and the brand colour only when it will be applied - Step 2
 - Adds to `onboarding`: a finished run whose draft no longer reads as a valid proposal shows Couldn't build your site and offers Try again - Step 2
 - Adds to `onboarding`: Use this draft creates one draft page per drafted page with its search text, sets the menu in the draft's order and the first page as the home page, and publishes nothing - Step 3
+- Adds to `onboarding`: the page the review marks Home page is the page Use this draft makes the home page - Step 9
+- Adds to `onboarding`: pressing Use this draft on a draft that no longer reads as a valid proposal returns to its page showing Couldn't build your site and Try again, and creates nothing - Step 12
+- Adds to `home`: a finished draft that no longer reads as a valid proposal is never offered as Review your draft - Step 10
 - Adds to `onboarding`: using a draft twice, or twice at once, creates its pages once - Step 3
 - Adds to `onboarding`: using a draft writes the site description only when it is empty, and the brand colour only when the site has no logo and no colour - Step 3
 - Adds to `onboarding`: a drafted page never takes the address of an existing page or a reserved address - Step 3
@@ -372,3 +420,40 @@ None. No migration, no new variable. Production already needs
   (`node_modules/react-router/docs/`).
 - Semantic HTML (`coding-standards.md`): `section`/`h2` per page, `ol` for
   sections and the menu, `dl` for search text, `ul` for Your pages.
+
+## Handoff (2026-10-08)
+
+**Where it stands:** all 8 steps built, ticked and committed on
+`feature/18b4a-review-apply-home` (autopilot build..review, `e0b2098`..`37d103a`).
+Verified and reviewed (lines at the top). 0 blocking findings. Nothing merged,
+pushed or deployed; no person has read the diffs after Step 1.
+
+**Evidence:** `npm run verify` 930/930; `npm run test:e2e` 515 passed, 0 failed,
+0 skipped; apply POST 41 ms (42/65 ms concurrent), one local sample; screenshots
+of the review and Home at 1280/390, light/dark, no console errors.
+
+**Open from review** (findings.md): F-364, F-365, F-366, F-369 are user-facing
+P3s worth fixing before ship; F-367, F-368, F-370 can wait; F-371 (P2) and
+F-372 unverified.
+
+**Next, in order:**
+1. Owner chose to fix F-364/365/366/369 first (2026-10-08): `build` Steps
+   9-12 (spec'd above), then `verify` and `review` again.
+2. `ship` (squash-merge; check `git log origin/main..main` first - memory
+   note on unpushed main). Push is a separate yes.
+
+**Decisions the spec did not settle** (move to `## Decisions` at ship if kept):
+homeKey falls back to the first page without `p1`; "unset" colour/description
+is exactly `''`; invalid-apply banner wording "This draft can no longer be
+used. Try again, or start blank." (F-369 - removed by Step 12); Home's All pages link only past 20;
+non-admins on `/admin` redirect to Posts, not 404; ready panel omits Edit the
+home page when `home_page_id` is null; page count from the applied run's
+re-parsed result; AI meter value capped at the allowance; e2e inlines the test
+proposal (e2e tsconfig cannot import `app/`).
+
+**Gotchas:** Playwright can leave servers on 3100-3102 after a killed run -
+kill them before rerunning. An applied run now closes `/start`, so tests must
+not sign in via `/start` after seeding one. Admin CSP has no inline styles:
+colours go through the CSSOM (`setSwatchColour`).
+
+**Verify with:** `npm run verify`; `npm run test:e2e` (needs `docker compose up -d`).
