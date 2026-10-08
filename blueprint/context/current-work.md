@@ -102,7 +102,7 @@ the owner chose this group on 2026-10-08.
   the `request_refused` line with `reason: "role"` in the server's output
   for that POST; the touched e2e specs pass.
 
-- [ ] **Step 6 - body-size's test, and F-361's record (F-390, F-361)** - add
+- [x] **Step 6 - body-size's test, and F-361's record (F-390, F-361)** - add
   `onboarding/body-size.test.ts` in the shape of
   `content/entry-body-size.test.ts`: 1 byte and exactly 32 KB are allowed; 32
   KB + 1, "0", "abc", "-5" and a missing header are refused. Export

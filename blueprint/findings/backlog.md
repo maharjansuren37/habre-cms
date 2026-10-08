@@ -582,7 +582,7 @@ File: playwright.config.ts:57
 ### F-360 [P3] closed - The wait page's title is always "Building your site"
 File: app/features/onboarding/start-wait.tsx:15-17
 
-### F-361 [P3] open - AI-written page titles are used as React keys
+### F-361 [P3] fixed - AI-written page titles are used as React keys
 File: app/features/onboarding/start-wait.tsx:83
 
 ### F-362 [P3] open - No unit test that `/start` is a platform path
@@ -630,7 +630,7 @@ File: e2e/onboarding.spec.ts:~1018 (choices kept), ~951 (Finish with Let the AI 
 ### F-388 [P3] open - The keyboard test focuses the radios by script, so keyboard reach is not shown
 File: e2e/onboarding.spec.ts (step 3 keyboard test: `ai.focus()`, `modern.focus()`)
 
-### F-390 [P3] open - `body-size.ts` has no unit test, unlike every sibling body-size helper
+### F-390 [P3] closed - `body-size.ts` has no unit test, unlike every sibling body-size helper
 File: app/features/onboarding/body-size.ts:8
 
 ### F-391 [P3] closed - Step 3 puts Finish before Skip for now, where steps 1-2 and the mock end on the primary
