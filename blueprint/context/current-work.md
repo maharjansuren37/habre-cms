@@ -115,7 +115,7 @@ and both go on to the run's page. Journey 1 then reads as `design.md` has it.
   as the logo, behind `test.skip(skipWithoutStorage)` (local only, like every
   R2 test). All run by `npm run test:e2e` locally and in CI's `e2e` job,
   except the logo test, which CI skips.
-- [ ] **Step 5 - Journey 1 through step 3, the phone, and the record** - a
+- [x] **Step 5 - Journey 1 through step 3, the phone, and the record** - a
   browser test walks journey 1 with the fake provider: Confirm my email ->
   step 1 -> step 2 -> Make it yours -> choose Classic and Finish -> the
   review -> Use this draft -> Home -> Preview shows the Classic style ->

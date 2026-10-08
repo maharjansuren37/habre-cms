@@ -1024,6 +1024,46 @@ test.describe("step 3, Make it yours", () => {
     expect(await brandOfSite()).toEqual(before);
   });
 
+  test("at 390px step 3 has no horizontal scroll and its large buttons are 52px tall (F-366)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    const finish = page.getByRole("button", { name: "Finish" });
+    await expect(finish).toBeVisible();
+    expect((await finish.boundingBox())?.height).toBe(52);
+    expect((await page.getByRole("link", { name: "Skip for now" }).boundingBox())?.height).toBe(52);
+    expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
+      true,
+    );
+  });
+
+  test("the swatches and Style cards are radios reached and checked by keyboard alone", async ({
+    page,
+  }) => {
+    const runId = await seedRun("running");
+    await logInThenOpen(page, `/start/${runId}/brand`);
+    // The checked radio of each group is its tab stop; arrow keys move the choice.
+    const ai = page.getByRole("radio", { name: "Let the AI choose" });
+    await ai.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(ai).not.toBeChecked();
+    await expect(page.locator('input[name="brandColor"]:checked')).toHaveCount(1);
+    await page.keyboard.press("ArrowUp");
+    await expect(ai).toBeChecked();
+
+    const modern = page.getByRole("radio", { name: "Modern" });
+    await modern.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: "Friendly" })).toBeChecked();
+    await page.keyboard.press("ArrowLeft");
+    await expect(modern).toBeChecked();
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.getByRole("radio", { name: "Classic" })).toBeChecked();
+    await expect(page.locator('input[name="stylePreset"]:checked')).toHaveCount(1);
+  });
+
   test("a logo uploaded on step 3 becomes the site's logo on Finish", async ({ page }) => {
     test.skip(skipWithoutStorage, STORAGE_REASON);
     const runId = await seedRun("running");
@@ -1089,6 +1129,14 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.waitForURL(UUID_PATH);
   }
 
+  /** Build my site opens Make it yours; choosing Classic and pressing Finish goes on to the run's page. */
+  async function finishStepThreeWithClassic(page: Page): Promise<void> {
+    await page.waitForURL(BRAND_PATH);
+    await page.getByRole("radio", { name: "Classic" }).check();
+    await page.getByRole("button", { name: "Finish" }).click();
+    await page.waitForURL(UUID_PATH);
+  }
+
   async function expectDraft(page: Page): Promise<void> {
     // Final states only (F-355): the 1-second fake can finish before "Building your site" shows.
     await expect(page).toHaveURL(UUID_PATH);
@@ -1135,7 +1183,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
-    await skipStepThree(page);
+    await finishStepThreeWithClassic(page);
     await expectDraft(page);
     await page.getByRole("button", { name: "Use this draft" }).click();
     await page.waitForURL(/\/admin$/);
@@ -1146,6 +1194,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     const preview = await opened;
     await preview.waitForURL("**/admin/preview");
     await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+    await expect(preview.locator("html")).toHaveAttribute("data-style", "classic");
     const menu = preview.getByRole("navigation", { name: "Site" });
     await expect(menu.getByRole("link")).toHaveText(["Home", "About"]);
 
@@ -1163,6 +1212,7 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     const site = await siteOpened;
     await site.waitForURL(siteUrl("/", address));
     await expect(site.getByRole("heading", { level: 1 })).toHaveText("Welcome");
+    await expect(site.locator("html")).toHaveAttribute("data-style", "classic");
     await expect(site.getByRole("navigation", { name: "Site" }).getByRole("link")).toHaveText([
       "Home",
       "About",
@@ -1176,10 +1226,26 @@ test.describe("journey 1, from the emailed link to the draft", () => {
     await page.goto("/start/about?kind=business");
     await page.getByLabel("About your business").fill("Crumb, a bakery for the neighbourhood.");
     await page.getByRole("button", { name: "Build my site" }).click();
-    await skipStepThree(page);
+    await page.waitForURL(BRAND_PATH);
+    await page.goto(page.url());
+    await page.getByRole("link", { name: "Skip for now" }).click();
+    await page.waitForURL(UUID_PATH);
     const runUrl = page.url();
     await page.goto(runUrl);
     await expectDraft(page);
+
+    // Skip for now saved nothing: Use this draft leaves Modern and writes the AI's colour.
+    const address = made.addresses[made.addresses.length - 1];
+    await page.getByRole("button", { name: "Use this draft" }).click();
+    await page.waitForURL(/\/admin$/);
+    const [saved] = await withDatabase(
+      (sql) => sql<{ brandColor: string; stylePreset: string }[]>`
+        select s.brand_color as "brandColor", s.style_preset as "stylePreset"
+        from site_settings s join sites on sites.id = s.site_id
+        where sites.subdomain = ${address}
+      `,
+    );
+    expect(saved).toEqual({ brandColor: "#aa5500", stylePreset: "modern" });
   });
 
   test("an unavailable provider ends on Couldn't build; Change the description then succeeds", async ({
