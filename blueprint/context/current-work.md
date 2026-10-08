@@ -64,7 +64,7 @@ the owner chose this group on 2026-10-08.
   timeout (:546) tests each assert `toHaveTitle` with their state's title, and
   `npm run test:e2e -- e2e/onboarding.spec.ts` passes.
 
-- [ ] **Step 3 - Make it yours ends on Finish, and the AI's swatch says so
+- [x] **Step 3 - Make it yours ends on Finish, and the AI's swatch says so
   visibly (F-391, F-386)** - in `onboarding/start-brand.tsx`, the Skip for now
   `Link` moves before the Finish `Button`. In `settings/brand-fields.tsx`, the
   `ai` swatch with a known colour shows the hex and, under it, a visible

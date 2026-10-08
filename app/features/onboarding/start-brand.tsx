@@ -99,12 +99,12 @@ export default function StartBrand({ loaderData, actionData }: Route.ComponentPr
 
       <BrandFields saved={settings} submitted={actionData?.values} aiColour={aiColour} split>
         <div className={styles.actions}>
-          <Button type="submit" variant="primary" className={styles.large} isPending={isSaving}>
-            {isSaving ? "Saving…" : "Finish"}
-          </Button>
           <Link to={`/start/${runId}`} className={styles.secondaryLink}>
             Skip for now
           </Link>
+          <Button type="submit" variant="primary" className={styles.large} isPending={isSaving}>
+            {isSaving ? "Saving…" : "Finish"}
+          </Button>
         </div>
       </BrandFields>
     </Form>

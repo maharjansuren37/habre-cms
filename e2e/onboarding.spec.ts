@@ -954,9 +954,10 @@ test.describe("step 3, Make it yours", () => {
   }) => {
     const runId = await seedRun("succeeded", { result: validProposal() });
     await logInThenOpen(page, `/start/${runId}/brand`);
-    const ai = page.getByRole("radio", { name: /suggested by AI/ });
+    const ai = page.getByRole("radio", { name: /suggested by AI/i });
     await expect(ai).toBeChecked();
     await expect(ai).toHaveAccessibleName(/#aa5500/);
+    await expect(page.getByText("Suggested by AI", { exact: true })).toBeVisible();
   });
 
   test("a running run's step 3 offers Let the AI choose, and Finish with it leaves no colour", async ({
@@ -1044,6 +1045,7 @@ test.describe("step 3, Make it yours", () => {
     expect(Math.abs(preview.y - logo.y)).toBeLessThanOrEqual(8);
     expect(finish.x + finish.width).toBeLessThan(preview.x);
     expect(skip.x + skip.width).toBeLessThan(preview.x);
+    expect(skip.x).toBeLessThan(finish.x);
   });
 
   test("at 390px the preview comes after Style, in one column (F-384)", async ({ page }) => {

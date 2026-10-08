@@ -192,9 +192,11 @@ export function BrandFields({
                         {aiHex ? (
                           <>
                             <span className="visually-hidden">
-                              {capitalise(colourWord(aiHex))}, suggested by AI{" "}
+                              {capitalise(colourWord(aiHex))},{" "}
                             </span>
                             {aiHex}
+                            <span className="visually-hidden">, </span>
+                            <span className={styles.swatchNote}>Suggested by AI</span>
                           </>
                         ) : (
                           "Let the AI choose"
