@@ -16,7 +16,7 @@ type Fixture = {
   oneEmail: string;
 };
 
-const TABLES = ["entries", "media", "site_settings", "ai_runs"] as const;
+const TABLES = ["entries", "media", "site_settings", "ai_runs", "contact_submissions"] as const;
 
 let fixture: Fixture;
 
@@ -41,6 +41,10 @@ async function insertRows(siteId: string, authorId: string, tag: string): Promis
       insert into ai_runs (site_id, user_id, kind, description, status)
       values (${siteId}, ${authorId}, 'website', ${tag}, 'running')
     `;
+    await sql`
+      insert into contact_submissions (site_id, name, email, message)
+      values (${siteId}, ${tag}, 'visitor@example.org', ${tag})
+    `;
   });
 }
 
@@ -63,6 +67,7 @@ test.afterAll(async () => {
     await sql`delete from entries where author_id = ${fixture.oneUserId}`;
     await sql`delete from media where uploaded_by = ${fixture.oneUserId}`;
     await sql`delete from ai_runs where site_id = ${fixture.siteOne} and user_id = ${fixture.oneUserId}`;
+    await sql`delete from contact_submissions where site_id = ${fixture.siteOne}`;
   });
   await deleteTestUser(fixture.oneEmail);
   await deleteSite(fixture.siteTwo);
@@ -150,6 +155,30 @@ test("a write naming another site is refused by the policy", async () => {
           insert into entries (site_id, type, title, slug, blocks, blocks_format, status, author_id)
           values (${fixture.siteOne}, 'page', 'Across sites', ${`across-${randomUUID()}`},
                   ${tx.json({ type: "doc", content: [] })}, 'v4', 'draft', ${fixture.oneUserId})
+        `;
+        // Reached only if the insert was allowed; undo it either way.
+        throw rollback;
+      });
+    } catch (caught) {
+      message = (caught as Error).message;
+    }
+    expect(message).toMatch(/new row violates row-level security policy/);
+  } finally {
+    await app.end();
+  }
+});
+
+test("a contact submission naming another site is refused by the policy", async () => {
+  const app = appRole();
+  const rollback = new Error("rolled back");
+  try {
+    let message = "";
+    try {
+      await app.begin(async (tx) => {
+        await tx`select set_config('app.site_id', ${fixture.siteTwo}, true)`;
+        await tx`
+          insert into contact_submissions (site_id, name, email, message)
+          values (${fixture.siteOne}, 'Across', 'visitor@example.org', 'Across sites')
         `;
         // Reached only if the insert was allowed; undo it either way.
         throw rollback;

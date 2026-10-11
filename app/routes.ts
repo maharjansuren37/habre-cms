@@ -14,6 +14,8 @@ export default [
     route(":slug", "features/public-site/page.tsx"),
   ]),
   route("healthz", "features/public-site/healthz.ts"),
+  // The one state-changing path a site host accepts (item 19a).
+  route("_contact", "features/contact/contact-submit.ts"),
   route("robots.txt", "features/seo/robots.ts"),
   route("sitemap.xml", "features/seo/sitemap.ts"),
   route("admin/login", "features/auth/login.tsx"),

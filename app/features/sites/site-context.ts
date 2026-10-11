@@ -14,3 +14,10 @@ export type PublicSiteContext = PublicSite & { mainOrigin: string };
  * pages carry no site id (public-site.1).
  */
 export const siteContext = createContext<PublicSiteContext>();
+
+/**
+ * The request's own origin, set by root middleware only when the request
+ * resolved to a site (item 19a). Null on the platform host, so the cross-site
+ * check knows which rule applies without `siteContext`'s throw.
+ */
+export const siteOriginContext = createContext<string | null>(null);

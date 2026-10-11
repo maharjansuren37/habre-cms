@@ -26,6 +26,7 @@
 - **accounts.25** - with email on, every other member of a deleted site is emailed that it was deleted *Since:* features/15e2-delete-your-account
 - **accounts.26** - the last active admin of any site can delete their account, and the site's domains go with it *Since:* features/16a-sites-by-host
 - **accounts.27** - taking the site also deletes its AI runs *Since:* features/18b1-the-run-with-openrouter
+- **accounts.28** - deleting a site's last account removes the site's contact submissions with it *Since:* features/19a-receiving-a-message
 
 ## Removed
 - accounts.23 - removed by features/16a-sites-by-host

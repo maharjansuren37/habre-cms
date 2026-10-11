@@ -93,3 +93,8 @@
 - [ ] `@anthropic-ai/sdk` 0.131.0 in the release's `node_modules`.
 - [ ] In `/etc/habre-cms/production.env`, entered by the owner: `AI_PROVIDERS` (e.g. `openrouter,anthropic,openai`, or the order chosen); for each listed direct provider `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_PRICE` and `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_PRICE` - production keys, each with a spend limit in its provider's console.
 - [ ] Before listing a direct provider in production, the live runs owed by `needs-you.md` (D392) have succeeded locally. No migration.
+
+## features/19a-receiving-a-message
+
+- [ ] Run migration `0021_contact_submissions.sql` (additive, a new table; the previous release never reads it, so a symlink rollback is safe; no data change).
+- [ ] No new environment variable; uses `JWT_SECRET`, already required.

@@ -190,3 +190,15 @@ test("/robots.txt on a site host is that site's, by subdomain or by own domain",
     host: "lena.example",
   });
 });
+
+test("POST /_contact is a site's on a site host and not found on the platform host", () => {
+  assert.deepEqual(classify("lena.habre.page", "/_contact", "POST"), {
+    kind: "subdomain",
+    label: "lena",
+  });
+  assert.deepEqual(classify("app.habre.ai", "/_contact", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
+});

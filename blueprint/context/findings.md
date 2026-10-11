@@ -127,3 +127,6 @@ File: e2e/home.spec.ts:316
 
 ### F-389 [P2] open - The wait's action and Publish website still read a request body of any size
 File: app/features/onboarding/start-wait.tsx:76-77; app/features/admin-shell/home.tsx:104
+
+### F-396 [P2] fixed - The contact browser tests read JWT_SECRET from the test process, which only CI's GITHUB_ENV line and a local .env supply
+File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
