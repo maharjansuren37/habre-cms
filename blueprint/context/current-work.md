@@ -104,7 +104,7 @@ states (default, sent, invalid, again, busy, inert in preview).
   states); `needs-you.md`'s two screen-reader lines widened. *Done when:*
   `npm run test:e2e -- contact` passes with the output shown; the page's CSP
   header still has `form-action 'self'` (existing assertion, shown).
-- [ ] **Step 6 - Check the whole** - `npm run verify` and the full
+- [x] **Step 6 - Check the whole** - `npm run verify` and the full
   `npm run test:e2e` locally. *Done when:* both green, output shown.
 
 ## Files and areas
