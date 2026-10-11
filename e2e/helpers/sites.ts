@@ -74,6 +74,7 @@ export function deleteSite(siteId: string): Promise<void> {
       `;
       const userIds = members.map((member) => member.userId);
       await tx`delete from ai_runs where site_id = ${siteId}`;
+      await tx`delete from contact_submissions where site_id = ${siteId}`;
       await tx`delete from site_settings where site_id = ${siteId}`;
       await tx`delete from entries where site_id = ${siteId}`;
       await tx`delete from media where site_id = ${siteId}`;

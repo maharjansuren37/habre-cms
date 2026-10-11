@@ -233,6 +233,7 @@ async function leftOfSite(emails: string[]): Promise<Record<string, number>> {
       media: await count(sql`select 1 from media where site_id = ${siteId}`),
       members: await count(sql`select 1 from site_members where site_id = ${siteId}`),
       runs: await count(sql`select 1 from ai_runs where site_id = ${siteId}`),
+      messages: await count(sql`select 1 from contact_submissions where site_id = ${siteId}`),
       users: await count(sql`select 1 from users where email in ${sql(emails)}`),
     };
   });
@@ -281,6 +282,10 @@ async function makeSoleAdminSite(): Promise<void> {
       select ${siteId}, id, 'blog', 'a run on a taken site', 'running'
       from users where email = ${editor.email}
     `;
+    await sql`
+      insert into contact_submissions (site_id, name, email, message)
+      values (${siteId}, 'A visitor', 'visitor@example.org', 'a message to a taken site')
+    `;
   });
 }
 
@@ -317,6 +322,7 @@ test("the last active admin sees what goes, and a wrong address deletes nothing"
     media: 2,
     members: 3,
     runs: 1,
+    messages: 1,
     users: 3,
   });
 });
@@ -339,6 +345,7 @@ test("the right address and password delete the site, its members, and free its 
     media: 0,
     members: 0,
     runs: 0,
+    messages: 0,
     users: 0,
   });
   expect(await signInOutcome(browser, editor.email, editor.password)).toBe("refused");

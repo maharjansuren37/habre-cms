@@ -335,6 +335,7 @@ export async function deleteAccount(
       select u.id, u.name, u.email from site_members m join users u on u.id = m.user_id
       where m.site_id = ${siteId}`;
     await tx`delete from ai_runs where site_id = ${siteId}`;
+    await tx`delete from contact_submissions where site_id = ${siteId}`;
     await tx`delete from site_settings where site_id = ${siteId}`;
     await tx`delete from entries where site_id = ${siteId}`;
     const media = await tx<{ storageKey: string; variantWidths: number[] | null }[]>`
