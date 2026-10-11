@@ -97,7 +97,7 @@ the Unread badge and the buttons are existing ones. The email is plain text
   port (a second server, or a unit test of the sender with a throwing
   `sendEmail`) the row exists, `notified_at` is null, and the answer is
   still `sent`.
-- [ ] **Step 4 - Reading and marking** - `app/features/contact/messages.server.ts`:
+- [x] **Step 4 - Reading and marking** - `app/features/contact/messages.server.ts`:
   `listMessages(siteId, page)` (20 a page, newest first, `entries` left-joined
   for the page title, total count, inside `inSite`, naming `site_id`),
   `setMessageRead(siteId, id, read)` (update naming `site_id` and the id;
