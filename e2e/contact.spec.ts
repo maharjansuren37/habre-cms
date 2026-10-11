@@ -1,6 +1,6 @@
 import { createHmac, randomInt, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { textDocument } from "./helpers/documents.ts";
+import { inSection, textDocument } from "./helpers/documents.ts";
 import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
@@ -36,11 +36,13 @@ async function addPage(
   authorEmail: string,
   slug: string,
   status: "draft" | "published",
+  document: unknown = textDocument("Hello"),
+  type: "page" | "post" = "page",
 ): Promise<string> {
   return withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
       insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
-      select ${siteId}, 'page', ${slug}, ${slug}, ${sql.json(textDocument("Hello") as never)}, 'v4',
+      select ${siteId}, ${type}, ${slug}, ${slug}, ${sql.json(document as never)}, 'v4',
              ${status}, ${status === "published" ? new Date() : null}, id
       from users where email = ${authorEmail}
       returning id
@@ -119,7 +121,7 @@ test("a valid message is stored for the site and the page, and answered sent", a
   const response = await post(request, validFields({ name: "  Ada  " }));
 
   expect(response.status()).toBe(303);
-  expect(location(response)).toBe(`/${site.slug}?contact=sent`);
+  expect(location(response)).toBe(`/${site.slug}?contact=sent#contact`);
   const rows = await rowsFor(site.id);
   expect(rows).toHaveLength(before + 1);
   const row = rows.find((r) => r.name === "Ada");
@@ -138,7 +140,7 @@ test("a filled honeypot is answered sent and stores nothing", async ({ request }
   const response = await post(request, validFields({ url: "https://spam.example" }));
 
   expect(response.status()).toBe(303);
-  expect(location(response)).toBe(`/${site.slug}?contact=sent`);
+  expect(location(response)).toBe(`/${site.slug}?contact=sent#contact`);
   expect(await rowsFor(site.id)).toHaveLength(before);
 });
 
@@ -147,7 +149,7 @@ test("a token issued under 3 seconds ago answers again and stores nothing", asyn
   const response = await post(request, validFields({ started: token(500) }));
 
   expect(response.status()).toBe(303);
-  expect(location(response)).toBe(`/${site.slug}?contact=again`);
+  expect(location(response)).toBe(`/${site.slug}?contact=again#contact`);
   expect(await rowsFor(site.id)).toHaveLength(before);
 });
 
@@ -155,7 +157,7 @@ test("a forged, missing or stale token answers again", async ({ request }) => {
   const before = (await rowsFor(site.id)).length;
   for (const started of [token(5000, "not the secret"), "", token(25 * 60 * 60 * 1000)]) {
     const response = await post(request, validFields({ started }));
-    expect(location(response)).toBe(`/${site.slug}?contact=again`);
+    expect(location(response)).toBe(`/${site.slug}?contact=again#contact`);
   }
   expect(await rowsFor(site.id)).toHaveLength(before);
 });
@@ -166,7 +168,7 @@ test("an empty name, a bad email or a 5,001-character message is invalid", async
   for (const over of cases) {
     const response = await post(request, validFields(over));
     expect(response.status()).toBe(303);
-    expect(location(response)).toBe(`/${site.slug}?contact=invalid`);
+    expect(location(response)).toBe(`/${site.slug}?contact=invalid#contact`);
   }
   expect(await rowsFor(site.id)).toHaveLength(before);
 });
@@ -174,7 +176,7 @@ test("an empty name, a bad email or a 5,001-character message is invalid", async
 test("a message of exactly 5,000 characters is accepted", async ({ request }) => {
   const response = await post(request, validFields({ message: "y".repeat(5000) }));
 
-  expect(location(response)).toBe(`/${site.slug}?contact=sent`);
+  expect(location(response)).toBe(`/${site.slug}?contact=sent#contact`);
 });
 
 test("the sixth post from one address is busy, another address still works", async ({
@@ -184,15 +186,15 @@ test("the sixth post from one address is busy, another address still works", asy
   const before = (await rowsFor(site.id)).length;
   for (let i = 0; i < 5; i++) {
     const response = await post(request, validFields({ message: `Message ${i}` }), { ip });
-    expect(location(response)).toBe(`/${site.slug}?contact=sent`);
+    expect(location(response)).toBe(`/${site.slug}?contact=sent#contact`);
   }
   const sixth = await post(request, validFields({ message: "Message 6" }), { ip });
   expect(sixth.status()).toBe(303);
-  expect(location(sixth)).toBe("/?contact=busy");
+  expect(location(sixth)).toBe("/?contact=busy#contact");
   expect(await rowsFor(site.id)).toHaveLength(before + 5);
 
   const elsewhere = await post(request, validFields());
-  expect(location(elsewhere)).toBe(`/${site.slug}?contact=sent`);
+  expect(location(elsewhere)).toBe(`/${site.slug}?contact=sent#contact`);
 });
 
 test("a draft entry is invalid and stores nothing", async ({ request }) => {
@@ -212,7 +214,7 @@ test("a draft entry is invalid and stores nothing", async ({ request }) => {
   const response = await post(request, validFields({ entry: draftId }));
 
   expect(response.status()).toBe(303);
-  expect(location(response)).toBe("/?contact=invalid");
+  expect(location(response)).toBe("/?contact=invalid#contact");
   expect(await rowsFor(site.id)).toHaveLength(before);
 });
 
@@ -244,7 +246,7 @@ test("a submission to site A is stored under A and not B", async ({ request }) =
 
   const response = await post(request, validFields({ message: "For A only" }));
 
-  expect(location(response)).toBe(`/${site.slug}?contact=sent`);
+  expect(location(response)).toBe(`/${site.slug}?contact=sent#contact`);
   expect(await rowsFor(site.id)).toHaveLength(beforeA + 1);
   expect(await rowsFor(other.id)).toHaveLength(beforeB);
 });
@@ -255,7 +257,7 @@ test("an entry of site B posted to site A is invalid and stores nothing", async 
 
   const response = await post(request, validFields({ entry: other.entryId }));
 
-  expect(location(response)).toBe("/?contact=invalid");
+  expect(location(response)).toBe("/?contact=invalid#contact");
   expect(await rowsFor(site.id)).toHaveLength(beforeA);
   expect(await rowsFor(other.id)).toHaveLength(beforeB);
 });
@@ -282,4 +284,141 @@ test("a suspended site answers 404 and stores nothing", async ({ request }) => {
     await withDatabase((sql) => sql`update sites set suspended_at = null where id = ${site.id}`);
   }
   expect(await rowsFor(site.id)).toHaveLength(before);
+});
+
+// Item 19b, Step 3: what the public loaders hand a page. Entry id and token only
+// reach the HTML when the document holds a contact form (F-108).
+const THANKS = "Thanks, we will reply soon.";
+
+async function addContactPage(on: Site): Promise<{ id: string; slug: string }> {
+  const [admin] = await withDatabase(
+    (sql) => sql<{ email: string }[]>`
+      select u.email from users u join site_members m on m.user_id = u.id
+      where m.site_id = ${on.id} limit 1`,
+  );
+  const slug = `form-${randomUUID().slice(0, 8)}`;
+  const document = inSection({
+    type: "contactForm",
+    attrs: { buttonLabel: "Send message", thanks: THANKS },
+  });
+  const id = await addPage(on.id, admin.email, slug, "published", document);
+  return { id, slug };
+}
+
+test("a page with a contact form carries its entry id and a started token", async ({ page }) => {
+  const form = await addContactPage(site);
+  await page.goto(siteUrl(`/${form.slug}`, site.address));
+
+  await expect(page.locator('input[name="entry"]')).toHaveValue(form.id);
+  await expect(page.locator('input[name="started"]')).toHaveValue(/^\d+\.[\w-]+$/);
+  await expect(page.getByRole("status")).toHaveCount(0);
+});
+
+test("a page without a contact form carries neither entry id nor token", async ({ request }) => {
+  const response = await request.get(siteUrl(`/${site.slug}`, site.address));
+  const html = await response.text();
+
+  expect(response.status()).toBe(200);
+  expect(html).not.toContain(site.entryId);
+  expect(html).not.toContain("started");
+});
+
+test("?contact=sent shows the block's thanks line", async ({ page }) => {
+  const form = await addContactPage(site);
+  await page.goto(siteUrl(`/${form.slug}?contact=sent`, site.address));
+
+  await expect(page.getByRole("status")).toHaveText(THANKS);
+});
+
+test("?contact=again shows the fixed line", async ({ page }) => {
+  const form = await addContactPage(site);
+  await page.goto(siteUrl(`/${form.slug}?contact=again`, site.address));
+
+  await expect(page.getByRole("status")).toContainText("a little quick");
+});
+
+test("an unknown ?contact= value shows no status line", async ({ page }) => {
+  const form = await addContactPage(site);
+  await page.goto(siteUrl(`/${form.slug}?contact=bogus`, site.address));
+
+  await expect(page.locator("form#contact")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0);
+});
+
+// Item 19b review F-397: the post and home loaders hand the form the same way.
+async function adminEmail(on: Site): Promise<string> {
+  const [admin] = await withDatabase(
+    (sql) => sql<{ email: string }[]>`
+      select u.email from users u join site_members m on m.user_id = u.id
+      where m.site_id = ${on.id} limit 1`,
+  );
+  return admin.email;
+}
+
+function contactDocument(): unknown {
+  return inSection({
+    type: "contactForm",
+    attrs: { buttonLabel: "Send message", thanks: THANKS },
+  });
+}
+
+async function addPost(on: Site, document: unknown): Promise<{ id: string; slug: string }> {
+  const slug = `post-${randomUUID().slice(0, 8)}`;
+  const id = await addPage(on.id, await adminEmail(on), slug, "published", document, "post");
+  return { id, slug };
+}
+
+async function setHome(on: Site, entryId: string | null): Promise<void> {
+  await withDatabase(
+    (sql) => sql`update site_settings set home_page_id = ${entryId} where site_id = ${on.id}`,
+  );
+}
+
+test("a post with a contact form carries its entry id and a started token", async ({ page }) => {
+  const post = await addPost(site, contactDocument());
+  await page.goto(siteUrl(`/posts/${post.slug}`, site.address));
+
+  await expect(page.locator('input[name="entry"]')).toHaveValue(post.id);
+  await expect(page.locator('input[name="started"]')).toHaveValue(/^\d+\.[\w-]+$/);
+});
+
+test("a post without a contact form carries neither entry id nor token", async ({ request }) => {
+  const post = await addPost(site, textDocument("Plain post"));
+  const response = await request.get(siteUrl(`/posts/${post.slug}`, site.address));
+  const html = await response.text();
+
+  expect(response.status()).toBe(200);
+  expect(html).not.toContain(post.id);
+  expect(html).not.toContain("started");
+});
+
+test("a home page with a contact form carries its entry id and a started token", async ({
+  page,
+}) => {
+  const form = await addContactPage(other);
+  await setHome(other, form.id);
+  await page.goto(siteUrl("/", other.address));
+
+  await expect(page.locator('input[name="entry"]')).toHaveValue(form.id);
+  await expect(page.locator('input[name="started"]')).toHaveValue(/^\d+\.[\w-]+$/);
+});
+
+test("a home page without a contact form carries neither entry id nor token", async ({
+  request,
+}) => {
+  await setHome(other, other.entryId);
+  const response = await request.get(siteUrl("/", other.address));
+  const html = await response.text();
+
+  expect(response.status()).toBe(200);
+  expect(html).not.toContain(other.entryId);
+  expect(html).not.toContain("started");
+});
+
+test("?contact=sent on the home page shows the thanks line", async ({ page }) => {
+  const form = await addContactPage(other);
+  await setHome(other, form.id);
+  await page.goto(siteUrl("/?contact=sent", other.address));
+
+  await expect(page.getByRole("status")).toHaveText(THANKS);
 });

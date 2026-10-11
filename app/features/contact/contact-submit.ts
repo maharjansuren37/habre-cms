@@ -13,7 +13,7 @@ import { checkContactToken } from "./contact-token.server.ts";
 const MAX_BODY_BYTES = 16 * 1024;
 
 function answer(path: string, code: ContactAnswer): Response {
-  return redirect(`${path}?contact=${code}`, 303);
+  return redirect(`${path}?contact=${code}#contact`, 303);
 }
 
 function declaredSizeAllowed(headers: Headers): boolean {

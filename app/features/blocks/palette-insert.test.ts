@@ -4,11 +4,13 @@ import { GapCursor } from "@tiptap/pm/gapcursor";
 import { history, undo } from "@tiptap/pm/history";
 import { Schema } from "@tiptap/pm/model";
 import { EditorState, NodeSelection, TextSelection } from "@tiptap/pm/state";
-import { countBlocks } from "./document-queries.ts";
+import { countBlocks, hasContactForm } from "./document-queries.ts";
 import {
   insertBlock,
   insertionPoint,
   insertSection,
+  newBlock,
+  PALETTE_KINDS,
   sectionAddedAnnouncement,
   sectionFits,
   sectionInsertionPoint,
@@ -35,6 +37,11 @@ const schema = new Schema({
       group: "block",
       atom: true,
       attrs: { label: { default: "" }, href: { default: "" }, style: { default: "filled" } },
+    },
+    contactForm: {
+      group: "block",
+      atom: true,
+      attrs: { buttonLabel: { default: "" }, thanks: { default: "" } },
     },
     horizontalRule: { group: "block", atom: true },
     space: { group: "block", atom: true },
@@ -112,6 +119,31 @@ test("a text block gets the cursor and an atom becomes the selected node", () =>
   const atom = state.apply(insertBlock(state, "button", 200) as never);
   assert.equal(atom.selection instanceof NodeSelection, true);
   assert.equal((atom.selection as NodeSelection).node.type.name, "button");
+});
+
+test("the contact form tile adds one selected block with the default texts", () => {
+  assert.equal(PALETTE_KINDS.includes("contactForm"), true);
+  const state = cursorIn("Alpha");
+  const next = state.apply(insertBlock(state, "contactForm", 200) as never);
+  assert.deepEqual(types(next, 0), ["paragraph", "contactForm"]);
+  const { node } = next.selection as NodeSelection;
+  assert.equal(node.type.name, "contactForm");
+  assert.deepEqual(
+    { ...node.attrs },
+    {
+      buttonLabel: "Send message",
+      thanks: "Thanks - your message has been sent.",
+    },
+  );
+  assert.equal(newBlock(schema, "contactForm").isText, false);
+});
+
+test("a second contact form is not inserted", () => {
+  const state = cursorIn("Alpha");
+  const once = state.apply(insertBlock(state, "contactForm", 200) as never);
+  assert.equal(hasContactForm(once.doc), true);
+  assert.equal(hasContactForm(doc), false);
+  assert.equal(insertBlock(once, "contactForm", 200), null);
 });
 
 test("the position helper answers the end of the cursor's block", () => {

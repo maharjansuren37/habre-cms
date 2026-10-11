@@ -9,7 +9,7 @@ import {
   selectedBlock,
 } from "./block-moves.ts";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-import { countBlocks } from "./document-queries.ts";
+import { countBlocks, hasContactForm } from "./document-queries.ts";
 import { newBlock, type PaletteKind, SECTION_TEMPLATE_NAMES } from "./palette-insert.ts";
 import type { SectionTemplate } from "./section-templates.ts";
 
@@ -90,6 +90,8 @@ export function drop(
     }
     leavesPlaceholder = $from.parent.childCount === 1;
   } else {
+    // A document holds one contact form at most: the tile is disabled, and a drop is refused too.
+    if (source.kind === "contactForm" && hasContactForm(doc)) return "invalid";
     node = newBlock(state.schema, source.kind).node;
   }
 
@@ -125,7 +127,7 @@ export function drop(
 
 /**
  * The transaction putting a fresh copy of the selected block just after it,
- * selected, as one undo step; null with no block selected or at `maxBlocks`.
+ * selected, as one undo step; null with no block selected, at `maxBlocks`, or for a contact form (one per document).
  * A main heading's copy is demoted afterwards by `keepOneMainHeading`.
  */
 export function duplicateBlock(
@@ -135,6 +137,7 @@ export function duplicateBlock(
   const selected = selectedBlock(state);
   if (!selected || countBlocks(state.doc) >= maxBlocks) return null;
   const { node } = selected;
+  if (node.type.name === "contactForm") return null;
   const pos = selected.pos + node.nodeSize;
   const tr = closeHistory(state.tr);
   tr.insert(pos, node.type.create(node.attrs, node.content, node.marks));

@@ -7,6 +7,13 @@
 
 /** The most blocks a document may hold; here, not in `document.ts`, so the editor can read it without Zod. */
 export const MAX_DOCUMENT_BLOCKS = 200;
+export const MAX_CONTACT_BUTTON_LENGTH = 40;
+export const MAX_CONTACT_THANKS_LENGTH = 200;
+/** What a new contact form says, here so the editor's palette and the schema's defaults agree. */
+export const CONTACT_FORM_DEFAULTS = {
+  buttonLabel: "Send message",
+  thanks: "Thanks - your message has been sent.",
+} as const;
 
 export type Mark =
   | { type: "bold" }
@@ -23,6 +30,10 @@ export type Button = {
   type: "button";
   attrs: { label: string; href: string; style: "filled" | "outline" };
 };
+export type ContactForm = {
+  type: "contactForm";
+  attrs: { buttonLabel: string; thanks: string };
+};
 export type HorizontalRule = { type: "horizontalRule" };
 export type Space = { type: "space" };
 export type Block =
@@ -32,6 +43,7 @@ export type Block =
   | Blockquote
   | Image
   | Button
+  | ContactForm
   | HorizontalRule
   | Space;
 export type Column = { type: "column"; content: Block[] };
@@ -67,6 +79,7 @@ export function textNodes(node: Block | ListItem): TextNode[] {
   if (
     node.type === "image" ||
     node.type === "button" ||
+    node.type === "contactForm" ||
     node.type === "horizontalRule" ||
     node.type === "space"
   ) {
@@ -101,7 +114,7 @@ export function isEmptySection(section: Section): boolean {
 /**
  * Whether a block draws anything on the public site: a space never does, an
  * image only when its media exists, a button only with both text and an
- * address, a line always, and a text block when it has visible text.
+ * address, a line and a contact form always, and a text block when it has visible text.
  */
 export function isRenderedBlock(
   block: Block,
@@ -115,6 +128,7 @@ export function isRenderedBlock(
     case "button":
       return block.attrs.label.trim() !== "" && block.attrs.href !== "";
     case "horizontalRule":
+    case "contactForm":
       return true;
     default:
       return !isEmptyBlock(block);

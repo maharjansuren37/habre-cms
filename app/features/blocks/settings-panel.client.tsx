@@ -1,7 +1,11 @@
 import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "#app/lib/ui/button.tsx";
 import fieldStyles from "#app/lib/ui/field.module.css";
-import type { LinkablePage } from "./document-nodes.ts";
+import {
+  type LinkablePage,
+  MAX_CONTACT_BUTTON_LENGTH,
+  MAX_CONTACT_THANKS_LENGTH,
+} from "./document-nodes.ts";
 import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
 import styles from "./settings-panel.module.css";
 
@@ -332,6 +336,69 @@ export function ButtonSettings({
           </label>
         ))}
       </fieldset>
+    </>
+  );
+}
+
+/**
+ * A contact form's settings: the button's text and the thanks message the
+ * visitor reads after a send. Both are required (1 to 40 and 1 to 200
+ * characters), so an emptied field keeps what is stored until something is
+ * typed. Like the button's, the panel remounts for each block and its controls
+ * carry no `name`.
+ */
+export function ContactFormSettings({
+  buttonLabel,
+  thanks,
+  onButtonLabel,
+  onThanks,
+}: {
+  buttonLabel: string;
+  thanks: string;
+  onButtonLabel: (label: string) => void;
+  onThanks: (thanks: string) => void;
+}) {
+  const id = useId();
+  const [label, setLabel] = useState(buttonLabel);
+  const [message, setMessage] = useState(thanks);
+  return (
+    <>
+      <div className={fieldStyles.field}>
+        <label className={fieldStyles.label} htmlFor={`${id}-label`}>
+          Button text
+        </label>
+        <input
+          id={`${id}-label`}
+          className={fieldStyles.input}
+          type="text"
+          maxLength={MAX_CONTACT_BUTTON_LENGTH}
+          autoComplete="off"
+          value={label}
+          onChange={(event) => {
+            setLabel(event.currentTarget.value);
+            if (event.currentTarget.value.trim() !== "") onButtonLabel(event.currentTarget.value);
+          }}
+          onBlur={() => setLabel(buttonLabel)}
+        />
+      </div>
+      <div className={fieldStyles.field}>
+        <label className={fieldStyles.label} htmlFor={`${id}-thanks`}>
+          Thanks message
+        </label>
+        <input
+          id={`${id}-thanks`}
+          className={fieldStyles.input}
+          type="text"
+          maxLength={MAX_CONTACT_THANKS_LENGTH}
+          autoComplete="off"
+          value={message}
+          onChange={(event) => {
+            setMessage(event.currentTarget.value);
+            if (event.currentTarget.value.trim() !== "") onThanks(event.currentTarget.value);
+          }}
+          onBlur={() => setMessage(thanks)}
+        />
+      </div>
     </>
   );
 }

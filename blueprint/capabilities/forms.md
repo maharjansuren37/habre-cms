@@ -7,3 +7,9 @@
 - **forms.5** - more than 5 posts an hour from one address to one site are answered `busy` and stored nowhere *Since:* features/19a-receiving-a-message
 - **forms.6** - an empty or over-long field, a malformed email, an entry that is not a published entry of this site, or a body over 16 KiB stores nothing (`invalid`, or 413 for the body) *Since:* features/19a-receiving-a-message
 - **forms.7** - one site's submissions are unreadable by every other site and by the app with no site set *Since:* features/19a-receiving-a-message
+- **forms.8** - a page or post holding a contact form shows a form with labelled Name, Email and Message fields and a send button, which posts to `/_contact` *Since:* features/19b-the-contact-form-block
+- **forms.9** - after a send the visitor returns to the form with the block's thanks line (`sent`) or the fixed line for `invalid`, `again` or `busy`; an unknown answer shows nothing *Since:* features/19b-the-contact-form-block
+- **forms.10** - a contact form works with JavaScript off *Since:* features/19b-the-contact-form-block
+- **forms.11** - the admin's preview shows the form inert *Since:* features/19b-the-contact-form-block
+- **forms.12** - a page or post without a contact form is served without an entry id or token *Since:* features/19b-the-contact-form-block
+- **forms.13** - a document can hold one contact form at most *Since:* features/19b-the-contact-form-block

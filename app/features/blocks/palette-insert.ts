@@ -7,7 +7,8 @@ import {
   TextSelection,
   type Transaction,
 } from "@tiptap/pm/state";
-import { countBlocks, mainHeading } from "./document-queries.ts";
+import { CONTACT_FORM_DEFAULTS } from "./document-nodes.ts";
+import { countBlocks, hasContactForm, mainHeading } from "./document-queries.ts";
 import { type SectionTemplate, sectionTemplate } from "./section-templates.ts";
 
 /** The palette's tiles, in the order it shows them. */
@@ -17,11 +18,15 @@ export const PALETTE_KINDS = [
   "list",
   "image",
   "button",
+  "contactForm",
   "quote",
   "line",
   "space",
 ] as const;
 export type PaletteKind = (typeof PALETTE_KINDS)[number];
+
+/** The note beside the Contact form tile, and the answer to Duplicate, once the document holds one. */
+export const ONLY_ONE_CONTACT_FORM = "A page can hold only one contact form.";
 
 /** A new block of this kind, as the palette adds it, and whether the cursor goes in it. */
 export function newBlock(
@@ -48,6 +53,8 @@ export function newBlock(
       return { node: nodes.image.create({ mediaId: "" }), isText: false };
     case "button":
       return { node: nodes.button.create({ label: "", href: "", style: "filled" }), isText: false };
+    case "contactForm":
+      return { node: nodes.contactForm.create({ ...CONTACT_FORM_DEFAULTS }), isText: false };
     case "line":
       return { node: nodes.horizontalRule.create(), isText: false };
     case "space":
@@ -77,7 +84,8 @@ export function insertionPoint(doc: ProseMirrorNode, selection: Selection): numb
 /**
  * The transaction that adds one block of `kind`, as its own undo step: a text
  * block gets the cursor, anything else becomes the selected block. Null when
- * the document is already at the cap.
+ * the document is already at the cap, or already holds a contact form and
+ * `kind` is another one.
  */
 export function insertBlock(
   state: EditorState,
@@ -85,6 +93,8 @@ export function insertBlock(
   maxBlocks: number,
 ): Transaction | null {
   if (countBlocks(state.doc) >= maxBlocks) return null;
+  if (kind === "contactForm" && hasContactForm(state.doc)) return null;
+
   const tr = closeHistory(state.tr);
   const at = insertionPoint(state.doc, state.selection);
   const { node, isText } = newBlock(state.schema, kind);

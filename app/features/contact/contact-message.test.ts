@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { contactMessageSchema } from "./contact-message.ts";
+import { contactMessageSchema, parseContactAnswer } from "./contact-message.ts";
 
 const ok = { name: "Lena", email: "lena@example.test", message: "Hello" };
 const parse = (patch: Partial<Record<keyof typeof ok, string>>) =>
@@ -54,4 +54,13 @@ test("control characters are stripped before the length check, newlines kept", (
   assert.equal(parse({ message: "a\u0000b\u0007c\nd\u007F" }).data?.message, "abc\nd");
   assert.equal(parse({ message: "\u0000\u0001" }).success, false);
   assert.equal(parse({ message: `${"a".repeat(5000)}\u0000\u0000` }).success, true);
+});
+
+test("only the four answer codes are read from ?contact=", () => {
+  for (const code of ["sent", "invalid", "again", "busy"]) {
+    assert.equal(parseContactAnswer(code), code);
+  }
+  for (const value of [null, "", "bogus", "SENT", "sent ", "__proto__"]) {
+    assert.equal(parseContactAnswer(value), undefined);
+  }
 });
