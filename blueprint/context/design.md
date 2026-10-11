@@ -288,8 +288,8 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 
 ## Editor decisions (D165-D167, 2026-10-02 review)
 
-- **Palette** (owner, 2026-10-02): blocks **Text, Heading, List, Image,
-  Button, Quote, Line, Space**, and **Contact form** from item 19; sections
+- **Palette** (owner, 2026-10-02): **nine** block tiles - **Text, Heading,
+  List, Image, Button, Quote, Line, Space, Contact form** (item 19b); sections
   **Blank section, Hero, Image and text, Call to action**. Drag a tile into a
   column, or focus it and press Enter to add it after the selected block (a
   section tile adds its section after the selection's section, and dragging
@@ -463,6 +463,30 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
   - **Announcements:** "Hero: drop as section 2 of 4.", "Hero: release to
     cancel.", "Hero added: now section 2 of 4.", "Drag cancelled.", and the
     palette's sentence should there be no room.
+- **Built in item 19b** (decided there; no mockup draws the form):
+  - **The contact form block** is one per page or post, anchored `#contact`.
+    Its tile is disabled, with "A page can hold only one contact form.", once
+    the document holds one; Duplicate and a drop are refused with the same
+    line. Settings panel: **Button text** (default "Send message") and
+    **Thanks message**. On the canvas the Name, Email and Message fields are
+    drawn disabled with the button text; nothing in it is interactive.
+  - **Public form states**, in the site's field, label and Filled button
+    styles, with a `role="status"` line above the form:
+    - **Default:** labelled Name, Email and Message, then the button; no line.
+    - **Sent** (`?contact=sent`): the block's Thanks message.
+    - **Invalid:** "Your message could not be sent. Please check each field
+      and try again." - rare, since the browser checks first; what was typed
+      is lost.
+    - **Again:** "That was a little quick. Please wait a moment and send it
+      again." (sent under 3 s, or an expired token).
+    - **Busy:** "We are receiving a lot of messages right now. Please try
+      again in a few minutes."
+    - **Empty or malformed field:** the browser's own message beside the
+      field, the input kept, nothing sent (journey 8). Works with JavaScript
+      off.
+    - **Inert in preview:** every control disabled, no `action`, no status
+      line - the platform host has no `/_contact`.
+    - The honeypot is off-screen, `aria-hidden` and out of the tab order.
 - **The canvas is the customer's site**, drawn in its scope with its brand
   colour and preset, light even inside dark Habre. Only the chrome is rust.
 - **Phone:** the palette sits behind an Add button in the top bar.

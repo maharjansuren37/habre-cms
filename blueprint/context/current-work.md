@@ -94,7 +94,7 @@ states (default, sent, invalid, again, busy, inert in preview).
   tile adds it by click and by Enter, it moves, duplicates (refused, with the
   note, because only one is allowed) and deletes with Undo, and its two settings
   save and reload.
-- [ ] **Step 5 - The journey, and the record** - `e2e/contact-form.spec.ts`:
+- [x] **Step 5 - The journey, and the record** - `e2e/contact-form.spec.ts`:
   an admin adds the block to a page and publishes; a visitor on the site host
   waits past 3 s, fills it in, sends; lands on `/<slug>?contact=sent#contact`
   with the thanks line, and the row is in the table under the right site and
