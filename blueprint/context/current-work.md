@@ -83,7 +83,7 @@ states (default, sent, invalid, again, busy, inert in preview).
   routes pass no `contact`. *Done when:* `e2e/contact.spec.ts` gains: a page
   with a contact block carries a `started` token and its entry id in the
   HTML; a page without one has neither; `?contact=bogus` shows no line.
-- [ ] **Step 4 - The editor** - a TipTap node (atom, block, draggable like
+- [x] **Step 4 - The editor** - a TipTap node (atom, block, draggable like
   `button`), its canvas view (the three fields drawn disabled with the button
   text), `PALETTE_KINDS` + `newBlock`, the tile and icon in `palette.client.tsx`
   (disabled with the same kind of note as a full document when one exists),

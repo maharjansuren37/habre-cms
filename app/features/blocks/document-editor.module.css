@@ -297,6 +297,17 @@
   background: repeating-linear-gradient(135deg, transparent 0 6px, var(--color-border) 6px 7px);
 }
 
+/* The contact form's fields, drawn as empty boxes (19b). */
+.contactBox {
+  min-height: var(--size-control-md);
+  opacity: 0.7;
+}
+
+.contactBoxTall {
+  min-height: calc(var(--size-control-md) * 2);
+  opacity: 0.7;
+}
+
 /* A button with no text yet reads "Button text", muted. */
 .buttonEmpty {
   opacity: 0.6;

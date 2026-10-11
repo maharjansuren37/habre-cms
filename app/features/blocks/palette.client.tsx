@@ -4,11 +4,12 @@ import { createPortal } from "react-dom";
 import { Button } from "#app/lib/ui/button.tsx";
 import type { StartDrag } from "./block-drag.client.tsx";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
-import { countBlocks } from "./document-queries.ts";
+import { countBlocks, hasContactForm } from "./document-queries.ts";
 import styles from "./palette.module.css";
 import {
   insertBlock,
   insertSection,
+  ONLY_ONE_CONTACT_FORM,
   type PaletteKind,
   SECTION_TEMPLATE_NAMES,
   sectionAddedAnnouncement,
@@ -45,6 +46,16 @@ const TILES: { kind: PaletteKind; label: string; icon: ReactNode }[] = [
     ),
   },
   { kind: "button", label: "Button", icon: <rect x="3" y="8" width="18" height="8" rx="4" /> },
+  {
+    kind: "contactForm",
+    label: "Contact form",
+    icon: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M7 9h10M7 13h10M7 17h4" />
+      </>
+    ),
+  },
   {
     kind: "quote",
     label: "Quote",
@@ -224,7 +235,7 @@ function SectionTiles({
 }
 
 /**
- * The palette (design.md, *Palette*): eight tiles, each a `button` that adds
+ * The palette (design.md, *Palette*): nine tiles, each a `button` that adds
  * its block after the selected one - by click, or Enter / Space on the focused
  * tile. Rendered both in the side panel and inside the phone's dialog. In the
  * side panel a tile also drags its block to a place in any column (14b); a
@@ -243,9 +254,12 @@ function Tiles({
   startDrag?: StartDrag;
   draggingTile?: DraggingTile;
 }) {
-  const isFull = useEditorState({
+  const { isFull, hasContact } = useEditorState({
     editor,
-    selector: ({ editor: current }) => countBlocks(current.state.doc) >= MAX_DOCUMENT_BLOCKS,
+    selector: ({ editor: current }) => ({
+      isFull: countBlocks(current.state.doc) >= MAX_DOCUMENT_BLOCKS,
+      hasContact: hasContactForm(current.state.doc),
+    }),
   });
   return (
     <>
@@ -254,32 +268,38 @@ function Tiles({
           You can have at most {MAX_DOCUMENT_BLOCKS} blocks.
         </p>
       ) : null}
+      {hasContact ? <p className={styles.note}>{ONLY_ONE_CONTACT_FORM}</p> : null}
       <div className={styles.grid}>
-        {TILES.map((tile) => (
-          <button
-            key={tile.kind}
-            type="button"
-            className={`${styles.tile} ${draggingTile === tile.kind ? styles.isDragging : ""}`}
-            disabled={isFull}
-            // A pointer press leaves the writing area's selection where it is.
-            onMouseDown={(event) => event.preventDefault()}
-            // A touch on a tile is a tap; touch drags by the grip only (F-196).
-            onPointerDown={
-              startDrag
-                ? (event) => {
-                    if (event.pointerType !== "touch") startDrag({ kind: tile.kind }, event);
-                  }
-                : undefined
-            }
-            onClick={() => {
-              if (onAdded) onAdded();
-              addBlock(editor, tile.kind);
-            }}
-          >
-            <Icon>{tile.icon}</Icon>
-            <span className={styles.tileLabel}>{tile.label}</span>
-          </button>
-        ))}
+        {TILES.map((tile) => {
+          const disabled = isFull || (tile.kind === "contactForm" && hasContact);
+          return (
+            <button
+              key={tile.kind}
+              type="button"
+              className={`${styles.tile} ${draggingTile === tile.kind ? styles.isDragging : ""}`}
+              disabled={disabled}
+              // A pointer press leaves the writing area's selection where it is.
+              onMouseDown={(event) => event.preventDefault()}
+              // A touch on a tile is a tap; touch drags by the grip only (F-196).
+              // Chromium sends pointer events to a disabled button, so a tile that cannot add never drags.
+              onPointerDown={
+                startDrag
+                  ? (event) => {
+                      if (event.pointerType !== "touch" && !disabled)
+                        startDrag({ kind: tile.kind }, event);
+                    }
+                  : undefined
+              }
+              onClick={() => {
+                if (onAdded) onAdded();
+                addBlock(editor, tile.kind);
+              }}
+            >
+              <Icon>{tile.icon}</Icon>
+              <span className={styles.tileLabel}>{tile.label}</span>
+            </button>
+          );
+        })}
       </div>
     </>
   );

@@ -131,6 +131,7 @@ const CONTRACT_NODES: Record<string, string[]> = {
   text: [],
   image: ["mediaId"],
   button: ["label", "href", "style"],
+  contactForm: ["buttonLabel", "thanks"],
   horizontalRule: [],
   space: [],
 };
@@ -1249,7 +1250,17 @@ test("a document of 200 blocks disables every tile and says why", async ({ page 
   await expect(textbox).toBeVisible();
   // Said once: the Sections group leaves it to the Blocks group when the document is full.
   await expect(palette(page).getByText("You can have at most 200 blocks.")).toHaveCount(1);
-  for (const name of ["Text", "Heading", "List", "Image", "Button", "Quote", "Line", "Space"]) {
+  for (const name of [
+    "Text",
+    "Heading",
+    "List",
+    "Image",
+    "Button",
+    "Contact form",
+    "Quote",
+    "Line",
+    "Space",
+  ]) {
     await expect(tile(page, name)).toBeDisabled();
   }
 });
@@ -1902,3 +1913,151 @@ for (const arrival of ["a full page load", "the admin's own links"] as const) {
     await expect(page.getByRole("main").getByText("Start here.")).toBeVisible();
   });
 }
+
+// ---- Item 19b, step 4: the contact form block --------------------------------
+
+function contactPanel(page: Page) {
+  return settingsPanel(page, "Contact form");
+}
+
+function contactToolbar(page: Page) {
+  return page.getByRole("toolbar", { name: "Contact form" });
+}
+
+type StoredContact = { type: string; attrs: { buttonLabel: string; thanks: string } };
+
+function storedContacts(stored: unknown): StoredContact[] {
+  return (firstColumn(stored) as StoredContact[]).filter((n) => n.type === "contactForm");
+}
+
+const CONTACT_DEFAULTS = {
+  buttonLabel: "Send message",
+  thanks: "Thanks - your message has been sent.",
+};
+
+test("contact form: the tile adds it by click, selected, drawn with its fields and the button text", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Contact Tile Click");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Contact form").click();
+
+  const block = textbox.locator('[data-node="contactForm"]');
+  await expect(block).toBeVisible();
+  await expect(block).toContainText("Name");
+  await expect(block).toContainText("Email");
+  await expect(block).toContainText("Message");
+  await expect(block).toContainText("Send message");
+  await expect(contactToolbar(page)).toBeVisible();
+  await expect(contactPanel(page).getByRole("heading", { level: 2 })).toHaveText("Contact form");
+  // Nothing interactive in the writing area (D169).
+  await expect(block.locator("input, textarea, button, form")).toHaveCount(0);
+
+  await save(page);
+  const stored = (await storedEntry(id)).blocks;
+  expect(contractViolations(stored)).toEqual([]);
+  expect(storedContacts(stored)).toEqual([{ type: "contactForm", attrs: CONTACT_DEFAULTS }]);
+});
+
+test("contact form: Enter on the focused tile adds it", async ({ page }) => {
+  const { id, textbox } = await openSeeded(page, "page", "Contact Tile Enter");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Contact form").focus();
+  await page.keyboard.press("Enter");
+  await expect(textbox.locator('[data-node="contactForm"]')).toBeVisible();
+  await save(page);
+  expect(storedContacts((await storedEntry(id)).blocks)).toHaveLength(1);
+});
+
+test("contact form: once one is in the document its tile is disabled with a note, and Duplicate is refused with it", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Contact Only One");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await expect(palette(page).getByText("A page can hold only one contact form.")).toHaveCount(0);
+  await tile(page, "Contact form").click();
+
+  await expect(tile(page, "Contact form")).toBeDisabled();
+  await expect(palette(page).getByText("A page can hold only one contact form.")).toHaveCount(1);
+
+  const duplicate = contactToolbar(page).getByRole("button", { name: "Duplicate contact form" });
+  await expect(duplicate).toHaveAttribute("aria-disabled", "true");
+  // aria-disabled, so a click is not actionable: the keyboard path reaches it.
+  await duplicate.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("A page can hold only one contact form.");
+  await expect(textbox.locator('[data-node="contactForm"]')).toHaveCount(1);
+  await save(page);
+  expect(storedContacts((await storedEntry(id)).blocks)).toHaveLength(1);
+});
+
+test("contact form: it moves with the toolbar, announced", async ({ page }) => {
+  const { id, textbox } = await openSeeded(
+    page,
+    "page",
+    "Contact Move",
+    textDocument("Above", "Below"),
+  );
+  await textbox.getByText("Above").click();
+  await settle(page);
+  await tile(page, "Contact form").click();
+  await contactToolbar(page).getByRole("button", { name: "Move down", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Contact form moved down: block 3 of 3 in section 1.",
+  );
+  await contactToolbar(page).getByRole("button", { name: "Move up", exact: true }).click();
+  await contactToolbar(page).getByRole("button", { name: "Move up", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Contact form moved up: block 1 of 3 in section 1.",
+  );
+  await save(page);
+  expect(columnTypes((await storedEntry(id)).blocks, 0)).toEqual([
+    "contactForm",
+    "paragraph",
+    "paragraph",
+  ]);
+});
+
+test("contact form: Delete removes it, announced, and Undo brings it back", async ({ page }) => {
+  const { textbox } = await openSeeded(page, "page", "Contact Delete");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Contact form").click();
+  await contactToolbar(page).getByRole("button", { name: "Delete contact form" }).click();
+  await expect(page.getByRole("status")).toHaveText("Contact form deleted.");
+  await expect(textbox.locator('[data-node="contactForm"]')).toHaveCount(0);
+  await expect(tile(page, "Contact form")).toBeEnabled();
+
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(textbox.locator('[data-node="contactForm"]')).toHaveCount(1);
+});
+
+test("contact form: its button text and thanks message show on the canvas, save and reload", async ({
+  page,
+}) => {
+  const { id, textbox } = await openSeeded(page, "page", "Contact Settings");
+  await textbox.getByText("Start here.").click();
+  await settle(page);
+  await tile(page, "Contact form").click();
+  const panel = contactPanel(page);
+  await expect(panel.getByLabel("Button text")).toHaveValue(CONTACT_DEFAULTS.buttonLabel);
+  await expect(panel.getByLabel("Thanks message")).toHaveValue(CONTACT_DEFAULTS.thanks);
+
+  await panel.getByLabel("Button text").fill("Write to us");
+  await panel.getByLabel("Thanks message").fill("We will reply soon.");
+  await expect(textbox.locator('[data-node="contactForm"]')).toContainText("Write to us");
+  await save(page);
+  expect(storedContacts((await storedEntry(id)).blocks)[0].attrs).toEqual({
+    buttonLabel: "Write to us",
+    thanks: "We will reply soon.",
+  });
+
+  await page.reload();
+  const reloaded = page.getByRole("textbox", { name: "Page content" });
+  await reloaded.locator('[data-node="contactForm"]').click();
+  await expect(contactPanel(page).getByLabel("Button text")).toHaveValue("Write to us");
+  await expect(contactPanel(page).getByLabel("Thanks message")).toHaveValue("We will reply soon.");
+});

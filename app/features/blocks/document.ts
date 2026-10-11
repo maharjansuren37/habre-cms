@@ -2,7 +2,10 @@ import { z } from "zod";
 import {
   type Block,
   blocksOf,
+  CONTACT_FORM_DEFAULTS,
   type Document,
+  MAX_CONTACT_BUTTON_LENGTH,
+  MAX_CONTACT_THANKS_LENGTH,
   MAX_DOCUMENT_BLOCKS,
   textNodes,
 } from "./document-nodes.ts";
@@ -50,8 +53,7 @@ export const MAX_BLOCK_TEXT_NODES = 2_000;
 export const MAX_LIST_ITEMS = 500;
 export const MAX_HREF_LENGTH = 2_048;
 export const MAX_BUTTON_LABEL_LENGTH = 80;
-export const MAX_CONTACT_BUTTON_LENGTH = 40;
-export const MAX_CONTACT_THANKS_LENGTH = 200;
+export { MAX_CONTACT_BUTTON_LENGTH, MAX_CONTACT_THANKS_LENGTH };
 
 const REFUSALS = {
   unreadable: "The editor sent content in a shape this version cannot read.",
@@ -194,13 +196,13 @@ const contactFormSchema = z.object({
         .min(1, REFUSALS.contactButtonLength)
         .max(MAX_CONTACT_BUTTON_LENGTH, REFUSALS.contactButtonLength)
         .refine(isStorableText, REFUSALS.badText)
-        .default("Send message"),
+        .default(CONTACT_FORM_DEFAULTS.buttonLabel),
       thanks: z
         .string()
         .min(1, REFUSALS.contactThanksLength)
         .max(MAX_CONTACT_THANKS_LENGTH, REFUSALS.contactThanksLength)
         .refine(isStorableText, REFUSALS.badText)
-        .default("Thanks - your message has been sent."),
+        .default(CONTACT_FORM_DEFAULTS.thanks),
     })
     .prefault({}),
 });

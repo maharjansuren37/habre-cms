@@ -25,6 +25,7 @@ export type BlockKind =
   | "quote"
   | "image"
   | "button"
+  | "contactForm"
   | "line"
   | "space";
 export type Direction = "up" | "down";
@@ -47,6 +48,7 @@ const KINDS: Readonly<Record<string, BlockKind>> = {
   blockquote: "quote",
   image: "image",
   button: "button",
+  contactForm: "contactForm",
   horizontalRule: "line",
   space: "space",
 };
@@ -274,6 +276,8 @@ export function kindName(node: ProseMirrorNode): string {
       return "Image";
     case "button":
       return "Button";
+    case "contactForm":
+      return "Contact form";
     case "line":
       return "Line";
     case "space":

@@ -45,12 +45,18 @@ import {
 import { BlockToolbar } from "./block-toolbar.client.tsx";
 import content from "./content.module.css";
 import styles from "./document-editor.module.css";
-import type { Document, DocumentMedia, LinkablePage } from "./document-nodes.ts";
+import {
+  CONTACT_FORM_DEFAULTS,
+  type Document,
+  type DocumentMedia,
+  type LinkablePage,
+} from "./document-nodes.ts";
 import { emptyTextHint } from "./empty-text-hint.ts";
 import { isSafeHref, LINK_ERRORS } from "./inline-runs.ts";
 import { AddButton, AddDialog, Palette, SECTIONS_FULL_NOTE } from "./palette.client.tsx";
 import {
   ButtonSettings,
+  ContactFormSettings,
   ImageSettings,
   SectionSettings,
   SettingsPanel,
@@ -219,6 +225,52 @@ const ButtonNode = Node.create({
   },
 });
 
+/** The contact form (19b): three fields drawn as plain boxes - no control sits
+ *  in the writing area, which is itself inside the entry's `form` - and the
+ *  button text. Its texts are edited in the settings panel. */
+const ContactFormNode = Node.create({
+  name: "contactForm",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return {
+      buttonLabel: { default: CONTACT_FORM_DEFAULTS.buttonLabel, rendered: false },
+      thanks: { default: CONTACT_FORM_DEFAULTS.thanks, rendered: false },
+    };
+  },
+  renderHTML: ({ node }) => {
+    const field = (label: string, tall = false) => [
+      "div",
+      { class: content.contactField },
+      ["span", { class: content.contactLabel }, label],
+      [
+        "div",
+        {
+          class: [content.contactInput, tall ? styles.contactBoxTall : styles.contactBox].join(" "),
+        },
+      ],
+    ];
+    return [
+      "div",
+      { class: content.contactForm, "data-node": "contactForm" },
+      [
+        "div",
+        { class: content.contactFields },
+        field("Name"),
+        field("Email"),
+        field("Message", true),
+      ],
+      [
+        "span",
+        { class: [content.contactButton, content.filled].join(" ") },
+        String(node.attrs.buttonLabel ?? ""),
+      ],
+    ];
+  },
+});
+
 const LineNode = Node.create({
   name: "horizontalRule",
   group: "block",
@@ -330,6 +382,7 @@ function extensionsFor(entryType: "post" | "page") {
     BlockquoteNode,
     ImageNode,
     ButtonNode,
+    ContactFormNode,
     LineNode,
     SpaceNode,
     blockDecorationsFor(entryType),
@@ -838,14 +891,17 @@ function SectionChip({
  * the cursor. Text, a line and a space have none.
  */
 const NO_BUTTON = { label: "", href: "", style: "filled" } as const;
+const NO_CONTACT = { buttonLabel: "", thanks: "" } as const;
 
 type SettingsTarget = {
-  kind: "text" | "image" | "button" | "atom";
+  kind: "text" | "image" | "button" | "contactForm" | "atom";
   /** Where the selected atom starts; -1 for text. */
   pos: number;
   mediaId: string;
   /** A selected button's attrs. */
   button: { label: string; href: string; style: "filled" | "outline" };
+  /** A selected contact form's attrs. */
+  contact: { buttonLabel: string; thanks: string };
   /** The section holding the selection, and its column count. */
   section: number;
   columns: number;
@@ -878,7 +934,13 @@ function SettingsHost({
       if (selection instanceof NodeSelection && selection.node.isAtom) {
         const { node } = selection;
         const kind =
-          node.type.name === "image" ? "image" : node.type.name === "button" ? "button" : "atom";
+          node.type.name === "image"
+            ? "image"
+            : node.type.name === "button"
+              ? "button"
+              : node.type.name === "contactForm"
+                ? "contactForm"
+                : "atom";
         return {
           kind,
           pos: selection.from,
@@ -888,11 +950,26 @@ function SettingsHost({
             href: kind === "button" ? String(node.attrs.href ?? "") : "",
             style: node.attrs.style === "outline" ? "outline" : "filled",
           },
+          contact:
+            kind === "contactForm"
+              ? {
+                  buttonLabel: String(node.attrs.buttonLabel ?? ""),
+                  thanks: String(node.attrs.thanks ?? ""),
+                }
+              : NO_CONTACT,
           section: index,
           columns,
         };
       }
-      return { kind: "text", pos: -1, mediaId: "", button: NO_BUTTON, section: index, columns };
+      return {
+        kind: "text",
+        pos: -1,
+        mediaId: "",
+        button: NO_BUTTON,
+        contact: NO_CONTACT,
+        section: index,
+        columns,
+      };
     },
   });
   const [isAtomClosed, setAtomClosed] = useState(false);
@@ -929,13 +1006,15 @@ function SettingsHost({
   const isSection = section !== null && section === target.section;
   const isImage = target.kind === "image" && !isAtomClosed && !isSection;
   const isButton = target.kind === "button" && !isAtomClosed && !isSection;
+  const isContact = target.kind === "contactForm" && !isAtomClosed && !isSection;
 
   function close() {
     if (isSection) {
       setSection(() => null);
       // Over a selected image or button the section panel must leave no panel behind (F-176).
       setAtomClosed(true);
-    } else if (target.kind === "image" || target.kind === "button") setAtomClosed(true);
+    } else if (target.kind === "image" || target.kind === "button" || target.kind === "contactForm")
+      setAtomClosed(true);
     editor.view.focus();
   }
 
@@ -1001,6 +1080,30 @@ function SettingsHost({
           onLabel={(label) => change({ label })}
           onHref={(href) => change({ href })}
           onStyle={(style) => change({ style })}
+        />
+      </SettingsPanel>
+    );
+  }
+  if (isContact) {
+    const change = (attrs: Partial<SettingsTarget["contact"]>) => {
+      const node = editor.state.doc.nodeAt(target.pos);
+      if (node?.type.name !== "contactForm") return;
+      const tr = editor.state.tr.setNodeMarkup(target.pos, undefined, { ...node.attrs, ...attrs });
+      tr.setSelection(NodeSelection.create(tr.doc, target.pos));
+      editor.view.dispatch(tr);
+    };
+    return (
+      <SettingsPanel
+        key={`contact-${target.pos}`}
+        title="Contact form"
+        onClose={close}
+        keepVisible={() => editor.view.nodeDOM(target.pos) as Element | null}
+      >
+        <ContactFormSettings
+          buttonLabel={target.contact.buttonLabel}
+          thanks={target.contact.thanks}
+          onButtonLabel={(buttonLabel) => change({ buttonLabel })}
+          onThanks={(thanks) => change({ thanks })}
         />
       </SettingsPanel>
     );

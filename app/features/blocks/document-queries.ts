@@ -23,3 +23,14 @@ export function mainHeading(doc: ProseMirrorNode): ProseMirrorNode | null {
   });
   return found;
 }
+
+/** Whether the document already holds a contact form (a document holds one at most). */
+export function hasContactForm(doc: ProseMirrorNode): boolean {
+  let found = false;
+  doc.descendants((node) => {
+    if (found) return false;
+    if (node.type.name === "contactForm") found = true;
+    return !found;
+  });
+  return found;
+}

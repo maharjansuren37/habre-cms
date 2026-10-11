@@ -26,6 +26,7 @@ import {
 import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
 import { countBlocks, mainHeading } from "./document-queries.ts";
+import { ONLY_ONE_CONTACT_FORM } from "./palette-insert.ts";
 
 /**
  * The selected block's toolbar (current-work.md, 14a3): drawn outside the
@@ -68,6 +69,8 @@ export function BlockToolbar({
         canUp: moveBlock(state, "up", Number.POSITIVE_INFINITY) !== null,
         canDown: moveBlock(state, "down", Number.POSITIVE_INFINITY) !== null,
         full: countBlocks(state.doc) >= MAX_DOCUMENT_BLOCKS,
+        // A document holds one contact form: its copy is refused.
+        isContactForm: selected.kind === "contactForm",
         // Main heading is for one block, never a range.
         isRange: !state.selection.$from.sameParent(state.selection.$to),
         main: mainHeading(state.doc)?.textContent ?? null,
@@ -246,9 +249,9 @@ export function BlockToolbar({
     {
       key: "duplicate",
       label: `Duplicate ${block.name.toLowerCase()}`,
-      disabled: block.full,
+      disabled: block.full || block.isContactForm,
       run: duplicate,
-      refused: () => announce(CAP_SENTENCE),
+      refused: () => announce(block.isContactForm ? ONLY_ONE_CONTACT_FORM : CAP_SENTENCE),
       icon: (
         <>
           <rect x="8" y="8" width="12" height="12" rx="2" />

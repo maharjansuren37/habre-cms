@@ -7,6 +7,13 @@
 
 /** The most blocks a document may hold; here, not in `document.ts`, so the editor can read it without Zod. */
 export const MAX_DOCUMENT_BLOCKS = 200;
+export const MAX_CONTACT_BUTTON_LENGTH = 40;
+export const MAX_CONTACT_THANKS_LENGTH = 200;
+/** What a new contact form says, here so the editor's palette and the schema's defaults agree. */
+export const CONTACT_FORM_DEFAULTS = {
+  buttonLabel: "Send message",
+  thanks: "Thanks - your message has been sent.",
+} as const;
 
 export type Mark =
   | { type: "bold" }
