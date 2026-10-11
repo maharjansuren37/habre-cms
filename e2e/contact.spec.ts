@@ -37,11 +37,12 @@ async function addPage(
   slug: string,
   status: "draft" | "published",
   document: unknown = textDocument("Hello"),
+  type: "page" | "post" = "page",
 ): Promise<string> {
   return withDatabase(async (sql) => {
     const [row] = await sql<{ id: string }[]>`
       insert into entries (site_id, type, title, slug, blocks, blocks_format, status, published_at, author_id)
-      select ${siteId}, 'page', ${slug}, ${slug}, ${sql.json(document as never)}, 'v4',
+      select ${siteId}, ${type}, ${slug}, ${slug}, ${sql.json(document as never)}, 'v4',
              ${status}, ${status === "published" ? new Date() : null}, id
       from users where email = ${authorEmail}
       returning id
@@ -342,4 +343,82 @@ test("an unknown ?contact= value shows no status line", async ({ page }) => {
 
   await expect(page.locator("form#contact")).toBeVisible();
   await expect(page.getByRole("status")).toHaveCount(0);
+});
+
+// Item 19b review F-397: the post and home loaders hand the form the same way.
+async function adminEmail(on: Site): Promise<string> {
+  const [admin] = await withDatabase(
+    (sql) => sql<{ email: string }[]>`
+      select u.email from users u join site_members m on m.user_id = u.id
+      where m.site_id = ${on.id} limit 1`,
+  );
+  return admin.email;
+}
+
+function contactDocument(): unknown {
+  return inSection({
+    type: "contactForm",
+    attrs: { buttonLabel: "Send message", thanks: THANKS },
+  });
+}
+
+async function addPost(on: Site, document: unknown): Promise<{ id: string; slug: string }> {
+  const slug = `post-${randomUUID().slice(0, 8)}`;
+  const id = await addPage(on.id, await adminEmail(on), slug, "published", document, "post");
+  return { id, slug };
+}
+
+async function setHome(on: Site, entryId: string | null): Promise<void> {
+  await withDatabase(
+    (sql) => sql`update site_settings set home_page_id = ${entryId} where site_id = ${on.id}`,
+  );
+}
+
+test("a post with a contact form carries its entry id and a started token", async ({ page }) => {
+  const post = await addPost(site, contactDocument());
+  await page.goto(siteUrl(`/posts/${post.slug}`, site.address));
+
+  await expect(page.locator('input[name="entry"]')).toHaveValue(post.id);
+  await expect(page.locator('input[name="started"]')).toHaveValue(/^\d+\.[\w-]+$/);
+});
+
+test("a post without a contact form carries neither entry id nor token", async ({ request }) => {
+  const post = await addPost(site, textDocument("Plain post"));
+  const response = await request.get(siteUrl(`/posts/${post.slug}`, site.address));
+  const html = await response.text();
+
+  expect(response.status()).toBe(200);
+  expect(html).not.toContain(post.id);
+  expect(html).not.toContain("started");
+});
+
+test("a home page with a contact form carries its entry id and a started token", async ({
+  page,
+}) => {
+  const form = await addContactPage(other);
+  await setHome(other, form.id);
+  await page.goto(siteUrl("/", other.address));
+
+  await expect(page.locator('input[name="entry"]')).toHaveValue(form.id);
+  await expect(page.locator('input[name="started"]')).toHaveValue(/^\d+\.[\w-]+$/);
+});
+
+test("a home page without a contact form carries neither entry id nor token", async ({
+  request,
+}) => {
+  await setHome(other, other.entryId);
+  const response = await request.get(siteUrl("/", other.address));
+  const html = await response.text();
+
+  expect(response.status()).toBe(200);
+  expect(html).not.toContain(other.entryId);
+  expect(html).not.toContain("started");
+});
+
+test("?contact=sent on the home page shows the thanks line", async ({ page }) => {
+  const form = await addContactPage(other);
+  await setHome(other, form.id);
+  await page.goto(siteUrl("/?contact=sent", other.address));
+
+  await expect(page.getByRole("status")).toHaveText(THANKS);
 });
