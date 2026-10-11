@@ -30,3 +30,4 @@
 - **editor.28** - while the window auto-scrolls under a drag, a place is announced only once it has held for 300 ms, so no two announcements come under 300 ms apart *Since:* fixes/drag-backlog-tidy
 - **editor.29** - a page or post has a title in search results and a description under Search and sharing, saved with the entry *Since:* features/17-seo-basics
 - **editor.30** - a page or post can have an image when shared, chosen from this site's Media; another site's image is refused *Since:* features/17-seo-basics
+- **editor.31** - the palette's Contact form tile adds the block like any other (click, Enter, drag), with button text and thanks message in the settings panel *Since:* features/19b-the-contact-form-block

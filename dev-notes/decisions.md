@@ -4846,3 +4846,39 @@ up. A refused one redirects to `/?contact=busy`. F-394.
 Beats: looking the entry up first, which costs one query per post before the limit
 can refuse it.
 Costs: a refused visitor lands on the home page; 19b shows `busy` there.
+
+## D449 - One contact form per document, fixed anchor `#contact` (2026-10-12)
+
+**Chose:** a document holds at most one `contactForm` node, refused with one named message; the form's id and the answer's anchor are always `contact`.
+Beats: several forms, which need unique ids, tokens and answers per form.
+Costs: a page cannot hold two.
+
+## D450 - Browser constraint validation is the "error beside the field" (2026-10-12)
+
+**Chose:** `required`, `type=email` and `maxlength` on the fields; the server's one answer code shows a line above the form.
+Beats: a JavaScript form layer, or field-level server errors, both more than 19a's one-code contract.
+Costs: the server's `invalid` (rare once the browser has checked) loses what was typed.
+
+## D451 - The form's labels and answer lines are fixed English (2026-10-12)
+
+**Chose:** Name, Email, Message and the `invalid`, `again`, `busy` sentences are literals in `contact-form.ts`.
+Beats: a translation table before the site language reaches blocks.
+Costs: a non-English site shows English labels; revisit when language reaches the renderer.
+
+## D452 - The token is issued per page view, only for pages with the block (2026-10-12)
+
+**Chose:** `contactFor` returns the entry id, a fresh token and the answer only when the document holds a contact form (F-108).
+Beats: issuing on every page.
+Costs: a cached page would get `again` after 24 hours; there are no cache headers on public pages today.
+
+## D453 - The admin's preview renders the form inert (2026-10-12)
+
+**Chose:** no `contact` option means disabled fields, no `action`, and no entry, token or honeypot inputs.
+Beats: a live form, because the platform host has no `/_contact` (404).
+Costs: none.
+
+## D454 - The form's markup is plain TypeScript, not JSX (2026-10-12)
+
+**Chose:** `app/features/blocks/contact-form.ts` builds the form with `createElement` and takes its CSS class names as an argument, so `node --test` can render it.
+Beats: JSX in `render.tsx`, which `node --test` cannot import, leaving the form with no unit test.
+Costs: one block's markup is written differently from the rest of `render.tsx`.
