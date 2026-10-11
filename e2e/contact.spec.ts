@@ -10,7 +10,10 @@ import { withDatabase } from "./helpers/users.ts";
 
 type Site = { id: string; address: string; origin: string; entryId: string; slug: string };
 
-function token(issuedMsAgo: number, secret = process.env.JWT_SECRET ?? ""): string {
+function token(issuedMsAgo: number, secret = process.env.JWT_SECRET): string {
+  // The servers inherit this process's environment (CI's GITHUB_ENV line, or a local
+  // .env), so an empty secret here would fail every valid-token case with no hint why.
+  if (!secret) throw new Error("JWT_SECRET is not set in the test process");
   const issued = String(Date.now() - issuedMsAgo);
   return `${issued}.${createHmac("sha256", secret).update(issued).digest("base64url")}`;
 }
@@ -185,7 +188,7 @@ test("the sixth post from one address is busy, another address still works", asy
   }
   const sixth = await post(request, validFields({ message: "Message 6" }), { ip });
   expect(sixth.status()).toBe(303);
-  expect(location(sixth)).toBe(`/${site.slug}?contact=busy`);
+  expect(location(sixth)).toBe("/?contact=busy");
   expect(await rowsFor(site.id)).toHaveLength(before + 5);
 
   const elsewhere = await post(request, validFields());

@@ -48,17 +48,19 @@ export async function action({ request, context }: Route.ActionArgs) {
   const ip = clientIp(request.headers);
   const form = await request.formData();
 
-  // Every answer goes back to the page the form was on; an unknown, draft or
+  // Counted first, so a flood costs the limiter and not a database lookup. A refused
+  // attempt goes to the home address: finding the page would be the lookup it avoids.
+  const blockedBy = contactLimits.attempt(siteId, ip);
+  if (blockedBy) {
+    logSecurityEvent({ event: "contact_rate_limited", scope: blockedBy, siteId, ip });
+    return answer("/", "busy");
+  }
+
+  // Every other answer goes back to the page the form was on; an unknown, draft or
   // other site's entry falls back to the home address.
   const entryId = z.uuid().safeParse(field(form, "entry"));
   const entryPath = entryId.success ? await findPublishedEntryPath(siteId, entryId.data) : null;
   const back = entryPath ?? "/";
-
-  const blockedBy = contactLimits.attempt(siteId, ip);
-  if (blockedBy) {
-    logSecurityEvent({ event: "contact_rate_limited", scope: blockedBy, siteId, ip });
-    return answer(back, "busy");
-  }
 
   if (field(form, "url") !== "") {
     logSecurityEvent({ event: "contact_spam_dropped", reason: "honeypot", siteId, ip });

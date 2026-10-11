@@ -4784,3 +4784,65 @@ Beats: keeping the label screen-reader only and recording that as intended
 in `design.md` - the swatch saves `''`, not the hex, and only the label
 tells the person the colour will follow the AI.
 Costs: the hex sits off-centre under its dot (F-392).
+
+## D440 - A visitor's message always answers with a 303 to the page, carrying a code (2026-10-12)
+
+**Chose:** `POST /_contact` answers `303` to the entry's public address with
+`?contact=sent|invalid|again|busy`, never JSON (item 19a, D157).
+Beats: a JSON endpoint plus a no-JavaScript fallback, two answers to keep in step.
+Costs: a rejected form loses its text without JavaScript.
+
+## D441 - A bot that fills the honeypot is told `sent` (2026-10-12)
+
+**Chose:** a non-empty `url` field answers `sent`, stores nothing and logs
+`contact_spam_dropped`.
+Beats: an error, which tells the bot which field gave it away.
+Costs: a person whose password manager fills the hidden field loses a message
+silently; the field is `aria-hidden`, out of the tab order, autocomplete off (19b).
+
+## D442 - The minimum fill time is an HMAC-signed token (2026-10-12)
+
+**Chose:** `<issued-ms>.<HMAC-SHA-256 with JWT_SECRET>`, too fast under 3 s, stale
+over 24 h, checked timing-safe.
+Beats: an unsigned hidden timestamp a script sets itself.
+Costs: rotating `JWT_SECRET` answers `again` to forms open at the time.
+
+## D443 - Two contact limits: per IP per site, and per site (2026-10-12)
+
+**Chose:** 5 attempts an hour per `siteId:ip`, 100 an hour per site, in memory.
+Beats: per IP only, which a botnet gets around and which would fill a site's Messages.
+Costs: a flood can lock out real visitors for up to an hour; the site is not harmed (D150).
+
+## D444 - Every contact attempt is counted, valid or not (2026-10-12)
+
+**Chose:** the signup rule: the attempt is counted before anything is checked, and
+a refused attempt is not counted again.
+Beats: counting only failures, which lets a valid-looking flood through.
+Costs: a visitor who retypes a few times uses up their five.
+
+## D445 - A contact body over 16 KiB is refused before it is read (2026-10-12)
+
+**Chose:** a missing, non-numeric or over-16 KiB `Content-Length` answers 413 before
+`formData()` runs. Answers F-389's class of problem for this route from the start.
+Beats: reading the body unchecked, which makes the server buffer any size.
+Costs: a client that sends chunked with no length is refused; a browser form never does.
+
+## D446 - A message outlives its page (2026-10-12)
+
+**Chose:** `contact_submissions.entry_id` references `entries` with `on delete set null`.
+Beats: cascade, which would delete a visitor's enquiry because the owner tidied a page.
+Costs: a message can name no page; 19c shows it without one.
+
+## D447 - The `/_contact` route exports a loader that answers 405 (2026-10-12)
+
+**Chose:** a loader returning 405 with `Allow: POST`, beside the action. F-395.
+Beats: an action-only route, which React Router 8.4 answers with 400 for a GET.
+Costs: one small export.
+
+## D448 - A `busy` answer goes to `/`, after the attempt is counted (2026-10-12)
+
+**Chose:** the limiter counts first; only an attempt it lets through looks the entry
+up. A refused one redirects to `/?contact=busy`. F-394.
+Beats: looking the entry up first, which costs one query per post before the limit
+can refuse it.
+Costs: a refused visitor lands on the home page; 19b shows `busy` there.
