@@ -15,11 +15,11 @@ import { clientIp } from "#app/features/auth/client-ip.ts";
 import type { loader as previewLayoutLoader } from "#app/features/preview/preview-layout.tsx";
 import type { loader as publicLayoutLoader } from "#app/features/public-site/layout.tsx";
 import { findSiteByDomain, findSiteBySubdomain } from "#app/features/sites/find-site.server.ts";
-import { siteContext } from "#app/features/sites/site-context.ts";
+import { siteContext, siteOriginContext } from "#app/features/sites/site-context.ts";
 import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
 import { classifyHost } from "#app/lib/host-routing.ts";
-import { isAllowedRequest } from "#app/lib/same-origin.ts";
+import { isAllowedRequest, isAllowedSiteRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 import { mainHost, mainOrigin } from "#app/lib/site-origin.ts";
 
@@ -93,10 +93,18 @@ export const middleware: Route.MiddlewareFunction[] = [
       });
     }
     context.set(siteContext, { ...site, mainOrigin: mainOrigin(site, env.SITES_URL) });
+    // The host resolved this site, so the host is the site's own origin (19a).
+    context.set(siteOriginContext, url.origin);
   },
-  function refuseCrossSiteRequests({ request, url }) {
-    const platformOrigin = new URL(env.PLATFORM_URL).origin;
-    if (!isAllowedRequest(request.method, request.headers, platformOrigin)) {
+  function refuseCrossSiteRequests({ request, url, context }) {
+    // A site host accepts one post, `/_contact`, from its own origin (19a); the
+    // platform host keeps the platform-origin rule.
+    const siteOrigin = context.get(siteOriginContext);
+    const allowed =
+      siteOrigin === null
+        ? isAllowedRequest(request.method, request.headers, new URL(env.PLATFORM_URL).origin)
+        : isAllowedSiteRequest(request.method, url.pathname, request.headers, siteOrigin);
+    if (!allowed) {
       logSecurityEvent({
         event: "request_refused",
         reason: "cross_site",

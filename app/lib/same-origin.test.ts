@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isAllowedRequest } from "./same-origin.ts";
+import { isAllowedRequest, isAllowedSiteRequest } from "./same-origin.ts";
 
 const APP_ORIGIN = "https://cms.example.org";
 
@@ -51,4 +51,45 @@ test("without Origin, only Sec-Fetch-Site same-origin is allowed", () => {
 
 test("a state-changing request with neither header is refused", () => {
   assert.equal(allowed("POST"), false);
+});
+
+const SITE_ORIGIN = "https://lena.habre.page";
+
+function siteAllowed(method: string, pathname: string, headers: Record<string, string> = {}) {
+  return isAllowedSiteRequest(method, pathname, new Headers(headers), SITE_ORIGIN);
+}
+
+test("a site accepts a contact post from its own origin", () => {
+  assert.equal(siteAllowed("POST", "/_contact", { Origin: SITE_ORIGIN }), true);
+});
+
+test("a site accepts a contact post with no Origin only when Sec-Fetch-Site is same-origin", () => {
+  assert.equal(siteAllowed("POST", "/_contact", { "Sec-Fetch-Site": "same-origin" }), true);
+  assert.equal(siteAllowed("POST", "/_contact", { "Sec-Fetch-Site": "cross-site" }), false);
+});
+
+test("a contact post from the platform or another site is refused", () => {
+  for (const origin of ["https://app.habre.ai", "https://other.habre.page", "null"]) {
+    assert.equal(siteAllowed("POST", "/_contact", { Origin: origin }), false, origin);
+  }
+});
+
+test("a contact post with no origin evidence is refused", () => {
+  assert.equal(siteAllowed("POST", "/_contact"), false);
+});
+
+test("no other state-changing request is accepted on a site, even from its own origin", () => {
+  const headers = { Origin: SITE_ORIGIN };
+  for (const path of ["/admin/posts", "/_contact/x", "/posts", "/", "/_contact/"]) {
+    assert.equal(siteAllowed("POST", path, headers), false, path);
+  }
+  for (const method of ["PUT", "PATCH", "DELETE"]) {
+    assert.equal(siteAllowed(method, "/_contact", headers), false, method);
+  }
+});
+
+test("reading a site is unchanged", () => {
+  for (const method of ["GET", "HEAD", "OPTIONS"]) {
+    assert.equal(siteAllowed(method, "/posts/x", { Origin: "https://evil.example" }), true, method);
+  }
 });
