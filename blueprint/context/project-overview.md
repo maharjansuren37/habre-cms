@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-08, `main` after `2dfa6bb` (18b5 shipped).
+Generated 2026-10-08, `main` after `13086e8` (v1 journey polish shipped).
 
 ## What this is
 
@@ -146,7 +146,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18 done; 19-21 queued. Last shipped: 18b5.
-- **In flight:** a fix, v1 journey polish (12 backlog P3s), spec'd,
-  not built. **Next:** `build`, then `spec` item 19, Contact form.
+- **Plan:** items 1-18 done; 19-21 queued. Last shipped: the v1
+  journey polish fix (12 backlog P3s), after 18b5.
+- **In flight:** nothing. **Next:** `spec` item 19, Contact form.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
