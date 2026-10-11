@@ -13,6 +13,7 @@ export type {
   Blockquote,
   Button,
   Column,
+  ContactForm,
   Document,
   Heading,
   HorizontalRule,
@@ -49,6 +50,8 @@ export const MAX_BLOCK_TEXT_NODES = 2_000;
 export const MAX_LIST_ITEMS = 500;
 export const MAX_HREF_LENGTH = 2_048;
 export const MAX_BUTTON_LABEL_LENGTH = 80;
+export const MAX_CONTACT_BUTTON_LENGTH = 40;
+export const MAX_CONTACT_THANKS_LENGTH = 200;
 
 const REFUSALS = {
   unreadable: "The editor sent content in a shape this version cannot read.",
@@ -71,6 +74,9 @@ const REFUSALS = {
   imageNeedsMedia: "An image needs a file from Media.",
   buttonLabelLong: `A button's text can be at most ${MAX_BUTTON_LABEL_LENGTH} characters.`,
   buttonStyle: "A button's style must be Filled or Outline.",
+  contactButtonLength: `A contact form's button text must be 1 to ${MAX_CONTACT_BUTTON_LENGTH} characters.`,
+  contactThanksLength: `A contact form's thanks message must be 1 to ${MAX_CONTACT_THANKS_LENGTH} characters.`,
+  onlyOneContactForm: "A page can hold only one contact form.",
   badLevel: "A heading level must be from 1 to 6.",
   emptyList: "A list needs at least one item.",
   tooLongList: `A list can have at most ${MAX_LIST_ITEMS} items.`,
@@ -179,6 +185,26 @@ const buttonSchema = z.object({
   }),
 });
 
+const contactFormSchema = z.object({
+  type: z.literal("contactForm"),
+  attrs: z
+    .object({
+      buttonLabel: z
+        .string()
+        .min(1, REFUSALS.contactButtonLength)
+        .max(MAX_CONTACT_BUTTON_LENGTH, REFUSALS.contactButtonLength)
+        .refine(isStorableText, REFUSALS.badText)
+        .default("Send message"),
+      thanks: z
+        .string()
+        .min(1, REFUSALS.contactThanksLength)
+        .max(MAX_CONTACT_THANKS_LENGTH, REFUSALS.contactThanksLength)
+        .refine(isStorableText, REFUSALS.badText)
+        .default("Thanks - your message has been sent."),
+    })
+    .prefault({}),
+});
+
 const horizontalRuleSchema = z.object({ type: z.literal("horizontalRule") });
 const spaceSchema = z.object({ type: z.literal("space") });
 
@@ -190,6 +216,7 @@ const blockSchema = z.discriminatedUnion("type", [
   blockquoteSchema,
   imageSchema,
   buttonSchema,
+  contactFormSchema,
   horizontalRuleSchema,
   spaceSchema,
 ]);
@@ -233,6 +260,7 @@ const KNOWN_NODES = new Set([
   "blockquote",
   "image",
   "button",
+  "contactForm",
   "horizontalRule",
   "space",
   "text",
@@ -313,6 +341,10 @@ export function parseDocument(input: unknown, type: "post" | "page"): ParsedDocu
       return { ok: false, message: REFUSALS.tooManyTexts };
     }
     if (textLength(block) > MAX_BLOCK_TEXT_LENGTH) return { ok: false, message: REFUSALS.tooLong };
+  }
+
+  if (blocks.filter((b) => b.type === "contactForm").length > 1) {
+    return { ok: false, message: REFUSALS.onlyOneContactForm };
   }
 
   const mainHeadings = blocks.filter((b) => b.type === "heading" && b.attrs.level === 1).length;

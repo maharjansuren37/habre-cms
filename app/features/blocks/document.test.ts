@@ -524,3 +524,71 @@ test("isRenderedBlock is true for what draws something", () => {
     true,
   );
 });
+
+const contactForm = (attrs: Record<string, unknown> = {}) => ({
+  type: "contactForm",
+  attrs: { buttonLabel: "Write to us", thanks: "Got it.", ...attrs },
+});
+const DEFAULT_CONTACT = {
+  type: "contactForm",
+  attrs: { buttonLabel: "Send message", thanks: "Thanks - your message has been sent." },
+};
+
+test("a contact form is accepted and stored exactly", () => {
+  assert.deepEqual(storedBlock(contactForm()), contactForm());
+  assert.deepEqual(
+    storedBlock({ ...contactForm(), content: [text("x")], extra: 1 }),
+    contactForm(),
+  );
+});
+
+test("a contact form without attrs, or with an empty attrs object, gets the defaults", () => {
+  assert.deepEqual(storedBlock({ type: "contactForm" }), DEFAULT_CONTACT);
+  assert.deepEqual(storedBlock({ type: "contactForm", attrs: {} }), DEFAULT_CONTACT);
+});
+
+test("a contact form's button text is 1 to 40 characters", () => {
+  assert.equal(storedBlock(contactForm({ buttonLabel: "a".repeat(40) })) !== undefined, true);
+  assert.equal(
+    refused(oneBlock(contactForm({ buttonLabel: "a".repeat(41) }))),
+    "A contact form's button text must be 1 to 40 characters.",
+  );
+  assert.equal(
+    refused(oneBlock(contactForm({ buttonLabel: "" }))),
+    "A contact form's button text must be 1 to 40 characters.",
+  );
+});
+
+test("a contact form's thanks message is 1 to 200 characters", () => {
+  assert.equal(storedBlock(contactForm({ thanks: "a".repeat(200) })) !== undefined, true);
+  assert.equal(
+    refused(oneBlock(contactForm({ thanks: "a".repeat(201) }))),
+    "A contact form's thanks message must be 1 to 200 characters.",
+  );
+  assert.equal(
+    refused(oneBlock(contactForm({ thanks: "" }))),
+    "A contact form's thanks message must be 1 to 200 characters.",
+  );
+});
+
+test("a contact form's text with an unstorable character is refused", () => {
+  const badText = "The text holds a character that cannot be saved.";
+  assert.equal(refused(oneBlock(contactForm({ buttonLabel: "a\u0000b" }))), badText);
+  assert.equal(refused(oneBlock(contactForm({ thanks: "a\ud800b" }))), badText);
+});
+
+test("a document with two contact forms is refused, one with one is accepted", () => {
+  assert.equal(parseDocument(doc(section(column(contactForm()))), "page").ok, true);
+  const message = "A page can hold only one contact form.";
+  assert.equal(refused(doc(section(column(contactForm(), contactForm())))), message);
+  assert.equal(
+    refused(doc(section(column(contactForm())), section(column(contactForm())))),
+    message,
+  );
+  assert.equal(refused(doc(section(column(contactForm(), contactForm()))), "post"), message);
+});
+
+test("a contact form always counts as rendered", () => {
+  const block = { ...DEFAULT_CONTACT } as Parameters<typeof isRenderedBlock>[0];
+  assert.equal(isRenderedBlock(block, {}), true);
+});

@@ -166,6 +166,8 @@ function renderDocumentBlock(
           {block.attrs.label}
         </a>
       );
+    case "contactForm":
+      return null;
     case "horizontalRule":
       return <hr key={key} className={content.line} />;
     default: {
