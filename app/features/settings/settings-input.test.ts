@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   brandColorSchema,
+  contactNotifyEmailSchema,
   homePageIdSchema,
   isSettingsFormBodyAllowed,
   languageSchema,
@@ -124,4 +125,26 @@ test("style preset accepts the three presets only", () => {
   for (const bad of ["ornate", "", "Classic"]) {
     assert.equal(stylePresetSchema.safeParse(bad).success, false, bad);
   }
+});
+
+test("contact notify email accepts blank as no address", () => {
+  assert.deepEqual(contactNotifyEmailSchema.safeParse("   "), { success: true, data: "" });
+});
+
+test("contact notify email trims a valid address", () => {
+  assert.deepEqual(contactNotifyEmailSchema.safeParse("  lena@example.org "), {
+    success: true,
+    data: "lena@example.org",
+  });
+});
+
+test("contact notify email rejects an address with no @", () => {
+  const result = contactNotifyEmailSchema.safeParse("lena.example.org");
+  assert.equal(result.success, false);
+  assert.equal(result.error?.issues[0]?.message, "Enter a valid email address, or leave it blank.");
+});
+
+test("contact notify email rejects 255 characters", () => {
+  const result = contactNotifyEmailSchema.safeParse(`${"a".repeat(243)}@example.org`);
+  assert.equal(result.success, false);
 });

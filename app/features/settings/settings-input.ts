@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isStorableText } from "#app/features/blocks/inline-runs.ts";
 import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
+import { contactMessageSchema } from "#app/features/contact/contact-message.ts";
 import { isLanguageTag } from "./languages.ts";
 
 // Same bound as entries.title (0002_entries.sql) - a site title is the same
@@ -21,6 +22,21 @@ export const siteDescriptionSchema = z
   .refine(isStorableText, {
     message: "The site description has a character that cannot be stored.",
   });
+
+// Where a contact message is emailed (item 19c). Empty is allowed and means
+// every admin of the site; otherwise the same address shape as the contact
+// form's own email field. 254 is the column's check.
+const CONTACT_NOTIFY_EMAIL_MESSAGE = "Enter a valid email address, or leave it blank.";
+export const contactNotifyEmailSchema = z
+  .string()
+  .trim()
+  .max(254, { message: CONTACT_NOTIFY_EMAIL_MESSAGE })
+  .refine(
+    (value) =>
+      value === "" ||
+      (isStorableText(value) && contactMessageSchema.shape.email.safeParse(value).success),
+    { message: CONTACT_NOTIFY_EMAIL_MESSAGE },
+  );
 
 // The app's list is the allowlist; the column's format check is only a backstop.
 export const languageSchema = z

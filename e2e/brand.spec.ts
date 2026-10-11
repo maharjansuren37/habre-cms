@@ -194,6 +194,7 @@ test("a crafted brand colour or style is refused with 400 and changes nothing", 
       homePageId: "",
       siteDescription: "",
       language: "en",
+      contactNotifyEmail: "",
     };
     const badColour = await page.request.post(`${origin}/admin/settings`, {
       headers: { Origin: origin },

@@ -136,6 +136,7 @@ test("a logo id for a media row that does not exist gets a friendly error, not a
       homePageId: "",
       siteDescription: "",
       language: "en",
+      contactNotifyEmail: "",
     },
   });
   expect(response.status()).toBe(400);
@@ -183,6 +184,15 @@ function storedSeoSettings(siteId: string) {
       where site_id = ${siteId}
     `;
     return row;
+  });
+}
+
+function storedNotifyEmail(siteId: string) {
+  return withDatabase(async (sql) => {
+    const [row] = await sql<{ email: string | null }[]>`
+      select contact_notify_email as email from site_settings where site_id = ${siteId}
+    `;
+    return row.email;
   });
 }
 
@@ -292,6 +302,57 @@ test("a save without the description or language fields is refused as out of dat
     expect(noLanguage.status()).toBe(400);
     expect(await noLanguage.text()).toContain("This form is out of date.");
     expect(await storedSeoSettings(id)).toEqual({ siteDescription: "Keep me", language: "ne" });
+  });
+});
+
+test("an address for contact messages saves, reloads, and clears back to empty", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, admin: siteAdmin }) => {
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    const field = page.getByLabel("Send messages to");
+    await expect(field).toHaveValue("");
+    await field.fill("  Lena@Example.org ");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Settings updated.")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel("Send messages to")).toHaveValue("Lena@Example.org");
+    expect(await storedNotifyEmail(id)).toBe("Lena@Example.org");
+
+    await page.getByLabel("Send messages to").fill("");
+    const saved = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("/admin"),
+    );
+    await page.getByRole("button", { name: "Save" }).click();
+    await saved;
+    await page.goto("/admin/settings");
+    await expect(page.getByLabel("Send messages to")).toHaveValue("");
+    expect(await storedNotifyEmail(id)).toBeNull();
+  });
+});
+
+test("an invalid address for contact messages is refused beside the field and changes nothing", async ({
+  page,
+}) => {
+  await withOwnSite(async ({ id, admin: siteAdmin }) => {
+    await withDatabase(
+      (sql) =>
+        sql`update site_settings set contact_notify_email = 'keep@example.org' where site_id = ${id}`,
+    );
+    await logIn(page, siteAdmin);
+    await page.goto("/admin/settings");
+    await page.getByLabel("Send messages to").fill("not-an-address");
+    await page.getByLabel("Site title").fill("Title kept too");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    const field = page.getByLabel("Send messages to");
+    await expect(page.getByText("Enter a valid email address, or leave it blank.")).toBeVisible();
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expect(field).toHaveValue("not-an-address");
+    await expect(page.getByLabel("Site title")).toHaveValue("Title kept too");
+    expect(await storedNotifyEmail(id)).toBe("keep@example.org");
   });
 });
 
