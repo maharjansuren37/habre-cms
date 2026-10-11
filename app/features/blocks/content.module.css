@@ -163,3 +163,73 @@
 .outline:hover {
   background: var(--color-primary-subtle);
 }
+
+/* The contact form (item 19b). Same field, border and Filled button tokens as
+   the rest of the site scope. The honeypot is off-screen, not display:none, so
+   it still exists for a bot to fill; its wrapper is aria-hidden. */
+.contactForm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.contactStatus {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.contactFields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.contactField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.contactLabel {
+  font-weight: var(--weight-semibold);
+}
+
+.contactInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--size-control-md);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.contactInput:disabled {
+  opacity: 0.7;
+}
+
+.contactTrap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contactButton {
+  width: fit-content;
+  min-height: var(--size-control-md);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.contactButton:disabled {
+  opacity: 0.7;
+  cursor: default;
+}

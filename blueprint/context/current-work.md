@@ -60,7 +60,7 @@ states (default, sent, invalid, again, busy, inert in preview).
   `switch` the compiler flags. *Done when:* `document.test.ts` covers a valid
   node, defaults filled, an over-long label, a control character, and two
   contact forms refused with the one named message; `npm run typecheck` clean.
-- [ ] **Step 2 - The public form** - `render.tsx` draws it: `section`-free
+- [x] **Step 2 - The public form** - `render.tsx` draws it: `section`-free
   `form id="contact" method="post" action="/_contact"`, `label` + `input`
   (name: `required`, `maxlength=100`, `autocomplete=name`; email:
   `type=email`, `required`, `maxlength=254`, `autocomplete=email`) and

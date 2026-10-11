@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { type ContactFormOptions, renderContactForm } from "./contact-form.ts";
 import content from "./content.module.css";
 import {
   type Block,
@@ -47,6 +48,7 @@ export function renderDocument(
   type: "post" | "page",
   mediaById: Readonly<Record<string, DocumentMedia>>,
   hrefFor: (href: string) => string = (href) => href,
+  options: { contact?: ContactFormOptions } = {},
 ) {
   const mainHeading = type === "page" ? findMainHeading(document) : undefined;
   const firstImage = blocksOf(document).find(
@@ -80,6 +82,7 @@ export function renderDocument(
                       block === firstImage,
                       section.content.length,
                       hrefFor,
+                      options.contact,
                     ),
                   )}
                 </div>
@@ -102,6 +105,7 @@ function renderDocumentBlock(
   isFirstImage: boolean,
   columns: number,
   hrefFor: (href: string) => string,
+  contact: ContactFormOptions | undefined,
 ) {
   // A space is not "rendered" (it cannot keep a section alive) but still takes
   // room between the blocks that are.
@@ -167,7 +171,21 @@ function renderDocumentBlock(
         </a>
       );
     case "contactForm":
-      return null;
+      return (
+        <Fragment key={key}>
+          {renderContactForm(block.attrs, contact, {
+            root: content.contactForm,
+            status: content.contactStatus,
+            form: content.contactFields,
+            field: content.contactField,
+            label: content.contactLabel,
+            input: content.contactInput,
+            textarea: content.contactInput,
+            trap: content.contactTrap,
+            button: `${content.contactButton} ${content.filled}`,
+          })}
+        </Fragment>
+      );
     case "horizontalRule":
       return <hr key={key} className={content.line} />;
     default: {
