@@ -645,11 +645,11 @@ export async function listSitemapEntries(
  * One query: the settings row joined to the entry, rather than a settings read
  * followed by an entry read on every public home request.
  */
-export async function findHomePage(siteId: string): Promise<PublicPage | null> {
+export async function findHomePage(siteId: string): Promise<(PublicPage & { id: string }) | null> {
   const [row] = await inSite(
     siteId,
-    (tx) => tx<(PublicEntryRow & { slug: string })[]>`
-    select e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
+    (tx) => tx<(PublicEntryRow & { slug: string; id: string })[]>`
+    select e.id, e.slug, e.title, e.blocks, e.blocks_format as "blocksFormat",
       e.seo_title as "seoTitle", e.seo_description as "seoDescription",
       (select m.storage_key from media m
         where m.site_id = e.site_id and m.id = e.social_image_media_id) as "socialImageStorageKey",

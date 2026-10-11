@@ -3,6 +3,7 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/page";
+import { contactFor } from "./contact-options.server.ts";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import { PageBody } from "./page-body.tsx";
 import { splitPublicSeo } from "./public-seo.server.ts";
@@ -17,7 +18,7 @@ export function meta({ loaderData, matches, params }: Route.MetaArgs) {
   });
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ params, context, request }: Route.LoaderArgs) {
   const siteId = context.get(siteContext).id;
   const page = await findPublishedEntry(siteId, "page", params.slug);
   // A draft and a missing slug get the same answer - matches post.tsx's own
@@ -27,11 +28,22 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // the setting can change and browsers cache a 301 indefinitely (as D22).
   if (page.isHomePage) throw redirect("/");
   // The view never reads these, so they stay off the wire (F-108).
-  const { id: _id, isHomePage: _isHomePage, ...entry } = page;
+  const { id, isHomePage: _isHomePage, ...entry } = page;
   const { rest: publicPage, seo } = splitPublicSeo(entry);
-  return { page: publicPage, seo, mediaById: await resolveDocumentMedia(siteId, page.document) };
+  return {
+    page: publicPage,
+    seo,
+    mediaById: await resolveDocumentMedia(siteId, page.document),
+    contact: contactFor(page.document, id, request),
+  };
 }
 
 export default function PublicPage({ loaderData }: Route.ComponentProps) {
-  return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} />;
+  return (
+    <PageBody
+      page={loaderData.page}
+      mediaById={loaderData.mediaById}
+      contact={loaderData.contact}
+    />
+  );
 }

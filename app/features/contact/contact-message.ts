@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export type ContactAnswer = "sent" | "invalid" | "again" | "busy";
+export const CONTACT_ANSWERS = ["sent", "invalid", "again", "busy"] as const;
+export type ContactAnswer = (typeof CONTACT_ANSWERS)[number];
+
+/** The `?contact=` value as an answer; anything else is ignored (item 19b). */
+export function parseContactAnswer(value: string | null): ContactAnswer | undefined {
+  return CONTACT_ANSWERS.find((code) => code === value);
+}
 
 // Control characters except newline (and the tab, which is whitespace).
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.

@@ -3,6 +3,7 @@ import { findHomePage, hasPublishedPosts } from "#app/features/content/entries.s
 import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/home";
+import { contactFor } from "./contact-options.server.ts";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import type { loader as publicLayoutLoader } from "./layout.tsx";
 import pageStyles from "./page-body.module.css";
@@ -29,16 +30,18 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 // `/` is always a landing page (D-12): the chosen page when there is one and
 // it is published; otherwise a placeholder, never the post list - an
 // unpublished or deleted home page never breaks the front door (D-2).
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   const siteId = context.get(siteContext).id;
   const page = await findHomePage(siteId);
   if (page) {
-    const { rest, seo } = splitPublicSeo(page);
+    const { id, ...entry } = page;
+    const { rest, seo } = splitPublicSeo(entry);
     return {
       kind: "page" as const,
       page: rest,
       seo,
       mediaById: await resolveDocumentMedia(siteId, page.document),
+      contact: contactFor(page.document, id, request),
     };
   }
   return { kind: "placeholder" as const, hasPosts: await hasPublishedPosts(siteId) };
@@ -46,7 +49,13 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   if (loaderData.kind === "page") {
-    return <PageBody page={loaderData.page} mediaById={loaderData.mediaById} />;
+    return (
+      <PageBody
+        page={loaderData.page}
+        mediaById={loaderData.mediaById}
+        contact={loaderData.contact}
+      />
+    );
   }
   return <HomePlaceholder hasPosts={loaderData.hasPosts} />;
 }

@@ -74,7 +74,7 @@ states (default, sent, invalid, again, busy, inert in preview).
   form. *Done when:* a render unit test (like the existing `render` ones) shows
   each element and attribute above, each answer's line, and the inert
   variant; a form with no `contact` option has no `action`.
-- [ ] **Step 3 - The loaders and the redirect** - `page.tsx`, `home.tsx`,
+- [x] **Step 3 - The loaders and the redirect** - `page.tsx`, `home.tsx`,
   `post.tsx` loaders return `contact: { entryId, started: issueContactToken(now),
   answer }` only when `blocksOf(document)` has a contact block (answer from
   `?contact=`, any value outside the four codes ignored); the entry id

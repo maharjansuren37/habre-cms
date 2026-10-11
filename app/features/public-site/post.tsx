@@ -4,6 +4,7 @@ import { findPublishedEntry } from "#app/features/content/entries.server.ts";
 import { publicMeta } from "#app/features/seo/head-tags.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import type { Route } from "./+types/post";
+import { contactFor } from "./contact-options.server.ts";
 import { resolveDocumentMedia } from "./document-media.server.ts";
 import styles from "./post.module.css";
 import { splitPublicSeo } from "./public-seo.server.ts";
@@ -19,7 +20,7 @@ export function meta({ loaderData, matches, params }: Route.MetaArgs) {
   });
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ params, context, request }: Route.LoaderArgs) {
   const siteId = context.get(siteContext).id;
   const post = await findPublishedEntry(siteId, "post", params.slug);
   // A draft and a missing slug get the same answer - a post's existence is
@@ -27,13 +28,18 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   // own rule for ownership on the admin side).
   if (!post) throw data("Not Found", { status: 404 });
   // The view never reads these, so they stay off the wire (F-108).
-  const { id: _id, isHomePage: _isHomePage, ...entry } = post;
+  const { id, isHomePage: _isHomePage, ...entry } = post;
   const { rest: publicPost, seo } = splitPublicSeo(entry);
-  return { post: publicPost, seo, mediaById: await resolveDocumentMedia(siteId, post.document) };
+  return {
+    post: publicPost,
+    seo,
+    mediaById: await resolveDocumentMedia(siteId, post.document),
+    contact: contactFor(post.document, id, request),
+  };
 }
 
 export default function Post({ loaderData }: Route.ComponentProps) {
-  const { post, mediaById } = loaderData;
+  const { post, mediaById, contact } = loaderData;
   return (
     <main className={styles.article}>
       <p className={styles.meta}>
@@ -43,7 +49,7 @@ export default function Post({ loaderData }: Route.ComponentProps) {
         {post.authorName && ` · ${post.authorName}`}
       </p>
       <h1 className={styles.title}>{post.title}</h1>
-      {renderDocument(post.document, "post", mediaById)}
+      {renderDocument(post.document, "post", mediaById, undefined, { contact })}
       <Link className={styles.back} to="/posts">
         ← All posts
       </Link>

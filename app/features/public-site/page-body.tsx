@@ -1,3 +1,4 @@
+import type { ContactFormOptions } from "#app/features/blocks/contact-form.ts";
 import { type DocumentMedia, findMainHeading } from "#app/features/blocks/document-nodes.ts";
 import { renderDocument } from "#app/features/blocks/render.tsx";
 import type { PublicPage } from "#app/features/content/entries.server.ts";
@@ -11,15 +12,18 @@ export function PageBody({
   page,
   mediaById,
   hrefFor,
+  contact,
 }: {
   page: Pick<PublicPage, "title" | "document">;
   mediaById: Record<string, DocumentMedia>;
   hrefFor?: (href: string) => string;
+  /** Absent in the admin's preview, which draws the form inert. */
+  contact?: ContactFormOptions;
 }) {
   return (
     <main className={styles.article}>
       {findMainHeading(page.document) ? null : <h1 className={styles.title}>{page.title}</h1>}
-      {renderDocument(page.document, "page", mediaById, hrefFor)}
+      {renderDocument(page.document, "page", mediaById, hrefFor, { contact })}
     </main>
   );
 }
