@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-08, `main` after `13086e8` (v1 journey polish shipped).
+Generated 2026-10-12, `main` after `8dda969` (19a, receiving a message, shipped).
 
 ## What this is
 
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5).
+website (18b4b); Make it yours as step 3 (18b5); receiving a contact message (19a).
 
-**Platform v1 (queued):** contact form; Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
+**Platform v1 (queued):** contact form (19b, 19c); Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -146,7 +146,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18 done; 19-21 queued. Last shipped: the v1
-  journey polish fix (12 backlog P3s), after 18b5.
-- **In flight:** nothing. **Next:** `spec` item 19, Contact form.
+- **Plan:** items 1-18 and 19a done; 19b-19c, 20-21 queued. Last shipped: 19a.
+- **In flight:** nothing. **Next:** `spec` item 19b, the contact form block.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
