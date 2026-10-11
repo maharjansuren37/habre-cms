@@ -31,6 +31,7 @@ export type SecurityEvent =
     }
   | { event: "contact_rate_limited"; scope: "ip" | "site"; siteId: string; ip: string }
   | { event: "contact_spam_dropped"; reason: "honeypot" | "token"; siteId: string; ip: string }
+  | { event: "contact_notify_failed"; siteId: string }
   | { event: "request_refused"; reason: "cross_site"; method: string; path: string; ip: string }
   | {
       event: "request_refused";

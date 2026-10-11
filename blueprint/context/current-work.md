@@ -80,7 +80,7 @@ the Unread badge and the buttons are existing ones. The email is plain text
   120 characters; the message and address appear unchanged in the body; no
   HTML is produced; `notificationRecipients` returns the setting when set,
   de-duplicated admins when blank, and `[]` for no admins.
-- [ ] **Step 3 - Send after the save** - `contact-submit.ts`: after
+- [x] **Step 3 - Send after the save** - `contact-submit.ts`: after
   `insertContactSubmission` (which now returns the new row's id), start the
   notification without awaiting it - load the site title, setting and active
   confirmed admins inside `inSite`, send one email per recipient with

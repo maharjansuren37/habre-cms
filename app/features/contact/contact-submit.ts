@@ -8,6 +8,7 @@ import { type ContactAnswer, contactMessageSchema } from "./contact-message.ts";
 import { contactLimits } from "./contact-rate-limit.server.ts";
 import { findPublishedEntryPath, insertContactSubmission } from "./contact-store.server.ts";
 import { checkContactToken } from "./contact-token.server.ts";
+import { notifyContact } from "./notify-contact.server.ts";
 
 // A contact form is well under 8 KiB (5,000 characters plus short fields).
 const MAX_BODY_BYTES = 16 * 1024;
@@ -79,6 +80,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   });
   if (!message.success || !entryId.success || entryPath === null) return answer(back, "invalid");
 
-  await insertContactSubmission(siteId, { entryId: entryId.data, ...message.data });
+  const id = await insertContactSubmission(siteId, { entryId: entryId.data, ...message.data });
+  // Not awaited: a slow or down mail server must not hold the visitor's answer.
+  // notifyContact catches and logs its own failures.
+  void notifyContact(siteId, { id, entryId: entryId.data, ...message.data });
   return answer(back, "sent");
 }

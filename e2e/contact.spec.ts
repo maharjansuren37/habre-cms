@@ -1,6 +1,7 @@
 import { createHmac, randomInt, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { inSection, textDocument } from "./helpers/documents.ts";
+import { messagesTo, waitForMail } from "./helpers/mail.ts";
 import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
@@ -130,7 +131,6 @@ test("a valid message is stored for the site and the page, and answered sent", a
     entry_id: site.entryId,
     email: "lena@example.org",
     message: "Hello there.\nCan you call me?",
-    notified_at: null,
     read_at: null,
   });
 });
@@ -421,4 +421,113 @@ test("?contact=sent on the home page shows the thanks line", async ({ page }) =>
   await page.goto(siteUrl("/?contact=sent", other.address));
 
   await expect(page.getByRole("status")).toHaveText(THANKS);
+});
+
+// Item 19c, Step 3: the notification email, sent after the answer. Mailpit catches it,
+// so each test polls: sending is asynchronous to the 303.
+async function notifiedAt(siteId: string, name: string): Promise<Date | null | undefined> {
+  const rows = await rowsFor(siteId);
+  return rows.find((r) => r.name === name)?.notified_at;
+}
+
+async function replyToOf(email: string): Promise<string[]> {
+  const [id] = await messagesTo(email);
+  const response = await fetch(`http://127.0.0.1:8025/api/v1/message/${id}`);
+  const message = (await response.json()) as { ReplyTo: { Address: string }[] };
+  return message.ReplyTo.map((a) => a.Address);
+}
+
+test.describe("the notification email", () => {
+  let notified: Site;
+  let admins: string[];
+  let inactive: string;
+
+  test.beforeAll(async () => {
+    notified = await makeSite("contact-mail");
+    const second = await createSiteAdmin(notified.id, "Second Admin");
+    const gone = await createSiteAdmin(notified.id, "Gone Admin");
+    inactive = gone.email;
+    await withDatabase(
+      (sql) => sql`
+        update site_members set deactivated_at = now()
+        where site_id = ${notified.id}
+          and user_id = (select id from users where email = ${gone.email})`,
+    );
+    const [first] = await withDatabase(
+      (sql) => sql<{ email: string }[]>`
+        select u.email from users u join site_members m on m.user_id = u.id
+        where m.site_id = ${notified.id} and u.email <> ${second.email} and u.email <> ${gone.email}`,
+    );
+    admins = [first.email, second.email];
+  });
+
+  test.afterAll(async () => {
+    await deleteSite(notified.id);
+  });
+
+  test("with no setting every active admin gets one email, Reply-To the visitor", async ({
+    request,
+  }) => {
+    const name = `Everyone ${randomUUID().slice(0, 6)}`;
+    const response = await post(
+      request,
+      validFields({ name, entry: notified.entryId, email: "visitor-all@example.org" }),
+      { on: notified },
+    );
+    expect(location(response)).toBe(`/${notified.slug}?contact=sent#contact`);
+
+    for (const address of admins) {
+      const [text] = await waitForMail(address, 1);
+      expect(text).toContain("Hello there.");
+      expect(await replyToOf(address)).toEqual(["visitor-all@example.org"]);
+    }
+    expect(await messagesTo(inactive)).toHaveLength(0);
+    await expect.poll(() => notifiedAt(notified.id, name)).not.toBeNull();
+  });
+
+  test("with a setting only that address gets it", async ({ request }) => {
+    const target = `e2e-notify-${randomUUID()}@example.test`;
+    await withDatabase(
+      (sql) =>
+        sql`update site_settings set contact_notify_email = ${target} where site_id = ${notified.id}`,
+    );
+    try {
+      const name = `Setting ${randomUUID().slice(0, 6)}`;
+      await post(request, validFields({ name, entry: notified.entryId }), { on: notified });
+
+      await waitForMail(target, 1);
+      await expect.poll(() => notifiedAt(notified.id, name)).not.toBeNull();
+      // Each admin already holds the first test's one email and no second one.
+      for (const address of admins) expect(await messagesTo(address)).toHaveLength(1);
+    } finally {
+      await withDatabase(
+        (sql) =>
+          sql`update site_settings set contact_notify_email = null where site_id = ${notified.id}`,
+      );
+    }
+  });
+
+  test("a honeypot post and an invalid post send nothing", async ({ request }) => {
+    const target = `e2e-quiet-${randomUUID()}@example.test`;
+    await withDatabase(
+      (sql) =>
+        sql`update site_settings set contact_notify_email = ${target} where site_id = ${notified.id}`,
+    );
+    try {
+      await post(request, validFields({ entry: notified.entryId, url: "https://spam.example" }), {
+        on: notified,
+      });
+      await post(request, validFields({ entry: notified.entryId, email: "no-at-sign" }), {
+        on: notified,
+      });
+      // The mail has had time to arrive had it been sent.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      expect(await messagesTo(target)).toHaveLength(0);
+    } finally {
+      await withDatabase(
+        (sql) =>
+          sql`update site_settings set contact_notify_email = null where site_id = ${notified.id}`,
+      );
+    }
+  });
 });
