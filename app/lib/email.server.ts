@@ -21,6 +21,7 @@ export async function sendEmail(message: {
   to: string;
   subject: string;
   text: string;
+  replyTo?: string;
 }): Promise<void> {
   if (!env.EMAIL_FROM) throw new Error("EMAIL_FROM is not set");
   await getTransport().sendMail({ from: env.EMAIL_FROM, ...message });

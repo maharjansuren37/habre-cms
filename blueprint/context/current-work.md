@@ -65,7 +65,7 @@ the Unread badge and the buttons are existing ones. The email is plain text
   and sees it, clears it and sees it empty, and an invalid one shows the
   error beside the field and changes nothing; `npm run db:migrate` applies
   `0022` on the development database.
-- [ ] **Step 2 - Who gets it, and what it says** - pure code in
+- [x] **Step 2 - Who gets it, and what it says** - pure code in
   `app/features/contact/`: `notification-email.ts`
   `contactNotificationEmail({ siteTitle, visitorName, visitorEmail, message,
   pageTitle, messagesUrl })` -> `{ subject, text }` (plain text; subject
