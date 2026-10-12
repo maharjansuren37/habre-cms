@@ -306,6 +306,9 @@ test("keyboard only: the Text style menu turns text into a Subheading and back, 
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitemradio", { name: "Text", exact: true })).toBeFocused();
   await page.keyboard.press("End");
+  // Site 1 is Pro for the run (item 20), so the last style is Heading 6: three up is Subheading.
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("Enter");
   await save(page);
@@ -499,6 +502,9 @@ test("a post's menu has no Main heading, and typing # never makes a level-1 head
     "Heading",
     "Subheading",
     "Small heading",
+    // Site 1 is Pro for the run (item 20); levels.spec.ts has Simple's list.
+    "Heading 5",
+    "Heading 6",
   ]);
   await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");

@@ -82,8 +82,8 @@ describes what they want, gets a site, edits it and publishes it:
 - A contact form block: visitors enquire, submissions are stored per site and
   emailed to the site owner, with spam protection.
 - Simple by default, Pro when switched on (D166): a new site is Simple and
-  shows only Level 1 screens; Pro adds Users, advanced settings, the H5-H6
-  text styles and dark mode for the public site (D168).
+  shows only Level 1 screens; Pro adds Users and the H5-H6 text styles. Dark
+  mode for the public site is a Settings choice at every level (D168, amended).
 - Billing: one paid plan raises the Free plan's limits (AI use, storage), lets
   a site use its own domain and removes the "Made with Habre" footer link, paid
   through Stripe (D149). Billing stays off through an invite-only beta (D150).
@@ -126,7 +126,7 @@ holds columns, a column holds blocks - so Level 2 can add layout settings
 without a migration.
 
 **Per site (D166-D168):** its editing level (Simple or Pro in v1), a brand
-colour, a style preset, and whether its public site has dark mode (Pro only).
+colour, a style preset, and whether its public site has dark mode (any level).
 
 ## 5. Tech - what stack are we using?
 
@@ -499,7 +499,7 @@ Shared tables, `site_id` on site-owned tables (D151). Site-owned tables, in
   `<html lang>`) (item 17, D173); `brand_color` (`#rrggbb`, empty for the neutral
   ink look) and `style_preset` (classic | modern | friendly, default modern)
   (item 18a); `level` (simple | pro, default simple) and `dark_mode` (default
-  off, applies only in Pro) (item 20, D172)
+  off, any level) (item 20, D172)
 - ***contact_submissions*** (item 19) - `id`, `site_id`, `entry_id` (the page
   the form was on), `name`, `email`, `message`, `created_at`, `notified_at`
   (empty when the email failed), `read_at`
@@ -583,9 +583,8 @@ no counters to drift.
 - **Simple and Pro are per site** (D166, D172). In Simple, a control whose
   current value is Pro-only - an H5 heading's text style, say - shows it
   read-only, "Switch to Pro to change"; the text stays editable and the block
-  can still be moved or deleted. `dark_mode` applies only while the site is
-  Pro, so switching to Simple makes the site light again without losing the
-  choice (D168).
+  can still be moved or deleted. `dark_mode` applies at every level, so
+  switching level never changes how the public site looks (D168, amended).
 - **A site's brand colour and style** (D167, D171): only the inputs are
   stored; the shades are derived on each render, so improving the derivation
   needs no migration. They reach the public pages as a nonce'd inline
@@ -925,8 +924,8 @@ browser suite green.
   sites take the site's brand colour and style preset, instead of one fixed
   ink accent.
 - Light and dark mode from the first screen, not added later - Habre's own
-  screens follow the device; customer sites are light, and Pro can turn dark
-  mode on (D168).
+  screens follow the device; customer sites are light, and any site can turn dark
+  mode on (D168, amended).
 - The look is recorded in `blueprint/context/design.md` - redesigned for
   platform v1 by `prototype` on 2026-10-02, replacing 2026-09-15 - with
   mockups in `prototypes/`.

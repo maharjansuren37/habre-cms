@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { requireProLevel } from "#app/features/auth/require-level.server.ts";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import buttonStyles from "#app/lib/ui/button.module.css";
@@ -9,7 +10,7 @@ import { listUsers, type Member } from "./users.server.ts";
 // Admin only (project-plan.md's routes table); the nav hides the link too
 // (admin-shell/layout.tsx) and a non-admin gets the same 404 an ownership
 // refusal already gives (require-role.server.ts).
-export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin"])];
+export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin"]), requireProLevel()];
 
 // "New user" is a navigation link, not a submit, but reads as the one primary
 // button on the page - matching page-list.tsx's own "New page" pattern.

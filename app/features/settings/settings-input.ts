@@ -62,6 +62,11 @@ export const brandColorSchema = z
   })
   .transform((value) => parseBrandColor(value));
 
+// A forged level is refused here, never stored (D172); the column's check is a backstop.
+export const levelSchema = z.enum(["simple", "pro"], {
+  message: "Choose Simple or Pro.",
+});
+
 export const stylePresetSchema = z.enum(["classic", "modern", "friendly"], {
   message: "Choose one of the three styles.",
 });

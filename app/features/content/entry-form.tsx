@@ -70,7 +70,7 @@ export function EntryForm({
 }: EntryFormProps) {
   const navigation = useNavigation();
   const submit = useSubmit();
-  const { suspended, brandColor, stylePreset } = useOutletContext<EditorOutletContext>();
+  const { suspended, brandColor, stylePreset, siteLevel } = useOutletContext<EditorOutletContext>();
   const copy = ENTRY_COPY[entryType];
   // An entry with no address yet has never been saved, so there is nothing to
   // publish - only Save, which creates it (as a draft, as today).
@@ -368,6 +368,7 @@ export function EntryForm({
               settingsSlot={settingsSlot}
               brandColor={brandColor}
               stylePreset={stylePreset}
+              siteLevel={siteLevel}
             />
           ) : (
             <p className={styles.needsJs}>

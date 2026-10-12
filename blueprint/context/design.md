@@ -26,7 +26,7 @@ a time and must never wonder what to press next.
 
 **Customer sites are theirs, not Habre's.** Neutral ink until the owner picks a
 brand colour; one of three style presets; light only unless the owner turns
-dark mode on (Pro). The only Habre mark is a "Made with Habre" footer link,
+dark mode on (any level, item 20). The only Habre mark is a "Made with Habre" footer link,
 which the paid plan removes.
 
 Mockups (throwaway): `start.html` (onboarding step
@@ -87,8 +87,8 @@ Values only; no kit token was renamed or removed. `theme.css` marks each one
 **Customer-site scope, `[data-surface="site"]`:** the same role names with
 `--neutral-*` greys and ink buttons, so every component renders unchanged
 inside it. **It sets every role** rather than inheriting Habre's, because a
-Simple site is light even when Habre is dark. `[data-dark="auto"]` (Pro) adds
-the dark values. `[data-brand]` and `[data-style]` layer on top.
+Site is light even when Habre is dark. `[data-dark="auto"]` (set when the
+site turned dark mode on, at any level) adds the dark values. `[data-brand]` and `[data-style]` layer on top.
 
 ### Measured contrast (WCAG 2.2) - do not change a colour without re-measuring
 
@@ -99,17 +99,22 @@ under a dark device measures the same as light, which is the point.
 **Also proved on the real app** since item 13b by `e2e/contrast.spec.ts`
 (Habre light and dark, the site scope light and with the device dark), which
 fails on any pair below its bar - the selection pairs join it with item 14a.
+The **Site D and Brand D** columns are the dark scope item 20 built
+(`DARK_SITE_SURFACE`: bg `#0a0a0a`, surface `#171717`, sunken `#262626`),
+measured with `contrastRatio` and held by `brand-colours.test.ts` for a set of
+colours; `levels.spec.ts` shows the page turning dark. `contrast.spec.ts`
+itself still measures only the light site under a dark device.
 
-| Pair (min) | App L | App D | Site L | Site D (Pro dark on) | Brand L | Brand D (Pro dark on) |
+| Pair (min) | App L | App D | Site L | Site D (dark on) | Brand L | Brand D (dark on) |
 |---|---|---|---|---|---|---|
-| text on bg (4.5) | 17.63 | 16.33 | 17.93 | 18.16 | 17.93 | 18.16 |
+| text on bg (4.5) | 17.63 | 16.33 | 17.93 | 18.97 | 17.93 | 18.97 |
 | text-muted on surface-hover (4.5) - worst muted | 6.67 | 6.00 | 7.17 | 6.00 | 7.17 | 6.00 |
-| primary on bg (4.5) | 5.24 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
-| primary on surface (4.5) | 5.55 | 6.99 | 17.18 | 16.44 | 5.97 | 6.09 |
-| on-primary on primary (4.5) | 5.55 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
-| primary on primary-subtle (4.5) | 5.08 | 6.63 | 16.44 | 13.88 | 5.67 | 5.02 |
-| border-strong on surface (3) - the lowest | 3.82 | 4.47 | **3.31** | 4.54 | **3.31** | 4.54 |
-| focus-ring on bg (3) | 5.24 | 7.65 | 17.93 | 18.16 | 6.23 | 6.72 |
+| primary on bg (4.5) | 5.24 | 7.65 | 17.93 | 18.97 | 6.23 | 5.93 |
+| primary on surface (4.5) | 5.55 | 6.99 | 17.18 | 17.18 | 5.97 | 5.37 |
+| on-primary on primary (4.5) | 5.55 | 7.65 | 17.93 | 18.97 | 6.23 | 5.93 |
+| primary on primary-subtle (4.5) | 5.08 | 6.63 | 16.44 | 14.50 | 5.67 | 4.77 |
+| border-strong on surface (3) - the lowest | 3.82 | 4.47 | **3.31** | 5.19 | **3.31** | 5.19 |
+| focus-ring on bg (3) | 5.24 | 7.65 | 17.93 | 18.97 | 6.23 | 5.93 |
 | danger on danger-subtle (4.5) | 5.72 | 5.81 | 5.72 | 5.81 | 5.72 | 5.81 |
 | success on success-subtle (4.5) | 4.79 | 8.55 | 4.79 | 8.55 | 4.79 | 8.55 |
 | warning on warning-subtle (4.5) | 4.76 | 9.52 | 4.76 | 9.52 | 4.76 | 9.52 |
@@ -130,7 +135,9 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
   least 4.5:1 on subtle**, and on surface-sunken, a band section's background
   (F-312: `#69c369` once derived a primary at 4.48 there). A sketch that checked only the first two let gold
   `#c9a25e` through at 4.39 on subtle, so the subtle check is required.
-  The example `#2f6b5a` passes unchanged: light 6.23, dark `#66a28f` 6.72.
+  The example `#2f6b5a` passes unchanged: light 6.23. On the dark surface
+  (item 20) the rule runs the other way - hover lighter, a dark subtle tint,
+  a failing primary raised - and `#2f6b5a` becomes `#5c9885`, 5.93 on bg.
 - **Presets** (names provisional), each a font pair and a corner shape and
   nothing else, so a preset never changes contrast:
 
@@ -174,14 +181,16 @@ Disabled controls are exempt (1.4.3) and are the only thing below these.
     first; the visible text is the hex, as for the saved colour, and the
     accessible name adds the colour word and "from your logo" ("Green from
     your logo, #2d6a58").
-- **Light only in Simple; Pro can turn dark mode on** (owner, 2026-10-02):
-  a site looks the way its owner saw it in the editor, and a dark logo never
-  disappears on a dark page.
+- **Light unless the owner turns dark mode on - at any level** (owner,
+  2026-10-12, amending 2026-10-02's "Pro only"): a site looks the way its
+  owner saw it in the editor, and a dark logo never disappears on a dark page
+  unless they chose dark. The editor's canvas and Settings' preview stay
+  light; the published site and `/admin/preview` follow the setting.
 - **Light only, built (D168, item 13b).** Public pages, the public 404 and
   the error page sit in the site scope (`data-surface="site"` on `<html>`,
   chosen by path with the same rule as the Content-Security-Policy), which
   sets `color-scheme: light`. Items 1-12 followed the device; Pro's dark mode
-  (item 20) turns it back on per site.
+  (item 20) turns it back on per site, at any level.
 
 ## Navigation map
 
@@ -244,7 +253,7 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
 | Editor | applies | **mocked**, two states (`editor.html`) |
 | Media | applies | carried over (below) |
 | Messages (contact form submissions) | applies | deferred to item 19; the kit's list and empty state |
-| Settings: name, address, logo, brand colour, style, home page, menu, SEO defaults, level, dark mode (Pro) | applies | deferred to items 16-20; the kit's form; brand colour and style reuse `start-brand.html`'s controls; the logo's upload, its states and its colour swatches: *Customer sites*, Settings' logo and its colours (18a2) |
+| Settings: name, address, logo, brand colour, style, home page, menu, SEO defaults, level, dark mode | applies | built (item 20: an **Editing level** fieldset - Simple and Pro radios, each with a hint - and a **Dark mode** checkbox with its hint, after Send messages to and before Save, at either level; saved with the rest of the form); the rest deferred to items 16-20; the kit's form; brand colour and style reuse `start-brand.html`'s controls; the logo's upload, its states and its colour swatches: *Customer sites*, Settings' logo and its colours (18a2) |
 | Users | applies, Pro only | carried over from item 8 |
 | Not found (404), on Habre and on a site | applies | the kit's `.error-page`, in each scope; not re-mocked |
 | Something went wrong (500) | applies | the kit's `.error-page`; no stack trace |
@@ -307,7 +316,12 @@ Checklist section 2, for this product. **Mocked** = in `prototypes/`.
   toolbar wraps rather than running off the screen.
 - **Text style menu:** Text, **Main heading**, Heading, Subheading, Small
   heading - each shown at its own size. Pro adds two smaller headings
-  (H5-H6). **The person chooses the main heading** (owner, 2026-10-02): one
+  (H5-H6), named **Heading 5** and **Heading 6** (item 20, names provisional).
+  **Locked state (D172):** on a Simple site a block already at H5 or H6 keeps
+  the style button, labelled with its style, `aria-disabled`, title "Switch to
+  Pro to change."; pressing it, or Down, announces that and opens no menu. The
+  text stays editable and the block still moves, duplicates and deletes. The
+  `##### ` shortcut is not available in Simple. **The person chooses the main heading** (owner, 2026-10-02): one
   per page, rendered as the page's `h1`. A hero's heading starts as the main
   heading; a page with none shows its title as the `h1` (D166, amended).
 - **Settings panel** only for a block that has settings - button, image,

@@ -144,6 +144,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       lang={lang}
       data-surface={siteLook ? "site" : undefined}
       data-style={siteLook ? publicData?.stylePreset : undefined}
+      data-dark={siteLook && publicData?.darkMode ? "auto" : undefined}
     >
       <head>
         <meta charSet="utf-8" />
@@ -151,7 +152,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
         {siteLook && publicData?.brandCss && (
-          <style nonce={publicData.nonce}>{`[data-surface="site"]{${publicData.brandCss}}`}</style>
+          <style nonce={publicData.nonce}>{`[data-surface="site"]{${publicData.brandCss}}${
+            publicData.brandDarkCss
+              ? `@media (prefers-color-scheme:dark){[data-surface="site"][data-dark="auto"]{${publicData.brandDarkCss}}}`
+              : ""
+          }`}</style>
         )}
       </head>
       <body>

@@ -1,6 +1,7 @@
 import { data, Form, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { hashPassword } from "#app/features/auth/password.server.ts";
+import { requireProLevel } from "#app/features/auth/require-level.server.ts";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
@@ -22,7 +23,7 @@ import {
 // Admin only (project-plan.md's routes table); the nav hides the link too
 // (admin-shell/layout.tsx) and a non-admin gets the same 404 an ownership
 // refusal already gives (require-role.server.ts).
-export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin"])];
+export const middleware: Route.MiddlewareFunction[] = [requireRole(["admin"]), requireProLevel()];
 
 const ROLE_OPTIONS = [
   { value: "author", label: "Author" },

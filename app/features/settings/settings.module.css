@@ -215,3 +215,24 @@
   color: var(--color-danger);
   font-size: var(--text-sm);
 }
+
+/* Editing level and dark mode (item 20): radios and a checkbox, each with its hint. */
+.lookFields {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.choice {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.choice > span {
+  display: grid;
+  gap: var(--space-1);
+}

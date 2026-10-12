@@ -32,6 +32,7 @@ import {
 import { createPortal, flushSync } from "react-dom";
 import { applyBrandProperties } from "#app/features/brand/apply-brand.ts";
 import { openMediaPickerDialog } from "#app/features/media/media-picker-dialog.client.ts";
+import type { SiteLevel } from "#app/features/settings/site-level.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { DropGap, useBlockDrag } from "./block-drag.client.tsx";
@@ -61,6 +62,12 @@ import {
   SectionSettings,
   SettingsPanel,
 } from "./settings-panel.client.tsx";
+import {
+  changesProHeadings,
+  isProHeadingShortcut,
+  KEEPS_STYLE,
+  schemaHeadingLevels,
+} from "./text-styles.ts";
 
 /** The longest link address a document may hold (`document.ts`, the contract). */
 const MAX_HREF_LENGTH = 2_048;
@@ -373,7 +380,46 @@ function blockDecorationsFor(entryType: "post" | "page") {
   });
 }
 
-function extensionsFor(entryType: "post" | "page") {
+/**
+ * Simple has no Heading 5 or 6 to make (F-398): typing `##### ` keeps the
+ * hashes, and any other edit that would add or change one - Ctrl+Alt+5 - is
+ * refused. Undo, a paste (a cut Heading 5 must paste back, F-401) and Duplicate
+ * of a block that already has the style stay allowed. The text guard sits ahead of the input rules, which run on the same
+ * typed space.
+ */
+function simpleHeadingGuard() {
+  return Extension.create({
+    name: "simpleHeadingGuard",
+    priority: 1000,
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          filterTransaction: (tr, state) =>
+            !tr.docChanged ||
+            tr.getMeta("history$") !== undefined ||
+            tr.getMeta(KEEPS_STYLE) === true ||
+            // A paste brings content the person already had: a cut Heading 5 pastes
+            // back (F-401). Only shortcuts and input rules are refused.
+            tr.getMeta("uiEvent") === "paste" ||
+            !changesProHeadings(state.doc, tr.doc),
+          props: {
+            handleTextInput(view, from, to, text) {
+              if (text !== " ") return false;
+              const $from = view.state.doc.resolve(from);
+              if (!isProHeadingShortcut($from.parent.textBetween(0, $from.parentOffset))) {
+                return false;
+              }
+              view.dispatch(view.state.tr.insertText(" ", from, to));
+              return true;
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
+
+function extensionsFor(entryType: "post" | "page", siteLevel: SiteLevel) {
   return [
     DocumentNode,
     SectionNode,
@@ -388,6 +434,7 @@ function extensionsFor(entryType: "post" | "page") {
     blockDecorationsFor(entryType),
     DropGap,
     mainHeadingGuard(entryType),
+    ...(siteLevel === "simple" ? [simpleHeadingGuard()] : []),
     StarterKit.configure({
       // Replaced by the nodes above, whose content the contract narrows.
       document: false,
@@ -402,9 +449,10 @@ function extensionsFor(entryType: "post" | "page") {
       underline: false,
       // Appends a paragraph at the document's end, where only sections go.
       trailingNode: false,
-      // What the Text style menu offers: a page's one Main heading (level 1,
-      // so `# ` makes it), then 2-4 everywhere; 5-6 are item 20's.
-      heading: { levels: entryType === "page" ? [1, 2, 3, 4] : [2, 3, 4] },
+      // What the schema accepts: a page's one Main heading (level 1, so `# `
+      // makes it), then 2-6 - at every level, so a Pro page loads unchanged in
+      // Simple; the menu and the guard above decide who may make 5 and 6.
+      heading: { levels: schemaHeadingLevels(entryType) },
       link: {
         openOnClick: false,
         autolink: false,
@@ -428,10 +476,10 @@ const COPY = {
  * TipTap compares its options by identity and calls `setOptions` when they
  * differ, so they are built once per entry type here, never in a render (F-158).
  */
-function optionsFor(entryType: "post" | "page") {
+function optionsFor(entryType: "post" | "page", siteLevel: SiteLevel) {
   const copy = COPY[entryType];
   return {
-    extensions: extensionsFor(entryType),
+    extensions: extensionsFor(entryType, siteLevel),
     editorProps: {
       attributes: {
         class: [content.document, styles.prose].join(" "),
@@ -442,7 +490,10 @@ function optionsFor(entryType: "post" | "page") {
     },
   };
 }
-const OPTIONS = { page: optionsFor("page"), post: optionsFor("post") };
+const OPTIONS = {
+  page: { simple: optionsFor("page", "simple"), pro: optionsFor("page", "pro") },
+  post: { simple: optionsFor("post", "simple"), pro: optionsFor("post", "pro") },
+};
 
 /**
  * The v4 document editor (item 14a1): TipTap on one document per entry. Undo
@@ -466,6 +517,7 @@ export function DocumentEditor({
   pages,
   brandColor,
   stylePreset,
+  siteLevel,
 }: {
   initialDocument: Document;
   entryType: "post" | "page";
@@ -486,8 +538,10 @@ export function DocumentEditor({
   /** The site's brand, drawn on the canvas only: `''` or `#rrggbb`, and its style preset. */
   brandColor: string;
   stylePreset: string;
+  /** The site's editing level (item 20). */
+  siteLevel: SiteLevel;
 }) {
-  const { extensions, editorProps } = OPTIONS[entryType];
+  const { extensions, editorProps } = OPTIONS[entryType][siteLevel];
   // In state so the media a person picks in the settings panel can be added.
   const [media, setMedia] = useState(mediaById);
   // The section whose settings were asked for with the chip's gear, or none.
@@ -590,6 +644,7 @@ export function DocumentEditor({
             canvas={canvas}
             announce={announce}
             entryType={entryType}
+            siteLevel={siteLevel}
             onLink={() => setLinkOpen(true)}
             startDrag={startDrag}
           />

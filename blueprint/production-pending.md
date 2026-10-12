@@ -103,3 +103,7 @@
 
 - [ ] Run migration `0022_contact_notify_email.sql` (additive, one nullable column; the previous release never reads it, so a symlink rollback is safe; no data change).
 - [ ] No new environment variable. Without `SMTP_URL` and `EMAIL_FROM` the notification is skipped and Messages says so; sending needs the Resend account and domain records in `needs-you.md`.
+
+## features/20-simple-and-pro
+
+- [ ] Run migration `0023_level_and_dark_mode.sql` with the v1 deploy: two additive columns on `site_settings` (`level` default `simple`, `dark_mode` default `false`), so every site reads as Simple and light; a symlink rollback is safe, the previous release never reads them.

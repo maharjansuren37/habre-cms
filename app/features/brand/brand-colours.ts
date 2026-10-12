@@ -20,6 +20,15 @@ export const LIGHT_SITE_SURFACE: BrandSurface = {
   sunken: "#f5f5f5",
 };
 
+// The dark site scope's --color-bg (neutral-950), --color-surface (neutral-900) and
+// --color-surface-sunken (neutral-800) in app.css's `[data-dark="auto"]` block. Keep them
+// in step; the tests read these values (item 20, D168 amended).
+export const DARK_SITE_SURFACE: BrandSurface = {
+  bg: "#0a0a0a",
+  surface: "#171717",
+  sunken: "#262626",
+};
+
 const AA = 4.5;
 const WHITE = "#ffffff";
 const NEAR_BLACK = "#0a0a0a";
@@ -117,10 +126,16 @@ function oklchToHex(color: Oklch): string {
 // Primary keeps its own colour when every pair already holds; otherwise its lightness is
 // lowered in steps of 0.005 (chroma clamped into sRGB) until they do. Lowering always ends:
 // black passes. On-primary is white, or near-black if white fails on primary or hover.
-function shadesFor(primary: string, surface: BrandSurface): BrandShades & { ok: boolean } {
+// On a dark surface the rule runs the other way: hover is lighter, the subtle tint is
+// dark (lightness 0.25), and a failing primary is raised until it passes - white passes.
+function shadesFor(
+  primary: string,
+  surface: BrandSurface,
+  dark: boolean,
+): BrandShades & { ok: boolean } {
   const { l, c, h } = hexToOklch(primary);
-  const primaryHover = oklchToHex({ l: l - 0.07, c, h });
-  const primarySubtle = oklchToHex({ l: 0.965, c: c * 0.35, h });
+  const primaryHover = oklchToHex({ l: dark ? l + 0.07 : l - 0.07, c, h });
+  const primarySubtle = oklchToHex({ l: dark ? 0.25 : 0.965, c: c * 0.35, h });
   const onPrimary = [WHITE, NEAR_BLACK].find(
     (on) => contrastRatio(on, primary) >= AA && contrastRatio(on, primaryHover) >= AA,
   );
@@ -147,12 +162,14 @@ function shadesFor(primary: string, surface: BrandSurface): BrandShades & { ok: 
  * Input that is not `#rrggbb` is treated as black.
  */
 export function deriveBrandShades(hex: string, surface: BrandSurface): BrandShades {
+  const dark = luminance(surface.bg) < 0.18;
   const start = parseBrandColor(hex) || "#000000";
-  let candidate = shadesFor(start, surface);
+  let candidate = shadesFor(start, surface, dark);
   if (!candidate.ok) {
     const { l, c, h } = hexToOklch(start);
     for (let step = 1; step <= 200 && !candidate.ok; step++) {
-      candidate = shadesFor(oklchToHex({ l: l - step * 0.005, c, h }), surface);
+      const next = oklchToHex({ l: l + (dark ? step : -step) * 0.005, c, h });
+      candidate = shadesFor(next, surface, dark);
     }
   }
   const { ok: _ok, ...shades } = candidate;
@@ -167,5 +184,13 @@ export function brandCustomProperties(brand: string): string {
   const colour = parseBrandColor(brand);
   if (colour === "") return "";
   const s = deriveBrandShades(colour, LIGHT_SITE_SURFACE);
+  return `--color-primary:${s.primary};--color-primary-hover:${s.primaryHover};--color-on-primary:${s.onPrimary};--color-primary-subtle:${s.primarySubtle};--color-focus-ring:${s.focusRing};`;
+}
+
+/** The same declarations for the dark scope (item 20): shades derived on the dark surface. */
+export function brandDarkCustomProperties(brand: string): string {
+  const colour = parseBrandColor(brand);
+  if (colour === "") return "";
+  const s = deriveBrandShades(colour, DARK_SITE_SURFACE);
   return `--color-primary:${s.primary};--color-primary-hover:${s.primaryHover};--color-on-primary:${s.onPrimary};--color-primary-subtle:${s.primarySubtle};--color-focus-ring:${s.focusRing};`;
 }

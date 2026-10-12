@@ -20,3 +20,10 @@ export function resetSiteSettings(): Promise<void> {
     await sql`update site_settings set site_title = ${DEFAULT_SITE_TITLE}, logo_media_id = null, navigation = '[]'::jsonb, home_page_id = null where site_id = ${siteId}`;
   });
 }
+
+/** Switches a site's editing level, for the specs that visit Users (item 20: Pro only). */
+export function setSiteLevel(siteId: string, level: "simple" | "pro"): Promise<void> {
+  return withDatabase(async (sql) => {
+    await sql`update site_settings set level = ${level} where site_id = ${siteId}`;
+  });
+}

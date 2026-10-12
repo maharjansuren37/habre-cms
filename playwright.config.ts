@@ -9,6 +9,8 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 export default defineConfig({
   // Only e2e/ - Playwright's default pattern would also collect node:test's *.test.ts files.
   testDir: "e2e",
+  // Site 1 is Pro for the run, so the specs that visit Users keep working (item 20).
+  globalSetup: "./e2e/helpers/pro-site-one.ts",
   // Login allows two password checks at once and answers "Login is busy" past
   // that (login-rate-limit.server.ts). Almost every test logs in, so more workers
   // than slots made a test fail at random once the suite grew (item 2b, step 6).

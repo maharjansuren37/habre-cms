@@ -1,5 +1,8 @@
 import { isRouteErrorResponse, Link, Outlet } from "react-router";
-import { brandCustomProperties } from "#app/features/brand/brand-colours.ts";
+import {
+  brandCustomProperties,
+  brandDarkCustomProperties,
+} from "#app/features/brand/brand-colours.ts";
 import { findPublishedPageSlugs } from "#app/features/content/entries.server.ts";
 import { getSiteSettings, type SiteSettings } from "#app/features/settings/settings.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
@@ -60,6 +63,9 @@ export async function loader({ context }: Route.LoaderArgs) {
     // string (D171); the nonce is the one in this response's CSP header.
     nonce: context.get(nonceContext),
     brandCss: brandCustomProperties(settings.brandColor),
+    // Dark mode is the site's choice at every level (item 20, D168 amended).
+    darkMode: settings.darkMode,
+    brandDarkCss: settings.darkMode ? brandDarkCustomProperties(settings.brandColor) : "",
     stylePreset: settings.stylePreset,
   };
 }

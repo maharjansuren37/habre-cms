@@ -10,3 +10,4 @@
 - **brand.8** - an SVG logo is turned into a PNG in the browser, and no SVG reaches the server *Since:* features/18a2-your-logo
 - **brand.9** - Settings offers up to three colours from the logo as brand colour swatches, named for their colour *Since:* features/18a2-your-logo
 - **brand.10** - choosing, changing or removing a logo never changes the selected brand colour *Since:* features/18a2-your-logo
+- **brand.11** - with dark mode on, a brand colour's shades meet 4.5:1 on the dark page as they do on the light one *Since:* features/20-simple-and-pro

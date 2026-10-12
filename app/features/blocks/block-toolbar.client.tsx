@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { SiteLevel } from "#app/features/settings/site-level.ts";
 import type { StartDrag } from "./block-drag.client.tsx";
 import { CAP_SENTENCE, duplicateAnnouncement, duplicateBlock, GRIP_HINT } from "./block-drops.ts";
 import {
@@ -27,6 +28,7 @@ import styles from "./block-toolbar.module.css";
 import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
 import { countBlocks, mainHeading } from "./document-queries.ts";
 import { ONLY_ONE_CONTACT_FORM } from "./palette-insert.ts";
+import { isStyleLocked, menuHeadingLevels } from "./text-styles.ts";
 
 /**
  * The selected block's toolbar (current-work.md, 14a3): drawn outside the
@@ -40,6 +42,7 @@ export function BlockToolbar({
   canvas,
   announce,
   entryType,
+  siteLevel,
   onLink,
   startDrag,
 }: {
@@ -48,6 +51,8 @@ export function BlockToolbar({
   announce: (message: string) => void;
   /** A page has one Main heading; a post has none. */
   entryType: "post" | "page";
+  /** Simple or Pro: Pro offers Heading 5 and 6, and Simple locks one a page already has. */
+  siteLevel: SiteLevel;
   /** Opens the link dialog, which the editor draws (unchanged from the format bar). */
   onLink: () => void;
   /** Starts dragging the selected block from the grip (14b). */
@@ -73,6 +78,8 @@ export function BlockToolbar({
         isContactForm: selected.kind === "contactForm",
         // Main heading is for one block, never a range.
         isRange: !state.selection.$from.sameParent(state.selection.$to),
+        headingLevel:
+          selected.node.type.name === "heading" ? (selected.node.attrs.level as number) : 0,
         main: mainHeading(state.doc)?.textContent ?? null,
         bold: current.isActive("bold"),
         italic: current.isActive("italic"),
@@ -337,6 +344,8 @@ export function BlockToolbar({
               editor={editor}
               current={tool.label}
               offerMain={entryType === "page" && !block.isRange}
+              siteLevel={siteLevel}
+              locked={isStyleLocked(siteLevel, block.headingLevel)}
               main={block.main}
               announce={announce}
               isOpen={isStyleOpen}
@@ -407,6 +416,8 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
+const LOCKED_HINT = "Switch to Pro to change.";
+
 /** The Text style menu's choices, each drawn at its own size (design.md, Editor decisions). */
 const STYLES = [
   { label: "Text", level: 0, className: styles.styleText },
@@ -414,6 +425,8 @@ const STYLES = [
   { label: "Heading", level: 2, className: styles.styleHeading },
   { label: "Subheading", level: 3, className: styles.styleSubheading },
   { label: "Small heading", level: 4, className: styles.styleSmall },
+  { label: "Heading 5", level: 5, className: styles.styleSmall },
+  { label: "Heading 6", level: 6, className: styles.styleSmall },
 ] as const;
 
 /**
@@ -426,6 +439,8 @@ function TextStyleButton({
   editor,
   current,
   offerMain,
+  siteLevel,
+  locked,
   main,
   announce,
   isOpen,
@@ -437,6 +452,9 @@ function TextStyleButton({
   current: string;
   /** Whether Main heading is offered: on a page, for one block. */
   offerMain: boolean;
+  siteLevel: SiteLevel;
+  /** A Pro-only style on a Simple site: shown, not changeable (D172). */
+  locked: boolean;
   /** The page's main heading's text, for the hint, or null. */
   main: string | null;
   announce: (message: string) => void;
@@ -446,6 +464,7 @@ function TextStyleButton({
   onFocus: () => void;
 }) {
   const menuId = useId();
+  const levels = menuHeadingLevels(siteLevel);
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
@@ -476,7 +495,7 @@ function TextStyleButton({
       return;
     }
     if (level === 0) editor.commands.setParagraph();
-    else editor.commands.setHeading({ level: level as 2 | 3 | 4 });
+    else editor.commands.setHeading({ level: level as 2 | 3 | 4 | 5 | 6 });
     // Now, not TipTap's `focus()`, which waits a frame and can take focus back
     // from wherever a quick Tab has already moved it.
     editor.view.focus();
@@ -519,12 +538,25 @@ function TextStyleButton({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
+        aria-disabled={locked ? "true" : undefined}
+        title={locked ? LOCKED_HINT : undefined}
         tabIndex={tabIndex}
         onFocus={onFocus}
         onMouseDown={(event) => event.preventDefault()}
         // Closing from the button keeps focus on it, not on an item it removes (F-182).
-        onClick={() => (isOpen ? close(true) : setOpen(true))}
+        onClick={() => {
+          if (locked) announce(LOCKED_HINT);
+          else if (isOpen) close(true);
+          else setOpen(true);
+        }}
         onKeyDown={(event) => {
+          if (locked) {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              announce(LOCKED_HINT);
+            }
+            return;
+          }
           if (event.key === "Escape" && isOpen) {
             event.preventDefault();
             event.stopPropagation();
@@ -554,7 +586,9 @@ function TextStyleButton({
             if (!menu.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
           }}
         >
-          {STYLES.filter((style) => style.level !== 1 || offerMain).map((style) => (
+          {STYLES.filter((style) =>
+            style.level <= 1 ? style.level !== 1 || offerMain : levels.includes(style.level),
+          ).map((style) => (
             <button
               key={style.label}
               type="button"

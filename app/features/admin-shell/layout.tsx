@@ -124,7 +124,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 </NavLink>
               </li>
             )}
-            {user.role === "admin" && (
+            {user.role === "admin" && settings.level === "pro" && (
               <li>
                 <NavLink to="/admin/users">
                   <UsersIcon />

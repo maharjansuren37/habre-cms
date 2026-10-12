@@ -4918,3 +4918,46 @@ Costs: a real failure is invisible for two minutes.
 **Chose:** `requireRole(["admin"])` on the route and the nav entry for admins only; others get the 404 of D69.
 Beats: showing editors and authors, because visitors' personal data stays with the people who own the site.
 Costs: an editor cannot read messages without an admin.
+
+## D461 - Dark mode is a Settings choice at every level (2026-10-12)
+
+**Chose:** `site_settings.dark_mode` applies whether the site is Simple or Pro; on, public pages follow the visitor's device, off they stay light (owner, at spec time).
+Supersedes: D168's "Pro turns it on" and D172's "applies only in Pro".
+Beats: Pro-only dark mode, which hid a plain on/off behind a level and left "advanced settings" with nothing in them for v1.
+Costs: a dark logo can vanish on a dark page in Simple too; the editor's canvas and Settings' preview stay light, so what the owner sees there differs from a dark visitor's view.
+
+## D462 - The editing level is read from the database on every request (2026-10-12)
+
+**Chose:** `site_settings.level` (D172), read by the shell's loader and by `requireProLevel`, never copied into the JWT.
+Beats: a claim in the token, which would go on granting Users after a switch back to Simple until the token expired.
+Costs: one extra single-row read on each Users request.
+
+## D463 - Heading 5 and Heading 6 are named "Heading 5" and "Heading 6" (2026-10-12)
+
+**Chose:** the two Pro text styles carry their numbers in the Text style menu and the toolbar label. Placeholder names, with a needs-you line to rename them.
+Beats: invented words ("Minor heading", "Label"), a design decision with no mockup behind it.
+Costs: Simple's styles are words and these two are numbers.
+
+## D464 - Simple locks the style it has and cannot make a Pro one (2026-10-12)
+
+**Chose:** the document schema accepts levels 1-6 at every level, so a Pro page loads unchanged. On Simple the menu does not offer Heading 5/6, a block already at one shows its style read-only ("Switch to Pro to change."), and a guard refuses an edit that makes or unmakes one with no block going away: Ctrl+Alt+N, the `##### ` shortcut. Typing, moving, deleting, undo, Duplicate, paste and an Enter split pass.
+Beats: refusing the save server-side, which would break "switching down never breaks a page"; counting only increases, which let Ctrl+Alt+6 turn a Heading 5 into a 6.
+Costs: the guard is client-side, so a crafted request can still store a Heading 5 on a Simple site, which is harmless.
+
+## D465 - A pasted Heading 5 is allowed on Simple (2026-10-12)
+
+**Chose:** a paste is not refused by the guard, so a cut Heading 5 pastes back and a Pro page's text can be copied into a Simple site.
+Beats: refusing every paste that holds one, which dropped the clipboard silently (F-401); rewriting pasted levels, which quietly changes a style.
+Costs: a Heading 5 can arrive on a Simple site from outside by paste.
+
+## D466 - Users is Not Found in Simple (2026-10-12)
+
+**Chose:** `requireProLevel` throws the same 404 a role refusal gives (D69) and logs it as `request_refused` / `level`; the nav link is hidden.
+Beats: a redirect or an "upgrade" screen, which would announce a screen the site has not switched on.
+Costs: an admin who switched down finds no Users screen until they switch up again.
+
+## D467 - Site 1 is Pro for the whole browser run (2026-10-12)
+
+**Chose:** a Playwright `globalSetup` (`e2e/helpers/pro-site-one.ts`) sets site 1 to Pro and its teardown puts it back; level and dark-mode behaviour is tested on sites of their own (`levels.spec.ts`).
+Beats: switching site 1 inside each spec, which two workers raced on (F-103's shape).
+Costs: a crashed run can leave the development site on Pro.

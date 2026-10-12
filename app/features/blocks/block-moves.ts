@@ -265,8 +265,13 @@ export function kindName(node: ProseMirrorNode): string {
   switch (KINDS[node.type.name]) {
     case "heading":
       return (
-        { 1: "Main heading", 3: "Subheading", 4: "Small heading" }[node.attrs.level as 1 | 3 | 4] ??
-        "Heading"
+        {
+          1: "Main heading",
+          3: "Subheading",
+          4: "Small heading",
+          5: "Heading 5",
+          6: "Heading 6",
+        }[node.attrs.level as 1 | 3 | 4 | 5 | 6] ?? "Heading"
       );
     case "list":
       return "List";

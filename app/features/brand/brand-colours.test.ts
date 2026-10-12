@@ -4,7 +4,9 @@ import path from "node:path";
 import { test } from "node:test";
 import {
   brandCustomProperties,
+  brandDarkCustomProperties,
   contrastRatio,
+  DARK_SITE_SURFACE,
   deriveBrandShades,
   LIGHT_SITE_SURFACE,
   parseBrandColor,
@@ -146,4 +148,43 @@ test("the light surface matches the site scope's bg, surface and sunken in app.c
   assert.equal(token(role("--color-bg") ?? ""), LIGHT_SITE_SURFACE.bg);
   assert.equal(token(role("--color-surface") ?? ""), LIGHT_SITE_SURFACE.surface);
   assert.equal(token(role("--color-surface-sunken") ?? ""), LIGHT_SITE_SURFACE.sunken);
+});
+
+test("the dark surface matches the dark site scope's bg, surface and sunken in app.css", () => {
+  const css = readFileSync(path.join(import.meta.dirname, "../../app.css"), "utf8");
+  const token = (name: string) => css.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6});`))?.[1];
+  const scope = css.slice(css.indexOf('[data-surface="site"][data-dark="auto"] {'));
+  const role = (name: string) =>
+    scope.match(new RegExp(`${name}:\\s*var\\((--[a-z0-9-]+)\\)`))?.[1];
+  assert.equal(token(role("--color-bg") ?? ""), DARK_SITE_SURFACE.bg);
+  assert.equal(token(role("--color-surface") ?? ""), DARK_SITE_SURFACE.surface);
+  assert.equal(token(role("--color-surface-sunken") ?? ""), DARK_SITE_SURFACE.sunken);
+});
+
+test("on the dark surface every pair still holds, for dark, light and mid colours alike", () => {
+  const { bg, surface, sunken } = DARK_SITE_SURFACE;
+  for (const hex of ["#000000", "#ffffff", "#ffff00", "#2f6b5a", "#1a237e", "#c9a25e", "#8b0000"]) {
+    const s = deriveBrandShades(hex, DARK_SITE_SURFACE);
+    for (const [name, against] of [
+      ["bg", bg],
+      ["surface", surface],
+      ["sunken", sunken],
+      ["subtle", s.primarySubtle],
+    ] as const) {
+      assert.ok(contrastRatio(s.primary, against) >= 4.5, `${hex} primary on ${name}`);
+    }
+    assert.ok(contrastRatio(s.onPrimary, s.primary) >= 4.5, `${hex} on-primary`);
+    assert.ok(contrastRatio(s.onPrimary, s.primaryHover) >= 4.5, `${hex} on-primary hover`);
+  }
+});
+
+test("a light brand colour keeps its own hue on the dark surface", () => {
+  assert.equal(deriveBrandShades("#c9a25e", DARK_SITE_SURFACE).primary, "#c9a25e");
+});
+
+test("the dark declarations are safe text, and empty for no colour", () => {
+  assert.equal(brandDarkCustomProperties(""), "");
+  assert.equal(brandDarkCustomProperties("red"), "");
+  assert.match(brandDarkCustomProperties("#2F6B5A"), CHARSET);
+  assert.match(brandDarkCustomProperties("#2F6B5A"), /^--color-primary:#[0-9a-f]{6};/);
 });

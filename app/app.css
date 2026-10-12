@@ -252,6 +252,41 @@
   color: var(--color-text);
 }
 
+/* Dark mode for a customer site (item 20, D168 amended): only when the site
+ * turned it on (data-dark="auto" on the same element), and then only when the
+ * visitor's device is dark. Every role the light scope sets is set again, so
+ * nothing inherits a light value. The bg, surface and sunken values below are
+ * mirrored in DARK_SITE_SURFACE (app/features/brand/brand-colours.ts); change
+ * both together. A brand colour's dark shades arrive in the page's own
+ * <style> (brandDarkCustomProperties), after this, so they win. */
+@media (prefers-color-scheme: dark) {
+  [data-surface="site"][data-dark="auto"] {
+    color-scheme: dark;
+    --color-bg: var(--neutral-950);
+    --color-surface: var(--neutral-900);
+    --color-surface-sunken: var(--neutral-800);
+    --color-surface-hover: var(--neutral-800);
+    --color-text: var(--neutral-50);
+    --color-text-muted: var(--neutral-400);
+    --color-border: var(--neutral-800);
+    --color-border-strong: var(--neutral-500);
+    --color-primary: var(--neutral-50);
+    --color-primary-hover: var(--neutral-200);
+    --color-on-primary: var(--neutral-950);
+    --color-primary-subtle: var(--neutral-800);
+    --color-danger: var(--crimson-400);
+    --color-danger-subtle: var(--crimson-950);
+    --color-success: var(--green-400);
+    --color-success-subtle: var(--green-950);
+    --color-warning: var(--ochre-400);
+    --color-warning-subtle: var(--ochre-950);
+    --color-info: var(--blue-400);
+    --color-info-subtle: var(--blue-950);
+    --color-focus-ring: var(--neutral-50);
+    --color-overlay: #000000b3;
+  }
+}
+
 /* Style presets (D167): a font pair and a corner shape, nothing else, so
  * contrast never changes with the preset. data-style sits on the same element
  * as data-surface="site". Names are provisional. */

@@ -3,6 +3,7 @@ import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
 import { mediaSources } from "#app/features/media/media-objects.ts";
 import { inSite } from "#app/lib/db.server.ts";
 import { type NavItem, parseStoredNavigation } from "./navigation-input.ts";
+import { readSiteLevel, type SiteLevel } from "./site-level.ts";
 
 export type SiteSettings = {
   siteTitle: string;
@@ -19,9 +20,21 @@ export type SiteSettings = {
   stylePreset: StylePreset;
   /** Where contact messages are emailed; `""` means every admin of the site. */
   contactNotifyEmail: string;
+  level: SiteLevel;
+  /** Whether public pages follow the visitor's dark setting; applies at every level. */
+  darkMode: boolean;
 };
 
 export type StylePreset = "classic" | "modern" | "friendly";
+
+/** Just the level - what the admin shell and the editor need on every request. */
+export async function getSiteLevel(siteId: string): Promise<SiteLevel> {
+  const [row] = await inSite(
+    siteId,
+    (tx) => tx<{ level: string }[]>`select level from site_settings where site_id = ${siteId}`,
+  );
+  return readSiteLevel(row?.level);
+}
 
 /** Just the brand - what the editor's canvas needs, without the logo and menu. */
 export async function getSiteBrand(
@@ -71,13 +84,16 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         brandColor: string;
         stylePreset: string;
         contactNotifyEmail: string | null;
+        level: string;
+        darkMode: boolean;
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", m.variant_widths as "variantWidths", m.colours as "colours", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
       s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset",
-      s.contact_notify_email as "contactNotifyEmail"
+      s.contact_notify_email as "contactNotifyEmail", s.level as "level",
+      s.dark_mode as "darkMode"
     from site_settings s
     left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
     where s.site_id = ${siteId}
@@ -99,6 +115,8 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
     brandColor: parseBrandColor(row.brandColor),
     stylePreset: readStylePreset(row.stylePreset),
     contactNotifyEmail: row.contactNotifyEmail ?? "",
+    level: readSiteLevel(row.level),
+    darkMode: row.darkMode,
   };
 }
 
@@ -189,6 +207,19 @@ async function updateBrand(
   `;
 }
 
+/** Another F-40 sibling: only the editing level and dark mode (item 20). */
+async function updateLook(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  input: { level: SiteLevel; darkMode: boolean },
+): Promise<void> {
+  await tx`
+    update site_settings
+    set level = ${input.level}, dark_mode = ${input.darkMode}, updated_at = now()
+    where site_id = ${siteId}
+  `;
+}
+
 /**
  * What "Use this draft" writes (18b4a), in the caller's transaction: only the
  * fields that are not `null`, so a description or colour the person already set
@@ -242,6 +273,8 @@ export async function saveSiteSettings(
     contactNotifyEmail: string;
     /** Absent leaves both columns as they are (a form from before the Brand section). */
     brand?: { brandColor: string; stylePreset: StylePreset };
+    /** Absent leaves both columns as they are (a form from before item 20). */
+    look?: { level: SiteLevel; darkMode: boolean };
   },
 ): Promise<SaveSettingsResult> {
   try {
@@ -252,6 +285,7 @@ export async function saveSiteSettings(
       await updateSeoDefaults(tx, siteId, input);
       await updateContactNotifyEmail(tx, siteId, input.contactNotifyEmail);
       if (input.brand) await updateBrand(tx, siteId, input.brand);
+      if (input.look) await updateLook(tx, siteId, input.look);
     });
     return "saved";
   } catch (error) {

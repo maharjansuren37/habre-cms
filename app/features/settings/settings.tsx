@@ -29,6 +29,7 @@ import {
   homePageIdSchema,
   isSettingsFormBodyAllowed,
   languageSchema,
+  levelSchema,
   logoMediaIdSchema,
   siteDescriptionSchema,
   siteTitleSchema,
@@ -67,6 +68,9 @@ type ActionResult = {
   /** What was submitted; `null` when the form carried no Brand section. */
   brandColor: string | null;
   stylePreset: string | null;
+  /** What was submitted; `null` when the form carried no level choice. */
+  level: string | null;
+  darkMode: boolean | null;
   /** Beside-the-field refusals; empty when there are none. */
   errors: {
     siteDescription?: string;
@@ -74,6 +78,7 @@ type ActionResult = {
     contactNotifyEmail?: string;
     brandColor?: string;
     stylePreset?: string;
+    level?: string;
   };
 };
 
@@ -101,8 +106,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   const rawBrandColor = form.get("brandColor");
   const rawStylePreset = form.get("stylePreset");
   const hasBrand = rawBrandColor !== null || rawStylePreset !== null;
+  // Absent once more (F-107): a post without a level choice leaves the level and
+  // dark mode alone. The radios always send one; an unticked checkbox sends nothing.
+  const rawLevel = form.get("level");
+  const hasLook = rawLevel !== null;
+  const submittedDarkMode = form.get("darkMode") === "on";
   const rows = parseDraftRows(form);
   const carried = {
+    level: hasLook ? String(rawLevel) : null,
+    darkMode: hasLook ? submittedDarkMode : null,
     brandColor: hasBrand ? String(rawBrandColor ?? "") : null,
     stylePreset: hasBrand ? String(rawStylePreset ?? "") : null,
     draftRows: rows,
@@ -155,7 +167,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const notifyEmail = contactNotifyEmailSchema.safeParse(submittedNotifyEmail);
   const brandColor = brandColorSchema.safeParse(carried.brandColor ?? "");
   const stylePreset = stylePresetSchema.safeParse(carried.stylePreset ?? "modern");
+  const level = levelSchema.safeParse(carried.level ?? "simple");
   if (
+    !level.success ||
     !description.success ||
     !language.success ||
     !notifyEmail.success ||
@@ -172,6 +186,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           contactNotifyEmail: notifyEmail.error?.issues[0]?.message,
           brandColor: brandColor.error?.issues[0]?.message,
           stylePreset: stylePreset.error?.issues[0]?.message,
+          level: level.error?.issues[0]?.message,
         },
       } satisfies ActionResult,
       { status: 400 },
@@ -235,6 +250,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       hasBrand && brandColor.success && stylePreset.success
         ? { brandColor: brandColor.data, stylePreset: stylePreset.data }
         : undefined,
+    look: hasLook && level.success ? { level: level.data, darkMode: submittedDarkMode } : undefined,
   });
   // The logo or page was deleted after the checks above - the save rolled back
   // whole, so this is the same answer those checks give (F-106, F-110).
@@ -281,6 +297,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const notifyEmailDefault = actionData
     ? actionData.contactNotifyEmail
     : settings.contactNotifyEmail;
+  const levelDefault = actionData?.level ?? settings.level;
+  const darkModeDefault = actionData?.darkMode ?? settings.darkMode;
   const errors = actionData?.errors ?? {};
   const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
   const pageById = new Map(pages.map((page) => [page.id, page]));
@@ -523,6 +541,51 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             Add item
           </Button>
         </div>
+        <fieldset className={styles.lookFields}>
+          <legend className={styles.navHeading}>Editing level</legend>
+          <label className={styles.choice}>
+            <input
+              type="radio"
+              name="level"
+              value="simple"
+              defaultChecked={levelDefault !== "pro"}
+              aria-describedby="level-simple-hint"
+            />
+            <span>
+              Simple
+              <span id="level-simple-hint" className={styles.navHint}>
+                The essentials: pages, posts, media and settings. This is the default.
+              </span>
+            </span>
+          </label>
+          <label className={styles.choice}>
+            <input
+              type="radio"
+              name="level"
+              value="pro"
+              defaultChecked={levelDefault === "pro"}
+              aria-describedby="level-pro-hint"
+            />
+            <span>
+              Pro
+              <span id="level-pro-hint" className={styles.navHint}>
+                Adds Users and two smaller heading styles. Switching back to Simple keeps every page
+                as it is.
+              </span>
+            </span>
+          </label>
+          {errors.level && <p className={styles.fieldError}>{errors.level}</p>}
+          <label className={styles.choice}>
+            <input type="checkbox" name="darkMode" defaultChecked={darkModeDefault} />
+            <span>
+              Dark mode
+              <span className={styles.navHint}>
+                Visitors whose device is set to dark see your site in dark colours. Off keeps the
+                site light.
+              </span>
+            </span>
+          </label>
+        </fieldset>
         <Button type="submit" name="intent" value="save" variant="primary" isPending={isSaving}>
           {isSaving ? "Saving…" : "Save"}
         </Button>

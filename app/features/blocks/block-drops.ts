@@ -12,6 +12,7 @@ import { MAX_DOCUMENT_BLOCKS } from "./document-nodes.ts";
 import { countBlocks, hasContactForm } from "./document-queries.ts";
 import { newBlock, type PaletteKind, SECTION_TEMPLATE_NAMES } from "./palette-insert.ts";
 import type { SectionTemplate } from "./section-templates.ts";
+import { KEEPS_STYLE } from "./text-styles.ts";
 
 /**
  * Drops, duplicates and drop-target geometry for drag and drop (item 14b).
@@ -142,6 +143,8 @@ export function duplicateBlock(
   const tr = closeHistory(state.tr);
   tr.insert(pos, node.type.create(node.attrs, node.content, node.marks));
   selectLanded(tr, pos);
+  // A copy keeps its style: Simple's Heading 5 guard (F-398) lets it through.
+  tr.setMeta(KEEPS_STYLE, true);
   return { tr: tr.scrollIntoView(), pos };
 }
 

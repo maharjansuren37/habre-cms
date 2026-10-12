@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, insertTestMediaRow, uploadTestMedia } from "./helpers/media.ts";
+import { setSiteLevel } from "./helpers/site-settings.ts";
 import {
   createSite,
   createSiteAdmin,
@@ -109,6 +110,7 @@ test.describe("the Users screens act only on this site's members", () => {
   test.beforeEach(async () => {
     siteId = await createSite("users");
     siteAdmin = await createSiteAdmin(siteId);
+    await setSiteLevel(siteId, "pro");
     siteOneMember = createAdmin("Site One Member");
     siteOneMemberId = await withDatabase(async (sql) => {
       const [row] = await sql<{ id: string }[]>`

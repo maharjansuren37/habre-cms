@@ -611,3 +611,9 @@ File: app/features/ai/run-generation.test.ts:202-214
 
 ### F-397 [P3] open - The email-off notice, both Settings hints and the failed-SMTP path have no test
 File: app/features/contact/messages.tsx; app/features/settings/settings.tsx; app/features/contact/notify-contact.server.ts
+
+### F-400 [P3] open - No browser test measures contrast with a site's dark mode on
+File: e2e/contrast.spec.ts; app/app.css (`[data-dark="auto"]` block)
+
+### F-404 [P3] open - `countProHeadings` is exported but only its own test uses it
+File: app/features/blocks/text-styles.ts:50; app/features/blocks/text-styles.test.ts

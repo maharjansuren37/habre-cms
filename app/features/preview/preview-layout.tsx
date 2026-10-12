@@ -2,7 +2,10 @@ import { isRouteErrorResponse, Outlet } from "react-router";
 import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { requireUser } from "#app/features/auth/require-user.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
-import { brandCustomProperties } from "#app/features/brand/brand-colours.ts";
+import {
+  brandCustomProperties,
+  brandDarkCustomProperties,
+} from "#app/features/brand/brand-colours.ts";
 import { listPageSlugs } from "#app/features/content/entries.server.ts";
 import publicLayoutStyles from "#app/features/public-site/layout.module.css";
 import { Chrome, type NavLink } from "#app/features/public-site/layout.tsx";
@@ -55,6 +58,9 @@ export async function loader({ context }: Route.LoaderArgs) {
     // Derived declarations only, never the stored string (D171); the nonce is
     // the one in this response's CSP header.
     brandCss: brandCustomProperties(settings.brandColor),
+    // Dark mode is the site's choice at every level (item 20, D168 amended).
+    darkMode: settings.darkMode,
+    brandDarkCss: settings.darkMode ? brandDarkCustomProperties(settings.brandColor) : "",
     nonce: context.get(nonceContext),
     navLinks,
     pageSlugs: [...links.pageSlugs],
