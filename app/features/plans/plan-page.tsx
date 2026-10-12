@@ -1,4 +1,5 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { useEffect } from "react";
+import { data, Form, redirect, useNavigation, useRevalidator } from "react-router";
 import { allowanceSummary } from "#app/features/ai/allowance-summary.ts";
 import { startOfUtcMonth } from "#app/features/ai/credits.ts";
 import { runner } from "#app/features/ai/runner.server.ts";
@@ -23,6 +24,7 @@ import {
 import { verificationRecords } from "#app/features/own-domain/own-domain.ts";
 import { domainLookups } from "#app/features/own-domain/own-domain-dns.server.ts";
 import { checkLimit } from "#app/features/own-domain/own-domain-limits.server.ts";
+import { prewarmDomain } from "#app/features/own-domain/own-domain-prewarm.server.ts";
 import {
   outcomeMessage,
   ownDomainState,
@@ -175,6 +177,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const siteHost = `${(await findMemberSite(user.siteId)).subdomain}.${new URL(env.SITES_URL).hostname}`;
     const result = await checkDomain({ siteId: user.siteId, siteHost });
     if (result === null) throw data("Bad Request", { status: 400 });
+    // Fire and forget: the answer never waits for the certificate request.
+    if (result.newlyVerified) void prewarmDomain(current.domain);
     return data({
       domainNotice: {
         tone: result.outcome === "verified" ? ("success" as const) : ("error" as const),
@@ -237,6 +241,21 @@ export default function PlanPage({ loaderData, actionData }: Route.ComponentProp
     ownDomain,
   } = loaderData;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
+  const waiting = ownDomain.state === "waiting";
+
+  // While the domain waits for its records, look again every 15 s (the server's
+  // own checker verifies it) so the page turns to "verified" without a click.
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      if (navigation.state !== "idle" || revalidator.state !== "idle") return;
+      void revalidator.revalidate();
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, [waiting, navigation.state, revalidator]);
+
   const sending = navigation.state !== "idle" && navigation.formMethod === "POST";
   const sendingIntent = sending ? String(navigation.formData?.get("intent")) : null;
   const domainError = actionData && "domainError" in actionData ? actionData.domainError : null;
@@ -346,9 +365,7 @@ export default function PlanPage({ loaderData, actionData }: Route.ComponentProp
             <p>Your own domain is part of Launch. Choose how to pay above to add one.</p>
           </>
         )}
-        {ownDomain.state === "free-no-billing" && (
-          <p>Your own domain is part of Launch.</p>
-        )}
+        {ownDomain.state === "free-no-billing" && <p>Your own domain is part of Launch.</p>}
         {ownDomain.state === "none" && (
           <Form method="post" className={styles.offer}>
             <input type="hidden" name="intent" value="add-domain" />

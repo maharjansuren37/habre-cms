@@ -132,7 +132,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   see, check or remove the first site's domain (tampered request answers
   400); a row set verified through the owner connection shows the verified
   state and, with `SITES_URL` http, still serves on the subdomain.
-- [ ] **Step 6 - Automatic re-check and pre-warm** -
+- [x] **Step 6 - Automatic re-check and pre-warm** -
   `own-domain-schedule.ts` (pure: `isDue(createdAt, lastCheckedAt, now)` from
   the 1 / 5 / 30 minute ladder, and `null` after 24 hours) and
   `own-domain-checker.server.ts` (a timer every 30 s, started with the server
