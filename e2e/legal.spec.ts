@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { LEGAL_DOCUMENTS, type LegalDocumentKey } from "../app/features/legal/legal-documents.ts";
+import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 
 // F-428 step 3: the terms and the privacy policy, on the platform host.
 const KEYS: LegalDocumentKey[] = ["terms", "privacy"];
@@ -59,3 +60,31 @@ test("an unknown document is Not Found", async ({ page }) => {
   const proto = await page.goto("/legal/toString");
   expect(proto?.status()).toBe(404);
 });
+
+// F-428 step 4: the links from signup and from login.
+test("signup links the terms and the privacy policy above Create my website", async ({ page }) => {
+  await page.goto("/signup");
+  await expect(
+    page.getByText("By creating an account you agree to the Terms of service and Privacy policy."),
+  ).toBeVisible();
+  const form = page.locator("form");
+  await form.getByRole("link", { name: "Terms of service" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Terms of service" })).toBeVisible();
+  await page.goto("/signup");
+  await form.getByRole("link", { name: "Privacy policy" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy policy" })).toBeVisible();
+});
+
+for (const [label, base] of [
+  ["invite mode, email on", ""],
+  ["signup off, email off", `http://127.0.0.1:${HOST_SPLIT_PORT}`],
+] as const) {
+  test(`login links the terms and the privacy policy (${label})`, async ({ page }) => {
+    await page.goto(`${base}/admin/login`);
+    await page.getByRole("link", { name: "Terms of service" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Terms of service" })).toBeVisible();
+    await page.goBack();
+    await page.getByRole("link", { name: "Privacy policy" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Privacy policy" })).toBeVisible();
+  });
+}

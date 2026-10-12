@@ -71,7 +71,7 @@ is not a lawyer, and the drafts say nothing the code does not do.
   every section heading as a level-2 heading, and that `/legal/other` is a 404;
   at 390px wide the page has no horizontal scroll.
 
-- [ ] **Step 4 - agreeing at signup, and the login links** - the sentence above
+- [x] **Step 4 - agreeing at signup, and the login links** - the sentence above
   Create my website on `/signup`, and "Terms of service · Privacy policy" under
   the login form. *Done when:* the links show with signup in any mode and with email on or off; `e2e/legal.spec.ts` follows each link from
   `/signup` and from `/admin/login` to the right page by its `h1`, and the

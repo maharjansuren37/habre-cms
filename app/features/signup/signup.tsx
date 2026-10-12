@@ -224,6 +224,11 @@ export default function Signup({ actionData, loaderData }: Route.ComponentProps)
                 required
               />
             )}
+            <p className={styles.agree}>
+              By creating an account you agree to the{" "}
+              <Link to="/legal/terms">Terms of service</Link> and{" "}
+              <Link to="/legal/privacy">Privacy policy</Link>.
+            </p>
             <Button
               type="submit"
               variant="primary"
