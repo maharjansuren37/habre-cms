@@ -28,6 +28,7 @@
 - **accounts.27** - taking the site also deletes its AI runs *Since:* features/18b1-the-run-with-openrouter
 - **accounts.28** - deleting a site's last account removes the site's contact submissions with it *Since:* features/19a-receiving-a-message
 - **accounts.29** - deleting an account that takes a site cancels its subscription first, and is refused when Stripe cannot cancel it *Since:* features/21b-pay-for-launch
+- **accounts.30** - the signup form says creating an account agrees to the terms of service and privacy policy, linking both, and the login page links both *Since:* fixes/2026-10-13-legal-pages
 
 ## Removed
 - accounts.23 - removed by features/16a-sites-by-host

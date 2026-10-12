@@ -5153,3 +5153,33 @@ Costs: two DNS providers to secure.
 **Chose:** one variable, `on` unless set; `off` makes every host's `robots.txt` disallow all with no sitemap and every app response carry `X-Robots-Tag: noindex, nofollow`. Production sets `off` through the beta.
 Beats: Caddy-set headers and a Caddy-answered `robots.txt` - those make seo.2 false in production while every test says it holds, cannot be tested without a Caddy, and give a self-hoster nothing; `robots.txt` alone, which still lets a linked URL be listed.
 Costs: static files `server.js` serves itself (`/assets/*`) carry no header; `robots.txt` disallows them anyway.
+
+## D498 - The terms and the privacy policy live in the app, at `/legal/<document>`, on the platform host (2026-10-13)
+
+**Chose:** `/legal/terms` and `/legal/privacy`, served by the app; `isPlatformPath` takes any path under `/legal/` with a document after it, so a site host redirects them to the platform (fixes/2026-10-13-legal-pages, F-428).
+Beats: `/terms` and `/privacy`, which would take those names from every customer site (a single-segment platform path redirects); a document hosted elsewhere, which self-hosters could not ship.
+Costs: a customer page can never live under `/legal/`; bare `/legal/` is left to the site (F-437 - it otherwise matched the public `:slug` route on the platform host and answered 500).
+
+## D499 - Legal text is typed data, not markup or Markdown (2026-10-13)
+
+**Chose:** `LEGAL_DOCUMENTS` in `app/features/legal/legal-documents.ts` - title, updated date, intro and sections as plain strings, rendered escaped like any text (D28-D30). Section ids are page anchors and are kept once published.
+Beats: a Markdown file, which needs a renderer dependency; raw HTML, which the project never renders.
+Costs: no inline links or emphasis in the text; editing means editing a TypeScript file.
+
+## D500 - The drafts say only what the code does; what only the owner knows is a placeholder (2026-10-13)
+
+**Chose:** every statement traced to the code: the AI is sent the kind of site and the description, to OpenRouter alone (D405 - not Anthropic or OpenAI, owner 2026-10-13, F-438); images sit at a public address; the last admin deleting takes the other members' accounts; local backups live up to 9 days (F-439). Anything else is an `[OWNER: ...]` placeholder. The drafts merged with 14 placeholders for testing (owner, 2026-10-13); they must be filled before signup opens to the public (`needs-you.md`, `production-pending.md`).
+Beats: copying a template policy, which would promise things the code does not do.
+Costs: wiring the AI fallbacks in, changing the backup script or adding a cookie means editing the policy too - `legal-documents.test.ts` guards the provider names.
+
+## D501 - Agreement is a sentence above Create my website, not a checkbox (2026-10-13)
+
+**Chose:** "By creating an account you agree to the Terms of service and Privacy policy." with both linked, above the button; login links both under its form; the policy pages link to signup only when signup is on (F-441).
+Beats: a required checkbox, which adds a field without adding consent.
+Costs: no record of which version someone agreed to - none needed while production starts empty; the owner may ask for the checkbox.
+
+## D502 - The browser spec imports the documents it checks (2026-10-13)
+
+**Chose:** `e2e/legal.spec.ts` imports `LEGAL_DOCUMENTS`, so it checks every section heading against the real data; `tsconfig.node.json` includes the file, as it does the own-domain files.
+Beats: a hand-kept copy of the headings in the spec, which drifts.
+Costs: one more app file in the node project's include list.

@@ -17,7 +17,7 @@ export type LegalDocument = {
 // The terms of service and the privacy policy (F-428), as plain strings: the
 // page escapes them like any text, so editing the wording never touches markup
 // (D28-D30). Section ids are page anchors (/legal/privacy#ai) - keep them once
-// published. Every fact here is something the code does; "[OWNER: ...]" marks
+// published. Every fact here is something the code does; an OWNER placeholder in brackets marks
 // what only the owner can say, and the deploy waits until none is left.
 export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
   terms: {
