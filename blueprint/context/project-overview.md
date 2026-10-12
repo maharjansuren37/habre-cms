@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `59325a4` (19b, the contact form block, shipped).
+Generated 2026-10-12, `main` after `49a9dce` (19c, Messages and the email, shipped).
 
 ## What this is
 
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); receiving a contact message (19a); the contact form block (19b).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c).
 
-**Platform v1 (queued):** Messages and the email (19c); Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
+**Platform v1 (queued):** Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -146,6 +146,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-18, 19a and 19b done; 19c, 20-21 queued. Last shipped: 19b.
-- **In flight:** nothing. **Next:** `spec` item 19c, Messages and the email.
+- **Plan:** items 1-19 done; 20-21 queued. Last shipped: 19c.
+- **In flight:** nothing. **Next:** `spec` item 20, Simple and Pro.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
