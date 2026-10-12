@@ -96,7 +96,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   `own-domain.test.ts`, one test per outcome above and per refusal, including
   `Example.COM.`, `münchen.de`, `1.2.3.4`, `app.<platform domain>`, `a`,
   and a CNAME-style address overlap.
-- [ ] **Step 3 - Lookups and store** - `own-domain-dns.server.ts` (a
+- [x] **Step 3 - Lookups and store** - `own-domain-dns.server.ts` (a
   `node:dns` `Resolver` with a 2 s timeout and one try; `ENOTFOUND`,
   `ENODATA`, `ECONNREFUSED` and a timeout are answers, not errors) and
   `own-domain.server.ts`: `addDomain`, `checkDomain`, `removeDomain`, each
