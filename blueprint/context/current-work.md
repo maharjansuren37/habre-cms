@@ -148,7 +148,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   checker's loop with a fake store, resolver and fetch showing: a due row is
   checked, a verification triggers exactly one pre-warm, a thrown lookup does
   not stop the next row, and a pre-warm failure is logged and swallowed.
-- [ ] **Step 7 - Caddy file, docs, records** - the catch-all block in
+- [x] **Step 7 - Caddy file, docs, records** _(built inline; `caddy` is not installed here, so `caddy validate` was not run)_ - the catch-all block in
   `deploy/caddy/habre-cms.caddy` (with the ask's reason in its comment);
   `design.md` Plan row and an Own domain note; `blueprint/context/needs-you.md`
   two lines (below); `deploy/setup-server.sh` message that the global option

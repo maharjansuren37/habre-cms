@@ -400,10 +400,13 @@ not tidying; it is what keeps the open list true.
 - [ ] **Caddy's on-demand TLS `ask` option on `ocwebserver`** - access; the
       server's main Caddyfile is not in the repository, so only you approve
       the change (`host`). Add `on_demand_tls { ask
-      http://127.0.0.1:3000/_caddy/ask }` to its global options and reload
-      Caddy; item 21c's catch-all block needs it. Blocks nothing now; needed
-      by the v1 deploy, with the Caddy line above. `open` (spec 21c,
-      2026-10-12)
+      http://127.0.0.1:3000/_caddy/ask }` to its global options block (the
+      block must be the first in the file) and reload Caddy. Item 21c's
+      `deploy/caddy/habre-cms-own-domains.caddy` is installed by
+      `setup-server.sh` regardless, and imported on the next run of the script
+      once that option is there; until then own domains verify but get no
+      certificate. Blocks nothing now; needed by the v1 deploy, with the
+      Caddy line above. `open` (spec 21c, 2026-10-12; reworded, build 21c)
 
 - [ ] **A real own-domain round trip after the v1 deploy** - spend and manual
       verification; needs a spare domain and its DNS. On a Launch site add the
@@ -411,7 +414,8 @@ not tidying; it is what keeps the open list true.
       Check now: it verifies; the first visit gets a certificate within
       seconds; the subdomain 301s to it; Remove puts the subdomain back. Also
       once with Cloudflare's proxy on, to see the "not pointing here yet"
-      line. No test reaches Let's Encrypt. Blocks nothing now; `preflight`
+      line, and that plain `http://<domain>` redirects to https (the catch-all
+      `http://` block has not met a real Caddy). No test reaches Let's Encrypt. Blocks nothing now; `preflight`
       needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
 
 ## Done
