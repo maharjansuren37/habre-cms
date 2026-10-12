@@ -36,6 +36,11 @@
   font-weight: var(--weight-semibold);
 }
 
+.confirmTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
 .list {
   margin: 0;
   padding-left: var(--space-5);
@@ -64,4 +69,64 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.domain {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  margin-top: var(--space-6);
+}
+
+.domain > * {
+  margin: 0;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field > * {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* A wide table scrolls inside its box. Rules are qualified under .records so
+   they stay scoped to this module (F-54). */
+.records {
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.records table {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.records caption {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+.records th,
+.records td {
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.records code {
+  overflow-wrap: anywhere;
 }

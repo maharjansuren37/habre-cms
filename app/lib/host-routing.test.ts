@@ -214,3 +214,78 @@ test("POST /webhooks/stripe is allowed on the platform host and not found on a s
     foreignHost: true,
   });
 });
+
+test("/_caddy/ask is allowed only on a loopback host, with or without a port", () => {
+  for (const host of [
+    "127.0.0.1",
+    "127.0.0.1:3000",
+    "localhost",
+    "localhost:3100",
+    "[::1]",
+    "[::1]:3000",
+  ]) {
+    assert.deepEqual(classify(host, "/_caddy/ask"), { kind: "allow" }, host);
+    assert.deepEqual(classify(host, "/_caddy/ask", "HEAD"), { kind: "allow" }, host);
+  }
+});
+
+test("/_caddy/ask on the platform host, a site's host or an own domain is not found", () => {
+  for (const host of ["app.habre.ai", "lena.habre.page", "habre.page", "surenmaharjan.fyi"]) {
+    assert.deepEqual(
+      classify(host, "/_caddy/ask"),
+      { kind: "not-found", foreignHost: false },
+      host,
+    );
+  }
+});
+
+test("/_caddy/ask on a loopback host is not found for a POST", () => {
+  assert.deepEqual(classify("127.0.0.1:3000", "/_caddy/ask", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+  });
+});
+
+test("/_caddy/ask is checked before the sites host, which is localhost in development", () => {
+  const local = (requestHost: string) =>
+    classifyHost({
+      method: "GET",
+      pathname: "/_caddy/ask",
+      search: "?domain=x.example",
+      requestHost,
+      platformOrigin: "http://app.localhost:3000",
+      sitesOrigin: "http://localhost:3000",
+    });
+  assert.deepEqual(local("localhost:3000"), { kind: "allow" });
+  assert.deepEqual(local("app.localhost:3000"), { kind: "not-found", foreignHost: false });
+  assert.deepEqual(local("lena.localhost:3000"), { kind: "not-found", foreignHost: false });
+});
+
+const ASK_VARIANTS = ["/_caddy/ask/", "/_Caddy/Ask", "/%5Fcaddy/ask", "/%5fCADDY/ask//"];
+
+test("variants of /_caddy/ask are not found on every non-loopback host (F-421)", () => {
+  for (const host of ["app.habre.ai", "lena.habre.page", "habre.page", "surenmaharjan.fyi"]) {
+    for (const path of ASK_VARIANTS) {
+      assert.deepEqual(
+        classify(host, path),
+        { kind: "not-found", foreignHost: false },
+        host + path,
+      );
+    }
+  }
+});
+
+test("variants of /_caddy/ask are handled like the path itself on a loopback host (F-421)", () => {
+  for (const path of ASK_VARIANTS) {
+    assert.deepEqual(classify("127.0.0.1:3000", path), { kind: "allow" }, path);
+    assert.deepEqual(classify("127.0.0.1:3000", path, "POST"), {
+      kind: "not-found",
+      foreignHost: false,
+    });
+  }
+});
+
+test("a malformed escape in the path is not the ask path (F-421)", () => {
+  assert.notDeepEqual(classify("127.0.0.1:3000", "/%E0%A4%A/_caddy/ask"), { kind: "allow" });
+  assert.notDeepEqual(classify("127.0.0.1:3000", "/%ZZ"), { kind: "allow" });
+});

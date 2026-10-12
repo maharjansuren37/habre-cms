@@ -4,6 +4,7 @@ import { createRequestHandler, RouterContextProvider } from "react-router";
 // Imported for its startup check: the server refuses to start misconfigured.
 import "#app/lib/env.server.ts";
 import { failInterruptedRuns } from "#app/features/ai/runs.server.ts";
+import { startOwnDomainChecker } from "#app/features/own-domain/own-domain-checker.server.ts";
 import { nonceContext } from "#app/lib/nonce-context.ts";
 
 // Runs a restart interrupted are marked failed, once when this module loads. In
@@ -11,6 +12,11 @@ import { nonceContext } from "#app/lib/nonce-context.ts";
 // edits, so it can run again, which is harmless. Not awaited: never on the request
 // path, and a database problem is logged rather than stopping startup.
 void failInterruptedRuns();
+
+// Re-checks waiting own domains by itself (item 21c). One timer per process, kept
+// across Vite's dev reloads, and not started over http (SITES_URL), where own
+// domains are not served. Not awaited, and a failed tick is logged, not thrown.
+void startOwnDomainChecker();
 
 const handleRequest = createRequestHandler(() => import("virtual:react-router/server-build"));
 

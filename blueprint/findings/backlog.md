@@ -635,3 +635,18 @@ File: app/features/plans/plan-view.ts:planNotice (the `trialEndsAt` branch prece
 
 ### F-413 [P3] open - The plan page reads Stripe prices for a Launch site that shows none
 File: app/features/plans/plan-page.tsx:loader (`billing.prices()` is not gated on the plan, against its own comment)
+
+### F-416 [P3] open - A Free site's unverified claim keeps verifying after a downgrade
+File: app/features/own-domain/own-domain.server.ts (checkDomain); app/features/own-domain/own-domain-checker.server.ts:20
+
+### F-417 [P3] open - A paying squatter can hold someone else's domain by removing and re-adding it inside 24 hours
+File: app/features/own-domain/own-domain.server.ts (addDomain)
+
+### F-418 [P3] open - 'Not found yet' is an error banner, and the page changes itself every 15 s with no announcement or pause
+File: app/features/plans/plan-page.tsx (domainNotice tone; the revalidate effect)
+
+### F-420 [P3] open - The pre-warm can still be pointed at another address by changing DNS between the check and the request
+File: app/features/own-domain/own-domain-prewarm.ts:9,29
+
+### F-425 [P3] unverified - A platform host with no `app.` label (e.g. `habre.com.au`) would reserve its public suffix as a parent domain
+File: app/features/own-domain/own-domain.ts:45-50 (`platformParent`)

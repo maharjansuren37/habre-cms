@@ -119,3 +119,10 @@
 - [ ] Billing stays off unless all four are set in `/etc/habre-cms/production.env`: `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Subscriptions, Prices read, Billing Portal), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`; optional `BILLING_TRIAL_DAYS` (14 unless set). D150: off through the beta.
 - [ ] In Stripe (owner): a Launch product with a monthly and a yearly price; a webhook endpoint `https://app.<platform domain>/webhooks/stripe` for `checkout.session.completed` and `customer.subscription.created`, `.updated`, `.deleted`; the Customer Portal configured; Billing's retry schedule ending in cancel.
 - [ ] Check `deploy/caddy/habre-cms.caddy` does not block `/webhooks/stripe`.
+
+## features/21c-own-domain
+
+- [ ] Run migration `0026_own_domain.sql` as the owner with the v1 deploy (additive: two columns on `site_domains` and narrow insert/update grants; a symlink rollback is safe).
+- [ ] Host change, the owner's yes (`host`): add `on_demand_tls { ask http://127.0.0.1:3000/_caddy/ask }` to the server's main Caddyfile global options, then reload Caddy. Until then own domains verify but get no certificate.
+- [ ] Run `deploy/setup-server.sh` so it installs `habre-cms-own-domains.caddy`, then `caddy validate` (never run here).
+- [ ] No new environment variables.

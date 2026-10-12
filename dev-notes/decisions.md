@@ -5057,3 +5057,79 @@ Costs: a Free site with an odd subscription must use Manage billing.
 **Chose:** `upgradeHint(plan, billingOn)`; `https://checkout.stripe.com` and `https://billing.stripe.com`, admin area only.
 Beats: a fixed "coming soon" line; widening `form-action` everywhere.
 Costs: the live redirect with and without JavaScript is a manual check (`needs-you.md`).
+
+## D484 - One own domain per site, added in the admin (2026-10-12)
+
+**Chose:** one own domain per site, added in the admin.
+Beats: a main-address choice, a redirect set and a UI for them.
+Costs: nobody has asked for several; a second domain waits for a request.
+
+
+## D485 - A TXT record and a reach check are both needed to verify (2026-10-12)
+
+**Chose:** a TXT record and a reach check are both needed to verify.
+Beats: TXT alone (a verified domain becomes the main address while pointing nowhere) and reach alone (anyone could claim a domain that happens to point at the platform).
+Costs: two records for the person to create.
+
+
+## D486 - Reach is compared with the site's own subdomain's addresses, and every address must be one of them (F-414) (2026-10-12)
+
+**Chose:** reach is compared with the site's own subdomain's addresses, and every address must be one of them (F-414).
+Beats: a configured server IP, and an overlap test, which accepts a domain that also points elsewhere.
+Costs: a domain behind a proxy (Cloudflare orange cloud) is reported as not pointing here.
+
+
+## D487 - A verified domain keeps serving after a downgrade (2026-10-12)
+
+**Chose:** a verified domain keeps serving after a downgrade.
+Beats: dropping it, which takes a published site off the internet over a failed card (D150).
+Costs: a Free site can keep a custom domain indefinitely; flagged for the owner.
+
+
+## D488 - An unverified claim expires after 24 hours (2026-10-12)
+
+**Chose:** an unverified claim expires after 24 hours.
+Beats: first-come forever (squatting) and duplicates (the domain is the primary key).
+Costs: a paying site can re-add a claim inside 24 hours (F-417).
+
+
+## D489 - Waiting domains are re-checked in the process for 24 hours, then stop (2026-10-12)
+
+**Chose:** waiting domains are re-checked in the process for 24 hours, then stop.
+Beats: a Check now button alone, and a job queue or worker (D154).
+Costs: a domain whose DNS settles after a day needs Check now.
+
+
+## D490 - A verified domain is requested once over https to warm its certificate (2026-10-12)
+
+**Chose:** a verified domain is requested once over https to warm its certificate.
+Beats: waiting for the first visitor, and polling Caddy.
+Costs: the request resolves the domain at that moment (F-420).
+
+
+## D491 - `/_caddy/ask` answers only a loopback request that did not come through the proxy, whatever the path's case, slash or encoding (F-421) (2026-10-12)
+
+**Chose:** `/_caddy/ask` answers only a loopback request that did not come through the proxy, whatever the path's case, slash or encoding (F-421).
+Beats: a shared secret (a new variable) and an open endpoint.
+Costs: the gate is `classifyHost` plus the loader's own hostname check.
+
+
+## D492 - Removing a verified domain asks first, and the server refuses it without `confirm=yes` (F-419) (2026-10-12)
+
+**Chose:** removing a verified domain asks first, and the server refuses it without `confirm=yes` (F-419).
+Beats: one-click removal, which takes the main address and its certificate away.
+Costs: an extra screen.
+
+
+## D493 - The platform's own parent domain is reserved as well as its host (F-422) (2026-10-12)
+
+**Chose:** the platform's own parent domain is reserved as well as its host (F-422).
+Beats: reserving only `app.<domain>`, which lets someone claim `<domain>` itself.
+Costs: a platform host without an `app.` label would reserve its suffix (F-425).
+
+
+## D494 - The store lives in `own-domain-store.server.ts` and takes `sql`, so a database test can drive it (F-415, F-424) (2026-10-12)
+
+**Chose:** the store lives in `own-domain-store.server.ts` and takes `sql`, so a database test can drive it (F-415, F-424).
+Beats: SQL inside a module that imports the environment.
+Costs: one more file.

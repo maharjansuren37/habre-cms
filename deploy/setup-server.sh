@@ -30,6 +30,9 @@ ENV_FILE="$CONFIG_DIR/production.env"
 BACKUP_ENV_FILE="$CONFIG_DIR/backup.env"
 CADDYFILE="/etc/caddy/Caddyfile"
 CADDY_SITE="/etc/caddy/sites/habre-cms.caddy"
+# Own domains (item 21c): installed always, imported only once the main
+# Caddyfile has the on-demand `ask` option (deploy/caddy/habre-cms-own-domains.caddy).
+CADDY_OWN_DOMAINS="/etc/caddy/sites/habre-cms-own-domains.caddy"
 # The platform's access log and the sites' (deploy/caddy/habre-cms.caddy).
 CADDY_LOGS=(/var/log/caddy/habre-cms-access.log /var/log/caddy/habre-cms-public-access.log)
 # Caddy's own environment for the site file: the two domains and the Cloudflare
@@ -236,6 +239,29 @@ check_caddy_env() {
   return "$missing"
 }
 
+# Own domains (item 21c): the file is copied, and imported only when the main
+# Caddyfile's global options already point Caddy's `ask` at the app. Without
+# that option Caddy would issue certificates on demand for any name, so the
+# import waits for the server owner's one-time change (needs-you.md).
+install_own_domains_import() {
+  install -m 644 "$DEPLOY_DIR/caddy/habre-cms-own-domains.caddy" "$CADDY_OWN_DOMAINS"
+  if ! grep -qE '^[[:space:]]*ask[[:space:]]+.*/_caddy/ask' "$CADDYFILE"; then
+    log "Own domains NOT enabled: $CADDYFILE has no on_demand_tls ask for /_caddy/ask (needs-you.md)"
+    return
+  fi
+  local import_line="import $CADDY_OWN_DOMAINS"
+  grep -qxF "$import_line" "$CADDYFILE" && return
+  local backup
+  backup="$CADDYFILE.bak-habre-cms-own-domains-$(date +%Y%m%d%H%M%S)"
+  cp -p "$CADDYFILE" "$backup"
+  printf '\n%s\n' "$import_line" >> "$CADDYFILE"
+  log "Added the own-domains import to $CADDYFILE (backup: $backup)"
+  if ! caddy validate --config "$CADDYFILE" --adapter caddyfile --envfile "$CADDY_ENV_FILE" >/dev/null 2>&1; then
+    cp -p "$backup" "$CADDYFILE"
+    fail "Caddy rejected the own-domains import; $CADDYFILE restored from $backup. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
+  fi
+}
+
 install_caddy_site() {
   command -v caddy >/dev/null || fail "Caddy is not installed"
 
@@ -302,6 +328,7 @@ ENV
       fail "Caddy rejected the new config; $CADDYFILE restored from $backup. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
     fi
   fi
+  install_own_domains_import
   caddy validate --config "$CADDYFILE" --adapter caddyfile --envfile "$CADDY_ENV_FILE" >/dev/null 2>&1 \
     || fail "Caddy config does not validate; not reloading. Check with: caddy validate --config $CADDYFILE --envfile $CADDY_ENV_FILE"
   # Caddy serves every site on this box, so a failed start is said plainly,

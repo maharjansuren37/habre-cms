@@ -1,6 +1,16 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["server.js", "vite.config.ts", "playwright.config.ts", "e2e/**/*"],
+  "include": [
+    "server.js",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "e2e/**/*",
+    "app/features/own-domain/own-domain-store.server.ts",
+    "app/features/own-domain/own-domain.ts",
+    "app/features/own-domain/own-domain-checker.ts",
+    "app/features/own-domain/own-domain-dns.server.ts",
+    "app/features/own-domain/own-domain-schedule.ts"
+  ],
   "compilerOptions": {
     "composite": true,
     "strict": true,
