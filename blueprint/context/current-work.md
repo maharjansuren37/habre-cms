@@ -59,7 +59,7 @@ is not a lawyer, and the drafts say nothing the code does not do.
   kebab-case, no string is empty; and that the privacy policy names
   OpenRouter, Anthropic, OpenAI, Resend, Cloudflare, Stripe and Oracle Cloud.
 
-- [ ] **Step 3 - the page** - `legal-page.tsx` renders the document for
+- [x] **Step 3 - the page** - `legal-page.tsx` renders the document for
   `params.document`, 404 for any other value (the project's
   `data("Not Found", { status: 404 })`). The signup layout's brand mark (its own CSS module - no import of `signup.module.css` across features), then
   `main` > `article`: one `h1` (the title), "Last updated" as a `<time
@@ -168,6 +168,14 @@ with notice by email.
   beat a hosted document elsewhere, which self-hosters could not ship.
 - **Text as typed data, not markup or Markdown** - no new dependency (a
   Markdown renderer) and no raw HTML (D28-D30); the owner edits strings.
+- **The drafts follow the code where the spec's notes did not** (build, Step 2) -
+  the AI is sent the kind of site and the description, not the site name
+  (`chat-completion.ts`); the policy also says uploaded images sit at a public
+  address, and that the last admin deleting takes the other members' accounts.
+  Two placeholders added: refunds (ACL) and cross-border disclosure (APP 8).
+- **`tsconfig.node.json` includes `legal-documents.ts`** (build, Step 3) - the
+  browser spec imports the documents so it checks every heading without a copy
+  of them; the same pattern as the own-domain files.
 - **Agreement is a statement above the button, not a checkbox** - the button is
   the act of agreeing; a required checkbox adds a field without adding
   consent. The owner may ask for the checkbox instead.
