@@ -105,7 +105,7 @@ the Unread badge and the buttons are existing ones. The email is plain text
   like `media-list-query.ts`. *Done when:* `messages-query.test.ts` covers
   junk, below 1 and above the cap; `e2e/site-isolation.spec.ts` (app role)
   shows site A's `setMessageRead` for site B's message id changes nothing.
-- [ ] **Step 5 - The screen and the nav entry** - route `admin/messages` in
+- [x] **Step 5 - The screen and the nav entry** - route `admin/messages` in
   the admin layout of `app/routes.ts`, `features/contact/messages.tsx`,
   `requireRole("admin")` (404 for others, D69). `h1` Messages; an `ol` of
   `article`s: name, the visitor's email as a `mailto:` link, a `time` with
