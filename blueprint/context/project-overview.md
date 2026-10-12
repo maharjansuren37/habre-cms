@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `c7f83db` (21b, pay for Launch, shipped).
+Generated 2026-10-12, `main` after `ecbb7e0` (21c, own domain, shipped).
 
 ## What this is
 
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b, D473-D483).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b, D473-D483); own domain (21c, D484-D494).
 
-**Platform v1 (queued):** billing for Launch (21): own domain (21c). Limits apply from the first signup;
+**Platform v1: all items built**. Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -145,6 +145,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-20, 21a and 21b done; 21c queued. Last shipped: 21b.
-- **In flight:** nothing. **Next:** `spec` item 21c, Own domain.
+- **Plan:** items 1-21 done. Last shipped: 21c.
+- **In flight:** nothing. **Next:** `preflight`, then the v1 deploy (`blueprint/production-pending.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
