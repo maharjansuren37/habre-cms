@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { areaForPath, contentSecurityPolicy } from "./content-security-policy.ts";
+import { areaForPath, contentSecurityPolicy, isPlatformPath } from "./content-security-policy.ts";
 
 const R2 = "https://pub-abc123.r2.dev";
 
@@ -92,6 +92,16 @@ test("/confirm-email is admin; near misses are public (15e1)", () => {
   assert.equal(areaForPath("/confirm-email"), "admin");
   assert.equal(areaForPath("/confirm-email/x"), "public");
   assert.equal(areaForPath("/confirm-emails"), "public");
+});
+
+test("/legal/terms and /legal/privacy are admin; /legal, /privacy, /terms and /legalese are public (F-428)", () => {
+  assert.equal(areaForPath("/legal/terms"), "admin");
+  assert.equal(areaForPath("/legal/privacy"), "admin");
+  assert.equal(isPlatformPath("/legal/terms"), true);
+  for (const path of ["/legal", "/privacy", "/terms", "/legalese"]) {
+    assert.equal(isPlatformPath(path), false, path);
+    assert.equal(areaForPath(path), "public", path);
+  }
 });
 
 test("/admin/preview and the paths under it are the preview area; near misses stay admin (18b4b)", () => {

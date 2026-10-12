@@ -82,6 +82,36 @@ test("a platform path on a site host redirects to the platform for GET and HEAD,
   });
 });
 
+test("the platform host allows /legal/terms and /legal/privacy, and /privacy alone is not found (F-428)", () => {
+  for (const path of ["/legal/terms", "/legal/privacy"]) {
+    assert.deepEqual(classify("app.habre.ai", path), { kind: "allow" }, path);
+  }
+  assert.deepEqual(classify("app.habre.ai", "/privacy"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
+});
+
+test("/legal/terms on a site host redirects to the platform's, and /legal and /privacy stay the site's (F-428)", () => {
+  assert.deepEqual(classify("lena.habre.page", "/legal/terms"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/legal/terms",
+  });
+  assert.deepEqual(classify("surenmaharjan.fyi", "/legal/privacy"), {
+    kind: "redirect",
+    to: "https://app.habre.ai/legal/privacy",
+  });
+  for (const path of ["/legal", "/privacy"]) {
+    assert.deepEqual(classify("lena.habre.page", path), { kind: "subdomain", label: "lena" }, path);
+    assert.deepEqual(
+      classify("surenmaharjan.fyi", path),
+      { kind: "domain", host: "surenmaharjan.fyi" },
+      path,
+    );
+  }
+});
+
 test("a POST to a platform path on a site host is not found, logged only for a foreign host", () => {
   assert.deepEqual(classify("lena.habre.page", "/admin/posts", "POST"), {
     kind: "not-found",
