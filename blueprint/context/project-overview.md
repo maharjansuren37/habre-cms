@@ -46,7 +46,7 @@ run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 this draft, Home with the AI meter (18b4a); Preview and Publish
 website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20).
 
-**Platform v1 (queued):** Stripe billing for Launch (21). Limits apply from the first signup;
+**Platform v1 (queued):** billing for Launch (21): plans and limits (21a), Stripe payment (21b), own domain (21c). Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -146,6 +146,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-20 done; 21 queued. Last shipped: 20.
-- **In flight:** nothing. **Next:** `spec` item 21, Billing.
+- **Plan:** items 1-20 done; 21 split into 21a-21c, none done. Last shipped: 20.
+- **In flight:** nothing. **Next:** `spec` item 21a, Plans and limits.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).

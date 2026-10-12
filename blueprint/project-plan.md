@@ -459,7 +459,7 @@ D148: billing, AI, email and signup are each switchable off.
 | Signup: `off`, `invite` or `open` | `off`: accounts come only from `create-admin`. `invite`: a code from `create-invite` is required - the beta. `open`: anyone can sign up |
 | AI (a primary provider's key is set; up to two fallbacks, in order, are optional) | "Start from a description" is not offered; sites start blank. Without fallbacks, a primary outage fails the run |
 | Email (SMTP is configured) | signup must be off, there is no reset by email (a site admin resets a member's password, as today), and contact submissions are stored without a notification |
-| Billing (Stripe is configured) | no plan page; the configured limits apply to every site |
+| Billing (Stripe is configured) | the plan page shows plan and use with no way to pay; limits follow the site's plan |
 | Limits (configuration) | default to the Free plan (D150, D164); a self-hosted copy can raise or remove them |
 
 A switch that is on with its configuration missing stops the app at startup,

@@ -141,7 +141,7 @@ not tidying; it is what keeps the open list true.
       the preview's name; from item 18a2, Upload logo with its busy state and
       refusals, and the "from your logo" swatches; from item 18b3, `/start`'s
       kind cards, Tell us about it with its field error and refusal banners,
-      and the wait's progress, its announced finish and failure states; from item 18b4a, the draft's review and its status line, Use this draft, Home's panel, Your pages and the AI meter; from item 18b4b, Publish website with its busy state, Preview's new-tab link, the published banner and View your site, and the preview's bar; from item 18b5, Make it yours - its Logo field, the colour row with Let the AI choose, the Style cards, Finish's busy state and its refusal banner, and Skip for now; from item 19b, the palette's Contact form tile, its settings' Button text and Thanks message, and the block's canvas view; from item 20, Settings' Editing level and Dark mode, and a locked Heading 5's style button with its "Switch to Pro to change." announcement).
+      and the wait's progress, its announced finish and failure states; from item 18b4a, the draft's review and its status line, Use this draft, Home's panel, Your pages and the AI meter; from item 18b4b, Publish website with its busy state, Preview's new-tab link, the published banner and View your site, and the preview's bar; from item 18b5, Make it yours - its Logo field, the colour row with Let the AI choose, the Style cards, Finish's busy state and its refusal banner, and Skip for now; from item 19b, the palette's Contact form tile, its settings' Button text and Thanks message, and the block's canvas view; from item 21a, `/admin/plan` with its two meters and the nav's Plan entry; from item 20, Settings' Editing level and Dark mode, and a locked Heading 5's style button with its "Switch to Pro to change." announcement).
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
@@ -151,7 +151,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12; widened, spec 21a, 2026-10-12)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
