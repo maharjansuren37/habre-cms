@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { inSection, textDocument } from "./helpers/documents.ts";
+import { messagesTo } from "./helpers/mail.ts";
 import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { type TestUser, withDatabase } from "./helpers/users.ts";
 
@@ -184,4 +185,52 @@ test("a form sent in under 3 seconds shows the again line and stores nothing", a
   } finally {
     await context.close();
   }
+});
+
+test("journey 10: a visitor's message reaches the admin's Messages screen and inbox", async ({
+  browser,
+  page,
+}) => {
+  const { slug } = await contactPage();
+  const message = `Journey ten ${randomUUID().slice(0, 8)}: can you call me?`;
+  const visitor = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": freshIp() } });
+  try {
+    const visitorPage = await visitor.newPage();
+    await sendAfterWaiting(visitorPage, slug, message);
+    await expect(visitorPage).toHaveURL(siteUrl(`/${slug}?contact=sent#contact`, site.address));
+    await expect(visitorPage.getByRole("status")).toHaveText(THANKS);
+  } finally {
+    await visitor.close();
+  }
+
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": freshIp() });
+  await logIn(page, admin);
+  await page.getByRole("link", { name: "Messages" }).click();
+  await expect(page).toHaveURL(/\/admin\/messages$/);
+  const card = page.getByRole("article").filter({ hasText: message });
+  await expect(card).toHaveCount(1);
+  await expect(card.getByText("Lena", { exact: true })).toBeVisible();
+  await expect(card.getByRole("link", { name: "lena@example.org" })).toHaveAttribute(
+    "href",
+    "mailto:lena@example.org",
+  );
+  await expect(card.getByText("Unread", { exact: true })).toBeVisible();
+  await card.getByRole("button", { name: /Mark as read/ }).click();
+  await expect(card.getByText("Unread", { exact: true })).toHaveCount(0);
+
+  // The site's admin also receives the other tests' messages, so find this one by its text.
+  const inbox = async () =>
+    Promise.all(
+      (await messagesTo(admin.email)).map(async (id) => {
+        const response = await fetch(`http://127.0.0.1:8025/api/v1/message/${id}`);
+        return (await response.json()) as { Text: string; ReplyTo: { Address: string }[] };
+      }),
+    );
+  await expect
+    .poll(async () => (await inbox()).filter((mail) => mail.Text.includes(message)).length, {
+      timeout: 10_000,
+    })
+    .toBe(1);
+  const mail = (await inbox()).find((candidate) => candidate.Text.includes(message));
+  expect(mail?.ReplyTo.map((to) => to.Address)).toEqual(["lena@example.org"]);
 });

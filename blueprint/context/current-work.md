@@ -131,7 +131,7 @@ the Unread badge and the buttons are existing ones. The email is plain text
   shows the failed line and a fresh one does not; an editor and an author
   get 404 and see no Messages link; the page has one `h1`, a labelled `nav`,
   and all controls are reachable by `getByRole`.
-- [ ] **Step 6 - The journey** - extend `e2e/contact-form.spec.ts` with
+- [x] **Step 6 - The journey** - extend `e2e/contact-form.spec.ts` with
   journey 10 end to end: a visitor fills the published page's form, sees the
   thanks line; the site's admin signs in at the platform host, opens
   Messages through the nav, sees the message unread, marks it read; Mailpit
