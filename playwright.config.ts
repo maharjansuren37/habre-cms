@@ -42,7 +42,7 @@ export default defineConfig({
       // STORAGE_LIMIT_MB and LAUNCH_STORAGE_LIMIT_MB are pinned so a local .env cannot change what the tests assume.
       // AI_PROVIDERS and AI_CREDITS_PER_MONTH are pinned (18b3): fake turns AI on with no
       // network, and a local .env's real key or allowance changes nothing.
-      command: `npm run build && PORT=${PORT} SITES_URL=http://localhost:${PORT} PLATFORM_URL=http://127.0.0.1:${PORT} SIGNUP_MODE=invite ${STRIPE_ON} AI_PROVIDERS=fake AI_CREDITS_PER_MONTH=1000 STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SMTP_URL=smtp://127.0.0.1:1025 EMAIL_FROM='Habre <hello@example.test>' npm start`,
+      command: `npm run build && PORT=${PORT} SITES_URL=http://localhost:${PORT} PLATFORM_URL=http://127.0.0.1:${PORT} SEARCH_INDEXING=on SIGNUP_MODE=invite ${STRIPE_ON} AI_PROVIDERS=fake AI_CREDITS_PER_MONTH=1000 STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SMTP_URL=smtp://127.0.0.1:1025 EMAIL_FROM='Habre <hello@example.test>' npm start`,
       url: `http://127.0.0.1:${PORT}/healthz`,
       // Never reuse: a server left running from an earlier run keeps serving the
       // build it started with, so a run can pass against code that is no longer
@@ -56,7 +56,7 @@ export default defineConfig({
       // serving before it starts on the same build output. Without the wait it
       // would start on whatever build/ held from a previous run, which is how a
       // deliberately reverted fix once passed every test here.
-      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${PROXIED_PORT} ${STRIPE_OFF} STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SITES_URL=https://localhost:${PROXIED_PORT} PLATFORM_URL=https://127.0.0.1:${PROXIED_PORT} npm start`,
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; PORT=${PROXIED_PORT} SEARCH_INDEXING=on ${STRIPE_OFF} STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SITES_URL=https://localhost:${PROXIED_PORT} PLATFORM_URL=https://127.0.0.1:${PROXIED_PORT} npm start`,
       url: `http://127.0.0.1:${PROXIED_PORT}/healthz`,
       reuseExistingServer: false,
       timeout: 120_000,
@@ -68,7 +68,7 @@ export default defineConfig({
       // Also waits for the primary build (same reason as the proxied server
       // above): npm start reads whatever is in build/, and starting while it
       // is still being written serves a build no test intended to run against.
-      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; SIGNUP_MODE=off ${STRIPE_OFF} OPENROUTER_API_KEY= STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SMTP_URL= EMAIL_FROM= PORT=${HOST_SPLIT_PORT} SITES_URL=http://localhost:${HOST_SPLIT_PORT} PLATFORM_URL=http://127.0.0.1:${HOST_SPLIT_PORT} npm start`,
+      command: `until curl -sf http://127.0.0.1:${PORT}/healthz >/dev/null 2>&1; do sleep 0.5; done; SIGNUP_MODE=off SEARCH_INDEXING=off ${STRIPE_OFF} OPENROUTER_API_KEY= STORAGE_LIMIT_MB=500 LAUNCH_STORAGE_LIMIT_MB=1000 SMTP_URL= EMAIL_FROM= PORT=${HOST_SPLIT_PORT} SITES_URL=http://localhost:${HOST_SPLIT_PORT} PLATFORM_URL=http://127.0.0.1:${HOST_SPLIT_PORT} npm start`,
       url: `http://127.0.0.1:${HOST_SPLIT_PORT}/healthz`,
       reuseExistingServer: false,
       timeout: 120_000,

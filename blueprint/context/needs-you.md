@@ -210,7 +210,8 @@ not tidying; it is what keeps the open list true.
       Google's own fetchers. Paste a published page's address into a share
       debugger (e.g. Facebook's Sharing Debugger) and Google Search
       Console's URL inspection: the title, description and image show, and
-      `sitemap.xml` is read. Blocks nothing now; `preflight` names it after
+      `sitemap.xml` is read. **Not possible while `SEARCH_INDEXING=off`
+      (2026-10-12) - do it when indexing turns back on.** Blocks nothing now; `preflight` names it after
       the v1 deploy. `open` (spec 17, 2026-10-06)
 
 - [ ] **Make the `e2e` CI check required in GitHub branch protection** -
@@ -260,15 +261,48 @@ not tidying; it is what keeps the open list true.
       already there. **`architect` decided user sites need a second domain
       (D153, 2026-10-01): buy a sites domain too** (candidates `habre.page`,
       `habresites.com`; avoid `.site`), also on Cloudflare - sites live at
-      `<name>.<sites domain>` and images at `media.<sites domain>`. Blocks
-      nothing now; needed by item 16. `open` (rescope review, 2026-10-01;
-      second domain, architect, 2026-10-01)
+      `<name>.<sites domain>` and images at `media.<sites domain>`. **Sites
+      domain bought: `habre.page` (owner, 2026-10-12).** **Interim
+      (fix/interim-domain-noindex): the platform is `app.surenmaharjan.fyi`
+      until `habre.ai` is bought, search indexing off.** The platform
+      domain no longer blocks the deploy; switching later is a fix that
+      restores the Caddy apex block and changes `PLATFORM_URL` and
+      `HABRE_PLATFORM_DOMAIN`. `open` - platform domain only (rescope
+      review, 2026-10-01; second domain, architect, 2026-10-01; interim,
+      spec, 2026-10-12; habre.page bought, build, 2026-10-12)
 
 - [ ] **A Cloudflare API token with DNS edit rights on the sites domain's zone
-      only** - credentials; your Cloudflare account. Caddy uses it to get the
+      only** - credentials; your Cloudflare account. **The `habre.page` zone
+      (2026-10-12)** - on Cloudflare, by its Registrar or by pointing its
+      nameservers there. Add `*` -> `ocwebserver`, DNS only (grey cloud).
+      Token: *Zone - DNS - Edit* on `habre.page` only, client IP filtered
+      to `ocwebserver`, with an expiry date. DNS done 2026-10-12: `*.habre.page`
+      A `161.33.89.75` (grey), and `app.surenmaharjan.fyi` answered by
+      Porkbun's existing `*` CNAME. The token itself is still to make. Caddy uses it to get the
       wildcard certificate for every site (D153). It goes into Caddy's own
       environment on the server, never the repository. Blocks nothing now;
       needed by item 16 and by the v1 deploy. `open` (architect, 2026-10-01)
+
+- [ ] **Harden the domain accounts** - access; your Porkbun and Cloudflare
+      accounts. Two-factor sign-in on both; transfer lock on and API access
+      off at Porkbun for `surenmaharjan.fyi` (`habre.page` is at Cloudflare
+      Registrar); a CAA record allowing only `letsencrypt.org` on both
+      domains (`issue`, and `issuewild` on `habre.page`) - added 2026-10-12 -
+      plus the same for `sectigo.com`, so Caddy's ZeroSSL fallback can still
+      issue if Let's Encrypt fails (owner, 2026-10-12, F-435; still to add); DNSSEC on for both;
+      `habre.page` sends no email, so a null MX (`0 .`), SPF `v=spf1 -all`
+      and DMARC `v=DMARC1; p=reject;` on it stop anyone spoofing it. `surenmaharjan.fyi` stays on Porkbun's DNS - with
+      `habre.page` bought, it needs no token (first planned as a move to
+      Cloudflare). Blocks nothing; wanted before the v1 deploy. `open`
+      (build, fix/interim-domain-noindex, 2026-10-12)
+
+- [ ] **Do not remove site 1's `surenmaharjan.fyi` on `/admin/plan` while
+      the interim domains hold** - decision; with the platform on
+      `app.surenmaharjan.fyi`, the app refuses to add it back as reserved
+      (F-433), and only SQL restores it (a `site_domains` row like
+      `0015`'s seed). Blocks nothing; holds until the bought domains
+      replace the interim ones. `open` (build, fix/interim-domain-noindex,
+      2026-10-12)
 
 - [ ] **Caddy with the Cloudflare DNS module on `ocwebserver`, and its env
       file filled in** - system software and credentials; a change to the
@@ -285,7 +319,10 @@ not tidying; it is what keeps the open list true.
       notifications. Its free tier (3,000 a month, 100 a day) covers the beta;
       upgrade to Pro (US$20) if a batch of invites hits the daily cap. Also add
       its SPF, DKIM and DMARC records for the sending domain, which sits on
-      the platform domain still to be bought. **No longer blocks building
+      the platform domain still to be bought. **While the platform is
+      interim (2026-10-12), send from `surenmaharjan.fyi`, with Resend's
+      records at Porkbun - never from `habre.page`, which is set up as
+      sending nothing (F-434).** **No longer blocks building
       15b**: development and CI send to Mailpit. Needed before signup is
       turned on in production (`SMTP_URL`, `EMAIL_FROM`; item 15b's
       production needs) and by item 19. `open` (rescope review, 2026-10-01;

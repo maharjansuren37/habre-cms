@@ -10,7 +10,9 @@
 #   the server that is caddy.service, which loads /etc/caddy/habre-cms.env
 #   through the drop-in deploy/caddy/caddy-habre-cms.conf. They must agree with
 #   PLATFORM_URL (https://app.<platform domain>) and SITES_URL
-#   (https://<sites domain>) in /etc/habre-cms/production.env.
+#   (https://<sites domain>) in /etc/habre-cms/production.env. Until the
+#   platform domain is bought (D153, interim): surenmaharjan.fyi and the
+#   sites domain, habre.page.
 # - {env.CLOUDFLARE_API_TOKEN} is read at runtime, when the DNS module starts,
 #   from that same file, so the token never appears in the adapted config.
 #
@@ -57,10 +59,14 @@ app.{$HABRE_PLATFORM_DOMAIN} {
 	import habre_cms_proxy habre-cms-access
 }
 
-# The platform's apex and www are redirects only, never a second copy.
-{$HABRE_PLATFORM_DOMAIN}, www.{$HABRE_PLATFORM_DOMAIN} {
-	redir https://app.{$HABRE_PLATFORM_DOMAIN}{uri} permanent
-}
+# The platform's apex and www redirect to app. - taken out while the platform
+# domain is surenmaharjan.fyi (D153, interim), whose apex and www are site 1's
+# blocks below; Caddy refuses an address defined twice. Put it back with the
+# bought platform domain:
+#
+# {$HABRE_PLATFORM_DOMAIN}, www.{$HABRE_PLATFORM_DOMAIN} {
+# 	redir https://app.{$HABRE_PLATFORM_DOMAIN}{uri} permanent
+# }
 
 # Every site at <address>.<sites domain>, on one wildcard certificate. A
 # wildcard needs the DNS challenge, through the Cloudflare DNS module. The

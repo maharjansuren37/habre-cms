@@ -1882,6 +1882,8 @@ unaffected - `pg_dump` runs as the `postgres` superuser.
 
 ## D153 - The platform on `app.<platform domain>`, sites on a separate domain, a wildcard certificate (2026-10-01)
 
+**Amended by D495** (2026-10-12): interim domains until the platform domain is bought.
+
 **Chose:** sign-in, signup, onboarding and the admin on `app.<platform
 domain>`; each site at `<name>.<sites domain>` on a separate registrable domain;
 images at `media.<sites domain>`; own domains looked up in `site_domains`. One
@@ -5133,3 +5135,21 @@ Costs: a platform host without an `app.` label would reserve its suffix (F-425).
 **Chose:** the store lives in `own-domain-store.server.ts` and takes `sql`, so a database test can drive it (F-415, F-424).
 Beats: SQL inside a module that imports the environment.
 Costs: one more file.
+
+## D495 - Interim domains: the platform on `app.surenmaharjan.fyi`, sites on `habre.page` (amends D153) (2026-10-12)
+
+**Chose:** until the platform domain is bought, `PLATFORM_URL=https://app.surenmaharjan.fyi` and `HABRE_PLATFORM_DOMAIN=surenmaharjan.fyi`; sites on the bought sites domain, `SITES_URL=https://habre.page`, wildcard `*.habre.page` by DNS challenge on that zone. The Caddy file's platform apex/www block is commented out meanwhile - it would define site 1's `surenmaharjan.fyi` twice. Email is sent from `surenmaharjan.fyi`, never `habre.page`. Site 1's own domain must not be removed while interim: the app reserves the platform's parent and would refuse to re-add it (F-433).
+Beats: waiting for `habre.ai` to deploy v1; sites under `sites.surenmaharjan.fyi`, the first plan, which kept customer sites on the sign-in's registrable domain.
+Costs: site 1 and the admin share a registrable domain - an apex or sibling host could plant a parent-domain cookie (no `__Host-` prefix), and site 1's pages are same-site with the admin (F-436, no path found). Switching later restores the Caddy block and changes the two platform values.
+
+## D496 - The DNS challenge runs on Cloudflare for `habre.page`; `surenmaharjan.fyi` stays on Porkbun (2026-10-12)
+
+**Chose:** `habre.page` registered and served by Cloudflare, with a Caddy token limited to DNS edit on that zone, filtered to the server's IP, with an expiry. `surenmaharjan.fyi` stays on Porkbun's DNS - it needs no token. CAA on both: `letsencrypt.org` and `sectigo.com` (ZeroSSL, Caddy's fallback).
+Beats: a Porkbun DNS module, whose API key reaches every API-enabled domain in the account and can change nameservers; moving `surenmaharjan.fyi` to Cloudflare, decided first and dropped once `habre.page` was bought.
+Costs: two DNS providers to secure.
+
+## D497 - `SEARCH_INDEXING=off` blocks search engines in the app, not in Caddy (2026-10-12)
+
+**Chose:** one variable, `on` unless set; `off` makes every host's `robots.txt` disallow all with no sitemap and every app response carry `X-Robots-Tag: noindex, nofollow`. Production sets `off` through the beta.
+Beats: Caddy-set headers and a Caddy-answered `robots.txt` - those make seo.2 false in production while every test says it holds, cannot be tested without a Caddy, and give a self-hoster nothing; `robots.txt` alone, which still lets a linked URL be listed.
+Costs: static files `server.js` serves itself (`/assets/*`) carry no header; `robots.txt` disallows them anyway.

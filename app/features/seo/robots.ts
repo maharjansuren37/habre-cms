@@ -1,4 +1,5 @@
 import { siteContext } from "#app/features/sites/site-context.ts";
+import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/robots";
 
 const TEXT = { "Content-Type": "text/plain; charset=utf-8" };
@@ -13,11 +14,15 @@ function mainOriginOrNull(context: Route.LoaderArgs["context"]): string | null {
   }
 }
 
-/** The platform is never indexed; a site is, and names its sitemap (item 17, D173). */
+/**
+ * The platform is never indexed; a site is, and names its sitemap (item 17, D173).
+ * With SEARCH_INDEXING off, nothing is: every host disallows all, no sitemap.
+ */
 export function loader({ context }: Route.LoaderArgs) {
   const mainOrigin = mainOriginOrNull(context);
-  const body = mainOrigin
-    ? `User-agent: *\nAllow: /\n\nSitemap: ${mainOrigin}/sitemap.xml\n`
-    : "User-agent: *\nDisallow: /\n";
+  const body =
+    mainOrigin && env.SEARCH_INDEXING === "on"
+      ? `User-agent: *\nAllow: /\n\nSitemap: ${mainOrigin}/sitemap.xml\n`
+      : "User-agent: *\nDisallow: /\n";
   return new Response(body, { headers: TEXT });
 }
