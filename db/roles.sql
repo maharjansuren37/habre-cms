@@ -33,11 +33,22 @@ alter default privileges for role habre_cms in schema public
 
 -- Narrower grants a migration set, put back after the blanket grant above so a
 -- re-run (setup-server.sh refreshes grants) does not widen them (F-270).
--- site_domains (0015): the app reads and deletes, never inserts or updates.
+-- site_domains (0015, 0026): the app reads and deletes; it may insert only a
+-- domain, its site and a verification token (never verified_at) and update only
+-- the verification columns (never site_id or domain). The column grants exist
+-- only once 0026 has added verification_token, and this script can run first.
 do $$
 begin
   if to_regclass('public.site_domains') is not null then
     revoke insert, update on site_domains from habre_cms_app;
+    if exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'site_domains'
+        and column_name = 'verification_token'
+    ) then
+      grant insert (domain, site_id, verification_token) on site_domains to habre_cms_app;
+      grant update (verified_at, verification_token, last_checked_at) on site_domains to habre_cms_app;
+    end if;
   end if;
 end
 $$;

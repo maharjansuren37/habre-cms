@@ -397,4 +397,21 @@ not tidying; it is what keeps the open list true.
       the v1 deploy. `open` (spec 20, 2026-10-12; the plan edits for dark mode
       at every level were approved and made the same day)
 
+- [ ] **Caddy's on-demand TLS `ask` option on `ocwebserver`** - access; the
+      server's main Caddyfile is not in the repository, so only you approve
+      the change (`host`). Add `on_demand_tls { ask
+      http://127.0.0.1:3000/_caddy/ask }` to its global options and reload
+      Caddy; item 21c's catch-all block needs it. Blocks nothing now; needed
+      by the v1 deploy, with the Caddy line above. `open` (spec 21c,
+      2026-10-12)
+
+- [ ] **A real own-domain round trip after the v1 deploy** - spend and manual
+      verification; needs a spare domain and its DNS. On a Launch site add the
+      domain at `/admin/plan`, create the TXT and address records, press
+      Check now: it verifies; the first visit gets a certificate within
+      seconds; the subdomain 301s to it; Remove puts the subdomain back. Also
+      once with Cloudflare's proxy on, to see the "not pointing here yet"
+      line. No test reaches Let's Encrypt. Blocks nothing now; `preflight`
+      needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
+
 ## Done
