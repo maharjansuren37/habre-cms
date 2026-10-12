@@ -3,7 +3,7 @@
 **From build plan:** item 21c
 **Type:** Feature
 **Verified:** 2026-10-12, 1a7a7b2a87d5, 5 of 7 proven (steps 1-5 by browser and unit tests against the running app); step 6 proven with fakes only (the timer, the https pre-warm and the 15 s refresh never ran live: SITES_URL is http in every test); step 7 could not verify (`caddy` not installed here, so the new file and the setup-server.sh import were never validated)
-**Reviewed:** 2026-10-12, 1a7a7b2a87d5, current, every lens, read whole except the e2e spec's bodies and the unit tests' bodies (skimmed) - 0 blocking (6 P2/P3 raised, F-414 to F-419; run inside autopilot, so a self-review)
+**Reviewed:** 2026-10-12, 5230da911faf, current, every lens, independent reviewer pass (not the author) - read whole except the unit tests' bodies and fundamentals/principles/quality-bar (grepped only) - 0 blocking (F-414, F-415, F-419 closed; F-420 to F-424 raised, all P3)
 
 ## Goal
 
