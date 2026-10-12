@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `49a9dce` (19c, Messages and the email, shipped).
+Generated 2026-10-12, `main` after `b0ff521` (20, Simple and Pro, shipped).
 
 ## What this is
 
@@ -19,7 +19,7 @@ itself.
   (D166, D175): **Simple** (Level 1, individuals and small businesses, the
   default), **Pro** (Level 2's tools), **Developer** (Level 3, later). One
   editor, one stored format; the level only reveals controls. v1 has Simple
-  and a first part of Pro.
+  and a first part of Pro (20).
 - **Tiers** are what a site pays for: limits and services, never a level
   (D175). Free $0, Launch $19, Growth $59, Scale $179, Enterprise custom -
   **provisional**, revised by measured use. v1 sells Free and Launch.
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20).
 
-**Platform v1 (queued):** Simple and Pro; Stripe billing for Launch. Limits apply from the first signup;
+**Platform v1 (queued):** Stripe billing for Launch (21). Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -98,7 +98,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   (`blocks_format` v4), sections and columns as nodes; our own Zod schema and escaping
   renderer, **never raw HTML** (D28-D30). Ready-made sections are templates of
   ordinary blocks. One main heading per page; a post's title is its `h1`.
-- **Per site (D167, D171, D172):** level, dark mode (Pro only), brand colour,
+- **Per site (D167, D171, D172):** level, dark mode (any level, D461), brand colour,
   style preset, language - in `site_settings`. Brand colour reaches pages as a
   nonce'd inline `<style>`.
 - **Images (D174):** resized on the server with `sharp` into WebP sizes; pages
@@ -146,6 +146,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-19 done; 20-21 queued. Last shipped: 19c.
-- **In flight:** nothing. **Next:** `spec` item 20, Simple and Pro.
+- **Plan:** items 1-20 done; 21 queued. Last shipped: 20.
+- **In flight:** nothing. **Next:** `spec` item 21, Billing.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
