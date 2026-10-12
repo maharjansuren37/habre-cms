@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `48bacb2` (interim domains fix, shipped).
+Generated 2026-10-13, `main` after `a7ab144` (D503, D504).
 
 ## What this is
 
@@ -47,7 +47,7 @@ this draft, Home with the AI meter (18b4a); Preview and Publish
 website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b); own domain (21c).
 
 **Platform v1: all items built**. Limits apply from the first signup;
-invite-only beta, billing off (D150).
+signup open from the v1 deploy, billing off (D150, D504).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
 features, Elementor-style layout, free-form canvas, custom CSS/HTML, more
@@ -136,7 +136,8 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   grows**; **never build on the server** (D14); no Docker there.
 - **Environments (D21):** `development`, `ci`, `production` - no staging;
   `AGENTS.md` *Environments*.
-- **Production holds on `8d82ce4` until v1 is done** (D163): one deploy.
+- **Production holds on `8d82ce4` until v1 is done** (D163): one deploy, fresh database
+  (D503).
 - **Self-hostable (D148):** Node.js, PostgreSQL and S3-compatible storage only;
   signup, AI, email and billing each switch off.
 - **Standards:** OWASP Top 10:2025, WCAG 2.2 AA, semantic HTML; numbers in
@@ -144,6 +145,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-21 done. Last shipped: the interim domains fix.
-- **In flight:** nothing. **Next:** the owner's work (`prepare`), `host`, `preflight` (F-426-F-428 deferred), then the v1 deploy (`blueprint/production-pending.md`).
+- **Plan:** items 1-21 done. Last shipped: legal pages (drafts).
+- **In flight:** nothing. **Next:** the owner's work on F-428 and F-441 (`prepare`), then the v1 deploy (`blueprint/production-pending.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify`, `e2e`.

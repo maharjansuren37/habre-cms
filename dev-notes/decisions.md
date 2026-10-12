@@ -5201,3 +5201,14 @@ Costs: dropping the database is its own yes at `deploy` and cannot be undone;
 once dropped, pointing `current` back at `8d82ce4` has nothing to read unless
 a dump was taken first, so the rollback is forward - fix and redeploy v1. The
 nightly backups of the old database age out as usual.
+
+## D504 - Signup is open from the v1 deploy (2026-10-13)
+
+**Chose:** `SIGNUP_MODE=open` at the v1 deploy, not D150's invite-only beta;
+billing stays off and every limit stays on. Amends D150's "signup opened to
+everyone once..." (owner, 2026-10-13).
+Beats: invite codes through the beta - anyone can start without waiting for a
+code.
+Costs: the terms and privacy policy must be final before the deploy (F-428).
+AI spend is open to anyone who confirms an email address, so the only things
+capping it are the per-site credits (D164) and each provider's spend limit.

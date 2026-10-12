@@ -86,7 +86,7 @@ describes what they want, gets a site, edits it and publishes it:
   mode for the public site is a Settings choice at every level (D168, amended).
 - Billing: one paid plan raises the Free plan's limits (AI use, storage), lets
   a site use its own domain and removes the "Made with Habre" footer link, paid
-  through Stripe (D149). Billing stays off through an invite-only beta (D150).
+  through Stripe (D149). Billing stays off through the beta; signup is open from the v1 deploy (D150, D504).
 - Self-hostable: anyone can run their own copy, free and open source. v1 keeps
   that possible (section 10); the install guide comes soon after.
 
@@ -200,7 +200,7 @@ framework is known.
 | Work outside a request? | **Yes, one thing: AI site generation** (D154) - 30 seconds to a few minutes, longer than a form post should wait. It runs in the same process, recorded in a database row. Email is sent inside the request. Nothing is scheduled. |
 | Consistency across more than one write? | **Yes** - signup (user, site, membership, settings), applying an AI run (entries, navigation, settings) and a Stripe webhook (event record, plan) are each one transaction. **Concurrent writers:** many sites, a handful of editors each; same-entry collisions are still caught by the version check. |
 | Dependency whose failure is unacceptable? | **No** - PostgreSQL down means every site down, accepted on one VPS. The AI, email, Stripe and R2 each degrade one feature (*Failure modes*). |
-| Real load or a hard latency target? | **No hard target** - an invite-only beta; numbers in `blueprint/context/quality-bar.md`. |
+| Real load or a hard latency target? | **No hard target** - an open-signup beta, billing off; numbers in `blueprint/context/quality-bar.md`. |
 | Rate-limited or unreliable external API? | **Yes** - the AI providers (rate limits, minute-long calls, refusals) and the email provider (send limits). Stripe is reliable and retries its own webhooks. |
 
 ### Parts
@@ -1105,8 +1105,8 @@ to serve. **The currency follows where the customer is** (owner,
 GST included, for Australia and US dollars for everyone else to start; euros
 or pounds once selling there is worth the VAT registration. Tax follows the
 customer's country whatever the currency (D149). A yearly price is item 21's. The first release
-is an invite-only beta on Free only, billing off; billing is switched on later
-(D150).
+is a beta on Free only with signup open and billing off (D504); billing is
+switched on later (D150).
 
 **Self-hosted:** anyone can run their own copy, **free and open source**
 (owner, 2026-10-01; licence not chosen). The hosted service is what is sold.
