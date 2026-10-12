@@ -41,7 +41,7 @@ test("an upload that would take the site past 500 MB is refused and adds no imag
   await upload(page);
 
   await expect(page.getByRole("alert")).toHaveText(
-    "This image would take your site past its 500 MB of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.",
+    "This image would take your site past its 500 MB of storage. Delete images you no longer use, then try again. An admin can upgrade on the Plan page for more storage.",
   );
   expect(await countSiteMedia(siteId)).toBe(50);
 });
@@ -59,6 +59,18 @@ test("an upload that fits under the limit succeeds", async ({ page }) => {
 async function makePaid(id: string) {
   await withDatabase((sql) => sql`update sites set plan = 'paid' where id = ${id}`);
 }
+
+test("a Launch site at its limit is refused with no upgrade hint (F-408)", async ({ page }) => {
+  await makePaid(siteId);
+  await fillTestStorage(siteId, email, 100);
+
+  await upload(page);
+
+  await expect(page.getByRole("alert")).toHaveText(
+    "This image would take your site past its 1000 MB of storage. Delete images you no longer use, then try again.",
+  );
+  expect(await countSiteMedia(siteId)).toBe(100);
+});
 
 test("the same upload a Free site is refused for is accepted for a Launch site", async ({
   page,

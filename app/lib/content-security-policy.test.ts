@@ -110,3 +110,35 @@ test("the preview policy is the public one: a style nonce and no blob: images (1
   });
   assert.equal(preview, publicPolicy);
 });
+
+const STRIPE_FORMS = "'self' https://checkout.stripe.com https://billing.stripe.com";
+
+test("with billing on the admin policy lets a form go to Stripe's two hosted pages (F-410)", () => {
+  const header = contentSecurityPolicy({
+    nonce: "abc123==",
+    area: "admin",
+    imageBaseUrl: R2,
+    billing: true,
+  });
+  assert.equal(directives(header)["form-action"], STRIPE_FORMS);
+});
+
+test("billing changes nothing outside the admin's form-action", () => {
+  for (const area of ["admin", "public", "preview"] as const) {
+    const off = directives(
+      contentSecurityPolicy({ nonce: "abc123==", area, imageBaseUrl: R2, billing: false }),
+    );
+    const on = directives(
+      contentSecurityPolicy({ nonce: "abc123==", area, imageBaseUrl: R2, billing: true }),
+    );
+    assert.deepEqual(
+      off,
+      directives(contentSecurityPolicy({ nonce: "abc123==", area, imageBaseUrl: R2 })),
+    );
+    for (const name of Object.keys(off)) {
+      if (name === "form-action" && area === "admin") continue;
+      assert.equal(on[name], off[name], `${area} ${name}`);
+    }
+    if (area !== "admin") assert.equal(on["form-action"], "'self'", area);
+  }
+});

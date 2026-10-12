@@ -620,3 +620,18 @@ File: app/features/blocks/text-styles.ts:50; app/features/blocks/text-styles.tes
 
 ### F-405 [P3] open - The old single AI allowance is dead in production code, and `ai-try` re-states the plan rule
 File: app/lib/ai-env.server.ts (`AiSettings.creditsPerMonth`); scripts/ai-try.ts:78
+
+### F-406 [P3] open - A billing banner on the plan page touches the cards under it
+File: app/features/plans/plan-page.module.css; app/features/plans/plan-page.tsx
+
+### F-409 [P3] open - Billing ids have no index or uniqueness: webhook lookups scan `sites` and two sites could hold one subscription
+File: db/migrations/0025_stripe_events.sql; app/features/billing/apply-event.server.ts:findSite
+
+### F-411 [P3] open - Deletion cancels the subscription before it knows the deletion will go ahead
+File: app/features/account/account-delete.tsx:112-120
+
+### F-412 [P3] open - A trial cancelled in the Portal still reads "Then billed monthly"
+File: app/features/plans/plan-view.ts:planNotice (the `trialEndsAt` branch precedes the `canceled` one)
+
+### F-413 [P3] open - The plan page reads Stripe prices for a Launch site that shows none
+File: app/features/plans/plan-page.tsx:loader (`billing.prices()` is not gated on the plan, against its own comment)

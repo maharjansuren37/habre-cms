@@ -27,6 +27,7 @@
 - **accounts.26** - the last active admin of any site can delete their account, and the site's domains go with it *Since:* features/16a-sites-by-host
 - **accounts.27** - taking the site also deletes its AI runs *Since:* features/18b1-the-run-with-openrouter
 - **accounts.28** - deleting a site's last account removes the site's contact submissions with it *Since:* features/19a-receiving-a-message
+- **accounts.29** - deleting an account that takes a site cancels its subscription first, and is refused when Stripe cannot cancel it *Since:* features/21b-pay-for-launch
 
 ## Removed
 - accounts.23 - removed by features/16a-sites-by-host

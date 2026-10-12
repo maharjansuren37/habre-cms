@@ -19,7 +19,7 @@ import { siteContext, siteOriginContext } from "#app/features/sites/site-context
 import { areaForPath } from "#app/lib/content-security-policy.ts";
 import { env } from "#app/lib/env.server.ts";
 import { classifyHost } from "#app/lib/host-routing.ts";
-import { isAllowedRequest, isAllowedSiteRequest } from "#app/lib/same-origin.ts";
+import { isAllowedPlatformRequest, isAllowedSiteRequest } from "#app/lib/same-origin.ts";
 import { logSecurityEvent } from "#app/lib/security-log.server.ts";
 import { mainHost, mainOrigin } from "#app/lib/site-origin.ts";
 
@@ -102,7 +102,12 @@ export const middleware: Route.MiddlewareFunction[] = [
     const siteOrigin = context.get(siteOriginContext);
     const allowed =
       siteOrigin === null
-        ? isAllowedRequest(request.method, request.headers, new URL(env.PLATFORM_URL).origin)
+        ? isAllowedPlatformRequest(
+            request.method,
+            url.pathname,
+            request.headers,
+            new URL(env.PLATFORM_URL).origin,
+          )
         : isAllowedSiteRequest(request.method, url.pathname, request.headers, siteOrigin);
     if (!allowed) {
       logSecurityEvent({

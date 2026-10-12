@@ -44,3 +44,24 @@
 .muted {
   color: var(--color-text-muted);
 }
+
+.offer {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  margin-top: var(--space-4);
+}
+
+.choices {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

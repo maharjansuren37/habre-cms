@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isAllowedRequest, isAllowedSiteRequest } from "./same-origin.ts";
+import { isAllowedPlatformRequest, isAllowedRequest, isAllowedSiteRequest } from "./same-origin.ts";
 
 const APP_ORIGIN = "https://cms.example.org";
 
@@ -92,4 +92,44 @@ test("reading a site is unchanged", () => {
   for (const method of ["GET", "HEAD", "OPTIONS"]) {
     assert.equal(siteAllowed(method, "/posts/x", { Origin: "https://evil.example" }), true, method);
   }
+});
+
+function platformAllowed(method: string, pathname: string, headers: Record<string, string> = {}) {
+  return isAllowedPlatformRequest(method, pathname, new Headers(headers), APP_ORIGIN);
+}
+
+test("Stripe's webhook is the one platform POST that needs no origin", () => {
+  assert.equal(platformAllowed("POST", "/webhooks/stripe"), true);
+  assert.equal(
+    platformAllowed("post", "/webhooks/stripe", { Origin: "https://evil.example" }),
+    true,
+  );
+});
+
+test("the webhook exemption is that path and that method alone", () => {
+  for (const path of ["/webhooks/stripe/x", "/webhooks/stripe/", "/webhooks", "/admin/plan"]) {
+    assert.equal(platformAllowed("POST", path), false, path);
+  }
+  for (const method of ["PUT", "PATCH", "DELETE"]) {
+    assert.equal(platformAllowed(method, "/webhooks/stripe"), false, method);
+  }
+});
+
+test("the platform check is otherwise the origin check", () => {
+  assert.equal(platformAllowed("POST", "/admin/plan", { Origin: APP_ORIGIN }), true);
+  assert.equal(platformAllowed("POST", "/admin/plan", { Origin: "https://evil.example" }), false);
+  assert.equal(platformAllowed("GET", "/admin/plan"), true);
+});
+
+test("a site host refuses a post to the webhook path", () => {
+  const SITE_ORIGIN = "https://lena.habre.page";
+  assert.equal(
+    isAllowedSiteRequest(
+      "POST",
+      "/webhooks/stripe",
+      new Headers({ Origin: SITE_ORIGIN }),
+      SITE_ORIGIN,
+    ),
+    false,
+  );
 });

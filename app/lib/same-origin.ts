@@ -39,3 +39,24 @@ export function isAllowedSiteRequest(
   if (method.toUpperCase() !== "POST" || pathname !== SITE_POST_PATH) return false;
   return isAllowedRequest(method, headers, siteOrigin);
 }
+
+// The one platform path a browser does not post to: Stripe's webhook (item
+// 21b). It carries no Origin and no cookie; its Stripe-Signature, checked in
+// the route, is the authentication. Matched exactly, so `/webhooks/stripe/x`
+// keeps the origin rule.
+const WEBHOOK_PATH = "/webhooks/stripe";
+
+/**
+ * The platform host's check: `isAllowedRequest`, except that `POST
+ * /webhooks/stripe` needs no origin. Everything else, including every other
+ * method on that path, still must come from the platform's own pages.
+ */
+export function isAllowedPlatformRequest(
+  method: string,
+  pathname: string,
+  headers: Headers,
+  appOrigin: string,
+): boolean {
+  if (method.toUpperCase() === "POST" && pathname === WEBHOOK_PATH) return true;
+  return isAllowedRequest(method, headers, appOrigin);
+}

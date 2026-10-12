@@ -5,6 +5,7 @@ import { applyRun } from "#app/features/ai/apply-run.server.ts";
 import { proposalSchema } from "#app/features/ai/proposal.ts";
 import type { StoredRun } from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { upgradeHintFor } from "#app/features/plans/upgrade-hint.server.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -93,7 +94,10 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (!startRun) throw redirect("/admin");
   const result = await startRun(siteId, userId, { kind: run.kind, description: run.description });
   if (!result.ok) {
-    return data({ refusal: refusalMessage(result.reason, new Date()) }, { status: 400 });
+    return data(
+      { refusal: refusalMessage(result.reason, new Date(), await upgradeHintFor(siteId)) },
+      { status: 400 },
+    );
   }
   throw redirect(`/start/${result.runId}`);
 }

@@ -16,7 +16,9 @@ export function isPlatformPath(pathname: string): boolean {
     pathname === "/verify" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
-    pathname === "/confirm-email"
+    pathname === "/confirm-email" ||
+    // Stripe's webhook (item 21b): a POST with no page, on the platform host only.
+    pathname === "/webhooks/stripe"
   );
 }
 
@@ -52,6 +54,10 @@ export function contentSecurityPolicy(options: {
    *  brand `<style>` (18a1); the admin allows this origin only. */
   area: PolicyArea;
   imageBaseUrl: string;
+  /** Billing is on (item 21b): the admin's plan page posts a form that is answered
+   *  with a redirect to Stripe's Checkout or Portal, and `form-action` applies to
+   *  that redirect (F-410). Only those two hosted pages, only in the admin. */
+  billing?: boolean;
 }): string {
   const { nonce, area, imageBaseUrl } = options;
   const imageOrigin = new URL(imageBaseUrl).origin;
@@ -65,7 +71,10 @@ export function contentSecurityPolicy(options: {
     "connect-src": "'self'",
     "object-src": "'none'",
     "base-uri": "'none'",
-    "form-action": "'self'",
+    "form-action":
+      options.billing && area === "admin"
+        ? "'self' https://checkout.stripe.com https://billing.stripe.com"
+        : "'self'",
     "frame-ancestors": "'none'",
   };
   return Object.entries(directives)

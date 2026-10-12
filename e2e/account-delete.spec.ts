@@ -568,3 +568,49 @@ test("a deleted site's image answers 404 at its public URL", async ({ page }) =>
   // The removal is not awaited by the response, so poll.
   await expect.poll(async () => (await fetch(url)).status, { timeout: 15_000 }).toBe(404);
 });
+
+// Item 21b, Step 8: a site with a subscription has it cancelled first. Stripe
+// is not reachable with the test key, so these cover the refusal and the
+// billing-off path; a real cancel is the manual check in needs-you.md.
+
+async function giveSubscription(): Promise<void> {
+  await withDatabase(async (sql) => {
+    await sql`
+      update sites set plan = 'paid', billing_customer_id = 'cus_delete_spec',
+                       billing_subscription_id = 'sub_delete_spec', billing_status = 'active'
+      where id = ${siteId}`;
+  });
+}
+
+test("a site whose subscription Stripe cannot cancel is not deleted", async ({ page }) => {
+  await makeSoleAdminSite();
+  await giveSubscription();
+  await logIn(page, admin);
+  await page.goto("/admin/account/delete");
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+
+  await expect(page.getByRole("alert")).toContainText("We couldn't cancel your subscription");
+  expect(await leftOfSite([admin.email, deactivated.email, editor.email])).toMatchObject({
+    sites: 1,
+  });
+});
+
+test("with billing off a site with a subscription id is deleted as before", async ({ page }) => {
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
+  await makeSoleAdminSite();
+  await giveSubscription();
+  await page.goto(`${off}/admin/login`);
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL("**/admin");
+  await page.goto(`${off}/admin/account/delete`);
+  await page.getByLabel(`Type ${subdomain} to confirm`).fill(subdomain);
+  await submitDelete(page, admin.password);
+
+  await expect(page).toHaveURL(`${off}/admin/login?deleted=1`);
+  expect(await leftOfSite([admin.email, deactivated.email, editor.email])).toMatchObject({
+    sites: 0,
+  });
+});

@@ -40,6 +40,7 @@ export default function handleRequest(
         nonce,
         area: areaForPath(new URL(request.url).pathname),
         imageBaseUrl: env.R2_PUBLIC_URL,
+        billing: env.BILLING !== null,
       }),
     );
   }

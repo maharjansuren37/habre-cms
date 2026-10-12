@@ -1,3 +1,5 @@
+import { allowanceUpgradeSentence, type UpgradeHint } from "#app/features/plans/upgrade-hint.ts";
+
 export type RefusalReason = "allowance" | "busy" | "site_busy" | "daily";
 
 const MONTHS = [
@@ -20,10 +22,14 @@ export function renewalDate(now: Date): string {
   return `1 ${MONTHS[(now.getUTCMonth() + 1) % 12]}`;
 }
 
-export function refusalMessage(reason: RefusalReason, now: Date): string {
+export function refusalMessage(
+  reason: RefusalReason,
+  now: Date,
+  hint: UpgradeHint = "coming-soon",
+): string {
   switch (reason) {
     case "allowance":
-      return `Your site has used this month's AI allowance. It renews on ${renewalDate(now)}. You can start blank instead. Paid plans are coming soon.`;
+      return `Your site has used this month's AI allowance. It renews on ${renewalDate(now)}. You can start blank instead.${allowanceUpgradeSentence(hint)}`;
     case "busy":
       return "Habre is busy building other sites. Try again in a minute.";
     case "site_busy":

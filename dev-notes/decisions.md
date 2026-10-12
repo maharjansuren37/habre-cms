@@ -4991,3 +4991,69 @@ Costs: one primary-key query on admin routes and uploads that need the plan.
 **Chose:** `npm run set-plan -- --address <site> --plan free|paid`, modelled on `suspend-site`; 21b's webhooks become the only other writer of `sites.plan`.
 Beats: a SQL one-liner in the runbook.
 Costs: a second writer to keep consistent when 21b lands.
+
+## D473 - A subscription set to cancel at period end is `canceled` while the plan stays `paid` (2026-10-12)
+
+**Chose:** the plan page only needs "Launch until <date>"; the `deleted` event makes it Free.
+Beats: a new column for one flag.
+Costs: a cancel and a payment-failure cancel read the same beyond the Free-site wording.
+
+## D474 - A subscription carries the site id in its metadata, and events match subscription, then customer, then that id (2026-10-12)
+
+**Chose:** set at Checkout; `subscription.created` can arrive before the checkout event.
+Beats: matching only what a checkout stored, which drops an early event.
+Costs: one more field Stripe holds about a site.
+
+## D475 - An event older than the site's last applied one is ignored; an equal second is applied (2026-10-12)
+
+**Chose:** Stripe's `created` has one-second resolution.
+Beats: `<=`, which drops the second of two events in one second.
+Costs: two events in the same second apply in arrival order.
+
+## D476 - `past_due` keeps Launch; Stripe's retries are the grace period (2026-10-12)
+
+**Chose:** an expired card mid-month must not strip a paying customer. `unpaid` and `canceled` drop to Free; content is untouched.
+Beats: dropping on the first failed charge, or an app-side timer (a second clock).
+Costs: the owner sets the retry schedule and final action in Stripe.
+
+## D477 - Webhooks carry no origin check and are authenticated by signature alone (2026-10-12)
+
+**Chose:** the path is matched exactly (`POST /webhooks/stripe`), body capped at 512 KB while streaming.
+Beats: a Stripe IP allowlist, which drifts.
+Costs: one exempt path in `same-origin.ts` to keep exact.
+
+## D478 - The success URL never sets the plan (2026-10-12)
+
+**Chose:** D160: only a webhook does; the page says the payment is being processed.
+Beats: trusting the redirect.
+Costs: a short delay before the plan shows.
+
+## D479 - Deleting an account refuses when Stripe cannot cancel the subscription (2026-10-12)
+
+**Chose:** a customer must not be charged for a site that is gone.
+Beats: deleting anyway.
+Costs: a Stripe outage blocks deletion (F-411: the cancel precedes the deletion's own checks).
+
+## D480 - Checkout only, with a Stripe-held trial, once per site, card required (2026-10-12)
+
+**Chose:** `trial_period_days`; a card-less trial invites throwaway sites and AI spend (D150).
+Beats: an in-app card form; a trial per card, which the app cannot see.
+Costs: a site that was ever subscribed gets no second trial.
+
+## D481 - Prices live in Stripe and are read, not copied; settings are environment variables (2026-10-12)
+
+**Chose:** a ten-minute cache; a failed read is remembered for a minute; our configuration holds which prices and the trial length.
+Beats: amounts in our configuration, or a settings table and operator screen.
+Costs: the plan page may read Stripe on a view (amends *Rate limits*).
+
+## D482 - Only a Free site with no live subscription may start Checkout (F-407) (2026-10-12)
+
+**Chose:** `canStartCheckout`; a Free site Stripe still holds a subscription for manages it in the Portal; `paused` is recorded as `past_due`.
+Beats: offering Upgrade to every Free site, which could create a second subscription.
+Costs: a Free site with an odd subscription must use Manage billing.
+
+## D483 - Limit messages follow the billing switch (F-408), and the admin's `form-action` names Stripe's two hosted pages only with billing on (F-410) (2026-10-12)
+
+**Chose:** `upgradeHint(plan, billingOn)`; `https://checkout.stripe.com` and `https://billing.stripe.com`, admin area only.
+Beats: a fixed "coming soon" line; widening `form-action` everywhere.
+Costs: the live redirect with and without JavaScript is a manual check (`needs-you.md`).

@@ -1,4 +1,5 @@
 import { limitsFor } from "#app/features/plans/plan-limits.ts";
+import { type UpgradeHint, upgradeHint } from "#app/features/plans/upgrade-hint.ts";
 import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { insertMedia, storageUsed } from "./media.server.ts";
@@ -10,7 +11,12 @@ import { IMMUTABLE_CACHE_CONTROL, uploadObject } from "./r2.server.ts";
 import { generateStorageKey, generateUploadDirectory } from "./storage-key.ts";
 import { fitsStorage, formatStorageLimit } from "./storage-limit.ts";
 import { resizedObjects } from "./stored-objects.server.ts";
-import { MAX_INPUT_PIXELS, tooLargeMessage, UNREADABLE_MESSAGE } from "./upload-refusals.ts";
+import {
+  MAX_INPUT_PIXELS,
+  storageRefusalMessage,
+  tooLargeMessage,
+  UNREADABLE_MESSAGE,
+} from "./upload-refusals.ts";
 
 /** Who uploads: the member's id and the site the image belongs to. */
 export type UploadActor = { id: string; siteId: string };
@@ -23,11 +29,8 @@ function refuse(problem: string, status: 400 | 413): StoreUploadResult {
   return { ok: false, problem, status };
 }
 
-function storageRefusal(limit: number): StoreUploadResult {
-  return refuse(
-    `This image would take your site past its ${formatStorageLimit(limit)} of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.`,
-    413,
-  );
+function storageRefusal(limit: number, hint: UpgradeHint): StoreUploadResult {
+  return refuse(storageRefusalMessage(formatStorageLimit(limit), hint), 413);
 }
 
 /**
@@ -68,7 +71,8 @@ export async function storeUpload(
   const { plan } = await findMemberSite(actor.siteId);
   const limit = limitsFor(plan, env.PLAN_LIMITS).storageBytes;
   const used = limit === null ? 0 : await storageUsed(actor.siteId);
-  if (limit !== null && used >= limit) return storageRefusal(limit);
+  const hint = upgradeHint(plan, env.BILLING !== null);
+  if (limit !== null && used >= limit) return storageRefusal(limit, hint);
 
   const bytes = Buffer.from(buffer);
   const started = performance.now();
@@ -94,7 +98,7 @@ export async function storeUpload(
   const storedBytes = resized
     ? resized.storedBytes
     : objects.reduce((sum, object) => sum + object.bytes.byteLength, 0);
-  if (limit !== null && !fitsStorage(used, storedBytes, limit)) return storageRefusal(limit);
+  if (limit !== null && !fitsStorage(used, storedBytes, limit)) return storageRefusal(limit, hint);
 
   // R2 objects first, then the row (the plan's data rule) - a failure between
   // leaves harmless orphaned objects. Written one at a time: five small writes,

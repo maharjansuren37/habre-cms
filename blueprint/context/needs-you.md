@@ -151,7 +151,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12; widened, spec 21a, 2026-10-12)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12; widened, spec 21a, 2026-10-12; widened, verify 21b, 2026-10-12: `/admin/plan`'s Choose how to pay group, trial and Manage billing buttons and its banners)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -234,6 +234,19 @@ not tidying; it is what keeps the open list true.
       Also ask an accountant when to register for GST and what overseas sales
       would trigger (D149). Blocks nothing now; needed by item 21. `open`
       (2026-10-01)
+
+- [ ] **A real test-mode Checkout and Portal round trip** - manual
+      verification; it needs your Stripe test-mode keys, a test product with a
+      monthly price, a webhook endpoint (the Stripe CLI's `stripe listen
+      --forward-to http://app.localhost:3000/webhooks/stripe` works locally)
+      and the Customer Portal switched on. With the three `STRIPE_*` values in
+      your local `.env`: Upgrade on `/admin/plan` with card 4242 4242 4242
+      4242 shows Launch within seconds; Manage billing opens the Portal;
+      cancelling there drops the site to Free when the period ends; once with JavaScript and once with it off (F-410: `form-action`); card
+      4000 0000 0000 0341 on renewal gives the failed-payment banner. Blocks
+      nothing now; `verify` of item 21b names it as not proven, and
+      `preflight` needs it before billing is turned on. `open` (spec 21b,
+      2026-10-12)
 
 - [ ] **A domain for the platform, and its name** - spend and a decision; your
       registrar and card. `surenmaharjan.fyi` is personal; sites need

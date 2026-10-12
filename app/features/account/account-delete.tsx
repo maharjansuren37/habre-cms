@@ -9,6 +9,9 @@ import {
 import { clientIp } from "#app/features/auth/client-ip.ts";
 import { serializeClearedSessionCookie } from "#app/features/auth/session-cookie.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { findBillingFacts } from "#app/features/billing/billing-store.server.ts";
+import { cancelForDeletion } from "#app/features/billing/cancel-subscription.ts";
+import { stripe } from "#app/features/billing/stripe.server.ts";
 import { deleteObject } from "#app/features/media/r2.server.ts";
 import { sendEmail } from "#app/lib/email.server.ts";
 import { isEmailOn } from "#app/lib/email-env.server.ts";
@@ -49,6 +52,8 @@ function nameList(names: string[]): string {
 }
 
 const CHANGED = "Something changed on your site. Check what will be deleted and try again.";
+const CANCEL_FAILED =
+  "We couldn't cancel your subscription, so nothing was deleted. Try again in a minute.";
 
 /**
  * React Router skips revalidation after a 4xx action. A 409 means the case
@@ -107,6 +112,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (gate.status === "busy") return refused({}, BUSY, 503);
   if (gate.status === "wrong") {
     return refused({ currentPassword: "That's not your current password." });
+  }
+  // A deleted site's subscription stops first, and a deletion Stripe cannot
+  // confirm is refused: the person would be charged for a site that is gone
+  // (item 21b). Leaving a site deletes no site, so it has nothing to cancel.
+  if (parsed.expect === "site") {
+    const { subscriptionId } = await findBillingFacts(user.siteId);
+    if ((await cancelForDeletion(subscriptionId, stripe)) === "unavailable") {
+      return refused({}, CANCEL_FAILED, 503);
+    }
   }
   // The slot is released: the transaction may wait on the site's lock (F-265).
   const result = await deleteAccount(user.siteId, user.id, parsed.expect);

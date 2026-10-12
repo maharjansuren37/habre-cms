@@ -7,6 +7,11 @@ import {
   requireLocalPlatformForFake,
   toAiSettings,
 } from "#app/lib/ai-env.server.ts";
+import {
+  billingEnvFields,
+  requireBillingComplete,
+  toBillingSettings,
+} from "#app/lib/billing-env.server.ts";
 import { databaseEnvSchema, parseEnv } from "#app/lib/database-env.server.ts";
 import {
   emailEnvFields,
@@ -43,16 +48,20 @@ const envSchema = databaseEnvSchema
     ...limitsEnvFields,
     // AI (item 18b1): validated here, replaced by env.AI below.
     ...aiEnvFields,
+    // Billing (item 21b): validated here, replaced by env.BILLING below.
+    ...billingEnvFields,
   })
   .superRefine(requireLaunchStorageAtLeastFree)
   .superRefine(requireLaunchCreditsAtLeastFree)
   .superRefine(requireEmailForSignup)
   .superRefine(requireEmailPair)
+  .superRefine(requireBillingComplete)
   .superRefine((fields, context) =>
     requireLocalPlatformForFake(fields, fields.PLATFORM_URL, context),
   )
   // The app reads env.PLAN_LIMITS (bytes or null per plan) and
-  // env.AI: null when AI is off, else the parsed settings.
+  // env.AI: null when AI is off, else the parsed settings, and
+  // env.BILLING: null when billing is off, else the Stripe settings.
   .transform(
     (
       {
@@ -69,6 +78,11 @@ const envSchema = databaseEnvSchema
         OPENAI_MODEL,
         OPENAI_PRICE,
         AI_CREDITS_PER_MONTH,
+        STRIPE_SECRET_KEY,
+        STRIPE_WEBHOOK_SECRET,
+        STRIPE_PRICE_MONTHLY,
+        STRIPE_PRICE_YEARLY,
+        BILLING_TRIAL_DAYS,
         ...rest
       },
       context,
@@ -82,6 +96,13 @@ const envSchema = databaseEnvSchema
           aiCredits: launchCredits({ AI_CREDITS_PER_MONTH, LAUNCH_AI_CREDITS_PER_MONTH }),
         },
       },
+      BILLING: toBillingSettings({
+        STRIPE_SECRET_KEY,
+        STRIPE_WEBHOOK_SECRET,
+        STRIPE_PRICE_MONTHLY,
+        STRIPE_PRICE_YEARLY,
+        BILLING_TRIAL_DAYS,
+      }),
       AI: toAiSettings(
         {
           AI_PROVIDERS,

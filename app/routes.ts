@@ -16,6 +16,8 @@ export default [
   route("healthz", "features/public-site/healthz.ts"),
   // The one state-changing path a site host accepts (item 19a).
   route("_contact", "features/contact/contact-submit.ts"),
+  // Stripe's webhook (item 21b): platform host only, authenticated by signature.
+  route("webhooks/stripe", "features/billing/stripe-webhook.ts"),
   route("robots.txt", "features/seo/robots.ts"),
   route("sitemap.xml", "features/seo/sitemap.ts"),
   route("admin/login", "features/auth/login.tsx"),

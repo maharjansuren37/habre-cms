@@ -166,7 +166,7 @@ test("a site at its storage limit is refused with the storage message", async ({
 
   await expect(
     page.getByText(
-      "This image would take your site past its 500 MB of storage. Delete images you no longer use, then try again. Paid plans with more storage are coming soon.",
+      "This image would take your site past its 500 MB of storage. Delete images you no longer use, then try again. An admin can upgrade on the Plan page for more storage.",
     ),
   ).toBeVisible();
   expect(await countSiteMedia(siteId)).toBe(50);

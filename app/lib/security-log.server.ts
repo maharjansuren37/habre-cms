@@ -49,7 +49,16 @@ export type SecurityEvent =
   | { event: "password_reset"; userId: string; actorId: string }
   | { event: "password_changed"; userId: string }
   | { event: "account_password_refused"; userId: string; ip: string }
-  | { event: "account_deleted"; userId: string; siteId: string; siteDeleted: boolean };
+  | { event: "account_deleted"; userId: string; siteId: string; siteDeleted: boolean }
+  | {
+      event: "plan_changed";
+      siteId: string;
+      from: "free" | "paid";
+      to: "free" | "paid";
+      billingStatus: "active" | "past_due" | "canceled";
+      eventId: string;
+    }
+  | { event: "stripe_webhook_refused"; reason: "signature" | "too_large"; ip: string };
 
 export function logSecurityEvent(entry: SecurityEvent): void {
   console.warn(JSON.stringify(entry));

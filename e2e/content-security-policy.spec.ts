@@ -3,6 +3,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { imageBlock, inSection, textDocument } from "./helpers/documents.ts";
 import { deleteTestMedia, uploadTestMedia } from "./helpers/media.ts";
+import { HOST_SPLIT_PORT } from "./helpers/ports.ts";
 import { createSite, createSiteAdmin, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
 import {
@@ -351,3 +352,20 @@ async function drag(page: Page, from: Locator, to: Locator) {
   }
   await page.mouse.up();
 }
+
+// F-410: with billing on the admin's form-action also names Stripe's two hosted
+// pages, so the plan page's redirect to Checkout or the Portal is not blocked
+// for a form posted before the page hydrated.
+test("the admin policy names Stripe's hosted pages only when billing is on", async ({ page }) => {
+  const on = await page.goto("/admin/login");
+  expect(on?.headers()["content-security-policy"]).toContain(
+    "form-action 'self' https://checkout.stripe.com https://billing.stripe.com;",
+  );
+
+  const off = await page.goto(`http://127.0.0.1:${HOST_SPLIT_PORT}/admin/login`);
+  expect(off?.headers()["content-security-policy"]).toContain("form-action 'self';");
+  expect(off?.headers()["content-security-policy"]).not.toContain("stripe.com");
+
+  const site = await page.goto(siteUrl("/"));
+  expect(site?.headers()["content-security-policy"]).toContain("form-action 'self';");
+});

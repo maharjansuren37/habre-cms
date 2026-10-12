@@ -112,3 +112,10 @@
 
 - [ ] Run migration `0024_billing_columns.sql` with the v1 deploy: four additive nullable columns on `sites`; the previous release never reads them, so a symlink rollback is safe.
 - [ ] Optional: `LAUNCH_STORAGE_LIMIT_MB` and `LAUNCH_AI_CREDITS_PER_MONTH` in `/etc/habre-cms/production.env`; defaults (10240, 6000) apply when unset. A value below Free's stops startup.
+
+## features/21b-pay-for-launch
+
+- [ ] Run migration `0025_stripe_events.sql` with the v1 deploy (additive; a symlink rollback is safe).
+- [ ] Billing stays off unless all four are set in `/etc/habre-cms/production.env`: `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Subscriptions, Prices read, Billing Portal), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`; optional `BILLING_TRIAL_DAYS` (14 unless set). D150: off through the beta.
+- [ ] In Stripe (owner): a Launch product with a monthly and a yearly price; a webhook endpoint `https://app.<platform domain>/webhooks/stripe` for `checkout.session.completed` and `customer.subscription.created`, `.updated`, `.deleted`; the Customer Portal configured; Billing's retry schedule ending in cancel.
+- [ ] Check `deploy/caddy/habre-cms.caddy` does not block `/webhooks/stripe`.

@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers/auth.ts";
 import { textDocument } from "./helpers/documents.ts";
-import { PORT } from "./helpers/ports.ts";
+import { HOST_SPLIT_PORT, PORT } from "./helpers/ports.ts";
 import { createSiteAdmin, createSiteWithAddress, deleteSite, siteUrl } from "./helpers/sites.ts";
 import { setRole, withDatabase } from "./helpers/users.ts";
 
@@ -93,8 +93,9 @@ test("an admin sees the Free plan, its storage and AI meters, and what Launch ad
   const adds = page.getByRole("region", { name: "What Launch adds" });
   await expect(adds.getByRole("listitem").filter({ hasText: "1000 MB of storage" })).toHaveCount(1);
   await expect(adds.getByRole("listitem").filter({ hasText: "Made with Habre" })).toHaveCount(1);
-  await expect(page.getByText("Paid plans are coming soon.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /upgrade/i })).toHaveCount(0);
+  // Billing is on for this server (21b): a way to pay, not "coming soon".
+  await expect(page.getByText("Paid plans are coming soon.")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start your 14-day free trial" })).toBeVisible();
 });
 
 test("a Launch site sees the Launch storage limit", async ({ page }) => {
@@ -117,4 +118,137 @@ test("an author or editor gets a 404 and no Plan link", async ({ page }) => {
     const response = await page.goto("/admin/plan");
     expect(response?.status()).toBe(404);
   }
+});
+
+// Item 21b, Step 7: paying for Launch. The buttons are asserted, not pressed:
+// no test reaches Stripe (Checkout is a manual check, needs-you.md). Stripe's
+// prices cannot be read here, so the choices carry no amounts.
+
+async function setBilling(columns: Record<string, string | Date | null>) {
+  await withDatabase(async (sql) => {
+    await sql`update sites set ${sql(columns)} where id = ${siteId}`;
+  });
+}
+
+test("a new Free site is offered monthly and yearly, and a trial", async ({ page }) => {
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+
+  const choices = page.getByRole("group", { name: "Choose how to pay" });
+  await expect(choices.getByRole("radio", { name: /^Monthly/ })).toBeChecked();
+  await expect(choices.getByRole("radio", { name: /^Yearly/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start your 14-day free trial" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Manage billing" })).toHaveCount(0);
+});
+
+test("a site that has had a subscription is offered Upgrade with no trial, and Manage billing", async ({
+  page,
+}) => {
+  await setBilling({
+    billing_customer_id: "cus_plan_spec",
+    billing_subscription_id: "sub_plan_spec",
+    billing_status: "canceled",
+  });
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+
+  await expect(page.getByRole("button", { name: "Upgrade" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /free trial/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
+  await expect(page.getByText("Your Launch subscription has ended.")).toBeVisible();
+});
+
+test("a trialing site sees its trial end and no way to pay again", async ({ page }) => {
+  await makePaid();
+  await setBilling({
+    billing_customer_id: "cus_plan_spec",
+    billing_subscription_id: "sub_plan_spec",
+    billing_status: "active",
+    billing_interval: "year",
+    trial_ends_at: new Date("2030-01-15T00:00:00Z"),
+  });
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+
+  await expect(page.getByText("Free trial until 15 January 2030.")).toBeVisible();
+  await expect(page.getByText("Then billed yearly.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Choose how to pay" })).toHaveCount(0);
+});
+
+test("a past_due site keeps Launch limits and is told to update its card", async ({ page }) => {
+  await makePaid();
+  await setBilling({
+    billing_customer_id: "cus_plan_spec",
+    billing_subscription_id: "sub_plan_spec",
+    billing_status: "past_due",
+  });
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+
+  await expect(page.getByText("Your site is on the Launch plan.")).toBeVisible();
+  await expect(page.getByText("Your last payment didn't go through.")).toBeVisible();
+  await expect(page.getByText("0 MB of 1000 MB used")).toBeVisible();
+});
+
+test("after Checkout a still-Free site is told the payment is being processed", async ({
+  page,
+}) => {
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan?checkout=done");
+  await expect(page.getByText("Payment received.")).toBeVisible();
+});
+
+test("with billing off the page offers no way to pay", async ({ page }) => {
+  const off = `http://127.0.0.1:${HOST_SPLIT_PORT}`;
+  await page.goto(`${off}/admin/login`);
+  await page.getByLabel("Email").fill(adminUser.email);
+  await page.getByLabel("Password").fill(adminUser.password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL(`${off}/admin`);
+  await page.goto(`${off}/admin/plan`);
+
+  await expect(page.getByText("Paid plans are coming soon.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /upgrade|free trial|manage billing/i }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Choose how to pay" })).toHaveCount(0);
+});
+
+test("Upgrade on a Launch site and Manage without a customer are both refused", async ({
+  page,
+}) => {
+  await makePaid();
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+  const headers = { Origin: `http://127.0.0.1:${PORT}` };
+
+  const upgrade = await page.request.post("/admin/plan", { form: { intent: "upgrade" }, headers });
+  const manage = await page.request.post("/admin/plan", { form: { intent: "manage" }, headers });
+  const unknown = await page.request.post("/admin/plan", { form: { intent: "x" }, headers });
+
+  expect([upgrade.status(), manage.status(), unknown.status()]).toEqual([400, 400, 400]);
+});
+
+test("a Free site Stripe still holds a subscription for is sent to Manage billing, not Upgrade (F-407)", async ({
+  page,
+}) => {
+  await setBilling({
+    billing_customer_id: "cus_plan_spec",
+    billing_subscription_id: "sub_plan_spec",
+    billing_status: "past_due",
+  });
+  await logIn(page, adminUser);
+  await page.goto("/admin/plan");
+
+  await expect(page.getByText("Your subscription ended after a failed payment.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /upgrade|free trial/i })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Choose how to pay" })).toHaveCount(0);
+
+  const response = await page.request.post("/admin/plan", {
+    form: { intent: "upgrade", interval: "yearly" },
+    headers: { Origin: `http://127.0.0.1:${PORT}` },
+  });
+  expect(response.status()).toBe(400);
 });

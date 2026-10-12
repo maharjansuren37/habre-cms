@@ -202,3 +202,15 @@ test("POST /_contact is a site's on a site host and not found on the platform ho
     platformHost: true,
   });
 });
+
+test("POST /webhooks/stripe is allowed on the platform host and not found on a site host", () => {
+  assert.deepEqual(classify("app.habre.ai", "/webhooks/stripe", "POST"), { kind: "allow" });
+  assert.deepEqual(classify("lena.habre.page", "/webhooks/stripe", "POST"), {
+    kind: "not-found",
+    foreignHost: false,
+  });
+  assert.deepEqual(classify("lena.example", "/webhooks/stripe", "POST"), {
+    kind: "not-found",
+    foreignHost: true,
+  });
+});

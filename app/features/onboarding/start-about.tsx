@@ -2,6 +2,7 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { findRun, findRunningRun } from "#app/features/ai/runs.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { upgradeHintFor } from "#app/features/plans/upgrade-hint.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import type { Route } from "./+types/start-about";
@@ -58,7 +59,11 @@ export async function action({ context, request }: Route.ActionArgs) {
   const result = await startRun(siteId, userId, parsed.data);
   if (!result.ok) {
     return data(
-      { error: null, refusal: refusalMessage(result.reason, new Date()), values },
+      {
+        error: null,
+        refusal: refusalMessage(result.reason, new Date(), await upgradeHintFor(siteId)),
+        values,
+      },
       { status: 400 },
     );
   }
