@@ -117,9 +117,8 @@ File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (im
 ### F-426 [P1] closed - The v1 release has nowhere to go: no platform or sites domain, no Cloudflare token, Caddy not rebuilt
 File: blueprint/context/needs-you.md (domain, token, Caddy lines); deploy/setup-server.sh
 
-### F-427 [P1] deferred - The v1 migration set (0008-0026) has never been rehearsed on a restored production backup; the fresh-database decision that replaces it is not recorded
+### F-427 [P1] closed - The v1 migration set (0008-0026) has never been rehearsed on a restored production backup; the fresh-database decision that replaces it is not recorded
 File: db/migrations/0008 to 0026; blueprint/production-pending.md; dev-notes/decisions.md (D162, D163)
-Deferred to: `deploy` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
 
 ### F-428 [P1] deferred - Signup would open to strangers with no email provider and no terms or privacy policy (narrowed 2026-10-13: 14 policy placeholders, production OpenRouter key, R2 backup retention)
 File: blueprint/context/needs-you.md (Resend, policies, licence lines)

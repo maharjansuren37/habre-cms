@@ -5183,3 +5183,21 @@ Costs: no record of which version someone agreed to - none needed while producti
 **Chose:** `e2e/legal.spec.ts` imports `LEGAL_DOCUMENTS`, so it checks every section heading against the real data; `tsconfig.node.json` includes the file, as it does the own-domain files.
 Beats: a hand-kept copy of the headings in the spec, which drifts.
 Costs: one more app file in the node project's include list.
+
+## D503 - Production starts v1 on a fresh database (2026-10-13)
+
+**Chose:** at the v1 deploy the production `habre_cms` database is dropped and
+recreated empty, owned by `habre_cms`; `db/roles.sql` runs against it, then
+`npm run db:migrate` applies 0001-0026 from empty - the path CI's `e2e` job
+runs on every push - and `create-admin` makes site 1's first admin. No
+production backup is copied and no rehearsal runs. Site 1 and its
+`surenmaharjan.fyi` domain still exist, because `0010` and `0015` create them
+on an empty database too. Supersedes D162's carrying of today's users and
+D163's rehearsal and dump rollback (owner, 2026-10-13).
+Beats: rehearsing 0008-0026 on a restored backup (F-427) - `0009` and `0012`
+already delete every entry, user, membership and media row, so nothing carried
+across would survive, and the old content is test data.
+Costs: dropping the database is its own yes at `deploy` and cannot be undone;
+once dropped, pointing `current` back at `8d82ce4` has nothing to read unless
+a dump was taken first, so the rollback is forward - fix and redeploy v1. The
+nightly backups of the old database age out as usual.

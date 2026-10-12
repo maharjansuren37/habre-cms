@@ -346,7 +346,9 @@ reset), `onboarding` (start from a description, the AI run), `ai`, `email`,
 - **Today's installation becomes site 1** (D162): one migration creates it from
   the current `site_settings`, makes today's users its members with their
   current roles, and gives it `surenmaharjan.fyi` as its domain. Its content is
-  discarded at item 14 as D148 decided, not here.
+  discarded at item 14 as D148 decided, not here. **Production starts v1 on a
+  fresh database (D503)**, so there site 1 is created empty and its first admin
+  by `create-admin`.
 
 ### Hostnames
 
@@ -976,12 +978,11 @@ From `architect`:
 - **Production holds until v1 is done (D163).** Production stays on release
   `8d82ce4` (items 1-12) while items 13-21 are built, then v1 ships in one
   deploy:
-  - **Its migrations run once,** in order, in that deploy - including item 14's
-    content discard and the move to site 1.
-  - **Rehearse first.** Before that deploy, the whole migration set runs
-    locally against a restored copy of the latest production backup.
-  - **Rollback is the backup, not the symlink:** restore the pre-deploy dump
-    and point `current` back at `8d82ce4`.
+  - **On a fresh database (D503):** the production database is dropped and
+    recreated, and migrations 0001-0026 run from empty, as in CI. No rehearsal
+    on a backup (superseded).
+  - **Rollback is forward:** once the database is dropped, `8d82ce4` has
+    nothing to read, so a bad v1 is fixed and redeployed.
   - **An urgent fix in the meantime** (a security patch) ships from a branch
     off `8d82ce4`, never from `main`, which by then holds unreleased v1 work.
 - **Domains (D22, 2026-09-16; replaced by D153 at item 16):** public site `surenmaharjan.fyi`
