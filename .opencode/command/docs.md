@@ -1,5 +1,5 @@
 ---
-description: Write and maintain the documentation a project actually needs: a real README, API docs where there is an API, and dev-notes - the decision record...
+description: Write and maintain the documentation a project needs: a real README, API docs where there is an API, and dev-notes - the decision record, the status...
 ---
 
 Use the `docs` skill from this project's workflow, following its steps in

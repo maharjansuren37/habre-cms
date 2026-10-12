@@ -136,6 +136,12 @@ available. Either accept it explicitly or put one check somewhere else.
 
 Record it in `dev-notes/status.md`.
 
+**Then ask to commit what this run wrote**, as its own `chore: monitor ...`
+commit naming its files - the client wiring from Step 3, shown as a diff first
+because it is code, the status record, and any finding it changed. **`deploy`
+refuses a dirty tree**, and the next `build` would carry it onto an item's branch
+as someone else's work. Committing is not pushing.
+
 ## Investigating a live problem
 
 1. **What is the actual symptom?** What a user sees, when it started, whether it

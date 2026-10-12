@@ -1,15 +1,15 @@
 ---
-name: context
-description: "Validate the two planning docs and generate `blueprint/context/project-overview.md` from them - the AI-facing source of truth loaded every session. Checks the plans for shape problems first (placeholder text, a build plan that is not a checklist, features that contradict the stack) and proposes fixes before generating. Use when the user runs `context`, has just finished writing or editing the plans, asks to regenerate the overview, or after any plan change that affects direction, data, or stack."
+name: distill
+description: "Validate the two planning docs and generate `blueprint/context/project-overview.md` from them - the AI-facing source of truth loaded every session. Checks the plans for shape problems first (placeholder text, a build plan that is not a checklist, features that contradict the stack) and proposes fixes before generating. Use when the user runs `distill`, has just finished writing or editing the plans, asks to regenerate the overview, or after any plan change that affects direction, data, or stack."
 ---
 
-# context - generate the source of truth from the plans
+# distill - generate the source of truth from the plans
 
 **Writes:** `blueprint/context/project-overview.md` · `blueprint/project-plan.md` · `blueprint/build-plan.md`
 
 Where this sits:
 
-    `blueprint/project-plan.md` + `blueprint/build-plan.md` -> context -> `blueprint/context/project-overview.md`
+    `blueprint/project-plan.md` + `blueprint/build-plan.md` -> distill -> `blueprint/context/project-overview.md`
 
 You own the two planning docs. This distills them into one file the agent loads
 every session. The direction is one-way on purpose: **edit the plans and
@@ -17,9 +17,7 @@ regenerate, never hand-edit the overview.** A hand-edit is lost on the next run
 and, worse, silently disagrees with the plans until then.
 
 
-> **Multi-part project:** `blueprint/project-plan.md` and
-> `blueprint/context/quality-bar.md` (the bar the whole product is held to -
-> `architect` writes it at the root, not per part) live at the **product
+> **Multi-part project:** `blueprint/project-plan.md` lives at the **product
 > root**, not this part. Resolve it from `AGENTS.md`'s `Product root:` field.
 > Everything else here is this part's own.
 
@@ -35,7 +33,7 @@ seeded instruction text, because Step 3 generates directly from them:**
 - **6. Architecture** - filled by `architect`, which now runs first
 - **5. Tech** - filled by `stack`, against that architecture
 
-The loop is `ideate -> architect -> stack -> layout -> scaffold -> ci -> context`, so by the
+The loop is `ideate -> architect -> stack -> layout -> scaffold -> ci -> distill`, so by the
 time this runs legitimately both have happened. Checking it here costs nothing and
 **a gap is not a contradiction** - Step 2 stops only on plans that disagree with
 themselves, so without this a plan that is merely *unfinished* passes straight
@@ -106,6 +104,16 @@ writing it.
 **A contradiction the user has to resolve stops this skill.** Do not generate an
 overview from plans that disagree with themselves, and do not pick a side on
 their behalf. Say what conflicts and ask.
+
+**Check the build plan describes *this* product before generating anything.**
+Placeholder items shipped in the template for a long time, and a project that
+never deleted them carries items for a product that does not exist. Every skill
+reading that file treats an unchecked box as real work - `spec` specs the first
+one, `progress` counts it as remaining, `prepare` files a requirement for a
+service it names. **The tell is an item that does not match the plan's own
+description of the product**, and the answer is to stop and say so rather than
+generate an overview around it: an overview built on the wrong items is
+confidently wrong in the one file every other skill trusts.
 
 **Never write a correction into the overview before it is in the plan.** An
 overview carrying a fix the plan does not have disagrees with its own source, and
@@ -209,16 +217,6 @@ Then point at what is next:
 
 It is cheap and idempotent. Re-running it when nothing changed produces the same
 file.
-
-**Check the build plan describes *this* product before generating anything.**
-Placeholder items shipped in the template for a long time, and a project that
-never deleted them carries items for a product that does not exist. Every skill
-reading that file treats an unchecked box as real work - `spec` specs the first
-one, `progress` counts it as remaining, `prepare` files a requirement for a
-service it names. **The tell is an item that does not match the plan's own
-description of the product**, and the answer is to stop and say so rather than
-generate an overview around it: an overview built on the wrong items is
-confidently wrong in the one file every other skill trusts.
 
 ## Rules
 

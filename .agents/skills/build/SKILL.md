@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time. Hands each step to a subagent with a packet where the host supports it, falling back to inline where it does not; the main session reads the diff, explains it, and proves the done-when. Creates the matching branch, runs the project's checks, and iterates until it works - then ticks the step off so progress survives a context clear. Offers an optional commit checkpoint after each approved step; the work-level commit and the merge belong to `ship`. Resumes from the first unchecked step when a session was interrupted. Use when the user runs `build`, or asks to build, implement, code, or start the current spec."
+description: "Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time: hands each step to a subagent where the host supports one, then reads the diff, explains it, and proves the done-when. Creates the matching branch, runs the project's checks, iterates until it works, and ticks the step off so progress survives a context clear; resumes from the first unchecked step. The work-level commit and the merge belong to `ship`. Use when the user runs `build`, or asks to build, implement, code, or start the current spec."
 ---
 
 # build - turn the spec into code, one reviewed step at a time
@@ -68,7 +68,7 @@ drop the marker and build the step normally.
 ## Step 2 - get on a branch
 
 Create and check out a branch named from the spec: `feature/<name>` for a feature,
-`fix/<name>` for a fix. If the project is not a git repository yet, stop and ask
+`fix/<name>` for a fix, `rollback/<name>` for a rollback. If the project is not a git repository yet, stop and ask
 the user to run `git init` - the loop depends on branches and on being able to
 show diffs.
 

@@ -312,6 +312,14 @@ add a `dev-notes/decisions.md` entry for the host choice and why, and name the
 host on the target line of section 8 of `blueprint/project-plan.md`, where
 `preflight` and `deploy` look for it.
 
+**Then ask to commit what this run wrote**, on `main`, as its own
+`chore: host ...` commit naming its files - the Environments rows in
+`AGENTS.md`, section 8 of the plan, `dev-notes/status.md`,
+`dev-notes/decisions.md`, `needs-you.md`, and any finding it changed. **`deploy`
+refuses a dirty tree**, so a provisioning record left uncommitted stops the
+release it was made for, and the next `build` carries it onto an item's branch
+as someone else's work. Committing is not pushing; pushing stays a separate yes.
+
 ## Rules
 
 - **State the cost before creating anything**, and never provision a paid

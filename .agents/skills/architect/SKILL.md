@@ -9,7 +9,7 @@ description: "Turn the problem, users and features in `blueprint/project-plan.md
 
 Where this sits:
 
-    `ideate` -> architect -> `stack` -> `layout` -> `scaffold` -> `ci` -> `context`
+    `ideate` -> architect -> `stack` -> `layout` -> `scaffold` -> `ci` -> `distill`
 
 Run this once `blueprint/project-plan.md`'s problem, users, and features have real
 content - **before `stack` chooses a technology, and before `scaffold` installs
@@ -354,7 +354,7 @@ unconsidered.
 
 ## Step 4 - record the quality bar
 
-Step 3 asked whether this project has real load or a hard latency target. **Write
+Step 2 asked whether this project has real load or a hard latency target. **Write
 the answer down as a number, including when the answer is "no".** Asking the
 question and discarding the answer is why `review`'s performance lens can only
 report generic smells - `N+1`, unbounded collection - and can never say *this
@@ -420,7 +420,7 @@ build plan** from the approved split in Step 2.
 
 **Everything from Steps 2 and 3 goes *inside* section 6, under `###`
 sub-headings.** The plan's sections are numbered and other skills address them by
-number - `context` checks "6. Architecture" and "5. Tech" by heading. **A `##`
+number - `distill` checks "6. Architecture" and "5. Tech" by heading. **A `##`
 heading written between two numbered sections silently changes where section 6
 ends**, so a reader or a skill taking "the Architecture section" gets the wrong
 span. Step 3's system design is the block most likely to be written this way,
@@ -465,19 +465,19 @@ those answers explicitly rather than leaving it to re-read them.
 
 `layout` follows `stack`, and turns the part count into real directory names
 using the framework's conventions; `scaffold` then installs into them, and `ci`
-and `context` follow that.
+and `distill` follow that.
 
 Then **branch on whether this project has a UI**:
 
-- **It has screens** - name `prototype` after `context` and before the first
+- **It has screens** - name `prototype` after `distill` and before the first
   `spec`, **as a required step**: `spec` stops on a project with a UI and no
   `blueprint/context/design.md`. It reads `blueprint/context/project-overview.md`
-  for what the screens must show, and `context` is what generates that, so it
+  for what the screens must show, and `distill` is what generates that, so it
   cannot usefully run earlier. Deciding what something looks like *while*
   building it is expensive; deciding it first in throwaway HTML costs almost
   nothing to redo.
 - **It has little or no UI** - an API, a CLI, a library - go straight from
-  `context` to `spec` and say why `prototype` does not apply.
+  `distill` to `spec` and say why `prototype` does not apply.
 
 ## Rules
 

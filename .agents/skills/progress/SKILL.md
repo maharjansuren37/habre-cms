@@ -79,7 +79,7 @@ reports all three - plus the git branch, working-tree state, and recent log.
   planning doc? If not, it is stale and everything reading it is working from
   old information. **A timestamp cannot tell "regenerated" from "touched"** - a
   hand edit to the overview makes it look fresh while its content still predates
-  the plans, and an overview `context` has never generated at all looks freshest
+  the plans, and an overview `distill` has never generated at all looks freshest
   of the three. So check the content agrees with the plans, not only the order of
   the dates, and where they disagree say the overview is stale regardless of what
   the timestamps claim.
@@ -95,12 +95,20 @@ Report only what is actually wrong:
   detail a line and a link would carry. Every session pays for these files
   before the user types a word, and they grow by accretion - closed entries
   and prose restating other files - unless something measures them.
+- **`blueprint/context/project-overview.md` over 8 KB**, the cap `AGENTS.md`
+  gives it, even when the total is within budget. Measure with `wc -c` and
+  route to `distill`, which cuts it. `distill` holds the cap only when it runs,
+  so an overview written before the cap, or edited by hand since, is over it
+  until something reads its size - and this is that check.
 - No verification command, or no test runner, when the project has real code.
 - **A UI with no `blueprint/context/design.md`.** `spec` stops on it, so the
   next action is `prototype`, not `spec` - naming `spec` sends the user
   straight into a stop.
 - **Drift from the loop.** The signals worth naming:
-  - work committed directly to `main`
+  - **product code committed to `main` by anything but `ship`'s merge** or a
+    setup skill that commits it there by design (`scaffold`, `prototype`, `ci`,
+    `monitor`'s wiring). The records `distill`, `preflight`, `host`, `deploy`,
+    `docs` and `ship --abandon` commit to `main` are not drift
   - a spec with every step ticked that was never shipped
   - a branch whose spec was already archived
   - checked-off plan items with no archive under `blueprint/history` - **compare

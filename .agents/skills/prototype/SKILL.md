@@ -9,7 +9,7 @@ description: "Settle how the app or website looks and works before building it. 
 
 Where this sits:
 
-    `layout` -> `scaffold` -> `ci` -> `context` -> prototype -> `spec` -> `build`
+    `layout` -> `scaffold` -> `ci` -> `distill` -> prototype -> `spec` -> `build`
 
 Deciding what something should look like *while* building it is expensive: every
 change touches real components, real state, and real tests. Deciding it first, in
@@ -39,7 +39,7 @@ a library or an API with no UI skips it.
 
 ## Before you start
 
-- **`blueprint/context/project-overview.md` does not exist** - `context` has not
+- **`blueprint/context/project-overview.md` does not exist** - `distill` has not
   run. Stop and say so. This skill mocks the real screens, and that file is what
   says what they must show.
 - **`blueprint/design-kit/` is missing** - the project predates the kit. Say so

@@ -9,7 +9,7 @@ description: "Decide where the code physically lives - the source root, how each
 
 Where this sits:
 
-    `architect` -> `stack` -> layout -> `scaffold` -> `ci` -> `context`
+    `architect` -> `stack` -> layout -> `scaffold` -> `ci` -> `distill`
 
 **`architect` decided how many deployable parts there are and why. `stack` chose
 what they are built with. This decides where the files go** - and it sits here

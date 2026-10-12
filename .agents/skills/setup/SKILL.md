@@ -9,7 +9,7 @@ description: "Tune the freshly installed workflow to this actual repository: det
 
 Where this sits:
 
-    install -> setup -> fill in the plans -> `ci` -> `context` -> `prototype` (with a UI) -> `spec`
+    install -> setup -> fill in the plans -> `ci` -> `distill` -> `prototype` (with a UI) -> `spec`
 
 The workflow installs with sensible defaults that are deliberately generic - they
 have to be, since they ship before anyone has seen your code. This replaces them
@@ -75,21 +75,21 @@ picking.
   what problem it solves, what is deliberately not built. Propose
   `blueprint/project-plan.md` and a `blueprint/build-plan.md` whose already-built items are
   checked off. Stop for approval before writing either. Then run
-  `context`.
+  `distill`.
 
   **Fill sections 5. Tech and 6. Architecture of the plan from the code** - on
-  this route `stack` and `architect` never run, and `context` stops while either
+  this route `stack` and `architect` never run, and `distill` stops while either
   still holds its seeded instruction text. Tech is the stack as detected in Step
   1, versions as installed; Architecture is what the code already is - the
   deployable parts, routes or screens, the data model as the schema or models
   define it, where the logic lives, the auth boundary. **Replace every seeded
   paragraph in each section, not only the first one** rather than writing beneath
-  it: `context` tells a section is unfilled by seeded text still being there,
+  it: `distill` tells a section is unfilled by seeded text still being there,
   whatever surrounds it. Section 5 ends with a note that it is filled in after
   section 6, and section 6 with a note that `layout` adds the directory tree -
   **those go too.** They sit below the sentence that obviously had to go, they
   describe skills that never run on this route, and leaving either one has
-  `context` stop and send the user to `architect` and `stack` for a section that
+  `distill` stop and send the user to `architect` and `stack` for a section that
   is in fact filled.
   Both are discovered, like the quality bar - mark anything the code does not
   show as unknown rather than choosing it.
@@ -235,10 +235,10 @@ Say what changed, what was left alone, and - most usefully - **what is still
 missing**: no test runner, no verification command, no remote, an empty project
 plan. Then name the next actions **in the order of the chain at the top of this
 file**: fill in the two planning docs if they are still empty, then `ci` if Step
-5 found a remote with no automatic checks, then `context`.
+5 found a remote with no automatic checks, then `distill`.
 
 **And `prototype`, if the project has a UI and no `blueprint/context/design.md`**:
-after `context`, and before any `spec`, which stops without it. On an app that
+after `distill`, and before any `spec`, which stops without it. On an app that
 already has a look it records the existing one rather than proposing a new one.
 
 **And `principles.md`, if Step 3 found none** - name it in that list, not only in
@@ -249,7 +249,7 @@ skill may not write, so nothing else will bring it back up.
 **Name every one that is still to do, not only the first.** A report that names
 one next step reads as the whole list, and the rest are dropped as soon as the
 conversation moves on to something else - an adoption that followed "run
-`context`" had run neither three days later.
+`distill`" had run neither three days later.
 
 ## Rules
 

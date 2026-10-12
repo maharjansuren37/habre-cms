@@ -90,7 +90,7 @@ and an unusable spec is worse than none.
 
 ## Step 3 - write the guarded spec
 
-Write to `blueprint/context/current-work.md`, marked `Type: Rollback`, recording:
+Write to `blueprint/context/current-work.md`, marked `**Type:** Rollback`, recording:
 
 - the target item, its archive path, the full commit SHA, and its parent's
 - **product paths only, and only the ones this feature actually owns** - the

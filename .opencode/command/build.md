@@ -1,5 +1,5 @@
 ---
-description: Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time.
+description: Build the spec in `blueprint/context/current-work.md` one small reviewed step at a time: hands each step to a subagent where the host supports one...
 ---
 
 Use the `build` skill from this project's workflow, following its steps in

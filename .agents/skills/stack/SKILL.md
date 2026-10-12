@@ -9,7 +9,7 @@ description: "Settle the technology stack for a new project - web app, mobile ap
 
 Where this sits:
 
-    `ideate` -> `architect` -> stack -> `layout` -> `scaffold` -> `ci` -> `context`
+    `ideate` -> `architect` -> stack -> `layout` -> `scaffold` -> `ci` -> `distill`
 
 This runs *before* there is an app, and after `architect`: it needs the plan's
 problem, features and Architecture filled in and the quality bar written, and it
@@ -67,7 +67,7 @@ because they arrive here identically and only one is `setup`:
   answer alone: run before the change it faithfully re-records the stack they are
   trying to leave. **There is no skill that performs a stack change, and that is
   deliberate - it is a rewrite.** Say the order out loud: make the change, then
-  `setup` to re-read what the repo now is, then `context` to regenerate the
+  `setup` to re-read what the repo now is, then `distill` to regenerate the
   overview, and a `dev-notes/decisions.md` entry marking the original choice
   superseded. If the scope changed too, `ideate --rescope` comes first.
 

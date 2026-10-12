@@ -3,7 +3,8 @@
 # capability. ship runs it before its other Step 2 writes; verify --all runs it on
 # an old archive it has just given a section.
 #
-#   lib/merge-capabilities.sh SPEC-OR-ARCHIVE ARCHIVE-NAME [--target DIR]
+#   .agents/bin/merge-capabilities.sh SPEC-OR-ARCHIVE ARCHIVE-NAME [--target DIR]
+#   (lib/merge-capabilities.sh in the pack; install.sh puts it in .agents/bin/)
 #
 # ARCHIVE-NAME is <dir>/<file without .md> - features/03-auth - the provenance
 # written beside each claim. DIR is the part's directory, default the current one.
@@ -22,6 +23,11 @@
 # Everything is checked before anything is written - every ID exists and is not a
 # tombstone, every old text matches the file's current text, every step is ticked -
 # so a refusal leaves every file byte-identical.
+#
+# A capability file is rewritten from what it holds, so any line that is not a
+# claim, a tombstone or the headings is kept, under the title. A line that looks
+# like one of this capability's claims but does not parse is refused rather than
+# kept: kept as prose, its ID would be handed out again.
 set -euo pipefail
 
 TARGET="$PWD"
@@ -29,7 +35,7 @@ ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --target) TARGET="${2:?--target needs a directory}"; shift 2 ;;
-    --help|-h) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --help|-h) sed -n '2,/^set -e/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
     *) ARGS+=("$1"); shift ;;
   esac
@@ -87,7 +93,8 @@ def load(cap):
     path = os.path.join(cap_dir, cap + ".md")
     if not os.path.exists(path):
         return None
-    claims, tombs = {}, {}
+    claims, tombs, notes = {}, {}, []
+    looks_like_claim = re.compile(rf"^- (\*\*)?{re.escape(cap)}\.\d+\b")
     for l in open(path).read().split("\n"):
         m = CLAIM.match(l)
         if m and m[1] == cap:
@@ -96,10 +103,22 @@ def load(cap):
         m = TOMB.match(l)
         if m and m[1] == cap:
             tombs[int(m[2])] = m[3]
-    return {"claims": claims, "tombs": tombs}
+            continue
+        if l.strip() in (f"# Capability: {cap}", "## Removed"):
+            continue
+        if looks_like_claim.match(l):
+            refuse(f"blueprint/capabilities/{cap}.md has a claim line this cannot read: '{l}' - fix its format")
+        notes.append(l)
+    while notes and not notes[0].strip():
+        notes.pop(0)
+    while notes and not notes[-1].strip():
+        notes.pop()
+    return {"claims": claims, "tombs": tombs, "notes": notes}
 
 def render(cap, st):
     out = [f"# Capability: {cap}", ""]
+    if st.get("notes"):
+        out += st["notes"] + [""]
     for n in sorted(st["claims"]):
         t, since, ch = st["claims"][n]
         out.append(f"- **{cap}.{n}** - {t} *Since:* {since}" + (f" · *Changed:* {ch}" if ch else ""))
@@ -158,7 +177,7 @@ for l in lines:
             refuse(f"'{l}': {cap}.{n} {why}")
         del st["claims"][n]; st["tombs"][n] = archive
     else:
-        refuse(f"a line this cannot read: '{l}' - a claim needs a step (Step N), or use one of the forms in the header of lib/merge-capabilities.sh")
+        refuse(f"a line this cannot read: '{l}' - a claim needs a step (Step N), or use one of the forms in the header of .agents/bin/merge-capabilities.sh")
 
 os.makedirs(cap_dir, exist_ok=True)
 for cap, st in state.items():

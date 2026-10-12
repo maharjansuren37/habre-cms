@@ -1,5 +1,5 @@
 ---
-description: Close out finished work: run a final safety pass, archive the spec under `blueprint/history`, check the item off in `blueprint/build-plan.md`, reset...
+description: Close out finished work: a final safety pass, archive the spec under `blueprint/history`, check the item off in `blueprint/build-plan.md`, reset...
 ---
 
 Use the `ship` skill from this project's workflow, following its steps in

@@ -63,7 +63,9 @@ build steps, plus any acceptance notes under Testing. Turn them into concrete
 claims to prove - each one a specific observable behavior, never "it works".
 
 If there is no current spec, check `blueprint/history/features` and
-`blueprint/history/fixes` for the most recently archived work and say that is what
+`blueprint/history/fixes` for the most recently archived work - by the commit
+that added it (`git log -1 --format=%cd -- <file>`), since a feature's name
+carries no date - and say that is what
 you are verifying. If there is nothing at all, ask what to verify rather than
 guessing.
 
@@ -74,7 +76,8 @@ grouped by item and in ship order.
 
 **Those directories each contain a `README.md` that is not an archive** - the
 template ships one in each, explaining the naming convention. **Skip it.**
-An archive is named `NN-title.md` for a feature and `title.md` for a fix; the
+An archive is named `NN-title.md` for a feature and `YYYY-MM-DD-title.md` for
+a fix (`title.md` in a fix archived before the date was added); the
 directory's own README describes the directory. Reading it as an archive yields
 an item with no done-whens, which reports as either a silent extra or a
 could-not-verify against a feature that does not exist - and both make the
@@ -173,7 +176,7 @@ that was taken and never opened proves nothing that the HTML did not.
 
 **Do not add one from this skill.** It is a dependency and a few hundred
 megabytes of browser binaries; this skill never edits the product - it writes
-only the ledger and `needs-you.md` - and installing mid-verification is the wrong
+only workflow state, the files its Writes line names - and installing mid-verification is the wrong
 moment. If a project that renders has no harness, say
 so, name `stack` as where that gets decided, and carry on with what can be
 observed.

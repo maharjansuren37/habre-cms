@@ -26,8 +26,8 @@ ready for real people?"**
 
 That is this skill, and it is a **milestone gate, not a per-deploy one**. Run it
 before the first release, and again before anything major. It audits the whole
-project. It never fixes: it reports, and the one file it writes is the findings
-ledger.
+project. It never fixes: it reports, and it writes only the findings ledger and its
+verdict line in `dev-notes/status.md`.
 
 ## How this differs from the other two
 
@@ -377,9 +377,8 @@ timing. `prepare` is the skill that reports that list in full.
 
 ## Rules
 
-- **Never fix.** Report; the only file this writes is
-  `blueprint/context/findings.md` - blockers in, re-checked non-code repairs
-  closed. Repairs go through the skill named for each blocker.
+- **Never fix.** Report; this writes only the ledger - blockers in, re-checked
+  non-code repairs closed - and its `preflight:` line in `dev-notes/status.md`. Repairs go through the skill named for each blocker.
 - **Never claim compliance.** This checks against a standard; it certifies
   nothing. "Nothing found against the recorded bar" is the strongest true claim.
 - **Unverifiable is never a pass.**

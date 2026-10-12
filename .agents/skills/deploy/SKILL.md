@@ -208,6 +208,13 @@ Update `dev-notes/status.md`. **Record the commit** - it is what makes both the
 rollback and the next release's notes possible, since `docs` derives those from
 everything archived since it.
 
+**Then ask to commit what this run wrote**, on `main`, as its own
+`chore: deploy <environment> <commit>` commit - `dev-notes/status.md`,
+`blueprint/production-pending.md`, and any finding it changed. **This skill
+refuses a dirty tree**, so a release record left uncommitted stops the next
+release - and a rollback, which is the worst moment to find it. Committing is not
+pushing.
+
 Then point at `monitor` for whether it stays healthy. **For a production release
 of a project other people use, also point at `docs` for release notes** - the
 history archive holds what changed, and nobody outside the repository can read

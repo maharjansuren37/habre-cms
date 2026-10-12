@@ -9,7 +9,7 @@ description: "Create the actual application from the stack recorded in the proje
 
 Where this sits:
 
-    `stack` -> `layout` -> scaffold -> `ci` -> `context` -> `prototype` (with a UI) -> `spec`
+    `stack` -> `layout` -> scaffold -> `ci` -> `distill` -> `prototype` (with a UI) -> `spec`
 
 `stack` decided what to build with. This builds it. **It is bigger than running
 the framework's CLI** - a stack of "Next.js, Postgres, Prisma, Auth.js, Tailwind,
@@ -528,7 +528,7 @@ that the plan had not already settled, with the reason.
 is still `# Project Name`, and the `<install command>`, `<dev command>`,
 `<build command>` and `<test command>` lines, from the commands recorded above.
 Only the placeholders: the README is the user's file, so leave any prose alone,
-and leave its one-sentence description to `context`. Left as template, it
+and leave its one-sentence description to `distill`. Left as template, it
 stays that way through the whole build loop until `preflight` calls it a
 blocker.
 

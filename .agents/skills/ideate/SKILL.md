@@ -1,6 +1,6 @@
 ---
 name: ideate
-description: "Turn a rough idea into a project plan by interviewing about what you are building, who it is for, and what the first version must do, then writing `blueprint/project-plan.md`, a starting build-plan.md checklist, and the project's non-negotiable commitments in `blueprint/context/principles.md`. Pushes back on scope too big for a first version, and says plainly when an idea is not ready to build. With --rescope, changes the scope of a project that has already built things, carrying completed items across. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks whether an idea is worth building, asks how to plan a project, or needs to change what an existing project is for."
+description: "Turn a rough idea into a project plan: interviews about what you are building, who it is for, and what the first version must do, then writes `blueprint/project-plan.md`, a starting build-plan.md checklist, and the project's non-negotiable commitments in `blueprint/context/principles.md`. Pushes back on scope too big for a first version, and says plainly when an idea is not ready. With --rescope, changes the scope of a project that has already built things. Use when the user runs `ideate`, is starting something new and has only a rough notion of it, asks whether an idea is worth building or how to plan a project, or needs to change what an existing project is for."
 ---
 
 # ideate - turn a rough notion into a plan you can build from
@@ -9,7 +9,7 @@ description: "Turn a rough idea into a project plan by interviewing about what y
 
 Where this sits:
 
-    ideate -> `architect` -> `stack` -> `layout` -> `scaffold` -> `ci` -> `context`
+    ideate -> `architect` -> `stack` -> `layout` -> `scaffold` -> `ci` -> `distill`
 
 This is the very start. It normally runs in a project that has the workflow but
 no code, no stack, and empty planning docs. **It decides what to build; `stack`
@@ -240,10 +240,10 @@ Then:
   written.** Leaving it alone is about not re-opening a settled commitment, not
   about declining to record a first one. "None" is still a real answer and
   still gets written as one.
-- **Hand off to `setup` and `context`, not `stack` and `scaffold`.** There is
+- **Hand off to `setup` and `distill`, not `stack` and `scaffold`.** There is
   code here already: `stack` refuses a project that has any, and `scaffold`
   installs a decision made long ago. `setup` re-reads what the repo actually is;
-  `context` regenerates the overview from the changed plan.
+  `distill` regenerates the overview from the changed plan.
 - **If the stack itself no longer fits the new scope, say so and stop.** That is
   a rewrite rather than a rescope, and it is the user's call to make deliberately
   rather than something to discover halfway through.

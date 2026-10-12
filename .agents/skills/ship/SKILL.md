@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Close out finished work: run a final safety pass, archive the spec under `blueprint/history`, check the item off in `blueprint/build-plan.md`, reset `blueprint/context/current-work.md`, make one work-level commit, then squash-merge the branch with explicit approval. Refuses to merge while a P0 or P1 finding is open or fixed in blueprint/context/findings.md. Asks separately before pushing. With --abandon, sets an unfinished item aside instead: archives its spec, keeps its branch and leaves the plan item unchecked, so it is parked or dropped deliberately. Use when the user runs `ship`, or asks to finish, wrap up, merge, or close out the current item once it is built and reviewed."
+description: "Close out finished work: a final safety pass, archive the spec under `blueprint/history`, check the item off in `blueprint/build-plan.md`, reset `blueprint/context/current-work.md`, one work-level commit, then a squash-merge with explicit approval. Refuses to merge while a P0 or P1 finding is open or fixed. Asks separately before pushing. With --abandon, sets an unfinished item aside instead: archives its spec, keeps its branch and leaves the plan item unchecked. Use when the user runs `ship`, or asks to finish, wrap up, merge, or close out the current item once it is built and reviewed."
 ---
 
 # ship - log it, commit it, merge it
@@ -50,7 +50,9 @@ A line still reading `not yet` means that check has not run. **A fingerprint tha
 differs means it ran on other code** - usually a repair made after it. Show
 what changed since with `git diff --stat <recorded> <current>`, and ask whether
 to run that check again; a line naming one lens or one path is that much of a
-review, and say so.
+review, and say so. **A `Reviewed:` line reading `PARTLY READ` or `NOT READ`
+is not a clean pass** whatever its blocking count: name what it did not read
+and ask whether to review that before the merge.
 
 **A quick fix skips both by design** - a spec with a `**Quick:**` line, from
 `spec --quick`. Name that instead of the two above, and let Step 1 check that
@@ -124,8 +126,11 @@ accordingly:
   number, and
   check it off in blueprint/build-plan.md. Check the parent item too, but only once
   every sub-item under it is checked.
-- **Fix** - archive to `blueprint/history/fixes/name.md`. A fix is not a plan
-  item, so nothing gets checked off.
+- **Fix** - archive to `blueprint/history/fixes/YYYY-MM-DD-name.md`. A fix is
+  not a plan item, so nothing gets checked off. **The date is not decoration**:
+  a fix has no plan number, so without it a second fix with the same name
+  overwrites the first archive, and its findings' `name/F-03` IDs collide with
+  the first's.
 - **Rollback** - archive to
   `blueprint/history/rollbacks/YYYY-MM-DD-NN-name.md`, **preserving the original
   feature's archive**. Uncheck the target item in `blueprint/build-plan.md` and append
@@ -366,7 +371,7 @@ Then point at what is next:
 - **`deploy`** if this project is already live. Merging put the work on `main`;
   it did not put it in front of anyone. **This is the step most easily forgotten**,
   because the loop feels finished at the merge and the branch is gone.
-- **`context`** whenever the overview's *Current state* is now wrong - which is
+- **`distill`** whenever the overview's *Current state* is now wrong - which is
   **after every ship**, because this skill just ticked an item off
   `blueprint/build-plan.md` and reset the spec. The overview is the file every
   cold session loads, so a stale one starts the next session on a false picture:
@@ -408,8 +413,8 @@ aside because a skill found it inconvenient.
    standing archives an empty section and reports it as done. Append them under
    `## Findings` at their current status - they are about code that never reached
    `main` - **each ID prefixed with the archive name**, so `F-01` becomes
-   `2026-09-22-submit-a-link/F-01`: the entries are leaving the ledger, the next
-   item's first finding will be `F-01` again, and the reason recorded above cites
+   `2026-09-22-submit-a-link/F-01`: the entries are leaving the ledger, a later
+   item's finding can take `F-01` again, and the reason recorded above cites
    these by ID. **Leave the branch's own ledger as it is** - it is what `spec`'s
    resume brings back with the branch - and remove these entries from `main`'s
    ledger only where they are actually in it.

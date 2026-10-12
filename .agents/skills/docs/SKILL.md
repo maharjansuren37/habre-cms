@@ -1,6 +1,6 @@
 ---
 name: docs
-description: "Write and maintain the documentation a project actually needs: a real README, API docs where there is an API, and dev-notes - the decision record explaining why the project is shaped this way, the status file for picking it up cold, and the hand-run equivalent of every automated command. With --check, audits what is already written against what is actually true and reports the rot read-only, changing nothing - a question nothing else in this workflow asks. Use when the user runs `docs`, wants to know whether the documentation is still accurate, when the README is still boilerplate, after a decision worth recording, or when preflight flags documentation as a blocker."
+description: "Write and maintain the documentation a project needs: a real README, API docs where there is an API, and dev-notes - the decision record, the status file for picking it up cold, and the hand-run equivalent of every automated command. With --check, audits what is written against what is true and reports the rot, read-only. Use when the user runs `docs`, wants to know whether the documentation is still accurate, when the README is still boilerplate, after a decision worth recording, or when preflight flags documentation as a blocker."
 ---
 
 # docs - write down what the code cannot say
@@ -190,6 +190,12 @@ default and it is usually wrong.
 
 What you wrote, what you moved, and what is still missing. Documentation gaps are
 worth naming even when you did not fill them.
+
+**Then ask to commit what this run wrote**, as one `docs: ...` commit naming its
+files - **between items that is `main`**, mid-item it is the item's branch.
+Nothing to commit in `--check` mode, which writes nothing. Left uncommitted,
+`deploy` refuses the dirty tree and the next `build` carries the docs onto an
+item's branch as someone else's work. Committing is not pushing.
 
 **When this skill repairs a finding** - a `preflight` blocker such as a scaffold-default README or absent dev-notes - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in the **Resolution** line of its entry, `blueprint/findings/<ID>.md`: the README now says how to run the project, checked by following it. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
 

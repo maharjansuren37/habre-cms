@@ -9,7 +9,7 @@ description: "Set up automatic checks that run on push and on pull requests, usi
 
 Where this sits:
 
-    `scaffold` -> ci -> `context` -> the build loop
+    `scaffold` -> ci -> `distill` -> the build loop
 
 **This runs early, right after `scaffold`, not at the end.** Its only input is the
 verification command, which `scaffold` writes - so there is nothing to wait for,
@@ -151,8 +151,8 @@ to cover the defects that matter most, and a suite CI never runs gates nothing.
   runtime version the plan says it must support - that is the one place a matrix
   earns its keep.
 
-Do not add matrices, coverage gates, security scanners, or caching layers just
-because they exist. Each one is a thing that can break and needs maintaining.
+Do not add matrices, coverage gates, security scanners, or caching beyond the
+dependency cache the Rules ask for, just because they exist. Each one is a thing that can break and needs maintaining.
 Start with one job that works.
 
 ## Step 3 - show the config, then write it
@@ -204,7 +204,7 @@ showed the config but asked nothing, so this question is the yes; commit on it.
 uncommitted, all of it is carried onto the first item's branch and merged as
 part of that item.
 
-**Then say what comes next: `context`.** It generates the overview the build
+**Then say what comes next: `distill`.** It generates the overview the build
 loop reads, and it is the last planning step before `spec` starts on items.
 
 **When this skill repairs a finding** - a `preflight` blocker such as no automated checks, or a verification command that skips some - **set it to `fixed`** in `blueprint/context/findings.md`, with the evidence in the **Resolution** line of its entry, `blueprint/findings/<ID>.md`: the workflow ran and failed on a deliberately broken check. **Never `closed`**: `preflight` re-checks it and closes it, because a repair is examined by something other than what made it. Left `open`, it blocks every later `ship` in this part.
