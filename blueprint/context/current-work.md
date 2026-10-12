@@ -117,7 +117,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   not, a POST not), and `e2e/own-domain.spec.ts` shows: 200 for a verified
   domain and 404 for an unverified one, an unknown one, a suspended site's,
   and the same request with `X-Forwarded-Host` set.
-- [ ] **Step 5 - The Own domain section** - on `/admin/plan` (admin only
+- [x] **Step 5 - The Own domain section** - on `/admin/plan` (admin only
   already): states **Free with billing on** (what Launch adds, link to the
   upgrade area above), **Free with billing off** ("Paid plans coming soon"),
   **Launch, none yet** (a form: Domain, Add), **waiting** (the two records in

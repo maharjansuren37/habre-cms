@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
+import { logIn } from "./helpers/auth.ts";
 import { PORT } from "./helpers/ports.ts";
-import { createSite, deleteSite, siteOneId } from "./helpers/sites.ts";
+import {
+  createSite,
+  createSiteAdmin,
+  createSiteWithAddress,
+  deleteSite,
+  siteOneId,
+  siteUrl,
+} from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
 // Database only - no page. Setup and cleanup run as the owner; the checks run as
@@ -191,5 +199,188 @@ test.describe("the Caddy ask endpoint", () => {
       headers: { "X-Forwarded-For": "203.0.113.9" },
     });
     expect(forwardedFor.status()).toBe(404);
+  });
+});
+
+// The Own domain section of /admin/plan (item 21c, Step 5). Each test makes
+// sites of its own and removes them. `.invalid` never resolves, so a check
+// always answers "not found yet".
+test.describe("the Own domain section", () => {
+  const PLATFORM = `http://127.0.0.1:${PORT}`;
+  const NO_TXT = "We cannot see the verification record yet.";
+  const LIMITED = "That is ten checks in the last hour.";
+  let site: { id: string; address: string };
+  let admin: Awaited<ReturnType<typeof createSiteAdmin>>;
+  const extraSites: string[] = [];
+
+  const invalidDomain = () => `e2e-${randomUUID().slice(0, 8)}.invalid`;
+  const makePaid = (id = site.id) =>
+    withDatabase((sql) => sql`update sites set plan = 'paid' where id = ${id}`);
+  const rowsOf = (id: string) =>
+    withDatabase(
+      (sql) => sql<
+        { domain: string; verifiedAt: Date | null; token: string | null }[]
+      >`select domain, verified_at as "verifiedAt", verification_token as token
+        from site_domains where site_id = ${id} order by domain`,
+    );
+  const post = (
+    request: import("@playwright/test").APIRequestContext,
+    form: Record<string, string>,
+  ) =>
+    request.post(`${PLATFORM}/admin/plan`, {
+      headers: { Origin: PLATFORM },
+      form,
+      maxRedirects: 0,
+    });
+
+  test.beforeEach(async () => {
+    site = await createSiteWithAddress("own-domain-page");
+    admin = await createSiteAdmin(site.id, "Domain Admin");
+  });
+
+  test.afterEach(async () => {
+    await deleteSite(site.id);
+    for (const id of extraSites.splice(0)) await deleteSite(id);
+  });
+
+  test("a Launch admin adds a domain, sees its records, checks it and removes it", async ({
+    page,
+  }) => {
+    await makePaid();
+    await logIn(page, admin);
+    await page.goto("/admin/plan");
+    const section = page.getByRole("region", { name: "Own domain" });
+    const domain = invalidDomain();
+
+    await section.getByLabel("Domain").fill(domain);
+    await section.getByRole("button", { name: "Add domain" }).click();
+
+    const table = section.getByRole("table", {
+      name: "Records to add at your domain's DNS provider",
+    });
+    await expect(table).toBeVisible();
+    const [row] = await rowsOf(site.id);
+    expect(row.domain).toBe(domain);
+    expect(row.token).toMatch(/^[0-9a-f]{32}$/);
+    await expect(table.getByRole("columnheader")).toHaveText(["Type", "Name", "Value"]);
+    await expect(table.getByText(`_habre-verify.${domain}`)).toBeVisible();
+    await expect(table.getByText(`habre-verify=${row.token}`)).toBeVisible();
+    await expect(table.getByText(`${site.address}.localhost`)).toBeVisible();
+
+    await section.getByRole("button", { name: "Check now" }).click();
+    await expect(section.getByText(NO_TXT)).toBeVisible();
+    await expect(table).toBeVisible();
+
+    await section.getByRole("button", { name: "Remove" }).click();
+    await expect(section.getByLabel("Domain")).toBeVisible();
+    await expect(section.getByRole("table")).toHaveCount(0);
+    expect(await rowsOf(site.id)).toHaveLength(0);
+  });
+
+  test("an invalid entry shows its refusal and keeps what was typed", async ({ page }) => {
+    await makePaid();
+    await logIn(page, admin);
+    await page.goto("/admin/plan");
+    const section = page.getByRole("region", { name: "Own domain" });
+
+    await section.getByLabel("Domain").fill("https://x.test/y");
+    await section.getByRole("button", { name: "Add domain" }).click();
+
+    await expect(section.getByText("That does not look like a domain name.")).toBeVisible();
+    await expect(section.getByLabel("Domain")).toHaveValue("https://x.test/y");
+    expect(await rowsOf(site.id)).toHaveLength(0);
+  });
+
+  test("a Free admin sees no field and that the domain is part of Launch", async ({ page }) => {
+    await logIn(page, admin);
+    await page.goto("/admin/plan");
+    const section = page.getByRole("region", { name: "Own domain" });
+
+    await expect(section.getByText("Your own domain is part of Launch.")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Domain" })).toHaveCount(0);
+    // A tampered request is refused too, and nothing is stored.
+    const response = await post(page.request, { intent: "add-domain", domain: invalidDomain() });
+    expect(response.status()).toBe(400);
+    expect(await rowsOf(site.id)).toHaveLength(0);
+  });
+
+  test("another site's admin cannot check, remove or take a site's domain", async ({
+    page,
+    request,
+  }) => {
+    const domain = invalidDomain();
+    await withDatabase(
+      (sql) => sql`
+        insert into site_domains (domain, site_id, verification_token)
+        values (${domain}, ${site.id}, ${"owner-token"})`,
+    );
+    const other = await createSiteWithAddress("own-domain-other-page");
+    extraSites.push(other.id);
+    await makePaid(other.id);
+    const otherAdmin = await createSiteAdmin(other.id, "Other Domain Admin");
+    await logIn(page, otherAdmin);
+    await page.goto("/admin/plan");
+    await expect(page.getByText(domain)).toHaveCount(0);
+
+    const check = await post(page.request, { intent: "check-domain", domain });
+    expect(check.status()).toBe(400);
+    const remove = await post(page.request, { intent: "remove-domain", domain });
+    expect(remove.status()).toBe(400);
+    const add = await post(page.request, { intent: "add-domain", domain });
+    expect(add.status()).toBe(400);
+
+    const rows = await rowsOf(site.id);
+    expect(rows).toEqual([{ domain, verifiedAt: null, token: "owner-token" }]);
+    expect(await rowsOf(other.id)).toHaveLength(0);
+    // Without a session the request never reaches the action.
+    const anonymous = await post(request, { intent: "remove-domain" });
+    expect(anonymous.status()).not.toBe(200);
+    expect(await rowsOf(site.id)).toHaveLength(1);
+  });
+
+  test("a verified domain shows as the site's address and the subdomain still serves", async ({
+    page,
+    request,
+  }) => {
+    const domain = invalidDomain();
+    await withDatabase(
+      (sql) => sql`
+        insert into site_domains (domain, site_id, verified_at)
+        values (${domain}, ${site.id}, now())`,
+    );
+    await logIn(page, admin);
+    await page.goto("/admin/plan");
+    const section = page.getByRole("region", { name: "Own domain" });
+
+    await expect(section.getByText(`${domain} is your site's address.`)).toBeVisible();
+    await expect(section.getByRole("button", { name: "Remove" })).toBeVisible();
+    await expect(section.getByLabel("Domain")).toHaveCount(0);
+    // SITES_URL is http in tests, so own domains are not the main address here.
+    const served = await request.get(siteUrl("/", site.address), { maxRedirects: 0 });
+    expect(served.status()).toBe(200);
+  });
+
+  test("the eleventh check in an hour is refused", async ({ page }) => {
+    test.setTimeout(120_000);
+    const domain = invalidDomain();
+    await makePaid();
+    await withDatabase(
+      (sql) => sql`
+        insert into site_domains (domain, site_id, verification_token)
+        values (${domain}, ${site.id}, ${"limit-token"})`,
+    );
+    await logIn(page, admin);
+    await page.goto("/admin/plan");
+
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      const response = await post(page.request, { intent: "check-domain" });
+      expect(response.status(), `check ${attempt}`).toBe(200);
+    }
+    const eleventh = await post(page.request, { intent: "check-domain" });
+    expect(eleventh.status()).toBe(429);
+
+    await page.goto("/admin/plan");
+    await page.getByRole("button", { name: "Check now" }).click();
+    await expect(page.getByText(LIMITED)).toBeVisible();
   });
 });
