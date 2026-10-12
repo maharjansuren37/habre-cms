@@ -367,4 +367,14 @@ not tidying; it is what keeps the open list true.
       deploy's yes. Blocks nothing now; needed by the v1 `deploy`. `open`
       (spec, 2026-10-02; widened, spec 15b, 2026-10-04)
 
+- [ ] **Check a contact-form notification in a real inbox, and the Messages
+      screen with a screen reader** - manual verification; Mailpit is not
+      Resend, and no test hears what is announced. After the v1 deploy,
+      with `SMTP_URL` set: send the form from a published page, confirm the
+      email arrives (not in spam) with the visitor as Reply-To. Then NVDA,
+      VoiceOver or Orca over `/admin/messages`: the list, the Unread badge,
+      Mark as read / unread, the empty state and the "email failed" line,
+      and Settings' Send messages to field. Blocks nothing now; `preflight`
+      needs it before the v1 deploy. `open` (spec 19c, 2026-10-12)
+
 ## Done

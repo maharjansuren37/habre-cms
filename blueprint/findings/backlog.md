@@ -608,3 +608,6 @@ File: app/features/settings/brand-fields.tsx:194-199; app/features/settings/bran
 
 ### F-393 [P3] open - "Two starts for one site at the same moment" no longer checks the refusal's reason
 File: app/features/ai/run-generation.test.ts:202-214
+
+### F-397 [P3] open - The email-off notice, both Settings hints and the failed-SMTP path have no test
+File: app/features/contact/messages.tsx; app/features/settings/settings.tsx; app/features/contact/notify-contact.server.ts

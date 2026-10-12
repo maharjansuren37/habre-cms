@@ -4,6 +4,8 @@ import { requireRole } from "#app/features/auth/require-role.server.ts";
 import { userContext } from "#app/features/auth/user-context.ts";
 import { listPagesForNav } from "#app/features/content/entries.server.ts";
 import { findMediaByIds } from "#app/features/media/media.server.ts";
+import { isEmailOn } from "#app/lib/email-env.server.ts";
+import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
@@ -23,6 +25,7 @@ import styles from "./settings.module.css";
 import { saveSiteSettings } from "./settings.server.ts";
 import {
   brandColorSchema,
+  contactNotifyEmailSchema,
   homePageIdSchema,
   isSettingsFormBodyAllowed,
   languageSchema,
@@ -47,7 +50,7 @@ export function meta(_: Route.MetaArgs) {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const updated = new URL(request.url).searchParams.get("updated") !== null;
   const pages = await listPagesForNav(context.get(userContext).siteId);
-  return { updated, pages };
+  return { updated, pages, emailOn: isEmailOn(env) };
 }
 
 /** What every non-redirect action response carries, whether it reshaped the
@@ -60,6 +63,7 @@ type ActionResult = {
   homePageId: string;
   siteDescription: string;
   language: string;
+  contactNotifyEmail: string;
   /** What was submitted; `null` when the form carried no Brand section. */
   brandColor: string | null;
   stylePreset: string | null;
@@ -67,6 +71,7 @@ type ActionResult = {
   errors: {
     siteDescription?: string;
     language?: string;
+    contactNotifyEmail?: string;
     brandColor?: string;
     stylePreset?: string;
   };
@@ -89,6 +94,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const rawLanguage = form.get("language");
   const submittedDescription = String(rawDescription ?? "");
   const submittedLanguage = String(rawLanguage ?? "");
+  const rawNotifyEmail = form.get("contactNotifyEmail");
+  const submittedNotifyEmail = String(rawNotifyEmail ?? "");
   // Absent, not just empty, once more (F-107): a post with neither Brand field
   // leaves the brand as it is. No colour is "" and is sent.
   const rawBrandColor = form.get("brandColor");
@@ -103,6 +110,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     homePageId: submittedHomePageId,
     siteDescription: submittedDescription,
     language: submittedLanguage,
+    contactNotifyEmail: submittedNotifyEmail,
     errors: {} as ActionResult["errors"],
   };
 
@@ -117,7 +125,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     } satisfies ActionResult;
   }
 
-  if (rawHomePageId === null || rawDescription === null || rawLanguage === null) {
+  if (
+    rawHomePageId === null ||
+    rawDescription === null ||
+    rawLanguage === null ||
+    rawNotifyEmail === null
+  ) {
     return data(
       {
         problem: "This form is out of date. Reload the page and try again.",
@@ -139,9 +152,16 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const description = siteDescriptionSchema.safeParse(submittedDescription);
   const language = languageSchema.safeParse(submittedLanguage);
+  const notifyEmail = contactNotifyEmailSchema.safeParse(submittedNotifyEmail);
   const brandColor = brandColorSchema.safeParse(carried.brandColor ?? "");
   const stylePreset = stylePresetSchema.safeParse(carried.stylePreset ?? "modern");
-  if (!description.success || !language.success || !brandColor.success || !stylePreset.success) {
+  if (
+    !description.success ||
+    !language.success ||
+    !notifyEmail.success ||
+    !brandColor.success ||
+    !stylePreset.success
+  ) {
     return data(
       {
         problem: "Your changes were not saved.",
@@ -149,6 +169,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         errors: {
           siteDescription: description.error?.issues[0]?.message,
           language: language.error?.issues[0]?.message,
+          contactNotifyEmail: notifyEmail.error?.issues[0]?.message,
           brandColor: brandColor.error?.issues[0]?.message,
           stylePreset: stylePreset.error?.issues[0]?.message,
         },
@@ -209,6 +230,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     navigation: navResult.items,
     siteDescription: description.data,
     language: language.data,
+    contactNotifyEmail: notifyEmail.data,
     brand:
       hasBrand && brandColor.success && stylePreset.success
         ? { brandColor: brandColor.data, stylePreset: stylePreset.data }
@@ -232,7 +254,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
-  const { updated, pages } = loaderData;
+  const { updated, pages, emailOn } = loaderData;
   // This route only renders nested inside the layout that provides this data
   // (app/routes.ts). If the id stops matching, fail loudly: a silent fallback
   // to defaults would re-save them over the real settings (F-93).
@@ -256,6 +278,9 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const siteTitleDefault = actionData ? actionData.siteTitle : settings.siteTitle;
   const siteDescriptionDefault = actionData ? actionData.siteDescription : settings.siteDescription;
   const languageDefault = actionData ? actionData.language : languageOrDefault(settings.language);
+  const notifyEmailDefault = actionData
+    ? actionData.contactNotifyEmail
+    : settings.contactNotifyEmail;
   const errors = actionData?.errors ?? {};
   const homePageIdDefault = actionData ? actionData.homePageId : (settings.homePageId ?? "");
   const pageById = new Map(pages.map((page) => [page.id, page]));
@@ -351,6 +376,21 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             </p>
           )}
         </div>
+        <Field
+          label="Send messages to"
+          name="contactNotifyEmail"
+          type="text"
+          inputMode="email"
+          autoComplete="off"
+          maxLength={254}
+          defaultValue={notifyEmailDefault}
+          hint={
+            emailOn
+              ? "Leave blank to send to every admin of this site."
+              : "This installation can't send email, so messages are only kept in Messages."
+          }
+          error={errors.contactNotifyEmail}
+        />
         <div className={styles.selectField}>
           <label className={styles.navFieldLabel} htmlFor="homePageId">
             Home page

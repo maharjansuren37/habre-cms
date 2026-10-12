@@ -17,6 +17,8 @@ export type SiteSettings = {
   /** `''` (neutral ink) or `#rrggbb`. */
   brandColor: string;
   stylePreset: StylePreset;
+  /** Where contact messages are emailed; `""` means every admin of the site. */
+  contactNotifyEmail: string;
 };
 
 export type StylePreset = "classic" | "modern" | "friendly";
@@ -68,12 +70,14 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
         language: string;
         brandColor: string;
         stylePreset: string;
+        contactNotifyEmail: string | null;
       }[]
     >`
     select s.site_title as "siteTitle", s.logo_media_id as "logoMediaId",
       m.storage_key as "storageKey", m.variant_widths as "variantWidths", m.colours as "colours", s.navigation as "navigation",
       s.home_page_id as "homePageId", s.site_description as "siteDescription",
-      s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset"
+      s.language as "language", s.brand_color as "brandColor", s.style_preset as "stylePreset",
+      s.contact_notify_email as "contactNotifyEmail"
     from site_settings s
     left join media m on m.id = s.logo_media_id and m.site_id = s.site_id
     where s.site_id = ${siteId}
@@ -94,6 +98,7 @@ export async function getSiteSettings(siteId: string, r2PublicUrl: string): Prom
     // Parsed again on the way out: this text ends up in a page's `<style>` (D171).
     brandColor: parseBrandColor(row.brandColor),
     stylePreset: readStylePreset(row.stylePreset),
+    contactNotifyEmail: row.contactNotifyEmail ?? "",
   };
 }
 
@@ -154,6 +159,19 @@ async function updateSeoDefaults(
     update site_settings
     set site_description = ${input.siteDescription}, language = ${input.language},
       updated_at = now()
+    where site_id = ${siteId}
+  `;
+}
+
+/** Another F-40 sibling: only where contact messages are emailed (item 19c); blank is null. */
+async function updateContactNotifyEmail(
+  tx: postgres.TransactionSql,
+  siteId: string,
+  address: string,
+): Promise<void> {
+  await tx`
+    update site_settings
+    set contact_notify_email = ${address === "" ? null : address}, updated_at = now()
     where site_id = ${siteId}
   `;
 }
@@ -220,6 +238,8 @@ export async function saveSiteSettings(
     navigation: NavItem[];
     siteDescription: string;
     language: string;
+    /** `""` for every admin of the site. */
+    contactNotifyEmail: string;
     /** Absent leaves both columns as they are (a form from before the Brand section). */
     brand?: { brandColor: string; stylePreset: StylePreset };
   },
@@ -230,6 +250,7 @@ export async function saveSiteSettings(
       await updateHomePage(tx, siteId, input.homePageId);
       await updateNavigation(tx, siteId, input.navigation);
       await updateSeoDefaults(tx, siteId, input);
+      await updateContactNotifyEmail(tx, siteId, input.contactNotifyEmail);
       if (input.brand) await updateBrand(tx, siteId, input.brand);
     });
     return "saved";

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
@@ -190,6 +191,52 @@ test("a contact submission naming another site is refused by the policy", async 
   } finally {
     await app.end();
   }
+});
+
+// The app's own function, run by node (the e2e project cannot import app/), as the app role.
+function setMessageRead(siteId: string, id: string, read: boolean): boolean {
+  const out = execFileSync(
+    "node",
+    [
+      "--input-type=module",
+      "-e",
+      'import { setMessageRead } from "#app/features/contact/messages.server.ts"; const ok = await setMessageRead(process.env.SITE_ID, process.env.MESSAGE_ID, process.env.READ === "1"); process.stdout.write(String(ok)); process.exit(0);',
+    ],
+    {
+      env: { ...process.env, SITE_ID: siteId, MESSAGE_ID: id, READ: read ? "1" : "0" },
+      encoding: "utf8",
+    },
+  );
+  return out === "true";
+}
+
+test("marking a message read is scoped to the site that owns it", async () => {
+  const readAt = (id: string) =>
+    withDatabase(async (sql) => {
+      const [row] = await sql<{ readAt: Date | null }[]>`
+        select read_at as "readAt" from contact_submissions where id = ${id}
+      `;
+      return row.readAt;
+    });
+  const [one, two] = await withDatabase(async (sql) => {
+    const rows = await sql<{ id: string }[]>`
+      select id from contact_submissions where site_id = ${fixture.siteOne} limit 1
+    `;
+    const other = await sql<{ id: string }[]>`
+      select id from contact_submissions where site_id = ${fixture.siteTwo} limit 1
+    `;
+    return [rows[0].id, other[0].id];
+  });
+
+  // Site A (siteOne) naming site B's message: no match, nothing changes.
+  expect(setMessageRead(fixture.siteOne, two, true)).toBe(false);
+  expect(await readAt(two)).toBeNull();
+
+  // Its own message: matched, read_at set; unread clears it.
+  expect(setMessageRead(fixture.siteOne, one, true)).toBe(true);
+  expect(await readAt(one)).not.toBeNull();
+  expect(setMessageRead(fixture.siteOne, one, false)).toBe(true);
+  expect(await readAt(one)).toBeNull();
 });
 
 test("the owner sees every row", async () => {

@@ -33,12 +33,14 @@ export async function findPublishedEntryPath(
 export async function insertContactSubmission(
   siteId: string,
   submission: NewContactSubmission,
-): Promise<void> {
-  await inSite(siteId, async (tx) => {
-    await tx`
+): Promise<string> {
+  return inSite(siteId, async (tx) => {
+    const [row] = await tx<{ id: string }[]>`
       insert into contact_submissions (site_id, entry_id, name, email, message)
       values (${siteId}, ${submission.entryId}, ${submission.name}, ${submission.email},
         ${submission.message})
+      returning id
     `;
+    return row.id;
   });
 }

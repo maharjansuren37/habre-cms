@@ -13,3 +13,9 @@
 - **forms.11** - the admin's preview shows the form inert *Since:* features/19b-the-contact-form-block
 - **forms.12** - a page or post without a contact form is served without an entry id or token *Since:* features/19b-the-contact-form-block
 - **forms.13** - a document can hold one contact form at most *Since:* features/19b-the-contact-form-block
+- **forms.14** - an admin sees the site's contact messages, newest first, in Messages, with read and unread state *Since:* features/19c-messages-and-the-email
+- **forms.15** - an admin marks a message read or unread, and it works with JavaScript off *Since:* features/19c-messages-and-the-email
+- **forms.16** - only an admin of the site reaches Messages; editors and authors get Not Found *Since:* features/19c-messages-and-the-email
+- **forms.17** - a message is emailed to the address set in Settings, or to every active admin when none is set, with Reply-To the visitor *Since:* features/19c-messages-and-the-email
+- **forms.18** - a message is kept and shown when its email fails, with a line saying so *Since:* features/19c-messages-and-the-email
+- **forms.19** - with no email on the installation a message is kept and Messages says so, and nothing is sent *Since:* features/19c-messages-and-the-email

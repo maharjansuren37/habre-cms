@@ -121,6 +121,7 @@ test("a post's id or an unknown id as the home page gets a friendly 400, and not
         homePageId,
         siteDescription: "",
         language: "en",
+        contactNotifyEmail: "",
       },
     });
     expect(response.status()).toBe(400);
