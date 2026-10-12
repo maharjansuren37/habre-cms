@@ -108,6 +108,17 @@ test("the sites host and anything under it are reserved", () => {
   assert.deepEqual(normalizeDomain("X.Habre.Page.", hosts), refused("reserved"));
 });
 
+test("the platform host's parent domain and anything under it are reserved (F-422)", () => {
+  for (const name of ["habre.ai", "www.habre.ai", "x.habre.ai"]) {
+    assert.deepEqual(normalizeDomain(name, hosts), refused("reserved"), name);
+  }
+});
+
+test("a name that only ends with the platform parent's text is not reserved (F-422)", () => {
+  assert.deepEqual(normalizeDomain("notmine-habre.ai", hosts), ok("notmine-habre.ai"));
+  assert.deepEqual(normalizeDomain("habre.ai.example.org", hosts), ok("habre.ai.example.org"));
+});
+
 test("a name that only ends with the sites host's text is not reserved", () => {
   assert.deepEqual(normalizeDomain("nothabre.page", hosts), ok("nothabre.page"));
 });

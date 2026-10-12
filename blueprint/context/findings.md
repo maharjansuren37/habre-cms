@@ -135,14 +135,14 @@ File: app/features/plans/plan-page.tsx (Remove in the verified state); app/featu
 ### F-420 [P3] open - The pre-warm can still be pointed at another address by changing DNS between the check and the request
 File: app/features/own-domain/own-domain-prewarm.ts:9,29
 
-### F-421 [P3] open - Variants of /_caddy/ask skip classifyHost's loopback-only gate
+### F-421 [P3] closed - Variants of /_caddy/ask skip classifyHost's loopback-only gate
 File: app/lib/host-routing.ts:52
 
-### F-422 [P3] open - The platform's apex and www can be claimed as an own domain
+### F-422 [P3] closed - The platform's apex and www can be claimed as an own domain
 File: app/features/own-domain/own-domain.ts:45
 
-### F-423 [P3] open - The verifying update's `verified_at is null` guard has no test
+### F-423 [P3] closed - The verifying update's `verified_at is null` guard has no test
 File: app/features/own-domain/own-domain-store.ts:176; e2e/own-domain-store.spec.ts:108
 
-### F-424 [P3] open - own-domain-store.ts holds SQL but is not named *.server.ts
+### F-424 [P3] fixed - own-domain-store.ts holds SQL but is not named *.server.ts
 File: app/features/own-domain/own-domain-store.ts

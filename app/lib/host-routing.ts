@@ -2,7 +2,7 @@ import { isPlatformPath } from "./content-security-policy.ts";
 
 const GET_OR_HEAD = new Set(["GET", "HEAD"]);
 
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+export const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 // A subdomain is one DNS label, as sites.subdomain's check requires (0010).
 const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -16,6 +16,19 @@ export type HostClassification =
   | { readonly kind: "not-found"; readonly foreignHost: boolean; readonly platformHost?: true }
   | { readonly kind: "subdomain"; readonly label: string }
   | { readonly kind: "domain"; readonly host: string };
+
+// The route matches case-insensitively, ignoring a trailing slash and after
+// decoding, so the gate compares the same canonical form (F-421). A malformed
+// escape is not the ask path.
+function isCaddyAskPath(pathname: string): boolean {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  return decoded.toLowerCase().replace(/\/+$/, "") === "/_caddy/ask";
+}
 
 /**
  * Decides what a request is before any route runs (item 16a, D153). The
@@ -49,7 +62,7 @@ export function classifyHost(request: {
   // Caddy's on-demand TLS check (item 21c): answered only to a local request,
   // and before any host is read as a site - in development the sites host is
   // `localhost` itself.
-  if (pathname === "/_caddy/ask") {
+  if (isCaddyAskPath(pathname)) {
     return canRedirect && LOOPBACK_HOSTS.has(host.replace(/:\d+$/, ""))
       ? { kind: "allow" }
       : { kind: "not-found", foreignHost: false };

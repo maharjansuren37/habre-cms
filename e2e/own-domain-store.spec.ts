@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
-import { createOwnDomainStore } from "../app/features/own-domain/own-domain-store.ts";
+import { createOwnDomainStore } from "../app/features/own-domain/own-domain-store.server.ts";
 import { createSite, deleteSite } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
@@ -128,6 +128,38 @@ test.describe("checkDomain", () => {
     expect(row.verifiedAt).toBeNull();
     expect(row.token).toBe(added.token);
     expect(row.checkedAt).not.toBeNull();
+  });
+});
+
+test.describe("checkDomain racing a verification (F-423)", () => {
+  test("a failing check never clears a verified_at set behind its read", async () => {
+    const siteId = await newSite("verified-behind-read");
+    const domain = uniqueDomain();
+    const added = await store().addDomain({ siteId, typed: domain, hosts: HOSTS });
+    if (!added.ok) throw new Error(`add refused: ${added.reason}`);
+
+    // The store has read the unverified row; before its update runs, another
+    // check verifies it (through the owner, as the winning check would).
+    const result = await store().checkDomain({
+      siteId,
+      siteHost: "lena.localhost",
+      lookups: {
+        txt: async () => {
+          await withDatabase(
+            (sql) => sql`
+              update site_domains
+              set verified_at = now(), verification_token = null
+              where domain = ${domain}`,
+          );
+          return [];
+        },
+        addresses: async () => ["203.0.113.5"],
+      },
+    });
+    expect(result).toEqual({ outcome: "no-txt", newlyVerified: false });
+    const row = await rowOf(domain);
+    expect(row.verifiedAt).not.toBeNull();
+    expect(row.token).toBeNull();
   });
 });
 

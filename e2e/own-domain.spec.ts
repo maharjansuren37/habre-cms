@@ -184,6 +184,16 @@ test.describe("the Caddy ask endpoint", () => {
     }
   });
 
+  test("answers a path variant like the path itself (F-421)", async ({ request }) => {
+    const query = `?domain=${encodeURIComponent(verified)}`;
+    for (const path of ["/_caddy/ask/", "/_Caddy/Ask", "/%5Fcaddy/ask"]) {
+      const url = `http://127.0.0.1:${PORT}${path}${query}`;
+      expect((await request.get(url)).status(), path).toBe(200);
+      const proxied = await request.get(url, { headers: { "X-Forwarded-Host": verified } });
+      expect(proxied.status(), path).toBe(404);
+    }
+  });
+
   test("answers 404 without a domain or with two", async ({ request }) => {
     expect((await request.get(`http://127.0.0.1:${PORT}/_caddy/ask`)).status()).toBe(404);
     const twice = `http://127.0.0.1:${PORT}/_caddy/ask?domain=${verified}&domain=${verified}`;

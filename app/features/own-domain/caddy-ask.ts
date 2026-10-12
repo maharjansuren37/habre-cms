@@ -1,4 +1,5 @@
 import { findSiteByDomain } from "#app/features/sites/find-site.server.ts";
+import { LOOPBACK_HOSTS } from "#app/lib/host-routing.ts";
 
 const HEADERS = { "Cache-Control": "no-store" };
 const MAX_DOMAIN_LENGTH = 253;
@@ -14,6 +15,8 @@ export async function loader({ request }: { request: Request }) {
   if (request.headers.has("x-forwarded-for") || request.headers.has("x-forwarded-host")) {
     return refuse();
   }
+  // A second guard behind `classifyHost`'s (F-421): only a local request.
+  if (!LOOPBACK_HOSTS.has(new URL(request.url).hostname)) return refuse();
   const values = new URL(request.url).searchParams.getAll("domain");
   if (values.length !== 1) return refuse();
   const domain = values[0].toLowerCase().replace(/\.$/, "");

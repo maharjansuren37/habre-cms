@@ -42,7 +42,12 @@ export function normalizeDomain(
   if (isIP(ascii) !== 0 || endsInNumber(ascii)) return { ok: false, reason: "ip" };
   if (!DOMAIN_PATTERN.test(ascii)) return { ok: false, reason: "invalid" };
 
-  for (const reserved of [hostname(hosts.platformHost), hostname(hosts.sitesHost)]) {
+  // The platform's own domain is the platform's too: `app.habre.ai` reserves
+  // `habre.ai` and everything under it (F-422). A two-label host has no parent.
+  const platform = hostname(hosts.platformHost);
+  const labels = platform.split(".");
+  const platformParent = labels.length > 2 ? labels.slice(1).join(".") : platform;
+  for (const reserved of [platform, platformParent, hostname(hosts.sitesHost)]) {
     if (ascii === reserved || ascii.endsWith(`.${reserved}`)) {
       return { ok: false, reason: "reserved" };
     }

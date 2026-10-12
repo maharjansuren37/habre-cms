@@ -180,6 +180,27 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   a 1 h one and a verified one `taken`, and the candidate query's inclusions
   and exclusions (seen failing with each branch broken).
 
+- [x] **Repair F-421** - `/_caddy/ask`'s loopback gate holds for its path
+  variants: `classifyHost` canonicalises the path (decode once, lowercase,
+  strip trailing slashes) before comparing, and the loader also requires a
+  loopback request hostname. *Done when:* unit cases for `/_caddy/ask/`,
+  `/_Caddy/Ask` and `/%5Fcaddy/ask` on a site, platform and own-domain host
+  answer not-found (seen failing with the repair reverted).
+- [x] **Repair F-422** - the platform's own domain is reserved: the platform
+  host's parent domain, and anything under it, is refused. *Done when:* unit
+  tests refuse `habre.ai`, `www.habre.ai` and `x.habre.ai` for a platform
+  host `app.habre.ai`, and accept `notmine-habre.ai` (seen failing with the
+  repair reverted).
+- [x] **Repair F-423** - the verifying update's `verified_at is null` guard has
+  a test. *Done when:* a store test whose fake lookup marks the row verified
+  through the owner connection mid-check, with an outcome that fails, leaves
+  `verified_at` set and reports not newly verified (seen failing with the
+  guard removed).
+- [x] **Repair F-424** - `own-domain-store.ts` becomes
+  `own-domain-store.server.ts`, with its importers and `tsconfig.node.json`
+  updated. *Done when:* `npm run verify` and the own-domain browser specs
+  pass.
+
 ## Files and areas
 
 - `db/migrations/0026_own_domain.sql`, `db/roles.sql`
@@ -277,6 +298,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
 - Adds to `own-domain`: Check now is refused after ten checks in an hour for one site - Step 3
 - Adds to `own-domain`: a waiting domain is re-checked without any click for 24 hours, and verifies as soon as its records hold - Step 6
 - Adds to `own-domain`: a domain that verifies is requested once over https so its certificate is ready before a visitor - Step 6
+- Adds to `own-domain`: `/_caddy/ask` answers only a loopback request, whatever the path's case, trailing slash or encoding - Step 4
 - Adds to `own-domain`: `/_caddy/ask` answers 200 only for a verified domain of an unsuspended site, and 404 for any request that came through the proxy - Step 4
 
 ## Notes
