@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { createRequestListener } from "@remix-run/node-fetch-server";
 import { createRequestHandler, RouterContextProvider } from "react-router";
-// Imported for its startup check: the server refuses to start misconfigured.
-import "#app/lib/env.server.ts";
 import { failInterruptedRuns } from "#app/features/ai/runs.server.ts";
 import { startOwnDomainChecker } from "#app/features/own-domain/own-domain-checker.server.ts";
+// Imported for its startup check: the server refuses to start misconfigured.
+import { env } from "#app/lib/env.server.ts";
 import { nonceContext } from "#app/lib/nonce-context.ts";
 
 // Runs a restart interrupted are marked failed, once when this module loads. In
@@ -19,6 +19,13 @@ void failInterruptedRuns();
 void startOwnDomainChecker();
 
 const handleRequest = createRequestHandler(() => import("virtual:react-router/server-build"));
+
+// With SEARCH_INDEXING off, every response says not to index it. React Router's
+// responses, redirects included, have mutable headers (F-432).
+function noIndex(response: Response): Response {
+  if (env.SEARCH_INDEXING === "off") response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
+}
 
 // Built here rather than with `@react-router/node`'s createRequestListener, which
 // is the same two calls but passes no options through - and `trustProxy` is the
@@ -37,7 +44,7 @@ export const app = createRequestListener(
     // One per response, never reused: it is what lets React Router's own inline
     // scripts and the brand `<style>` past the Content-Security-Policy (F-100).
     loadContext.set(nonceContext, randomBytes(16).toString("base64"));
-    return handleRequest(request, loadContext);
+    return handleRequest(request, loadContext).then(noIndex);
   },
   { trustProxy: true },
 );

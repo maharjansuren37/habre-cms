@@ -114,14 +114,20 @@ File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 ### F-399 [P2] open - The editor-chrome CSP test fails with "script-src blocked eval" whenever storage is on
 File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (imported only by settings.tsx)
 
-### F-426 [P1] open - The v1 release has nowhere to go: no platform or sites domain, no Cloudflare token, Caddy not rebuilt
+### F-426 [P1] deferred - The v1 release has nowhere to go: no platform or sites domain, no Cloudflare token, Caddy not rebuilt
 File: blueprint/context/needs-you.md (domain, token, Caddy lines); deploy/setup-server.sh
+Deferred to: `host` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
 
-### F-427 [P1] open - The v1 migration set (0008-0026) has never been rehearsed on a restored production backup
+### F-427 [P1] deferred - The v1 migration set (0008-0026) has never been rehearsed on a restored production backup
 File: db/migrations/0008 to 0026; blueprint/production-pending.md
+Deferred to: `deploy` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
 
-### F-428 [P1] open - Signup would open to strangers with no email provider and no terms or privacy policy
+### F-428 [P1] deferred - Signup would open to strangers with no email provider and no terms or privacy policy
 File: blueprint/context/needs-you.md (Resend, policies, licence lines)
+Deferred to: `host` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
 
 ### F-429 [P2] open - Entry-point docs describe the MVP, not v1
 File: dev-notes/status.md; README.md; CHANGELOG.md
+
+### F-436 [P2] unverified - While interim, site 1's pages are same-site with the admin, so the Lax session cookie rides their subresource requests
+File: app/features/auth/ (session cookie); D153 interim amendment in the spec

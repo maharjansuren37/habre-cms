@@ -39,7 +39,7 @@
 ## features/16a-sites-by-host
 
 - [ ] Migration `0015_site_domains.sql` (additive; runs with the v1 deploy's other migrations). Seeds `surenmaharjan.fyi` for subdomain `surenmaharjan`.
-- [ ] `PLATFORM_URL` and `SITES_URL` in `/etc/habre-cms/production.env`, and `PUBLIC_URL` / `ADMIN_URL` removed from the systemd unit (this release's `deploy/habre-cms.service` no longer sets them). The values depend on the platform and sites domains still to be bought (`needs-you.md`).
+- [ ] `PLATFORM_URL` and `SITES_URL` in `/etc/habre-cms/production.env`, and `PUBLIC_URL` / `ADMIN_URL` removed from the systemd unit (this release's `deploy/habre-cms.service` no longer sets them). Interim values (fix/interim-domain-noindex): `https://app.surenmaharjan.fyi` and `https://habre.page`.
 - [ ] DNS and certificates for the platform and sites domains, and the Caddy file - item 16b and `host`. Without them, nothing reaches the new hosts.
 
 ## features/16b-suspend-and-the-server
@@ -53,7 +53,9 @@
   `production.env`.
 - [ ] **DNS on Cloudflare:** `app.`, the apex and `www.` of the platform domain;
   `*.` of the sites domain; all pointing at `ocwebserver`.
-  `cms.surenmaharjan.fyi` keeps its record.
+  `cms.surenmaharjan.fyi` keeps its record. Interim (fix/interim-domain-noindex):
+  `*.habre.page` on Cloudflare, DNS only; `app.surenmaharjan.fyi` at
+  Porkbun, which keeps `surenmaharjan.fyi`'s DNS.
 - [ ] **Install the new Caddy file only with the v1 deploy** (D163). Until then the
   server keeps the current file: production still runs `8d82ce4`, which needs
   `cms.surenmaharjan.fyi` to serve the admin, not redirect it.
@@ -126,3 +128,10 @@
 - [ ] Host change, the owner's yes (`host`): add `on_demand_tls { ask http://127.0.0.1:3000/_caddy/ask }` to the server's main Caddyfile global options, then reload Caddy. Until then own domains verify but get no certificate.
 - [ ] Run `deploy/setup-server.sh` so it installs `habre-cms-own-domains.caddy`, then `caddy validate` (never run here).
 - [ ] No new environment variables.
+
+## fixes/2026-10-12-interim-domain-noindex
+
+- [ ] `SEARCH_INDEXING=off`, `PLATFORM_URL=https://app.surenmaharjan.fyi` and `SITES_URL=https://habre.page` in `/etc/habre-cms/production.env`.
+- [ ] `/etc/caddy/habre-cms.env`: `HABRE_PLATFORM_DOMAIN=surenmaharjan.fyi`, `HABRE_SITES_DOMAIN=habre.page`, and a Cloudflare token with DNS edit on the `habre.page` zone only, filtered to the server's IP, with an expiry (`needs-you.md`).
+- [ ] DNS (done 2026-10-12): `*.habre.page` A `161.33.89.75`, DNS only; `app.surenmaharjan.fyi` answered by Porkbun's `*` CNAME. Before the deploy, add the `sectigo.com` CAA records (`needs-you.md`, F-435).
+- [ ] After the deploy: `curl -sI https://surenmaharjan.fyi/robots.txt` and a `<address>.habre.page` page show `Disallow: /` and `X-Robots-Tag: noindex, nofollow`; the `*.habre.page` certificate is the wildcard.

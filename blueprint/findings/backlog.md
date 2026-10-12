@@ -650,3 +650,9 @@ File: app/features/own-domain/own-domain-prewarm.ts:9,29
 
 ### F-425 [P3] unverified - A platform host with no `app.` label (e.g. `habre.com.au`) would reserve its public suffix as a parent domain
 File: app/features/own-domain/own-domain.ts:45-50 (`platformParent`)
+
+### F-434 [P3] fixed - The interim records never say which domain sends email, and habre.page is set up as never sending
+File: blueprint/context/needs-you.md (Resend line; "Harden the domain accounts" line)
+
+### F-435 [P3] fixed - CAA allowing only letsencrypt.org blocks Caddy's ZeroSSL fallback
+File: blueprint/context/needs-you.md ("Harden the domain accounts" line); live CAA on habre.page and surenmaharjan.fyi

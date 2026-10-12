@@ -24,6 +24,7 @@ import {
   limitsEnvFields,
   requireLaunchStorageAtLeastFree,
 } from "#app/lib/limits-env.server.ts";
+import { searchEnvFields } from "#app/lib/search-env.server.ts";
 
 // Everything the web app reads. server/app.ts imports this, so the production
 // server refuses to start with a missing or invalid variable. Later items add
@@ -44,6 +45,8 @@ const envSchema = databaseEnvSchema
     // Signup and email (item 15b): the switch and the SMTP settings. The rule
     // that signup needs email is in email-env.server.ts.
     ...emailEnvFields,
+    // Whether search engines may index anything (the interim-domain beta).
+    ...searchEnvFields,
     // The storage limit (item 15d), parsed to bytes or null. Renamed below.
     ...limitsEnvFields,
     // AI (item 18b1): validated here, replaced by env.AI below.
