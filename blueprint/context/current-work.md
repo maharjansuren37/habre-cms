@@ -160,6 +160,26 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   where Caddy is installed, or, where it is not, the spec's Notes say it was
   not run; `npm run verify` passes.
 
+- [x] **Repair F-414** - verify only when *every* address of the domain is one
+  of the site's subdomain's (a subset test, not an overlap). *Done when:* a
+  `decideVerification` test with one site address and one foreign address
+  answers `not-pointing` (seen failing with the repair reverted); the overlap
+  tests that expected `verified` are rewritten to the subset rule.
+- [x] **Repair F-419** - removing a *verified* domain asks first: Remove opens a
+  confirmation (what happens, a new TXT record is needed to come back), and the
+  server refuses `remove-domain` on a verified row without `confirm=yes`.
+  *Done when:* an e2e test shows Remove leaves the row, Cancel leaves it, only
+  Confirm deletes it, and a posted `remove-domain` without `confirm` answers
+  400 and keeps the row (seen failing with the repair reverted).
+- [x] **Repair F-415** - the store's SQL runs under a database test: the
+  store moves into `own-domain-store.ts` as `createOwnDomainStore(sql)` (no
+  env import), `own-domain.server.ts` binds it to the app's `sql`, and
+  `e2e/own-domain-store.spec.ts` drives it as the app role with fake lookups.
+  *Done when:* it proves a verification (row verified, token cleared, second
+  call not new), a wrong TXT, a 25 h unverified claim of another site replaced,
+  a 1 h one and a verified one `taken`, and the candidate query's inclusions
+  and exclusions (seen failing with each branch broken).
+
 ## Files and areas
 
 - `db/migrations/0026_own_domain.sql`, `db/roles.sql`
@@ -247,11 +267,12 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
 ## Behaviour changes
 
 - New capability `own-domain`: a Launch site's admin can add one own domain on `/admin/plan`, which shows the TXT and address records to create - Step 5
-- Adds to `own-domain`: a domain is verified only when its TXT record holds the site's token and its addresses include the site's subdomain's - Step 3
+- Adds to `own-domain`: a domain is verified only when its TXT record holds the site's token and every one of its addresses is the site's subdomain's - Step 3
 - Adds to `own-domain`: an unverified domain does not serve the site and does not change its main address - Step 5
 - Adds to `own-domain`: a domain that is the platform's, the sites domain's, under either, an IP, or held by another site is refused - Step 2
 - Adds to `own-domain`: a Free site cannot add a domain, and sees what Launch adds - Step 5
 - Adds to `own-domain`: an admin can remove their site's domain, and its subdomain serves it again - Step 5
+- Adds to `own-domain`: removing a verified domain asks for confirmation first, and the server refuses it without one - Step 5
 - Adds to `own-domain`: an admin of another site cannot see, check or remove a site's domain - Step 5
 - Adds to `own-domain`: Check now is refused after ten checks in an hour for one site - Step 3
 - Adds to `own-domain`: a waiting domain is re-checked without any click for 24 hours, and verifies as soon as its records hold - Step 6

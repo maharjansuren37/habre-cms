@@ -36,6 +36,11 @@
   font-weight: var(--weight-semibold);
 }
 
+.confirmTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
 .list {
   margin: 0;
   padding-left: var(--space-5);

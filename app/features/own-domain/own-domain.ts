@@ -96,7 +96,9 @@ function address(value: string): string {
  * 3. TXT records, none exactly `habre-verify=<token>` -> wrong-txt
  * 4. the domain's lookup failed, the site's lookup failed, or the site has no
  *    addresses -> lookup-failed (our side is broken; never blame the person)
- * 5. the domain has no addresses, or none shared with the site -> not-pointing
+ * 5. the domain has no addresses, or any address that is not one of the
+ *    site's -> not-pointing (a subset test: a domain that also points
+ *    elsewhere is not ours to serve, F-414)
  * 6. otherwise -> verified
  */
 export function decideVerification(input: {
@@ -115,7 +117,9 @@ export function decideVerification(input: {
     return "lookup-failed";
   }
   const site = new Set(siteAddresses.map(address));
-  if (!domainAddresses.some((value) => site.has(address(value)))) return "not-pointing";
+  if (domainAddresses.length === 0 || !domainAddresses.every((value) => site.has(address(value)))) {
+    return "not-pointing";
+  }
   return "verified";
 }
 

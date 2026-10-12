@@ -133,7 +133,7 @@ const base = {
   siteAddresses: ["203.0.113.5"],
 };
 
-test("a matching TXT and an overlapping address verifies", () => {
+test("a matching TXT and an address of the site verifies", () => {
   assert.equal(decideVerification(base), "verified");
 });
 
@@ -171,18 +171,40 @@ test("addresses with nothing in common are not-pointing", () => {
   assert.equal(decideVerification({ ...base, domainAddresses: ["198.51.100.9"] }), "not-pointing");
 });
 
-test("a CNAME-style answer with several addresses verifies when one matches", () => {
+test("a domain with the site's address and a foreign one is not-pointing", () => {
   assert.equal(
     decideVerification({
       ...base,
-      domainAddresses: ["198.51.100.1", "203.0.113.5", "198.51.100.2"],
+      domainAddresses: ["203.0.113.5", "198.51.100.9"],
+      siteAddresses: ["203.0.113.5"],
+    }),
+    "not-pointing",
+  );
+});
+
+test("a domain whose addresses are only some of the site's verifies", () => {
+  assert.equal(
+    decideVerification({
+      ...base,
+      domainAddresses: ["203.0.113.5"],
+      siteAddresses: ["203.0.113.5", "2001:db8::1"],
+    }),
+    "verified",
+  );
+});
+
+test("a CNAME-style single match among several site addresses verifies", () => {
+  assert.equal(
+    decideVerification({
+      ...base,
+      domainAddresses: ["203.0.113.5"],
       siteAddresses: ["192.0.2.7", "203.0.113.5"],
     }),
     "verified",
   );
 });
 
-test("IPv6 addresses overlap case-insensitively", () => {
+test("IPv6 addresses match case-insensitively", () => {
   assert.equal(
     decideVerification({
       ...base,

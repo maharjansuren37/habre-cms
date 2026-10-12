@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { data, Form, redirect, useNavigation, useRevalidator } from "react-router";
+import { data, Form, Link, redirect, useNavigation, useRevalidator } from "react-router";
 import { allowanceSummary } from "#app/features/ai/allowance-summary.ts";
 import { startOfUtcMonth } from "#app/features/ai/credits.ts";
 import { runner } from "#app/features/ai/runner.server.ts";
@@ -33,6 +33,7 @@ import {
 import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { isUserFormBodyAllowed } from "#app/features/users/user-input.ts";
 import { env } from "#app/lib/env.server.ts";
+import buttonStyles from "#app/lib/ui/button.module.css";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
 import { Meter } from "#app/lib/ui/meter.tsx";
@@ -96,6 +97,10 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     state,
     domain: domainRow?.domain ?? null,
     siteHost,
+    // The confirmation screen is only honoured for a verified row; a waiting
+    // domain removes in one click, since nothing is live (F-419).
+    confirmRemove:
+      state === "verified" && new URL(request.url).searchParams.get("confirm") === "remove-domain",
     records:
       waitingRow === null
         ? null
@@ -188,6 +193,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === "remove-domain") {
+    // A verified domain is live: removing it needs the confirmation screen's
+    // `confirm=yes`, so a bare post never takes a site off its address (F-419).
+    const current = await findSiteDomain(user.siteId);
+    if (current?.verifiedAt && form.get("confirm") !== "yes") {
+      throw data("Bad Request", { status: 400 });
+    }
     if (!(await removeDomain(user.siteId))) throw data("Bad Request", { status: 400 });
     return data({ domainRemoved: true });
   }
@@ -456,17 +467,40 @@ export default function PlanPage({ loaderData, actionData }: Route.ComponentProp
             </div>
           </>
         )}
-        {ownDomain.state === "verified" && ownDomain.domain && (
+        {ownDomain.state === "verified" && ownDomain.domain && ownDomain.confirmRemove && (
+          <>
+            <h3 className={styles.confirmTitle}>Remove {ownDomain.domain}?</h3>
+            <p>
+              {ownDomain.siteHost} will serve your site again. To use {ownDomain.domain} again you
+              will need to add a new verification record.
+            </p>
+            <div className={styles.actions}>
+              <Form method="post">
+                <input type="hidden" name="intent" value="remove-domain" />
+                <input type="hidden" name="confirm" value="yes" />
+                <Button
+                  type="submit"
+                  variant="danger"
+                  isPending={sendingIntent === "remove-domain"}
+                >
+                  {sendingIntent === "remove-domain" ? "Removing…" : "Remove domain"}
+                </Button>
+              </Form>
+              <Link className={`${buttonStyles.button} ${buttonStyles.quiet}`} to="/admin/plan">
+                Cancel
+              </Link>
+            </div>
+          </>
+        )}
+        {ownDomain.state === "verified" && ownDomain.domain && !ownDomain.confirmRemove && (
           <>
             <p>
               <strong>{ownDomain.domain}</strong> is your site's address. {ownDomain.siteHost}{" "}
               redirects to it.
             </p>
-            <Form method="post" className={styles.offer}>
-              <input type="hidden" name="intent" value="remove-domain" />
-              <Button type="submit" isPending={sendingIntent === "remove-domain"}>
-                Remove
-              </Button>
+            <Form method="get" className={styles.offer}>
+              <input type="hidden" name="confirm" value="remove-domain" />
+              <Button type="submit">Remove</Button>
             </Form>
             <p className={styles.muted}>
               Removing it makes {ownDomain.siteHost} serve your site again.

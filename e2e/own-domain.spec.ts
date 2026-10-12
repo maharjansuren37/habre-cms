@@ -360,6 +360,60 @@ test.describe("the Own domain section", () => {
     expect(served.status()).toBe(200);
   });
 
+  test.describe("removing a verified domain asks first", () => {
+    let domain: string;
+
+    test.beforeEach(async () => {
+      domain = invalidDomain();
+      await withDatabase(
+        (sql) => sql`
+          insert into site_domains (domain, site_id, verified_at)
+          values (${domain}, ${site.id}, now())`,
+      );
+    });
+
+    test("Remove shows the confirmation and Cancel leaves the domain", async ({ page }) => {
+      await logIn(page, admin);
+      await page.goto("/admin/plan");
+      const section = page.getByRole("region", { name: "Own domain" });
+
+      await section.getByRole("button", { name: "Remove" }).click();
+      await expect(section.getByRole("heading", { name: `Remove ${domain}?` })).toBeVisible();
+      await expect(
+        section.getByText("will serve your site again.", { exact: false }),
+      ).toBeVisible();
+      await expect(
+        section.getByText("you will need to add a new verification record.", { exact: false }),
+      ).toBeVisible();
+      expect(await rowsOf(site.id)).toHaveLength(1);
+
+      await section.getByRole("link", { name: "Cancel" }).click();
+      await expect(section.getByText(`${domain} is your site's address.`)).toBeVisible();
+      await expect(section.getByRole("heading", { name: `Remove ${domain}?` })).toHaveCount(0);
+      expect(await rowsOf(site.id)).toHaveLength(1);
+    });
+
+    test("Remove domain deletes the row and shows the banner", async ({ page }) => {
+      await logIn(page, admin);
+      await page.goto("/admin/plan?confirm=remove-domain");
+      const section = page.getByRole("region", { name: "Own domain" });
+
+      await section.getByRole("button", { name: "Remove domain" }).click();
+      await expect(section.getByText("Domain removed.")).toBeVisible();
+      expect(await rowsOf(site.id)).toHaveLength(0);
+    });
+
+    test("a posted remove without confirm answers 400 and keeps the row", async ({ page }) => {
+      await logIn(page, admin);
+      await page.goto("/admin/plan");
+      const bare = await post(page.request, { intent: "remove-domain" });
+      expect(bare.status()).toBe(400);
+      const no = await post(page.request, { intent: "remove-domain", confirm: "no" });
+      expect(no.status()).toBe(400);
+      expect(await rowsOf(site.id)).toHaveLength(1);
+    });
+  });
+
   test("the eleventh check in an hour is refused", async ({ page }) => {
     test.setTimeout(120_000);
     const domain = invalidDomain();
