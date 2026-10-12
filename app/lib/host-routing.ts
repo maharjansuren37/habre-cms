@@ -2,6 +2,8 @@ import { isPlatformPath } from "./content-security-policy.ts";
 
 const GET_OR_HEAD = new Set(["GET", "HEAD"]);
 
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
 // A subdomain is one DNS label, as sites.subdomain's check requires (0010).
 const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
@@ -43,6 +45,15 @@ export function classifyHost(request: {
   const canRedirect = GET_OR_HEAD.has(method.toUpperCase());
 
   if (pathname === "/healthz") return { kind: "allow" };
+
+  // Caddy's on-demand TLS check (item 21c): answered only to a local request,
+  // and before any host is read as a site - in development the sites host is
+  // `localhost` itself.
+  if (pathname === "/_caddy/ask") {
+    return canRedirect && LOOPBACK_HOSTS.has(host.replace(/:\d+$/, ""))
+      ? { kind: "allow" }
+      : { kind: "not-found", foreignHost: false };
+  }
 
   if (host === platformHost) {
     // The platform is served only at its own host: a form posted from the

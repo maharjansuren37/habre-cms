@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import postgres from "postgres";
+import { PORT } from "./helpers/ports.ts";
 import { createSite, deleteSite, siteOneId } from "./helpers/sites.ts";
 import { withDatabase } from "./helpers/users.ts";
 
@@ -124,4 +125,71 @@ test("site 1's own domain row is still verified and holds no token", async () =>
   expect(rows[0].siteId).toBe(one);
   expect(rows[0].verifiedAt).not.toBeNull();
   expect(rows[0].token).toBeNull();
+});
+
+// Caddy's on-demand TLS check (item 21c step 4): loopback only, no forwarded
+// headers, a verified domain of a site that is not suspended.
+test.describe("the Caddy ask endpoint", () => {
+  const ask = (domain: string) =>
+    `http://127.0.0.1:${PORT}/_caddy/ask?domain=${encodeURIComponent(domain)}`;
+  let suspendedSiteId: string;
+  let verified: string;
+  let unverified: string;
+  let ofSuspended: string;
+
+  test.beforeAll(async () => {
+    suspendedSiteId = await createSite("own-domain-ask-suspended");
+    verified = uniqueDomain();
+    unverified = uniqueDomain();
+    ofSuspended = uniqueDomain();
+    await withDatabase(async (sql) => {
+      await sql`
+        insert into site_domains (domain, site_id, verified_at)
+        values (${verified}, ${siteId}, now()), (${ofSuspended}, ${suspendedSiteId}, now())
+      `;
+      await sql`
+        insert into site_domains (domain, site_id, verification_token)
+        values (${unverified}, ${siteId}, ${"ask-token"})
+      `;
+      await sql`update sites set suspended_at = now() where id = ${suspendedSiteId}`;
+    });
+  });
+
+  test.afterAll(async () => {
+    await deleteSite(suspendedSiteId);
+  });
+
+  test("answers 200, empty, for a verified domain of a live site", async ({ request }) => {
+    const response = await request.get(ask(verified));
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toBe("");
+    expect(response.headers()["cache-control"]).toBe("no-store");
+  });
+
+  test("answers 404 for an unverified, an unknown and a suspended site's domain", async ({
+    request,
+  }) => {
+    for (const domain of [unverified, uniqueDomain(), ofSuspended]) {
+      const response = await request.get(ask(domain));
+      expect(response.status(), domain).toBe(404);
+      expect(await response.text(), domain).toBe("");
+    }
+  });
+
+  test("answers 404 without a domain or with two", async ({ request }) => {
+    expect((await request.get(`http://127.0.0.1:${PORT}/_caddy/ask`)).status()).toBe(404);
+    const twice = `http://127.0.0.1:${PORT}/_caddy/ask?domain=${verified}&domain=${verified}`;
+    expect((await request.get(twice)).status()).toBe(404);
+  });
+
+  test("answers 404 when the request was proxied", async ({ request }) => {
+    const forwardedHost = await request.get(ask(verified), {
+      headers: { "X-Forwarded-Host": verified },
+    });
+    expect(forwardedHost.status()).toBe(404);
+    const forwardedFor = await request.get(ask(verified), {
+      headers: { "X-Forwarded-For": "203.0.113.9" },
+    });
+    expect(forwardedFor.status()).toBe(404);
+  });
 });

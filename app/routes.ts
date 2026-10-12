@@ -16,6 +16,8 @@ export default [
   route("healthz", "features/public-site/healthz.ts"),
   // The one state-changing path a site host accepts (item 19a).
   route("_contact", "features/contact/contact-submit.ts"),
+  // Caddy's on-demand TLS check (item 21c): loopback only, see classifyHost.
+  route("_caddy/ask", "features/own-domain/caddy-ask.ts"),
   // Stripe's webhook (item 21b): platform host only, authenticated by signature.
   route("webhooks/stripe", "features/billing/stripe-webhook.ts"),
   route("robots.txt", "features/seo/robots.ts"),

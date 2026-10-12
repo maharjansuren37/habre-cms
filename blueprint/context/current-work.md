@@ -107,7 +107,7 @@ New: a records `table` (caption, Type / Name / Value columns, the value in
   the rate-limit unit test (the 11th check in an hour is refused, the 10th is
   not); the store's behaviour is proved by Step 5's browser tests, which run
   against the database.
-- [ ] **Step 4 - Caddy's ask endpoint** - resource route
+- [x] **Step 4 - Caddy's ask endpoint** - resource route
   `app/features/own-domain/caddy-ask.ts` at `/_caddy/ask`, in
   `app/routes.ts`; `classifyHost` lets that path through for a loopback host
   only (`127.0.0.1`, `localhost`, `[::1]`, any port); the route also answers
