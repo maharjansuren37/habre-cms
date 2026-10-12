@@ -112,6 +112,15 @@ test("/legal/terms on a site host redirects to the platform's, and /legal and /p
   }
 });
 
+test("/legal/ is not found on the platform host and stays the site's on a site host (F-437)", () => {
+  assert.deepEqual(classify("app.habre.ai", "/legal/"), {
+    kind: "not-found",
+    foreignHost: false,
+    platformHost: true,
+  });
+  assert.deepEqual(classify("lena.habre.page", "/legal/"), { kind: "subdomain", label: "lena" });
+});
+
 test("a POST to a platform path on a site host is not found, logged only for a foreign host", () => {
   assert.deepEqual(classify("lena.habre.page", "/admin/posts", "POST"), {
     kind: "not-found",

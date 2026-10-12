@@ -56,15 +56,14 @@ test("no string in either document is empty, and no section has an empty list", 
 
 test("the privacy policy names every service that handles personal data", () => {
   const text = allStrings("privacy").join("\n");
-  for (const name of [
-    "OpenRouter",
-    "Anthropic",
-    "OpenAI",
-    "Resend",
-    "Cloudflare",
-    "Stripe",
-    "Oracle Cloud",
-  ]) {
+  for (const name of ["OpenRouter", "Resend", "Cloudflare", "Stripe", "Oracle Cloud"]) {
     assert.ok(text.includes(name), name);
   }
+});
+
+// The app's runner calls OpenRouter alone (pickRunAdapter, D405; owner, 2026-10-13).
+// Wiring the direct fallbacks in is the moment to name them here (F-438).
+test("the privacy policy names no AI provider the app never sends a description to", () => {
+  const text = allStrings("privacy").join("\n");
+  for (const name of ["Anthropic", "OpenAI"]) assert.ok(!text.includes(name), name);
 });

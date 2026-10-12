@@ -381,7 +381,7 @@ not tidying; it is what keeps the open list true.
       makes you the host of strangers' content, and contact-form submissions
       are visitors' personal data. It should also say that deleting an
       account is immediate and that deleted data stays in the nightly backups
-      until they age out (7 days locally per `deploy/backup-db.sh`; the R2
+      until they age out (about 9 days locally per `deploy/backup-db.sh` - `-mtime +7` runs after the new dump, F-439; the R2
       backup bucket's retention is not recorded - check it). Blocks nothing now; needed before signup
       opens to the public (item 15's `deploy`). `open` (rescope review,
       2026-10-01; widened, spec 15e2, 2026-10-05)

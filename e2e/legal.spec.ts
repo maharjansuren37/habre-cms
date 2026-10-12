@@ -59,6 +59,9 @@ test("an unknown document is Not Found", async ({ page }) => {
   expect(response?.status()).toBe(404);
   const proto = await page.goto("/legal/toString");
   expect(proto?.status()).toBe(404);
+  // Nothing after /legal/ is not a document, and not a server error (F-437).
+  const bare = await page.goto("/legal/");
+  expect(bare?.status()).toBe(404);
 });
 
 // F-428 step 4: the links from signup and from login.
@@ -88,3 +91,10 @@ for (const [label, base] of [
     await expect(page.getByRole("heading", { level: 1, name: "Privacy policy" })).toBeVisible();
   });
 }
+
+test("with signup off the policies do not link to signup (F-441)", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${HOST_SPLIT_PORT}/legal/terms`);
+  await expect(page.getByRole("heading", { level: 1, name: "Terms of service" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Privacy policy" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create your website" })).toHaveCount(0);
+});

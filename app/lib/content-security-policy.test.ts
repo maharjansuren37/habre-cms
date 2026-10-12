@@ -104,6 +104,11 @@ test("/legal/terms and /legal/privacy are admin; /legal, /privacy, /terms and /l
   }
 });
 
+test("/legal/ with nothing after it is not a platform path (F-437)", () => {
+  assert.equal(isPlatformPath("/legal/"), false);
+  assert.equal(areaForPath("/legal/"), "public");
+});
+
 test("/admin/preview and the paths under it are the preview area; near misses stay admin (18b4b)", () => {
   assert.equal(areaForPath("/admin/preview"), "preview");
   assert.equal(areaForPath("/admin/preview/about"), "preview");

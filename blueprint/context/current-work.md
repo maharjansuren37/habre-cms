@@ -2,7 +2,7 @@
 
 **Type:** Fix
 **Verified:** 2026-10-13, autopilot - every done-when proven by browser tests against the served app (e2e/legal.spec.ts, 9 pass); full `npm run test:e2e` 691 passed, 2 failed - the known F-399 and F-230, both in the editor, untouched here
-**Reviewed:** 2026-10-13, autopilot (independent reviewer, scope current) - no P0/P1; F-437 to F-441 open (P2/P3)
+**Reviewed:** 2026-10-13, autopilot (independent reviewer, scope current) - no P0/P1; F-437 to F-441 raised; repaired by build the same day (F-437, F-438, F-441 closed; F-439, F-440 fixed)
 
 ## Goal
 
@@ -57,7 +57,8 @@ is not a lawyer, and the drafts say nothing the code does not do.
   (content below). *Done when:* `legal-documents.test.ts` passes, asserting for
   each document: `updated` is a real date, section ids are unique and
   kebab-case, no string is empty; and that the privacy policy names
-  OpenRouter, Anthropic, OpenAI, Resend, Cloudflare, Stripe and Oracle Cloud.
+  OpenRouter, Resend, Cloudflare, Stripe and Oracle Cloud, and not Anthropic or
+  OpenAI, which the app never calls (F-438; owner, 2026-10-13: OpenRouter only).
 
 - [x] **Step 3 - the page** - `legal-page.tsx` renders the document for
   `params.document`, 404 for any other value (the project's
@@ -83,6 +84,12 @@ is not a lawyer, and the drafts say nothing the code does not do.
   `[OWNER: ...]` placeholder; ideally someone qualified reads them. *Done when:*
   `grep -c "\[OWNER" app/features/legal/legal-documents.ts` prints `0`, and the
   owner says the text is final; `updated` is that day.
+
+- [x] Repair F-437 - `/legal/` answers 500, and every site host redirects there
+- [x] Repair F-438 - the privacy policy names direct AI providers the app never calls (owner: OpenRouter only)
+- [x] Repair F-439 - local backups live about 9 days, not the 7 the policy states
+- [x] Repair F-440 - smaller gaps between the legal drafts and the code
+- [x] Repair F-441 - the policy pages link to /signup even when signup is off
 
 ## Files and areas
 
@@ -113,8 +120,8 @@ contact email]`, Australia. What is collected and why:
   account and the site.
 - onboarding: the description typed at `/start` and the site name, stored in
   `ai_runs` with the result, token counts and cost; **sent to OpenRouter**,
-  which passes it to the model provider it routes to, and on fallback to
-  Anthropic or OpenAI directly; AI output is a draft the member reviews.
+  which passes it to the model provider it routes to (the app calls OpenRouter
+  alone, D405 - F-438); AI output is a draft the member reviews.
 - visitors who use a site's contact form: name, email, message, stored for that
   site and emailed to its owner; Habre handles them on the site owner's behalf.
 - billing (when on): Stripe holds card details - they never reach Habre; Habre
@@ -128,11 +135,11 @@ contact email]`, Australia. What is collected and why:
 - Where: the server is Oracle Cloud `[OWNER: region]`; images and nightly
   database backups in Cloudflare R2; email sent through Resend.
 - Processors list: Oracle Cloud, Cloudflare, Resend, OpenRouter (and the
-  provider it routes to), Anthropic, OpenAI, Stripe.
+  provider it routes to), Stripe.
 - Retention and deletion: an account is deleted at once by its owner from Your
   account; the last admin deleting takes the site, its content, images,
   messages and AI runs; a deleted member's posts stay on the site with no
-  name. Deleted data stays in backups up to 7 days on the server and
+  name. Deleted data stays in backups up to 9 days on the server (F-439) and
   `[OWNER: R2 backup retention]` in R2.
 - Rights: access, correction, deletion, complaint to the OAIC; contact
   `[OWNER: email]`. No sale of data; no AI training by Habre.

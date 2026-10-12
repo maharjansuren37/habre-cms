@@ -1,4 +1,5 @@
 import { data, Link } from "react-router";
+import { env } from "#app/lib/env.server.ts";
 import type { Route } from "./+types/legal-page";
 import { LEGAL_DOCUMENTS, type LegalDocumentKey } from "./legal-documents.ts";
 import styles from "./legal-page.module.css";
@@ -9,7 +10,8 @@ function isDocumentKey(value: string | undefined): value is LegalDocumentKey {
 
 export function loader({ params }: Route.LoaderArgs) {
   if (!isDocumentKey(params.document)) throw data("Not Found", { status: 404 });
-  return { document: params.document };
+  // Signup's link only where signup exists: it is a 404 when off (F-441).
+  return { document: params.document, signupOpen: env.SIGNUP_MODE !== "off" };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -68,7 +70,7 @@ export default function LegalPage({ loaderData }: Route.ComponentProps) {
           ))}
           <nav className={styles.links} aria-label="Related">
             <Link to={`/legal/${other}`}>{LEGAL_DOCUMENTS[other].title}</Link>
-            <Link to="/signup">Create your website</Link>
+            {loaderData.signupOpen && <Link to="/signup">Create your website</Link>}
           </nav>
         </article>
       </main>

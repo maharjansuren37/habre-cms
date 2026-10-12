@@ -90,7 +90,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         heading: "Plans and limits",
         paragraphs: [
           "Each plan has limits, such as storage for images and a monthly allowance of AI credits, shown on your Plan page. When you reach a limit, the action that would go past it is refused - your published site stays up.",
-          "Paid plans, when offered, are billed in advance through Stripe. You can cancel at any time from Manage billing; your site keeps the paid plan until the end of the period you have paid for, then moves to Free. [OWNER: refund policy, as Australian Consumer Law requires.]",
+          "Paid plans, when offered, are billed in advance through Stripe. A paid plan may start with a free trial, shown when you choose it; unless you cancel before the trial ends, the first payment is taken when it ends. You can cancel at any time from Manage billing; your site keeps the paid plan until the end of the period you have paid for, then moves to Free. [OWNER: confirm the Stripe Customer Portal cancels at the end of the period.] [OWNER: refund policy, as Australian Consumer Law requires.]",
         ],
       },
       {
@@ -124,7 +124,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         id: "changes",
         heading: "Changes to these terms",
         paragraphs: [
-          "If we change these terms we will update the date at the top and email account holders before a change that matters takes effect. Using Habre after that means you accept the new terms.",
+          "If we change these terms we will update the date at the top and email account holders before a change that matters takes effect. [OWNER: nothing sends this email for you - keep the promise only if you will send it.] Using Habre after that means you accept the new terms.",
         ],
       },
       {
@@ -153,7 +153,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         id: "ai",
         heading: "AI drafting",
         paragraphs: [
-          "When you ask Habre to draft your site, we send the kind of site you chose and the description you typed to OpenRouter, which passes it to the AI model provider it routes the request to. If OpenRouter is unavailable, we may send it to Anthropic or OpenAI directly instead.",
+          "When you ask Habre to draft your site, we send the kind of site you chose and the description you typed to OpenRouter, which passes it to the AI model provider it routes the request to.",
           "We keep the description, the draft that comes back, which provider and model made it, the number of tokens used and the cost, so we can show you the draft and count your AI credits. The draft is only a suggestion: nothing is published until you choose to. Habre does not use your content to train AI models.",
         ],
       },
@@ -168,22 +168,22 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         id: "billing",
         heading: "Payments",
         paragraphs: [
-          "Paid plans, when offered, are handled by Stripe. Your card details go to Stripe and never reach Habre. We keep the Stripe customer and subscription identifiers, the plan and its status, and the date it is paid until.",
+          "Paid plans, when offered, are handled by Stripe. Your card details go to Stripe and never reach Habre. To set up the subscription we give Stripe your email address and your site's identifier; Stripe keeps its customer record under its own privacy policy, also after your site is deleted. We keep the Stripe customer and subscription identifiers, the plan and its status, and the date it is paid until.",
         ],
       },
       {
         id: "logs",
         heading: "Logs",
         paragraphs: [
-          "Our web server records each request: the IP address, the time, the address requested and the browser it came from. These logs are kept in files of up to 10 MB; the newest three are kept and older ones deleted.",
-          "Habre's own log records sign-ins, failed sign-ins and other security events, with an account's identifier and the IP address - never a password or an email address - so we can spot someone guessing passwords.",
+          "Our web server records each request: the IP address, the time, the full address requested, the page it came from, and the other details the browser sends with it, apart from its cookies. These logs are kept in files of up to 10 MB: the current file and the three before it are kept and older ones deleted, so how long an entry lasts depends on how busy the site is.",
+          "Habre's own log records sign-ins, failed sign-ins and other security events, with an account's identifier and the IP address - never a password or an email address - so we can spot someone guessing passwords. [OWNER: how long the server's system log keeps these entries.]",
         ],
       },
       {
         id: "cookies",
         heading: "Cookies",
         paragraphs: [
-          "Habre sets only the cookies it needs to work: a session cookie when you sign in (it lasts 7 days and cannot be read by scripts), and, while you confirm your email at signup, one holding the address being confirmed (24 hours). There are no analytics, advertising or tracking cookies, and the public sites Habre serves set none.",
+          "Habre sets only the cookies it needs to work: a session cookie when you sign in (it lasts 7 days and cannot be read by scripts), and, while an email address is waiting to be confirmed - after signing up, or trying to log in before confirming - one holding that address (24 hours). There are no analytics, advertising or tracking cookies, and the public sites Habre serves set none.",
         ],
       },
       {
@@ -197,7 +197,6 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
           "Cloudflare - stores uploaded images and the nightly database backups (R2), and runs DNS for site addresses",
           "Resend - sends Habre's email: signup confirmation, password reset and contact-form messages",
           "OpenRouter, and the AI model provider it routes a request to - AI drafting",
-          "Anthropic and OpenAI - AI drafting, when OpenRouter is unavailable",
           "Stripe - payments, when paid plans are offered",
         ],
       },
@@ -212,9 +211,9 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         id: "retention",
         heading: "How long we keep it, and deleting it",
         paragraphs: [
-          "We keep your information while your account exists. You can delete your account at any time from Your account, and it is deleted straight away. Posts and images you added stay on the site, shown without your name, unless the site is deleted too.",
-          "If you are your site's last admin, deleting your account deletes the whole site: its pages, posts, images, contact messages, AI drafts and the accounts of its other members, who are told by email.",
-          "Deleted information can remain in our backups until they age out: up to 7 days on the server and [OWNER: R2 backup retention] in Cloudflare R2.",
+          "We keep your information while your account exists. You can delete your account at any time from Your account, and it is deleted straight away. Posts and images you added, and the descriptions you typed for AI drafting, stay with the site, without your name, unless the site is deleted too.",
+          "If you are your site's last admin, deleting your account deletes the whole site: its pages, posts, images, contact messages, AI drafts and the accounts of its other members, who are told by email. Its images are deleted from storage straight after; if that fails, an image can stay at its web address until we remove it.",
+          "Deleted information can remain in our backups until they age out: up to 9 days on the server and [OWNER: R2 backup retention] in Cloudflare R2.",
         ],
       },
       {
@@ -229,7 +228,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentKey, LegalDocument> = {
         id: "changes",
         heading: "Changes to this policy",
         paragraphs: [
-          "If we change this policy we will update the date at the top, and email account holders about a change that matters.",
+          "If we change this policy we will update the date at the top, and email account holders about a change that matters. [OWNER: nothing sends this email for you - keep the promise only if you will send it.]",
         ],
       },
     ],
