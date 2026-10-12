@@ -133,3 +133,4 @@ File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 
 ### F-399 [P2] open - The editor-chrome CSP test fails with "script-src blocked eval" whenever storage is on
 File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (imported only by settings.tsx)
+

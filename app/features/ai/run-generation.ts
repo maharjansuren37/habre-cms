@@ -92,8 +92,8 @@ export const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 export type RunnerOptions = {
   store: RunStore;
   adapter: AiAdapter;
-  /** Credits a site may use per UTC month; `null` is no limit. */
-  allowance: number | null;
+  /** Credits a site may use per UTC month, by its plan; `null` is no limit. */
+  allowanceFor: (siteId: string) => Promise<number | null>;
   now?: () => Date;
   timeoutMs?: number;
 };
@@ -121,7 +121,7 @@ const failed = (error: RunErrorCode, reported: Reported = NOTHING_REPORTED): Run
 });
 
 export function createRunner(options: RunnerOptions) {
-  const { store, adapter, allowance } = options;
+  const { store, adapter, allowanceFor } = options;
   const now = options.now ?? (() => new Date());
   const timeoutMs = options.timeoutMs ?? RUN_TIMEOUT_MS;
   const sitesInFlight = new Set<string>();
@@ -228,7 +228,7 @@ export function createRunner(options: RunnerOptions) {
     let runId: string;
     try {
       const used = await store.creditsUsedSince(siteId, startOfUtcMonth(now()));
-      if (!mayStartRun(used, allowance)) {
+      if (!mayStartRun(used, await allowanceFor(siteId))) {
         release();
         return { ok: false, reason: "allowance" };
       }

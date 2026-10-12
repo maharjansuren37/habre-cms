@@ -23,7 +23,7 @@ export function renewalDate(now: Date): string {
 export function refusalMessage(reason: RefusalReason, now: Date): string {
   switch (reason) {
     case "allowance":
-      return `Your site has used this month's AI allowance. It renews on ${renewalDate(now)}. You can start blank instead.`;
+      return `Your site has used this month's AI allowance. It renews on ${renewalDate(now)}. You can start blank instead. Paid plans are coming soon.`;
     case "busy":
       return "Habre is busy building other sites. Try again in a minute.";
     case "site_busy":

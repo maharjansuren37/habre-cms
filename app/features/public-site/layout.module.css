@@ -72,6 +72,13 @@
   font-size: var(--text-sm);
 }
 
+/* Same colour as the footer's text, which already meets contrast; underlined so
+   it reads as a link without it. */
+.credit {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .notFound {
   max-width: var(--size-measure);
   margin: 0 auto;

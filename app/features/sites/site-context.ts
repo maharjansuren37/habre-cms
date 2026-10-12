@@ -1,7 +1,13 @@
 import { createContext } from "react-router";
+import type { Plan } from "#app/features/plans/plan-limits.ts";
 
 /** `ownDomain` is the site's earliest-verified own domain (ties by name), or null. */
-export type PublicSite = { id: string; subdomain: string; ownDomain: string | null };
+export type PublicSite = {
+  id: string;
+  subdomain: string;
+  ownDomain: string | null;
+  plan: Plan;
+};
 
 /** What root middleware sets: the site and its main origin (item 17, D173). */
 export type PublicSiteContext = PublicSite & { mainOrigin: string };

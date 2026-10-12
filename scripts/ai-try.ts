@@ -13,7 +13,7 @@ import { createFakeAdapter } from "#app/features/ai/fake-provider.ts";
 import { createAiAdapter } from "#app/features/ai/providers.server.ts";
 import { type AiAdapter, createRunner, type RunKind } from "#app/features/ai/run-generation.ts";
 import { findRun, runStore } from "#app/features/ai/runs.server.ts";
-import { aiEnvFields, toAiSettings } from "#app/lib/ai-env.server.ts";
+import { aiEnvFields, launchCredits, toAiSettings } from "#app/lib/ai-env.server.ts";
 import { sql } from "#app/lib/db.server.ts";
 
 const USAGE =
@@ -41,7 +41,6 @@ async function aiTry(): Promise<number> {
 
   // Only the AI variables: the script does not need the web app's whole environment.
   const fields = z.object(aiEnvFields).parse(process.env);
-  const allowance = fields.AI_CREDITS_PER_MONTH;
 
   let adapter: AiAdapter;
   if (values.fake) {
@@ -58,7 +57,9 @@ async function aiTry(): Promise<number> {
     adapter = createAiAdapter(settings);
   }
 
-  const [site] = await sql<{ id: string }[]>`select id from sites where subdomain = ${address}`;
+  const [site] = await sql<{ id: string; plan: string }[]>`
+    select id, plan from sites where subdomain = ${address}
+  `;
   if (!site) {
     console.error(`No site has the address ${address}.`);
     return 1;
@@ -73,7 +74,13 @@ async function aiTry(): Promise<number> {
     return 1;
   }
 
-  const runner = createRunner({ store: runStore, adapter, allowance });
+  const runner = createRunner({
+    store: runStore,
+    adapter,
+    // The site's plan sets its allowance (item 21a).
+    allowanceFor: async () =>
+      site.plan === "paid" ? launchCredits(fields) : fields.AI_CREDITS_PER_MONTH,
+  });
   const started = Date.now();
   const result = await runner.start(site.id, admin.userId, { kind, description });
   if (!result.ok) {

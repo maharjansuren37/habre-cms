@@ -4961,3 +4961,33 @@ Costs: an admin who switched down finds no Users screen until they switch up aga
 **Chose:** a Playwright `globalSetup` (`e2e/helpers/pro-site-one.ts`) sets site 1 to Pro and its teardown puts it back; level and dark-mode behaviour is tested on sites of their own (`levels.spec.ts`).
 Beats: switching site 1 inside each spec, which two workers raced on (F-103's shape).
 Costs: a crashed run can leave the development site on Pro.
+
+## D468 - Launch's limits are two variables (2026-10-12)
+
+**Chose:** `LAUNCH_STORAGE_LIMIT_MB` (10240 unless set) and `LAUNCH_AI_CREDITS_PER_MONTH` (6000 unless set), read into `env.PLAN_LIMITS`; `limitsFor(plan, config)` resolves a site's numbers. A value below Free's stops startup.
+Beats: per-plan JSON, and a `plans` table - one paid plan, and self-hosters already configure by environment.
+Costs: a third plan means a third pair of variables; defaults are provisional until the owner sets them (`needs-you.md`).
+
+## D469 - The footer link follows the plan alone (2026-10-12)
+
+**Chose:** a Free site's public pages carry "Made with Habre"; a Launch site's do not. No switch. A self-hosted copy without payment sets its site to `paid` with `set-plan`.
+Beats: an environment flag.
+Costs: a self-hoster must run one command per site to remove the link.
+
+## D470 - `/admin/plan` exists with billing off (2026-10-12)
+
+**Chose:** the page shows the plan and use with no way to pay; billing's switch (21b) only adds the buttons. Plan section *Switches* amended.
+Beats: hiding the page until billing is on.
+Costs: a screen that says "Paid plans are coming soon" until 21b.
+
+## D471 - Admin loaders read the plan with their own site query (2026-10-12)
+
+**Chose:** `findMemberSite` reads `plan` with the row it already loads; public requests gain no query, since `findSiteBy*` select `s.plan` in the query they already run.
+Beats: putting `plan` on `userContext`, which would change `findUserById` and `SessionUser`.
+Costs: one primary-key query on admin routes and uploads that need the plan.
+
+## D472 - An operator command sets the plan until 21b (2026-10-12)
+
+**Chose:** `npm run set-plan -- --address <site> --plan free|paid`, modelled on `suspend-site`; 21b's webhooks become the only other writer of `sites.plan`.
+Beats: a SQL one-liner in the runbook.
+Costs: a second writer to keep consistent when 21b lands.

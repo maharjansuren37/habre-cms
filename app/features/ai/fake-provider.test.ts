@@ -27,7 +27,11 @@ async function runWith(description: string) {
   mock.method(console, "info", () => {});
   mock.method(console, "error", () => {});
   const { store, outcomes } = memoryStore();
-  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: async () => null,
+  });
   const input: StartInput = { kind: "business", description };
   const r = await runner.start("s1", "u1", input);
   assert.ok(r.ok);

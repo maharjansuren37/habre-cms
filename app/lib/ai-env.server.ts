@@ -65,12 +65,16 @@ export function requireLocalPlatformForFake(
   }
 }
 
-const creditsPerMonth = z
-  .string()
-  .regex(/^(?:none|[1-9][0-9]*)$/, {
-    message: "AI_CREDITS_PER_MONTH must be a whole number of credits from 1, or none",
-  })
-  .transform((value) => (value === "none" ? null : Number(value)));
+const creditsPerMonth = (variable: string) =>
+  z
+    .string()
+    .regex(/^(?:none|[1-9][0-9]*)$/, {
+      message: `${variable} must be a whole number of credits from 1, or none`,
+    })
+    .transform((value) => (value === "none" ? null : Number(value)));
+
+// Launch's allowance when LAUNCH_AI_CREDITS_PER_MONTH is unset (item 21a).
+const LAUNCH_DEFAULT_CREDITS = 6000;
 
 // US dollars per million tokens (item 18b2).
 export type Price = { input: number; output: number; cacheRead: number; cacheWrite: number };
@@ -122,7 +126,40 @@ export const aiEnvFields = {
   OPENAI_PRICE: optional(price("OPENAI_PRICE").optional()),
   // Credits a site may use a month: a whole number, or null for no limit.
   // Unset gives 1000 (US$1 of provider cost), provisional.
-  AI_CREDITS_PER_MONTH: optional(creditsPerMonth.default(1000)),
+  AI_CREDITS_PER_MONTH: optional(creditsPerMonth("AI_CREDITS_PER_MONTH").default(1000)),
+  // Launch's allowance (item 21a), same rules. Left undefined when unset:
+  // launchCredits gives the default, never lower than Free's.
+  LAUNCH_AI_CREDITS_PER_MONTH: optional(creditsPerMonth("LAUNCH_AI_CREDITS_PER_MONTH").optional()),
+};
+
+type LaunchCreditFields = {
+  AI_CREDITS_PER_MONTH: number | null;
+  LAUNCH_AI_CREDITS_PER_MONTH?: number | null | undefined;
+};
+
+// Launch may not be set below Free (null is no limit, so above every number).
+export const requireLaunchCreditsAtLeastFree = (
+  fields: LaunchCreditFields,
+  context: z.RefinementCtx,
+) => {
+  const launch = fields.LAUNCH_AI_CREDITS_PER_MONTH;
+  const free = fields.AI_CREDITS_PER_MONTH;
+  if (launch === undefined || launch === null) return;
+  if (free === null || launch < free) {
+    context.addIssue({
+      code: "custom",
+      path: ["LAUNCH_AI_CREDITS_PER_MONTH"],
+      message: "LAUNCH_AI_CREDITS_PER_MONTH must not be lower than AI_CREDITS_PER_MONTH",
+    });
+  }
+};
+
+// Launch's monthly credits, or null for none. Unset gives 6000, or Free's when
+// that is higher.
+export const launchCredits = (fields: LaunchCreditFields): number | null => {
+  if (fields.LAUNCH_AI_CREDITS_PER_MONTH !== undefined) return fields.LAUNCH_AI_CREDITS_PER_MONTH;
+  if (fields.AI_CREDITS_PER_MONTH === null) return null;
+  return Math.max(LAUNCH_DEFAULT_CREDITS, fields.AI_CREDITS_PER_MONTH);
 };
 
 export type ProviderSettings =
@@ -189,4 +226,5 @@ export const aiEnvSchema = z
   .superRefine((fields, context) =>
     requireLocalPlatformForFake(fields, fields.PLATFORM_URL, context),
   )
+  .superRefine(requireLaunchCreditsAtLeastFree)
   .transform((fields, context) => ({ AI: toAiSettings(fields, reportMissing(context)) }));

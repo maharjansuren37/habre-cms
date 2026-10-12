@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
+import { allowanceForSites } from "./allowance.ts";
 import { createFakeAdapter } from "./fake-provider.ts";
 import {
   type AiAdapter,
@@ -79,7 +80,7 @@ test("a success stores the proposal, usage, model, provider and credits", async 
   const runner = createRunner({
     store,
     adapter: createFakeAdapter(),
-    allowance: 1000,
+    allowanceFor: async () => 1000,
     now: () => NOW,
   });
   const r = await started(runner.start("s1", "u1", input));
@@ -104,10 +105,56 @@ test("a site at its allowance is refused before any row is written", async (t) =
   const runner = createRunner({
     store,
     adapter: createFakeAdapter(),
-    allowance: 1000,
+    allowanceFor: async () => 1000,
     now: () => NOW,
   });
   assert.deepEqual(await runner.start("s1", "u1", input), { ok: false, reason: "allowance" });
+  assert.equal(rows.length, 0);
+});
+
+const PLAN_LIMITS = {
+  free: { storageBytes: null, aiCredits: 1000 },
+  launch: { storageBytes: null, aiCredits: 6000 },
+};
+const planOf = async (siteId: string) =>
+  siteId === "paid-site" ? ("paid" as const) : ("free" as const);
+
+test("a Free site with 1,000 credits used is refused, a paid site with the same use starts", async (t) => {
+  quiet();
+  t.after(() => mock.restoreAll());
+  const allowanceFor = allowanceForSites(planOf, PLAN_LIMITS);
+  const free = memoryStore(1000);
+  const refused = await createRunner({
+    store: free.store,
+    adapter: createFakeAdapter(),
+    allowanceFor,
+  }).start("free-site", "u1", input);
+  assert.deepEqual(refused, { ok: false, reason: "allowance" });
+  assert.equal(free.rows.length, 0);
+  const paid = memoryStore(1000);
+  const started = await createRunner({
+    store: paid.store,
+    adapter: createFakeAdapter(),
+    allowanceFor,
+  }).start("paid-site", "u1", input);
+  assert.ok(started.ok);
+  await started.done;
+  assert.equal(paid.rows.length, 1);
+});
+
+test("a paid site at the Launch allowance is refused", async (t) => {
+  quiet();
+  t.after(() => mock.restoreAll());
+  const { store, rows } = memoryStore(6000);
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: allowanceForSites(planOf, PLAN_LIMITS),
+  });
+  assert.deepEqual(await runner.start("paid-site", "u1", input), {
+    ok: false,
+    reason: "allowance",
+  });
   assert.equal(rows.length, 0);
 });
 
@@ -118,7 +165,7 @@ test("a site with one credit left may start, and none means no limit", async (t)
   const one = await createRunner({
     store: a.store,
     adapter: createFakeAdapter(),
-    allowance: 1000,
+    allowanceFor: async () => 1000,
   }).start("s1", "u1", input);
   assert.ok(one.ok);
   await one.done;
@@ -126,7 +173,7 @@ test("a site with one credit left may start, and none means no limit", async (t)
   const free = await createRunner({
     store: b.store,
     adapter: createFakeAdapter(),
-    allowance: null,
+    allowanceFor: async () => null,
   }).start("s1", "u1", input);
   assert.ok(free.ok);
   await free.done;
@@ -137,7 +184,7 @@ test("a third run while two are running is refused as busy and records nothing",
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const g = gate();
-  const runner = createRunner({ store, adapter: gatedAdapter(g), allowance: null });
+  const runner = createRunner({ store, adapter: gatedAdapter(g), allowanceFor: async () => null });
   const first = await started(runner.start("s1", "u1", input));
   const second = await started(runner.start("s2", "u2", input));
   assert.deepEqual(await runner.start("s3", "u3", input), { ok: false, reason: "busy" });
@@ -150,7 +197,11 @@ test("the slot is released after a success, so a later run starts", async (t) =>
   quiet();
   t.after(() => mock.restoreAll());
   const { store } = memoryStore();
-  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: async () => null,
+  });
   for (const site of ["s1", "s2", "s3", "s4"]) {
     const r = await started(runner.start(site, "u", input));
     await r.done;
@@ -162,7 +213,7 @@ test("a second run for a site whose first is still running is refused as site_bu
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const g = gate();
-  const runner = createRunner({ store, adapter: gatedAdapter(g), allowance: null });
+  const runner = createRunner({ store, adapter: gatedAdapter(g), allowanceFor: async () => null });
   const first = await started(runner.start("s1", "u1", input));
   assert.deepEqual(await runner.start("s1", "u2", input), { ok: false, reason: "site_busy" });
   assert.equal(rows.length, 1);
@@ -177,7 +228,11 @@ test("a site with a running row left by something else is refused as site_busy a
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   rows.push({ id: "other", siteId: "s1", status: "running" });
-  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: async () => null,
+  });
   assert.deepEqual(await runner.start("s1", "u1", input), { ok: false, reason: "site_busy" });
   assert.equal(rows.length, 1);
   const other = await started(runner.start("s2", "u2", input));
@@ -190,7 +245,7 @@ test("a site with a run in flight hears site_busy even while both slots are take
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const g = gate();
-  const runner = createRunner({ store, adapter: gatedAdapter(g), allowance: null });
+  const runner = createRunner({ store, adapter: gatedAdapter(g), allowanceFor: async () => null });
   const first = await started(runner.start("s1", "u1", input));
   const second = await started(runner.start("s2", "u2", input));
   assert.deepEqual(await runner.start("s1", "u1", input), { ok: false, reason: "site_busy" });
@@ -203,7 +258,11 @@ test("two starts for one site at the same moment: one runs, one is refused", asy
   quiet();
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
-  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: async () => null,
+  });
   const [a, b] = await Promise.all([
     runner.start("s1", "u1", input),
     runner.start("s1", "u1", input),
@@ -218,7 +277,7 @@ test("output failing the schema fails as invalid, charged the cost it reported, 
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const adapter = createFakeAdapter({ output: { pages: [] }, costUsd: 0.0421 });
-  const runner = createRunner({ store, adapter, allowance: null });
+  const runner = createRunner({ store, adapter, allowanceFor: async () => null });
   const r = await started(runner.start("s1", "u1", input));
   await r.done;
   const outcome = rows[0]?.outcome;
@@ -237,7 +296,11 @@ for (const code of ["unavailable", "broken", "refused", "invalid"] as const) {
     const { store, rows } = memoryStore();
     const usage = { input: 10, cacheRead: 2, cacheWrite: 1, output: 3 };
     const error = new AiError(code, "nope", { usage, costUsd: 0.01, provider: "fake", model: "m" });
-    const runner = createRunner({ store, adapter: createFakeAdapter({ error }), allowance: null });
+    const runner = createRunner({
+      store,
+      adapter: createFakeAdapter({ error }),
+      allowanceFor: async () => null,
+    });
     const r = await started(runner.start("s1", "u1", input));
     await r.done;
     const outcome = rows[0]?.outcome;
@@ -255,7 +318,11 @@ test("an adapter error that reported no cost is charged 0", async (t) => {
   t.after(() => mock.restoreAll());
   const { store, rows } = memoryStore();
   const error = new AiError("unavailable", "down");
-  const runner = createRunner({ store, adapter: createFakeAdapter({ error }), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter({ error }),
+    allowanceFor: async () => null,
+  });
   const r = await started(runner.start("s1", "u1", input));
   await r.done;
   assert.equal(rows[0]?.outcome?.error, "unavailable");
@@ -268,7 +335,7 @@ test("a run that fails releases its slot", async (t) => {
   t.after(() => mock.restoreAll());
   const { store } = memoryStore();
   const adapter = createFakeAdapter({ error: new AiError("unavailable", "down") });
-  const runner = createRunner({ store, adapter, allowance: null });
+  const runner = createRunner({ store, adapter, allowanceFor: async () => null });
   for (const site of ["s1", "s2", "s3", "s4"]) {
     const r = await started(runner.start(site, "u", input));
     await r.done;
@@ -285,7 +352,7 @@ test("an unexpected throw from the adapter fails the run as broken", async (t) =
     },
   };
   const r = await started(
-    createRunner({ store, adapter, allowance: null }).start("s1", "u1", input),
+    createRunner({ store, adapter, allowanceFor: async () => null }).start("s1", "u1", input),
   );
   await r.done;
   assert.equal(rows[0]?.outcome?.error, "broken");
@@ -298,7 +365,11 @@ test("a failing store.finish is logged and still releases the slot", async (t) =
   store.finish = async () => {
     throw new Error("db down");
   };
-  const runner = createRunner({ store, adapter: createFakeAdapter(), allowance: null });
+  const runner = createRunner({
+    store,
+    adapter: createFakeAdapter(),
+    allowanceFor: async () => null,
+  });
   for (const site of ["s1", "s2", "s3"]) {
     const r = await started(runner.start(site, "u", input));
     await r.done;
@@ -317,7 +388,7 @@ test("a run past 5 minutes fails as timeout, even if the adapter never settles",
       return new Promise<GenerateResult>(() => {});
     },
   };
-  const runner = createRunner({ store, adapter, allowance: null });
+  const runner = createRunner({ store, adapter, allowanceFor: async () => null });
   const r = await started(runner.start("s1", "u1", input));
   await Promise.resolve();
   t.mock.timers.tick(5 * 60 * 1000 - 1);
@@ -335,7 +406,12 @@ test("a timed-out run releases its slot", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { store } = memoryStore();
   const hang: AiAdapter = { generate: () => new Promise<GenerateResult>(() => {}) };
-  const runner = createRunner({ store, adapter: hang, allowance: null, timeoutMs: 1000 });
+  const runner = createRunner({
+    store,
+    adapter: hang,
+    allowanceFor: async () => null,
+    timeoutMs: 1000,
+  });
   const sites = ["s1", "s2"];
   const runs = [];
   for (const site of sites) runs.push(await started(runner.start(site, "u", input)));
@@ -354,7 +430,11 @@ test("the log line names the run, site, outcome and model but never the descript
   t.after(() => mock.restoreAll());
   const { store } = memoryStore();
   const r = await started(
-    createRunner({ store, adapter: createFakeAdapter(), allowance: null }).start("s1", "u1", input),
+    createRunner({ store, adapter: createFakeAdapter(), allowanceFor: async () => null }).start(
+      "s1",
+      "u1",
+      input,
+    ),
   );
   await r.done;
   assert.equal(lines.length, 1);
@@ -377,7 +457,7 @@ test("the adapter is handed the run's own id", async () => {
     },
   };
   const r = await started(
-    createRunner({ store, adapter, allowance: null }).start("s1", "u1", input),
+    createRunner({ store, adapter, allowanceFor: async () => null }).start("s1", "u1", input),
   );
   await r.done;
   assert.deepEqual(seen, [rows[0]?.id]);

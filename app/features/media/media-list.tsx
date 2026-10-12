@@ -1,5 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { userContext } from "#app/features/auth/user-context.ts";
+import { limitsFor } from "#app/features/plans/plan-limits.ts";
+import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { DELETED_ACCOUNT } from "#app/lib/deleted-account.ts";
 import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
@@ -30,7 +32,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const actor = context.get(userContext);
   const url = new URL(request.url);
   const page = parseMediaListPage(url);
-  const list = await listMedia(actor.siteId, page);
+  const [list, { plan }] = await Promise.all([
+    listMedia(actor.siteId, page),
+    findMemberSite(actor.siteId),
+  ]);
+  const { storageBytes } = limitsFor(plan, env.PLAN_LIMITS);
   // A bookmarked or stale page past the real end would otherwise render a
   // false "No images uploaded yet." with no way back (F-75, the same shape
   // F-56 found for posts) - redirect to the last real page instead.
@@ -50,7 +56,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     totalPages: list.totalPages,
     page,
     banner,
-    storage: storageSummary(await storageUsed(actor.siteId), env.STORAGE_LIMIT_BYTES),
+    storage: storageSummary(await storageUsed(actor.siteId), storageBytes),
   };
 }
 

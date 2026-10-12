@@ -4,6 +4,7 @@ import {
   brandDarkCustomProperties,
 } from "#app/features/brand/brand-colours.ts";
 import { findPublishedPageSlugs } from "#app/features/content/entries.server.ts";
+import { showsCredit } from "#app/features/plans/plan-limits.ts";
 import { getSiteSettings, type SiteSettings } from "#app/features/settings/settings.server.ts";
 import { siteContext } from "#app/features/sites/site-context.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -49,7 +50,7 @@ export function meta({ error, matches }: Route.MetaArgs) {
 }
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const { id: siteId, mainOrigin } = context.get(siteContext);
+  const { id: siteId, mainOrigin, plan } = context.get(siteContext);
   const settings = await getSiteSettings(siteId, env.R2_PUBLIC_URL);
   const navLinks = await resolveNavigation(siteId, settings.navigation);
   // Only what the header, footer and head tags need (F-108); never the whole row.
@@ -59,6 +60,9 @@ export async function loader({ context }: Route.LoaderArgs) {
     siteDescription: settings.siteDescription,
     navLinks,
     mainOrigin,
+    // Where the footer's credit leads, or null when the site's plan has none
+    // (item 21a). The plan is already on the site context: no added query.
+    creditHref: showsCredit(plan) ? new URL(env.PLATFORM_URL).origin : null,
     // The brand reaches the page as derived declarations only, never the stored
     // string (D171); the nonce is the one in this response's CSP header.
     nonce: context.get(nonceContext),
@@ -80,12 +84,15 @@ export function Chrome({
   settings,
   navLinks,
   homeHref = "/",
+  creditHref = null,
   children,
 }: {
   settings: Pick<SiteSettings, "siteTitle" | "logoUrl">;
   navLinks: NavLink[];
   /** Where the logo and name lead: `/`, or the preview's home (item 18b4b). */
   homeHref?: string;
+  /** The platform's address for the "Made with Habre" link; null shows none. */
+  creditHref?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -121,6 +128,11 @@ export function Chrome({
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <span>{settings.siteTitle}</span>
+          {creditHref && (
+            <a className={styles.credit} href={creditHref}>
+              Made with Habre
+            </a>
+          )}
         </div>
       </footer>
     </>
@@ -129,7 +141,11 @@ export function Chrome({
 
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   return (
-    <Chrome settings={loaderData.settings} navLinks={loaderData.navLinks}>
+    <Chrome
+      settings={loaderData.settings}
+      navLinks={loaderData.navLinks}
+      creditHref={loaderData.creditHref}
+    >
       <Outlet />
     </Chrome>
   );
@@ -152,7 +168,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   };
   const navLinks = loaderData?.navLinks ?? [];
   return (
-    <Chrome settings={settings} navLinks={navLinks}>
+    <Chrome settings={settings} navLinks={navLinks} creditHref={loaderData?.creditHref ?? null}>
       <main className={styles.notFound}>
         <p>{isNotFound ? "Page not found." : (devDetail?.message ?? "Something went wrong.")}</p>
         {devDetail?.stack && (

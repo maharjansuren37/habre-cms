@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { aiEnvSchema } from "./ai-env.server.ts";
+import { z } from "zod";
+import { aiEnvFields, aiEnvSchema, launchCredits } from "./ai-env.server.ts";
 
 // Not parseEnv: database-env.server.ts parses process.env when imported.
 const parse = (source: NodeJS.ProcessEnv) => aiEnvSchema.parse(source);
@@ -237,4 +238,53 @@ test("the fake refusal never contains the platform address", () => {
     () => parse({ AI_PROVIDERS: "fake", PLATFORM_URL: "https://secretvalue.example" }),
     (error: Error) => /AI_PROVIDERS/.test(error.message) && !error.message.includes("secretvalue"),
   );
+});
+
+// Launch's monthly allowance as the app uses it: resolved against Free's.
+const launch = (source: NodeJS.ProcessEnv) => {
+  aiEnvSchema.parse(source); // the refusals
+  return launchCredits(z.object(aiEnvFields).parse(source));
+};
+
+test("an unset or blank LAUNCH_AI_CREDITS_PER_MONTH gives 6000", () => {
+  assert.equal(launch({}), 6000);
+  assert.equal(launch({ LAUNCH_AI_CREDITS_PER_MONTH: "" }), 6000);
+});
+
+test("a set LAUNCH_AI_CREDITS_PER_MONTH is used, none removes it", () => {
+  assert.equal(launch({ LAUNCH_AI_CREDITS_PER_MONTH: "9000" }), 9000);
+  assert.equal(launch({ LAUNCH_AI_CREDITS_PER_MONTH: "none" }), null);
+});
+
+test("a malformed Launch allowance is refused naming LAUNCH_AI_CREDITS_PER_MONTH", () => {
+  for (const value of ["0", "-1", "1.5", "abc"]) {
+    assert.throws(
+      () => parse({ LAUNCH_AI_CREDITS_PER_MONTH: value }),
+      /LAUNCH_AI_CREDITS_PER_MONTH/,
+      value,
+    );
+  }
+});
+
+test("an unset Launch allowance never lowers below a larger Free one", () => {
+  assert.equal(launch({ AI_CREDITS_PER_MONTH: "20000" }), 20000);
+  assert.equal(launch({ AI_CREDITS_PER_MONTH: "none" }), null);
+});
+
+test("a Launch allowance below Free's is refused naming both variables", () => {
+  assert.throws(
+    () => parse({ AI_CREDITS_PER_MONTH: "7000", LAUNCH_AI_CREDITS_PER_MONTH: "6000" }),
+    (error: Error) =>
+      /LAUNCH_AI_CREDITS_PER_MONTH/.test(error.message) &&
+      /\bAI_CREDITS_PER_MONTH/.test(error.message),
+  );
+  assert.throws(
+    () => parse({ AI_CREDITS_PER_MONTH: "none", LAUNCH_AI_CREDITS_PER_MONTH: "6000" }),
+    /LAUNCH_AI_CREDITS_PER_MONTH/,
+  );
+});
+
+test("a Launch allowance equal to Free's, or none, is accepted", () => {
+  assert.equal(launch({ AI_CREDITS_PER_MONTH: "7000", LAUNCH_AI_CREDITS_PER_MONTH: "7000" }), 7000);
+  assert.equal(launch({ LAUNCH_AI_CREDITS_PER_MONTH: "none" }), null);
 });

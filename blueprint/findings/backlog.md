@@ -617,3 +617,6 @@ File: e2e/contrast.spec.ts; app/app.css (`[data-dark="auto"]` block)
 
 ### F-404 [P3] open - `countProHeadings` is exported but only its own test uses it
 File: app/features/blocks/text-styles.ts:50; app/features/blocks/text-styles.test.ts
+
+### F-405 [P3] open - The old single AI allowance is dead in production code, and `ai-try` re-states the plan rule
+File: app/lib/ai-env.server.ts (`AiSettings.creditsPerMonth`); scripts/ai-try.ts:78

@@ -22,6 +22,7 @@
     "create-invite": "node --env-file-if-exists=.env scripts/create-invite.ts",
     "suspend-site": "node --env-file-if-exists=.env scripts/suspend-site.ts",
     "unsuspend-site": "node --env-file-if-exists=.env scripts/unsuspend-site.ts",
+    "set-plan": "node --env-file-if-exists=.env scripts/set-plan.ts",
     "optimise-media": "node --env-file-if-exists=.env scripts/optimise-media.ts",
     "ai:try": "node --env-file-if-exists=.env scripts/ai-try.ts",
     "ai:measure": "node --env-file-if-exists=.env scripts/ai-measure.ts",

@@ -5,6 +5,7 @@ import { logIn } from "./helpers/auth.ts";
 import { countSiteMedia, deleteOneTestMediaRow, fillTestStorage } from "./helpers/media.ts";
 import { createSite, createSiteAdmin, deleteSite } from "./helpers/sites.ts";
 import { STORAGE_REASON, skipWithoutStorage } from "./helpers/storage.ts";
+import { withDatabase } from "./helpers/users.ts";
 
 const FIXTURE = path.join(import.meta.dirname, "..", "app/features/media/fixtures/1x1.jpg");
 
@@ -53,6 +54,37 @@ test("an upload that fits under the limit succeeds", async ({ page }) => {
 
   await expect(page.getByRole("status")).toContainText("was uploaded");
   expect(await countSiteMedia(siteId)).toBe(50);
+});
+
+async function makePaid(id: string) {
+  await withDatabase((sql) => sql`update sites set plan = 'paid' where id = ${id}`);
+}
+
+test("the same upload a Free site is refused for is accepted for a Launch site", async ({
+  page,
+}) => {
+  test.skip(skipWithoutStorage, STORAGE_REASON);
+  await fillTestStorage(siteId, email, 50);
+  await upload(page);
+  await expect(page.getByRole("alert")).toContainText("past its 500 MB of storage");
+  expect(await countSiteMedia(siteId)).toBe(50);
+
+  await makePaid(siteId);
+  await upload(page);
+
+  await expect(page.getByRole("status")).toContainText("was uploaded");
+  expect(await countSiteMedia(siteId)).toBe(51);
+});
+
+test("a Launch site's Media meter shows the Launch limit", async ({ page }) => {
+  await fillTestStorage(siteId, email, 3);
+  await makePaid(siteId);
+
+  await page.goto("/admin/media");
+
+  await expect(page.getByText("30 MB of 1000 MB used")).toBeVisible();
+  const meter = page.getByRole("meter", { name: "Storage" });
+  await expect(meter).toHaveJSProperty("max", 1000 * 1024 * 1024);
 });
 
 const FULL_LINE =

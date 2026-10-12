@@ -71,7 +71,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           <a href={`${siteUrl}/`}>View site ↗</a>
         </div>
         {/* Posts shipped in item 3, Media in item 5a, Pages in item 6a,
-            Settings in item 7a, Users in item 8 - each added here in ship
+            Settings in item 7a, Plan in item 21a, Users in item 8 - each added here in ship
             order (D35). Home (item 18b4a) is first and admin only: it is the
             admin's landing, and /admin sends an editor or author to Posts.
             Pages is editor/admin only and Settings and Users are admin only
@@ -113,6 +113,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 <NavLink to="/admin/messages">
                   <MessagesIcon />
                   Messages
+                </NavLink>
+              </li>
+            )}
+            {user.role === "admin" && (
+              <li>
+                <NavLink to="/admin/plan">
+                  <PlanIcon />
+                  Plan
                 </NavLink>
               </li>
             )}
@@ -245,6 +253,25 @@ function PagesIcon() {
 }
 
 // An envelope: what visitors send.
+function PlanIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
+
 function MessagesIcon() {
   return (
     <svg

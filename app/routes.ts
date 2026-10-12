@@ -50,6 +50,7 @@ export default [
     route("admin/media/picker", "features/media/media-picker.ts"),
     route("admin/media/:id/delete", "features/media/media-delete.tsx"),
     route("admin/messages", "features/contact/messages.tsx"),
+    route("admin/plan", "features/plans/plan-page.tsx"),
     route("admin/settings", "features/settings/settings.tsx"),
     route("admin/settings/logo", "features/settings/logo-upload.ts"),
     route("admin/account", "features/account/account.tsx"),

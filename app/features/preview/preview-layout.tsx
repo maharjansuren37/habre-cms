@@ -7,6 +7,7 @@ import {
   brandDarkCustomProperties,
 } from "#app/features/brand/brand-colours.ts";
 import { listPageSlugs } from "#app/features/content/entries.server.ts";
+import { showsCredit } from "#app/features/plans/plan-limits.ts";
 import publicLayoutStyles from "#app/features/public-site/layout.module.css";
 import { Chrome, type NavLink } from "#app/features/public-site/layout.tsx";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
@@ -31,7 +32,7 @@ export function meta({ error }: Route.MetaArgs) {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { siteId } = context.get(userContext);
-  const [settings, pages, { subdomain }] = await Promise.all([
+  const [settings, pages, { subdomain, plan }] = await Promise.all([
     getSiteSettings(siteId, env.R2_PUBLIC_URL),
     listPageSlugs(siteId),
     findMemberSite(siteId),
@@ -66,6 +67,8 @@ export async function loader({ context }: Route.LoaderArgs) {
     pageSlugs: [...links.pageSlugs],
     homeSlug,
     siteOrigin: origin,
+    // As the public page: the plan comes from the member's site row read above.
+    creditHref: showsCredit(plan) ? new URL(env.PLATFORM_URL).origin : null,
   };
 }
 
@@ -91,6 +94,7 @@ export default function PreviewLayout({ loaderData }: Route.ComponentProps) {
         settings={loaderData.settings}
         navLinks={loaderData.navLinks}
         homeHref="/admin/preview"
+        creditHref={loaderData.creditHref}
       >
         <Outlet />
       </Chrome>
@@ -120,6 +124,7 @@ export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
         settings={loaderData.settings}
         navLinks={loaderData.navLinks}
         homeHref="/admin/preview"
+        creditHref={loaderData.creditHref}
       >
         <main className={publicLayoutStyles.notFound}>
           <p>{message}</p>

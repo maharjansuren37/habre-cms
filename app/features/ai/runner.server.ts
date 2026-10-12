@@ -1,4 +1,6 @@
+import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
+import { allowanceForSites } from "./allowance.ts";
 import { pickRunAdapter } from "./providers.server.ts";
 import { createRunner } from "./run-generation.ts";
 import { runStore } from "./runs.server.ts";
@@ -16,5 +18,13 @@ if (
 
 export const runner =
   env.AI && adapter
-    ? createRunner({ store: runStore, adapter, allowance: env.AI.creditsPerMonth })
+    ? createRunner({
+        store: runStore,
+        adapter,
+        // The site's plan sets its allowance (item 21a); the row is a platform table.
+        allowanceFor: allowanceForSites(
+          async (siteId) => (await findMemberSite(siteId)).plan,
+          env.PLAN_LIMITS,
+        ),
+      })
     : null;

@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   aiEnvFields,
+  launchCredits,
   reportMissing,
+  requireLaunchCreditsAtLeastFree,
   requireLocalPlatformForFake,
   toAiSettings,
 } from "#app/lib/ai-env.server.ts";
@@ -12,7 +14,11 @@ import {
   requireEmailPair,
 } from "#app/lib/email-env.server.ts";
 import { hostsEnvFields } from "#app/lib/hosts-env.server.ts";
-import { limitsEnvFields } from "#app/lib/limits-env.server.ts";
+import {
+  launchStorageBytes,
+  limitsEnvFields,
+  requireLaunchStorageAtLeastFree,
+} from "#app/lib/limits-env.server.ts";
 
 // Everything the web app reads. server/app.ts imports this, so the production
 // server refuses to start with a missing or invalid variable. Later items add
@@ -38,17 +44,21 @@ const envSchema = databaseEnvSchema
     // AI (item 18b1): validated here, replaced by env.AI below.
     ...aiEnvFields,
   })
+  .superRefine(requireLaunchStorageAtLeastFree)
+  .superRefine(requireLaunchCreditsAtLeastFree)
   .superRefine(requireEmailForSignup)
   .superRefine(requireEmailPair)
   .superRefine((fields, context) =>
     requireLocalPlatformForFake(fields, fields.PLATFORM_URL, context),
   )
-  // The app reads env.STORAGE_LIMIT_BYTES: bytes, or null for no limit. And
+  // The app reads env.PLAN_LIMITS (bytes or null per plan) and
   // env.AI: null when AI is off, else the parsed settings.
   .transform(
     (
       {
         STORAGE_LIMIT_MB,
+        LAUNCH_STORAGE_LIMIT_MB,
+        LAUNCH_AI_CREDITS_PER_MONTH,
         AI_PROVIDERS,
         OPENROUTER_API_KEY,
         OPENROUTER_MODEL,
@@ -64,7 +74,14 @@ const envSchema = databaseEnvSchema
       context,
     ) => ({
       ...rest,
-      STORAGE_LIMIT_BYTES: STORAGE_LIMIT_MB,
+      // Each plan's numbers, for limitsFor (item 21a); null is no limit.
+      PLAN_LIMITS: {
+        free: { storageBytes: STORAGE_LIMIT_MB, aiCredits: AI_CREDITS_PER_MONTH },
+        launch: {
+          storageBytes: launchStorageBytes({ STORAGE_LIMIT_MB, LAUNCH_STORAGE_LIMIT_MB }),
+          aiCredits: launchCredits({ AI_CREDITS_PER_MONTH, LAUNCH_AI_CREDITS_PER_MONTH }),
+        },
+      },
       AI: toAiSettings(
         {
           AI_PROVIDERS,

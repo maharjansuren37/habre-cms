@@ -1,3 +1,5 @@
+import { limitsFor } from "#app/features/plans/plan-limits.ts";
+import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
 import { insertMedia, storageUsed } from "./media.server.ts";
 import { altTextSchema, detectImage, filenameSchema, MAX_UPLOAD_BYTES } from "./media-input.ts";
@@ -63,7 +65,8 @@ export async function storeUpload(
 
   // A site already full is refused before resizing, so it costs no CPU. No lock:
   // two uploads at once can each pass by one file (accepted).
-  const limit = env.STORAGE_LIMIT_BYTES;
+  const { plan } = await findMemberSite(actor.siteId);
+  const limit = limitsFor(plan, env.PLAN_LIMITS).storageBytes;
   const used = limit === null ? 0 : await storageUsed(actor.siteId);
   if (limit !== null && used >= limit) return storageRefusal(limit);
 

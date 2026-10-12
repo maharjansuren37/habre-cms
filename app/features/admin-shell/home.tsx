@@ -18,6 +18,7 @@ import {
 import { storageUsed } from "#app/features/media/media.server.ts";
 import { storageSummary } from "#app/features/media/storage-limit.ts";
 import { startGate } from "#app/features/onboarding/start-gate.ts";
+import { limitsFor } from "#app/features/plans/plan-limits.ts";
 import { getSiteSettings } from "#app/features/settings/settings.server.ts";
 import { findMemberSite } from "#app/features/sites/find-site.server.ts";
 import { env } from "#app/lib/env.server.ts";
@@ -47,7 +48,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const now = new Date();
   const [
     list,
-    { suspended, subdomain },
+    { suspended, subdomain, plan },
     published,
     applied,
     latestFinished,
@@ -89,11 +90,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     total: list.total,
     state,
     ready,
-    storage: storageSummary(storedBytes, env.STORAGE_LIMIT_BYTES),
+    storage: storageSummary(storedBytes, limitsFor(plan, env.PLAN_LIMITS).storageBytes),
     allowance:
       runner === null || env.AI === null
         ? null
-        : allowanceSummary(creditsUsed, env.AI.creditsPerMonth, now),
+        : allowanceSummary(creditsUsed, limitsFor(plan, env.PLAN_LIMITS).aiCredits, now),
     reviewRunId: state === "review" ? (latestFinished?.id ?? null) : null,
   };
 }

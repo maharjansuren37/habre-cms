@@ -7,7 +7,7 @@ test("a refusal at 31 October 23:59 UTC says the allowance renews on 1 November"
   assert.equal(renewalDate(now), "1 November");
   assert.equal(
     refusalMessage("allowance", now),
-    "Your site has used this month's AI allowance. It renews on 1 November. You can start blank instead.",
+    "Your site has used this month's AI allowance. It renews on 1 November. You can start blank instead. Paid plans are coming soon.",
   );
 });
 

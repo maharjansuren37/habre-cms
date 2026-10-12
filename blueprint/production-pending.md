@@ -107,3 +107,8 @@
 ## features/20-simple-and-pro
 
 - [ ] Run migration `0023_level_and_dark_mode.sql` with the v1 deploy: two additive columns on `site_settings` (`level` default `simple`, `dark_mode` default `false`), so every site reads as Simple and light; a symlink rollback is safe, the previous release never reads them.
+
+## features/21a-plans-and-limits
+
+- [ ] Run migration `0024_billing_columns.sql` with the v1 deploy: four additive nullable columns on `sites`; the previous release never reads them, so a symlink rollback is safe.
+- [ ] Optional: `LAUNCH_STORAGE_LIMIT_MB` and `LAUNCH_AI_CREDITS_PER_MONTH` in `/etc/habre-cms/production.env`; defaults (10240, 6000) apply when unset. A value below Free's stops startup.
