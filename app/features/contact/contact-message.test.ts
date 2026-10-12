@@ -64,3 +64,16 @@ test("only the four answer codes are read from ?contact=", () => {
     assert.equal(parseContactAnswer(value), undefined);
   }
 });
+
+test("an address cannot carry mailto parameters or extra recipients", () => {
+  for (const email of [
+    "a@b.c?bcc=x%40y.z",
+    "a@b.c&body=hi",
+    "a@b.c,d@e.f",
+    "<a@b.c>",
+    "a%40b@c.d",
+  ]) {
+    const result = contactMessageSchema.safeParse({ name: "Ann", email, message: "Hi" });
+    assert.equal(result.success, false, email);
+  }
+});

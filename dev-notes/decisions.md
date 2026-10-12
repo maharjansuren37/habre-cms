@@ -4882,3 +4882,39 @@ Costs: none.
 **Chose:** `app/features/blocks/contact-form.ts` builds the form with `createElement` and takes its CSS class names as an argument, so `node --test` can render it.
 Beats: JSX in `render.tsx`, which `node --test` cannot import, leaving the form with no unit test.
 Costs: one block's markup is written differently from the rest of `render.tsx`.
+
+## D455 - The contact email is sent after the answer, not awaited (2026-10-12)
+
+**Chose:** `contact-submit.ts` starts `notifyContact` without awaiting it; the 303 answer never waits for SMTP.
+Beats: awaiting it, which lets a down mail server hold a visitor's form for up to the 10 s timeout.
+Costs: a restart in that moment loses the email; the row then shows the failed line after two minutes, which is true.
+
+## D456 - One email per recipient (2026-10-12)
+
+**Chose:** each recipient gets their own message, sent in parallel with `Promise.allSettled`.
+Beats: one message with many addresses: no admin sees another's address, and one bad address does not fail the rest.
+Costs: more sends against Resend's daily cap.
+
+## D457 - Reply-To is the visitor, From stays EMAIL_FROM (2026-10-12)
+
+**Chose:** `replyTo` is the visitor's address on every notification.
+Beats: sending as the visitor, which SPF and DMARC would reject.
+Costs: the email address is only as safe as the contact form's schema, which F-398 tightened (no `?&%,<>"`).
+
+## D458 - Read state is explicit, set by a button (2026-10-12)
+
+**Chose:** Mark as read / Mark as unread, a form post that works without JavaScript.
+Beats: marking read on opening, because the list shows whole messages and there is no "opening" to hang it on.
+Costs: one click per message.
+
+## D459 - The failed line waits two minutes (2026-10-12)
+
+**Chose:** "We couldn't email this message to you." shows only when `notified_at` is null, email is configured and the row is over two minutes old.
+Beats: showing it at once, which would report a send still in flight as failed.
+Costs: a real failure is invisible for two minutes.
+
+## D460 - Only admins see Messages (2026-10-12)
+
+**Chose:** `requireRole(["admin"])` on the route and the nav entry for admins only; others get the 404 of D69.
+Beats: showing editors and authors, because visitors' personal data stays with the people who own the site.
+Costs: an editor cannot read messages without an admin.

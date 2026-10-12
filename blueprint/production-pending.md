@@ -98,3 +98,8 @@
 
 - [ ] Run migration `0021_contact_submissions.sql` (additive, a new table; the previous release never reads it, so a symlink rollback is safe; no data change).
 - [ ] No new environment variable; uses `JWT_SECRET`, already required.
+
+## features/19c-messages-and-the-email
+
+- [ ] Run migration `0022_contact_notify_email.sql` (additive, one nullable column; the previous release never reads it, so a symlink rollback is safe; no data change).
+- [ ] No new environment variable. Without `SMTP_URL` and `EMAIL_FROM` the notification is skipped and Messages says so; sending needs the Resend account and domain records in `needs-you.md`.

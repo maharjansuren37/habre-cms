@@ -132,5 +132,4 @@ File: app/features/onboarding/start-wait.tsx:76-77; app/features/admin-shell/hom
 File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 
 
-### F-397 [P3] open - The email-off notice, both Settings hints and the failed-SMTP path have no test
-File: app/features/contact/messages.tsx; app/features/settings/settings.tsx; app/features/contact/notify-contact.server.ts
+

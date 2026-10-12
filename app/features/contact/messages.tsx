@@ -109,7 +109,9 @@ export default function Messages({ loaderData }: Route.ComponentProps) {
               <article className={styles.card}>
                 <div className={styles.top}>
                   <span className={styles.name}>{item.name}</span>
-                  <a href={`mailto:${item.email}`}>{item.email}</a>
+                  <a href={`mailto:${encodeURIComponent(item.email).replace(/%40/g, "@")}`}>
+                    {item.email}
+                  </a>
                   {item.isUnread && (
                     <span className={[styles.badge, styles.unread].join(" ")}>Unread</span>
                   )}

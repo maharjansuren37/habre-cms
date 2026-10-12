@@ -20,7 +20,9 @@ const text = (max: number) =>
 
 export const contactMessageSchema = z.object({
   name: text(100),
-  email: text(254).pipe(z.string().regex(/^[^\s@]+@[^\s@]+$/)),
+  // No `?&%,<>"`: the address is put in a `mailto:` link and a Reply-To header,
+  // where those characters add recipients or a body (F-398).
+  email: text(254).pipe(z.string().regex(/^[^\s@?&%,<>"]+@[^\s@?&%,<>"]+$/)),
   message: text(5000),
 });
 
