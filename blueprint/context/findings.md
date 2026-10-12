@@ -126,7 +126,7 @@ Deferred to: `host` - release blockers, not code in this fix; due before the v1 
 
 ### F-441 [P1] deferred - Manual checks the v1 deploy needs have not been done: phone drag, SVG logo in Firefox and Safari, OpenRouter cost comparison, screen-reader passes over v1's screens
 File: blueprint/context/needs-you.md (phone drag, SVG logo, OpenRouter activity, two screen-reader lines)
-Deferred to: `deploy` - manual checks, not code; due before the v1 deploy (owner, 2026-10-13)
+Deferred to: `deploy` - manual checks, not code; risk accepted for the v1 deploy, the owner will do them (owner, 2026-10-13)
 
 ### F-429 [P2] open - Entry-point docs describe the MVP, not v1
 File: dev-notes/status.md; README.md; CHANGELOG.md

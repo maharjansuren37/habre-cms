@@ -145,7 +145,7 @@ not tidying; it is what keeps the open list true.
       Done during item 1's `verify`, from its `--manual` walkthrough.
       **Risk accepted by the owner, 2026-09-23: shipping items 5-8 to
       production without this; will do the accessibility pass after the MVP
-      is live.** Blocks nothing now; `preflight` needs it (design.md lists it as
+      is live.** **Risk accepted by the owner, 2026-10-13 (F-441): the v1 deploy goes ahead without this; the owner will do it.** Blocks nothing now; `preflight` needs it (design.md lists it as
       unchecked). `open` (spec,
       2026-09-15; widened, item 3; widened, item 6a; widened, item 7a;
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
@@ -159,7 +159,7 @@ not tidying; it is what keeps the open list true.
       that the page does not scroll under the drag, that auto-scroll reaches
       the last section, and that the gap and ghost fit the screen. Also, on
       a landscape tablet (side panel showing), that a tap on a palette tile
-      adds its block and never starts a drag (F-196). Blocks
+      adds its block and never starts a drag (F-196). **Risk accepted by the owner, 2026-10-13 (F-441): the v1 deploy goes ahead without this; the owner will do it.** Blocks
       nothing now; `verify` of item 14b names it as not proven, and
       `preflight` needs it before the v1 deploy. `open` (spec, 2026-10-03;
       widened, drag tidy fix, 2026-10-04)
@@ -173,7 +173,7 @@ not tidying; it is what keeps the open list true.
       header's navigation menu (item 7b), the
       404 page (item 4b), and a page with images and buttons (item 14a2), and one with a contact form (item 19b) - the form, its Name, Email and Message labels, and the status line after a send. **Risk accepted by the owner, 2026-09-23: shipping
       items 5-8 to production without this; will do the accessibility pass
-      after the MVP is live.** Blocks nothing now; `preflight` needs it before a
+      after the MVP is live.** **Risk accepted by the owner, 2026-10-13 (F-441): the v1 deploy goes ahead without this; the owner will do it.** Blocks nothing now; `preflight` needs it before a
       real release. `open` (spec, 2026-09-21; widened, item 6b; widened, item 7b;
       risk accepted, preflight, 2026-09-23; widened, spec 19b, 2026-10-12)
 
@@ -201,7 +201,7 @@ not tidying; it is what keeps the open list true.
       tainted any canvas an SVG was drawn on, which would stop the SVG
       becoming a PNG. Upload `e2e/fixtures` SVG logo in each: it shows as the
       logo, "Saved as a PNG for the web." appears, and its colours are
-      offered. Blocks nothing now; `verify` of item 18a2 names it as not
+      offered. **Risk accepted by the owner, 2026-10-13 (F-441): the v1 deploy goes ahead without this; the owner will do it.** Blocks nothing now; `verify` of item 18a2 names it as not
       proven, and `preflight` needs it before the v1 deploy. `open` (spec
       18a2, 2026-10-07)
 
@@ -357,7 +357,7 @@ not tidying; it is what keeps the open list true.
       verification; it needs your OpenRouter login. Item 18b1's Step 7 made
       four runs on 2026-10-07 with `anthropic/claude-opus-5.5`, which stored
       costs of US$0.041465, 0.029836, 0.021908 and 0.034184 (42, 30, 22 and
-      35 credits). Check the activity page shows the same four costs. Blocks
+      35 credits). Check the activity page shows the same four costs. **Risk accepted by the owner, 2026-10-13 (F-441): the v1 deploy goes ahead without this; the owner will do it.** Blocks
       nothing now; `verify` of item 18b1 names it as not proven, and
       `preflight` needs it before the v1 deploy. `open` (build 18b1,
       2026-10-07)
