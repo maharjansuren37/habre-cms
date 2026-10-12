@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `b0ff521` (20, Simple and Pro, shipped).
+Generated 2026-10-12, `main` after `d923930` (21a, plans and limits, shipped).
 
 ## What this is
 
@@ -34,7 +34,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not deployed** (13-18b5; archives in `blueprint/history/`,
+**Built for v1, not deployed** (13-21a; archives in `blueprint/history/`,
 deploy steps in `blueprint/production-pending.md`): React Router 8 (13); the
 new look (13b); TipTap v4 documents, sections, templates (14a1-14c2, `0009`
 deletes old content); sites and row-level security (15a); invite signup (15b,
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a).
 
-**Platform v1 (queued):** billing for Launch (21): plans and limits (21a), Stripe payment (21b), own domain (21c). Limits apply from the first signup;
+**Platform v1 (queued):** billing for Launch (21): Stripe payment (21b), own domain (21c). Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -87,10 +87,10 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 - **Tenancy (D151, D152):** shared tables with `site_id`; **row-level
   security** returns nothing when no site is set; an owner role for
   migrations, an app role under it. Users global, roles on `site_members`,
-  one site per user in v1 (D159). Today's install becomes site 1 (D162).
+  one site per user in v1 (D159).
 - **Hosts (D153, D173):** the app at `app.<platform domain>`; sites at
   `<name>.<sites domain>` or an own domain; **one main address per site**, the
-  others redirect, with a canonical link (17). Production runs D22 until the v1 deploy.
+  others redirect, with a canonical link (17).
 - **Data model:** `sites`, `site_domains`, `users`, `site_members`,
   `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
   `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
@@ -146,6 +146,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-20 done; 21 split into 21a-21c, none done. Last shipped: 20.
-- **In flight:** nothing. **Next:** `spec` item 21a, Plans and limits.
+- **Plan:** items 1-20 and 21a done; 21b-21c queued. Last shipped: 21a.
+- **In flight:** nothing. **Next:** `spec` item 21b, Pay for Launch.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
