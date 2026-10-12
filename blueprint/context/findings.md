@@ -117,7 +117,7 @@ File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (im
 ### F-414 [P2] closed - The reach check accepts a domain that also points elsewhere, and the pre-warm then requests whatever it resolves to
 File: app/features/own-domain/own-domain.ts (decideVerification); app/features/own-domain/own-domain-prewarm.server.ts
 
-### F-415 [P2] fixed - The verifying update, the checker's candidate query and the expired-claim replacement have never run from a test
+### F-415 [P2] closed - The verifying update, the checker's candidate query and the expired-claim replacement have never run from a test
 File: app/features/own-domain/own-domain.server.ts (checkDomain update, addDomain replace branch); app/features/own-domain/own-domain-checker.server.ts:20
 
 ### F-416 [P3] open - A Free site's unverified claim keeps verifying after a downgrade
@@ -131,3 +131,18 @@ File: app/features/plans/plan-page.tsx (domainNotice tone; the revalidate effect
 
 ### F-419 [P2] closed - Removing a verified domain is one click with no confirmation
 File: app/features/plans/plan-page.tsx (Remove in the verified state); app/features/own-domain/own-domain.server.ts (removeDomain)
+
+### F-420 [P3] open - The pre-warm can still be pointed at another address by changing DNS between the check and the request
+File: app/features/own-domain/own-domain-prewarm.ts:9,29
+
+### F-421 [P3] open - Variants of /_caddy/ask skip classifyHost's loopback-only gate
+File: app/lib/host-routing.ts:52
+
+### F-422 [P3] open - The platform's apex and www can be claimed as an own domain
+File: app/features/own-domain/own-domain.ts:45
+
+### F-423 [P3] open - The verifying update's `verified_at is null` guard has no test
+File: app/features/own-domain/own-domain-store.ts:176; e2e/own-domain-store.spec.ts:108
+
+### F-424 [P3] open - own-domain-store.ts holds SQL but is not named *.server.ts
+File: app/features/own-domain/own-domain-store.ts
