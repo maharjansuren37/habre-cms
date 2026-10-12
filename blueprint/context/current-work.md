@@ -1,8 +1,8 @@
 # Fix: terms of service and privacy policy pages (F-428)
 
 **Type:** Fix
-**Verified:** not yet
-**Reviewed:** not yet
+**Verified:** 2026-10-13, autopilot - every done-when proven by browser tests against the served app (e2e/legal.spec.ts, 9 pass); full `npm run test:e2e` 691 passed, 2 failed - the known F-399 and F-230, both in the editor, untouched here
+**Reviewed:** 2026-10-13, autopilot (independent reviewer, scope current) - no P0/P1; F-437 to F-441 open (P2/P3)
 
 ## Goal
 

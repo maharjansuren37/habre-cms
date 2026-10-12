@@ -131,3 +131,18 @@ File: dev-notes/status.md; README.md; CHANGELOG.md
 
 ### F-436 [P2] unverified - While interim, site 1's pages are same-site with the admin, so the Lax session cookie rides their subresource requests
 File: app/features/auth/ (session cookie); D153 interim amendment in the spec
+
+### F-437 [P2] open - `/legal/` answers 500, and every site host redirects there
+File: app/lib/content-security-policy.ts:21 (`startsWith("/legal/")`); app/routes.ts (`:slug`)
+
+### F-438 [P2] open - The privacy policy says drafts may go to Anthropic or OpenAI directly; the app never sends them there
+File: app/features/legal/legal-documents.ts (AI drafting, processors); app/features/ai/providers.server.ts:35
+
+### F-439 [P2] open - Local backups live about 9 days, not the 7 the policy states
+File: deploy/backup-db.sh:79; app/features/legal/legal-documents.ts (retention)
+
+### F-440 [P3] open - Smaller gaps between the legal drafts and the code
+File: app/features/legal/legal-documents.ts
+
+### F-441 [P3] open - The policy pages link to /signup even when signup is off
+File: app/features/legal/legal-page.tsx
