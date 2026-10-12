@@ -99,3 +99,9 @@ where things stand and what is next without reading the code.
 - `blueprint/` - the workflow's state: plans, the current spec, findings, history
 - `dev-notes/` - why it is shaped this way, and where it stands
 - `AGENTS.md` - how work is done here. Every AI tool reads it; so should you
+
+## Licence
+
+[GNU Affero General Public License v3.0](LICENSE) only (D505). Anyone may run,
+change and self-host Habre; anyone who runs a modified copy for other people
+over a network must offer those people its source.

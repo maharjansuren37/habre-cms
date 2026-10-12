@@ -5212,3 +5212,17 @@ code.
 Costs: the terms and privacy policy must be final before the deploy (F-428).
 AI spend is open to anyone who confirms an email address, so the only things
 capping it are the per-site credits (D164) and each provider's spend limit.
+
+## D505 - Habre is licensed AGPL-3.0-only (2026-10-13)
+
+**Chose:** the GNU Affero General Public License v3.0, only that version, in
+`LICENSE` and `package.json`, chosen by the owner when the repository went
+public. Self-hosting stays free (D148); a modified copy served to others must
+publish its source.
+Beats: MIT - easier for companies to adopt, but a competing host could run a
+closed, improved fork, against a business that sells hosting. "Or later" -
+hands the choice of future terms to the licence's publisher rather than the
+owner.
+Costs: some companies will not use AGPL code; selling a separate commercial
+licence later needs the rights to every outside contribution (a CLA before
+accepting any).

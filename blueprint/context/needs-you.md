@@ -393,11 +393,6 @@ not tidying; it is what keeps the open list true.
       opens to the public (item 15's `deploy`). `open` (rescope review,
       2026-10-01; widened, spec 15e2, 2026-10-05)
 
-- [ ] **The open-source licence** - decision; AGPL (a hosted fork must stay
-      open) or MIT (anyone may close it). The repository is private, so nothing
-      is published yet. Blocks nothing now; needed before the code is made
-      public. `open` (rescope review, 2026-10-01)
-
 - [ ] **Harden the deploy path before the v1 deploy** - decision; when to
       take it on, and a server change only you can approve. Today a release is
       a manual procedure written only as prose (`dev-notes/status.md`, the
@@ -467,3 +462,7 @@ not tidying; it is what keeps the open list true.
       needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
 
 ## Done
+
+- [x] **The open-source licence** - AGPL-3.0-only (D505), `LICENSE` added when the
+      repository went public. `done` (rescope review, 2026-10-01; owner chose AGPL,
+      docs, 2026-10-13)
