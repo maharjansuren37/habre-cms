@@ -135,3 +135,7 @@
 - [ ] `/etc/caddy/habre-cms.env`: `HABRE_PLATFORM_DOMAIN=surenmaharjan.fyi`, `HABRE_SITES_DOMAIN=habre.page`, and a Cloudflare token with DNS edit on the `habre.page` zone only, filtered to the server's IP, with an expiry (`needs-you.md`).
 - [ ] DNS (done 2026-10-12): `*.habre.page` A `161.33.89.75`, DNS only; `app.surenmaharjan.fyi` answered by Porkbun's `*` CNAME. Before the deploy, add the `sectigo.com` CAA records (`needs-you.md`, F-435).
 - [ ] After the deploy: `curl -sI https://surenmaharjan.fyi/robots.txt` and a `<address>.habre.page` page show `Disallow: /` and `X-Robots-Tag: noindex, nofollow`; the `*.habre.page` certificate is the wildcard.
+
+## fixes/2026-10-13-legal-pages
+
+- [ ] Before signup opens to the public: every `[OWNER: ...]` placeholder in `app/features/legal/legal-documents.ts` filled - `grep -c "\[OWNER" app/features/legal/legal-documents.ts` prints `0` (14 on merge) - the text final and `updated` that day (F-428; owner moved this out of the fix, 2026-10-13).

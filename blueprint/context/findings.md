@@ -131,3 +131,7 @@ File: dev-notes/status.md; README.md; CHANGELOG.md
 
 ### F-436 [P2] unverified - While interim, site 1's pages are same-site with the admin, so the Lax session cookie rides their subresource requests
 File: app/features/auth/ (session cookie); D153 interim amendment in the spec
+
+### F-439 [P2] fixed - Local backups live about 9 days, not the 7 the policy states
+File: deploy/backup-db.sh:79; app/features/legal/legal-documents.ts (retention)
+

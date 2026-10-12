@@ -656,3 +656,6 @@ File: blueprint/context/needs-you.md (Resend line; "Harden the domain accounts" 
 
 ### F-435 [P3] fixed - CAA allowing only letsencrypt.org blocks Caddy's ZeroSSL fallback
 File: blueprint/context/needs-you.md ("Harden the domain accounts" line); live CAA on habre.page and surenmaharjan.fyi
+
+### F-440 [P3] fixed - Smaller gaps between the legal drafts and the code
+File: app/features/legal/legal-documents.ts

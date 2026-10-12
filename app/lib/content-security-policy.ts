@@ -17,6 +17,9 @@ export function isPlatformPath(pathname: string): boolean {
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
     pathname === "/confirm-email" ||
+    // The terms and privacy policy (F-428): under /legal/ so a site's own `privacy` page is untouched.
+    // A document is required: bare /legal/ would match a site's `legal` page (F-437).
+    (pathname.startsWith("/legal/") && pathname.length > "/legal/".length) ||
     // Stripe's webhook (item 21b): a POST with no page, on the platform host only.
     pathname === "/webhooks/stripe"
   );

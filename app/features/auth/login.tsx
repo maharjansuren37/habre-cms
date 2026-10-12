@@ -212,6 +212,10 @@ export default function Login({ actionData, loaderData }: Route.ComponentProps) 
             New to Habre? <Link to="/signup">Create your website</Link>
           </p>
         )}
+        <p className={styles.legal}>
+          <Link to="/legal/terms">Terms of service</Link> <span aria-hidden="true">·</span>{" "}
+          <Link to="/legal/privacy">Privacy policy</Link>
+        </p>
       </main>
     </div>
   );
