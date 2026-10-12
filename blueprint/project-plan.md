@@ -361,6 +361,11 @@ D153; replaces D22 when item 16 is built.
 | `media.<sites domain>` | images, from R2's custom domain (replaces `r2.dev`; `needs-you.md`) |
 | `cms.surenmaharjan.fyi` | redirects to `app.<platform domain>` |
 
+**Interim (D495, 2026-10-12):** until the platform domain is bought, it is
+`surenmaharjan.fyi` - the platform at `app.surenmaharjan.fyi`, and the
+apex/www redirect row is off (site 1 owns `surenmaharjan.fyi` and `www.`).
+The sites domain is `habre.page` (bought 2026-10-12).
+
 - **One main address per site** (D173): its verified own domain when it has
   one, otherwise its subdomain. Every other host of the site answers a 301 to
   the same path on the main address, and every public page carries
@@ -443,6 +448,9 @@ Screen names and navigation ("Blog" for posts, where Messages sits) are
 - **Nothing is indexed until a site publishes** (D173): the "being set up"
   placeholder sends `noindex`, and `sitemap.xml` lists only published
   entries.
+- **During the beta nothing is indexed at all** (D497): production sets
+  `SEARCH_INDEXING=off`, so every host's `robots.txt` disallows everything
+  and every response carries `X-Robots-Tag: noindex, nofollow`.
 
 **Operator work is server commands, not screens, in v1** (D158), like
 `create-admin` today: `create-invite`, `suspend-site` / `unsuspend-site`
@@ -940,7 +948,9 @@ From `architect`:
 - **Platform v1 (D153, 2026-10-01):**
   - **Two domains:** the platform domain (`app.` serves the app; the apex and
     `www` redirect to it) and a separate sites domain (a wildcard for every
-    site, plus `media.` for R2). Both are on Cloudflare DNS. They replace the
+    site, plus `media.` for R2). The sites domain is on Cloudflare DNS (the
+    wildcard's DNS challenge); interim, the platform's `surenmaharjan.fyi`
+    stays on Porkbun (D495, D496). They replace the
     two fixed hostnames below at item 16.
   - **Caddy** needs the Cloudflare DNS module for the wildcard certificate, and
     an API token in its own environment. That is `host`'s change, with a yes.

@@ -1,12 +1,12 @@
 # Project Overview
 
-> **Generated file.** Written by the `context` skill from
+> **Generated file.** Written by `distill` from
 > `blueprint/project-plan.md` and `blueprint/build-plan.md`. Edit those and
 > regenerate - never edit this file by hand. It orients; the files it names are
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `ecbb7e0` (21c, own domain, shipped).
+Generated 2026-10-12, `main` after `48bacb2` (interim domains fix, shipped).
 
 ## What this is
 
@@ -23,7 +23,7 @@ itself.
 - **Tiers** are what a site pays for: limits and services, never a level
   (D175). Free $0, Launch $19, Growth $59, Scale $179, Enterprise custom -
   **provisional**, revised by measured use. v1 sells Free and Launch.
-- **Free and open source to self-host**; the hosted service is what is sold.
+- **Free and open source to self-host**; hosting is sold.
 - **Principles** (`blueprint/context/principles.md`): simple by default; **AI
   suggests, the user applies**.
 
@@ -34,7 +34,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not deployed** (13-21b; archives in `blueprint/history/`,
+**Built for v1, not deployed** (13-21c; archives in `blueprint/history/`,
 deploy steps in `blueprint/production-pending.md`): React Router 8 (13); the
 new look (13b); TipTap v4 documents, sections, templates (14a1-14c2, `0009`
 deletes old content); sites and row-level security (15a); invite signup (15b,
@@ -44,7 +44,7 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b, D473-D483); own domain (21c, D484-D494).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b); own domain (21c).
 
 **Platform v1: all items built**. Limits apply from the first signup;
 invite-only beta, billing off (D150).
@@ -60,20 +60,17 @@ constraint** - each new runtime dependency is a recorded decision.
 
 - TypeScript 7.0.2 strict, `erasableSyntaxOnly`; Node.js 26 (D15).
 - **React Router 8.4.0 framework mode**, React 19.3.0, Vite 8.3.0, on
-  `node:http` - **no Express** (D10, D17, D23). The installed docs in
-  `node_modules/react-router/docs/` decide.
+  `node:http` - **no Express** (D10, D17, D23).
 - PostgreSQL 16, `postgres` driver, **raw SQL, no ORM** (D11).
 - Plain CSS, tokens in `app/app.css`, CSS Modules, **no Tailwind** (D12); look
   in `design.md`; public pages in the `data-surface="site"` scope (D183).
 - `jose` JWT + scrypt, **no auth library** (D6); Zod at every trust boundary.
 - TipTap 3.31.4, pinned exactly (D197); R2 via `aws4fetch`; Biome;
   `node:test`; Playwright.
-- `nodemailer` 10.0.14 over SMTP (D156); Mailpit catches email in development
-  and CI (D254).
+- `nodemailer` 10.0.14 over SMTP (D156); Mailpit in development and CI.
 - `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
 - `openai` 7.30.0 (OpenRouter and OpenAI direct, D372) and
   `@anthropic-ai/sdk` 0.131.0, both pinned exactly; `stripe` 22.6.2 (D160).
-- **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
 
@@ -89,7 +86,9 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
   one site per user in v1 (D159).
 - **Hosts (D153, D173):** the app at `app.<platform domain>`; sites at
   `<name>.<sites domain>` or an own domain; **one main address per site**, the
-  others redirect, with a canonical link (17).
+  others redirect, with a canonical link (17). **Interim (D495):** platform
+  `app.surenmaharjan.fyi` until `habre.ai` is bought; sites on `habre.page`;
+  through the beta `SEARCH_INDEXING=off` - nothing indexed (D497).
 - **Data model:** `sites`, `site_domains`, `users`, `site_members`,
   `email_tokens`, `invites`, `entries`, `media`, `site_settings`,
   `contact_submissions`, `ai_runs`, `stripe_events`, `schema_migrations`.
@@ -126,7 +125,7 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 - **AI:** `AI_PROVIDERS` order, **OpenRouter first**, any model, credits
   from its reported cost; Anthropic and OpenAI direct as priced fallbacks;
   moves on only when unavailable - **never on a refusal** (D155, D372,
-  D393); each non-last attempt gets 150 s (D398). **The app's runner uses
+  D393, D398). **The app's runner uses
   OpenRouter alone** until the direct providers' live runs are done (D405).
 - **Email:** SMTP via Resend (D156). **Payments:** Stripe's hosted pages;
   webhooks set the plan (D149, D160).
@@ -145,6 +144,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-21 done. Last shipped: 21c.
-- **In flight:** nothing. **Next:** `preflight`, then the v1 deploy (`blueprint/production-pending.md`).
-- **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
+- **Plan:** items 1-21 done. Last shipped: the interim domains fix.
+- **In flight:** nothing. **Next:** the owner's work (`prepare`), `host`, `preflight` (F-426-F-428 deferred), then the v1 deploy (`blueprint/production-pending.md`).
+- **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify`, `e2e`.
