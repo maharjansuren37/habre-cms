@@ -113,3 +113,21 @@ File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 
 ### F-399 [P2] open - The editor-chrome CSP test fails with "script-src blocked eval" whenever storage is on
 File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (imported only by settings.tsx)
+
+### F-414 [P2] open - The reach check accepts a domain that also points elsewhere, and the pre-warm then requests whatever it resolves to
+File: app/features/own-domain/own-domain.ts (decideVerification); app/features/own-domain/own-domain-prewarm.server.ts
+
+### F-415 [P2] open - The verifying update, the checker's candidate query and the expired-claim replacement have never run from a test
+File: app/features/own-domain/own-domain.server.ts (checkDomain update, addDomain replace branch); app/features/own-domain/own-domain-checker.server.ts:20
+
+### F-416 [P3] open - A Free site's unverified claim keeps verifying after a downgrade
+File: app/features/own-domain/own-domain.server.ts (checkDomain); app/features/own-domain/own-domain-checker.server.ts:20
+
+### F-417 [P3] open - A paying squatter can hold someone else's domain by removing and re-adding it inside 24 hours
+File: app/features/own-domain/own-domain.server.ts (addDomain)
+
+### F-418 [P3] open - 'Not found yet' is an error banner, and the page changes itself every 15 s with no announcement or pause
+File: app/features/plans/plan-page.tsx (domainNotice tone; the revalidate effect)
+
+### F-419 [P2] open - Removing a verified domain is one click with no confirmation
+File: app/features/plans/plan-page.tsx (Remove in the verified state); app/features/own-domain/own-domain.server.ts (removeDomain)
