@@ -49,7 +49,7 @@ is not a lawyer, and the drafts say nothing the code does not do.
   `/legal` and `/privacy` alone are not platform paths (a site's page called
   `privacy` or `legal` is untouched); `npm run verify` passes.
 
-- [ ] **Step 2 - the documents as data** - `app/features/legal/legal-documents.ts`
+- [x] **Step 2 - the documents as data** - `app/features/legal/legal-documents.ts`
   exports `LEGAL_DOCUMENTS`, keyed `terms` and `privacy`, each
   `{ title, updated: "YYYY-MM-DD", intro: string[], sections: { id, heading,
   paragraphs: string[], list?: string[] }[] }` - plain strings, no HTML, so
