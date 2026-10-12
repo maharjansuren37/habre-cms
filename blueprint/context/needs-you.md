@@ -151,7 +151,7 @@ not tidying; it is what keeps the open list true.
       widened, item 7b; widened, item 8; risk accepted, preflight, 2026-09-23;
       widened, item 9; widened, item 14a3; widened, item 14b; widened, item 14c1;
       widened, item 14c2; widened, spec 15c, 2026-10-04; widened, spec 15d,
-      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12; widened, spec 21a, 2026-10-12; widened, verify 21b, 2026-10-12: `/admin/plan`'s Choose how to pay group, trial and Manage billing buttons and its banners)
+      2026-10-04; widened, spec 15e1, 2026-10-05; widened, spec 15e2, 2026-10-05; widened, spec 17, 2026-10-06; widened, spec 18a1, 2026-10-07; widened, spec 18a2, 2026-10-07; widened, spec 18b3, 2026-10-07; widened, spec 18b4a, 2026-10-08; widened, spec 18b4b, 2026-10-08; widened, spec 18b5, 2026-10-08; widened, spec 19b, 2026-10-12; widened, verify 20, 2026-10-12; widened, spec 21a, 2026-10-12; widened, verify 21b, 2026-10-12: `/admin/plan`'s Choose how to pay group, trial and Manage billing buttons and its banners; verify 21c, 2026-10-12: Own domain's form, records table, Check now and Remove and their banners)
 
 - [ ] **Drag a block by its grip on a real phone** (iOS Safari and Android
       Chrome) - hardware and manual verification; the browser tests dispatch
@@ -414,7 +414,11 @@ not tidying; it is what keeps the open list true.
       Check now: it verifies; the first visit gets a certificate within
       seconds; the subdomain 301s to it; Remove puts the subdomain back. Also
       once with Cloudflare's proxy on, to see the "not pointing here yet"
-      line, and that plain `http://<domain>` redirects to https (the catch-all
+      line, that the page turns to verified by itself within a few minutes
+      of the records holding (the server's re-check, no click), that
+      `setup-server.sh` on the server adds the own-domains import and
+      `caddy validate` accepts `habre-cms-own-domains.caddy` (neither has run
+      against a real Caddy), and that plain `http://<domain>` redirects to https (the catch-all
       `http://` block has not met a real Caddy). No test reaches Let's Encrypt. Blocks nothing now; `preflight`
       needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
 

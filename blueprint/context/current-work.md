@@ -2,7 +2,7 @@
 
 **From build plan:** item 21c
 **Type:** Feature
-**Verified:** not yet
+**Verified:** 2026-10-12, 1a7a7b2a87d5, 5 of 7 proven (steps 1-5 by browser and unit tests against the running app); step 6 proven with fakes only (the timer, the https pre-warm and the 15 s refresh never ran live: SITES_URL is http in every test); step 7 could not verify (`caddy` not installed here, so the new file and the setup-server.sh import were never validated)
 **Reviewed:** not yet
 
 ## Goal
