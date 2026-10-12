@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-12, `main` after `d923930` (21a, plans and limits, shipped).
+Generated 2026-10-12, `main` after `c7f83db` (21b, pay for Launch, shipped).
 
 ## What this is
 
@@ -34,7 +34,7 @@ editor; draft / publish; images and a media library; one theme; title, logo,
 navigation, home page (D107); author / editor / admin roles; light and dark
 mode; sections, columns and ready-made sections (D114-D143).
 
-**Built for v1, not deployed** (13-21a; archives in `blueprint/history/`,
+**Built for v1, not deployed** (13-21b; archives in `blueprint/history/`,
 deploy steps in `blueprint/production-pending.md`): React Router 8 (13); the
 new look (13b); TipTap v4 documents, sections, templates (14a1-14c2, `0009`
 deletes old content); sites and row-level security (15a); invite signup (15b,
@@ -44,9 +44,9 @@ optimised images (17b); brand colour, presets, logo colours (18a1-18a2); the AI
 run engine and credits (18b1); direct fallbacks, live runs owed (18b2, D392);
 `/start` steps 1-2, the wait, test-only `fake` provider (18b3); the review, Use
 this draft, Home with the AI meter (18b4a); Preview and Publish
-website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a).
+website (18b4b); Make it yours as step 3 (18b5); contact messages received (19a); the contact form block (19b); Messages (19c); Simple and Pro (20); plans and limits (21a); pay for Launch (21b, D473-D483).
 
-**Platform v1 (queued):** billing for Launch (21): Stripe payment (21b), own domain (21c). Limits apply from the first signup;
+**Platform v1 (queued):** billing for Launch (21): own domain (21c). Limits apply from the first signup;
 invite-only beta, billing off (D150).
 
 **Deferred - do not build unasked.** Plan section 11: Level 2 and 3
@@ -72,8 +72,7 @@ constraint** - each new runtime dependency is a recorded decision.
   and CI (D254).
 - `sharp` 0.35.5, pinned exactly - the first native dependency (D174).
 - `openai` 7.30.0 (OpenRouter and OpenAI direct, D372) and
-  `@anthropic-ai/sdk` 0.131.0, both pinned exactly. **v1 adds, pinned when
-  installed:** `stripe` (D160).
+  `@anthropic-ai/sdk` 0.131.0, both pinned exactly; `stripe` 22.6.2 (D160).
 - **Semantic HTML on every page** - `coding-standards.md`.
 
 ## Architecture
@@ -146,6 +145,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-20 and 21a done; 21b-21c queued. Last shipped: 21a.
-- **In flight:** nothing. **Next:** `spec` item 21b, Pay for Launch.
+- **Plan:** items 1-20, 21a and 21b done; 21c queued. Last shipped: 21b.
+- **In flight:** nothing. **Next:** `spec` item 21c, Own domain.
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify` + `e2e` (D144).
