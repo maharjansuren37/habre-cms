@@ -115,3 +115,9 @@
       `127.0.0.1` (spec's Testing section). Blocks `ship`'s merge of 16a.
       `done` (verify, 2026-10-06; closed 2026-10-06: PR #38's CI run 37412689022, `e2e` 367 passed, 8 skipped,
       site visits on `<address>.localhost` incl. `host-routing.spec.ts:21`)
+
+## fixes/2026-10-13-csp-zod-jitless
+
+- [x] **The open-source licence** - AGPL-3.0-only (D505), `LICENSE` added when the
+      repository went public. `done` (rescope review, 2026-10-01; owner chose AGPL,
+      docs, 2026-10-13)

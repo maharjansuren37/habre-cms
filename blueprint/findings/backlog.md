@@ -114,9 +114,6 @@ File: CHANGELOG.md:7-12
 ### F-101 [P3] fixed - Two security-event log lines still record the raw `.data` path
 File: app/root.tsx:50, app/features/auth/require-role.server.ts:26
 
-### F-102 [P3] fixed - The CSP browser test is described as covering more screens than it visits
-File: app/lib/zod-jitless.client.ts:8-9; e2e/content-security-policy.spec.ts:148
-
 ### F-104 [P3] closed - `post.tsx` still has its own copy of the image lookup that `resolvePageMedia` now shares
 File: app/features/public-site/post.tsx:21-34
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
@@ -149,7 +146,6 @@ Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D
 ### F-128 [P3] closed - Hero-named identifiers now serve both ready-made kinds
 File: app/features/blocks/blocks.ts:456-458; app/features/blocks/sections-editor.client.tsx (HERO_FIELDS, HeroForm); sections-editor.module.css (.hero*)
 Deferred to: spec (item 14a) - the code it names is replaced in items 14a-14c (D165, D169, D170); 14a's review closes it once that code is gone (owner, 2026-10-02)
-
 
 ### F-138 [P3] open - A settings post without `homePageId` still leads to clearing the home page one Save later
 File: app/features/settings/settings.tsx:79,89
@@ -295,86 +291,65 @@ File: blueprint/context/design.md ("Built in item 14b", *Announcements*)
 ### F-219 [P3] open - The isolation spec never tests the pooled-connection claim or cross-site update and delete
 File: e2e/site-isolation.spec.ts
 
-
 ### F-220 [P3] open - Production instructions put the app-role password on the psql command line
 File: dev-notes/status.md:453; blueprint/context/current-work.md (Notes)
-
 
 ### F-221 [P3] open - The documented by-hand run of CI's `e2e` job fails at the new roles step
 File: dev-notes/status.md:624
 
-
 ### F-222 [P3] open - `setup-server.sh` writes the env file before checking `roles.sql` is present
 File: deploy/setup-server.sh:108,122-145,168,174-178
-
 
 ### F-223 [P3] open - The web process is given the owner's database credentials
 File: deploy/setup-server.sh:139-141
 
-
 ### F-224 [P3] open - The app role can write `schema_migrations`
 File: db/roles.sql:24,30
-
 
 ### F-225 [P3] open - The isolation spec's `afterAll` assumes its setup succeeded
 File: e2e/site-isolation.spec.ts:57-63
 
-
 ### F-226 [P3] open - The member-creating function kept the name `createUser`; the spec says `createMember(siteId, ...)`
 File: app/features/users/users.server.ts:73
-
 
 ### F-227 [P3] open - "A 2-column section ... stacks at 390px" fails about 1 run in 8
 File: e2e/document-editor.spec.ts:670-692 (assertion at :689)
 
-
 ### F-228 [P3] unverified - Deleting the chosen home page or the logo's image through the app under row-level security is untested
 File: db/migrations/0011_site_isolation.sql; app/features/content/entries.server.ts (deleteEntry); app/features/media/media.server.ts (deleteMedia)
-
 
 ### F-229 [P3] open - The media and settings `afterEach` in `sites.spec.ts` can leave site 3 behind after a failed setup
 File: e2e/sites.spec.ts:305-312
 
-
 ### F-232 [P3] open - "Check your email" says "We sent a link" above "We couldn't send the email"
 File: app/features/signup/signup-sent.tsx (the `failed` state)
-
 
 ### F-233 [P3] open - Turning signup off strands unconfirmed accounts: login sends them to a 404
 File: app/features/auth/login.tsx:83; app/features/signup/signup-sent.tsx:23; app/features/signup/verify.tsx:21
 
-
 ### F-234 [P3] open - An email send failure is logged with no cause
 File: app/features/signup/signup.tsx:114; app/features/signup/signup-sent.tsx:69
-
 
 ### F-235 [P3] open - `SMTP_URL`'s query string can switch off TLS checks, getting round the never-in-clear rule
 File: app/lib/email-env.server.ts:17
 
-
 ### F-236 [P3] open - One valid invite can probe any number of emails for an account; in `open` mode, anyone can
 File: app/features/signup/signup.server.ts:77-85,126
-
 
 ### F-237 [P3] open - Account pre-hijacking: an invited signup can register someone else's email with a password the attacker knows
 File: app/features/signup/verify.tsx:57-85
 
-
 ### F-238 [P3] unverified - Send it again may answer measurably slower for an unconfirmed account
 File: app/features/signup/signup-sent.tsx:62; app/features/signup/resend.server.ts
-
 
 ### F-239 [P3] open - The signup error summary is not a list, and focus does not move to it
 File: app/features/signup/signup.tsx:148-160
 
-
 ### F-240 [P3] open - Two signup e2e assertions are weaker than they read
 File: e2e/signup.spec.ts:98, :404
 
-
 ### F-241 [P3] open - Plan section 5 does not record the new pins
 File: blueprint/project-plan.md:131-178
-
 
 ### F-242 [P3] open - Failed invite codes leave no security event
 File: app/features/signup/signup.server.ts:117
@@ -382,62 +357,47 @@ File: app/features/signup/signup.server.ts:117
 ### F-243 [P3] fixed - A reset completing at the same moment as a new link request can deadlock, and one side answers 500
 File: app/features/signup/password-reset.server.ts (`completeReset`, `issueResetToken`)
 
-
 ### F-246 [P3] fixed - Two of the spec's claims are untested: the completion's expiry guard, and journey 7's "own site"
 File: app/features/signup/password-reset.server.ts (`completeReset`, `expires_at > now()`); e2e/password-reset.spec.ts (journey 7)
-
 
 ### F-247 [P3] open - The reset form gives password managers no username to save the new password against
 File: app/features/signup/reset-password.tsx (the form)
 
-
 ### F-253 [P3] open - Your account's forms keep what was typed after a successful save, including both passwords
 File: app/features/account/account.tsx:257-310
-
 
 ### F-254 [P3] open - `changePassword` holds a pool connection and the user's row lock across two scrypt runs
 File: app/features/account/account.server.ts:29-42
 
-
 ### F-255 [P3] open - A blocked or busy current-password check on Your account logs no security event
 File: app/features/account/account.server.ts:66 (`withCurrentPassword`)
-
 
 ### F-256 [P3] open - The old-address notice tells the reader to reply, which only helps if `EMAIL_FROM` is a monitored inbox
 File: app/features/account/email-changed-notice.ts:18
 
-
 ### F-257 [P3] open - The `saved=email` banner names whoever is signed in, not the account that confirmed
 File: app/features/account/account.tsx:63; app/features/account/confirm-email.tsx:61
-
 
 ### F-258 [P3] open - Your account's card draws an empty divider above the Name section
 File: app/features/account/account.tsx:224; app/features/users/user-form.module.css:42-47
 
-
 ### F-259 [P3] open - "Back to Your account" sits flush against the error message on `/confirm-email`'s expired and taken states
 File: app/features/account/confirm-email.tsx:100-114; app/features/signup/signup.module.css:22-25
-
 
 ### F-260 [P3] open - A failed confirmation-link send and the per-IP send limit have no test
 File: e2e/account.spec.ts (none); app/features/account/account.tsx:150-169
 
-
 ### F-261 [P3] open - `issueEmailToken`'s optional `newEmail` type-checks pairings the database refuses
 File: app/features/signup/email-tokens.server.ts:16-22
-
 
 ### F-262 [P3] open - `isPlatformPath`'s doc comment does not list `/confirm-email`
 File: app/lib/content-security-policy.ts:3-7
 
-
 ### F-266 [P3] unverified - A content write that lands during a site deletion likely ends in an unhandled 500
 File: app/features/account/account.server.ts (`deleteAccount`); app/features/content/entries.server.ts (`createDraft`); media upload
 
-
 ### F-267 [P3] open - Known gap: delete in one tab while demoting the only other admin can leave a site with no admin, and then a memberless site
 File: app/features/users/ (role change, deactivate); app/features/account/account.server.ts (`readDeletionFacts`)
-
 
 ### F-268 [P3] open - The slot test's lock poll counts waiting locks across the whole database, so the reverted code could pass it
 File: e2e/account-delete.spec.ts:400-405
@@ -445,34 +405,26 @@ File: e2e/account-delete.spec.ts:400-405
 ### F-284 [P3] open - The restart check falls back to a reload when caddy's start time cannot be parsed
 File: deploy/setup-server.sh (`started=$(systemctl show -p ActiveEnterTimestamp ...)`, `date -d`)
 
-
 ### F-285 [P3] open - The root-run `chown` of Caddy's access logs follows symlinks
 File: deploy/setup-server.sh (`CADDY_LOGS` loop in `install_caddy_site`)
-
 
 ### F-286 [P3] open - A Caddy refusal stops the whole setup script, so the backup step after it never runs
 File: deploy/setup-server.sh (call order: `install_caddy_site` before `install_backup`)
 
-
 ### F-287 [P3] open - The suspended-admin contrast test measures tokens, not the notice itself
 File: e2e/contrast.spec.ts (suspended site's admin page tests)
-
 
 ### F-288 [P3] open - The notice's no-role check can pass without locating the banner
 File: e2e/suspend-site.spec.ts (`notice.locator("xpath=ancestor::div[1]/..")`)
 
-
 ### F-289 [P3] open - The client-side navigation check does not show the notice is revalidated
 File: e2e/suspend-site.spec.ts (Pages link click)
-
 
 ### F-290 [P3] open - Caddy's Cloudflare module prints the API token in its invalid-token error
 File: deploy/setup-server.sh (validate failure hint: `caddy validate ... --envfile`)
 
-
 ### F-292 [P3] open - The Caddy env check reads only its three keys, so another line can still make systemd load something different
 File: deploy/setup-server.sh:222-235 (`check_caddy_env`)
-
 
 ### F-294 [P3] open - The editor notice's client-side navigation check can pass on the shell's banner before the editor renders
 File: e2e/suspend-site.spec.ts:183-186
@@ -659,3 +611,9 @@ File: blueprint/context/needs-you.md ("Harden the domain accounts" line); live C
 
 ### F-440 [P3] fixed - Smaller gaps between the legal drafts and the code
 File: app/features/legal/legal-documents.ts
+
+### F-442 [P3] open - The jitless comment says the server keeps the fast path and that every schema-building browser module imports it; neither is quite true
+File: app/lib/zod-jitless.client.ts:7-11
+
+### F-443 [P3] open - Nothing stops a new browser module importing Zod directly and bringing the eval violation back on a screen the CSP test does not visit
+File: app/lib/zod-jitless.client.ts; e2e/content-security-policy.spec.ts

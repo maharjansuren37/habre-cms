@@ -111,15 +111,6 @@ File: app/features/onboarding/start-wait.tsx:76-77; app/features/admin-shell/hom
 ### F-396 [P2] fixed - The contact browser tests read JWT_SECRET from the test process, which only CI's GITHUB_ENV line and a local .env supply
 File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 
-### F-399 [P2] open - The editor-chrome CSP test fails with "script-src blocked eval" whenever storage is on
-File: e2e/content-security-policy.spec.ts:192; app/lib/zod-jitless.client.ts (imported only by settings.tsx)
-
-### F-426 [P1] closed - The v1 release has nowhere to go: no platform or sites domain, no Cloudflare token, Caddy not rebuilt
-File: blueprint/context/needs-you.md (domain, token, Caddy lines); deploy/setup-server.sh
-
-### F-427 [P1] closed - The v1 migration set (0008-0026) has never been rehearsed on a restored production backup; the fresh-database decision that replaces it is not recorded
-File: db/migrations/0008 to 0026; blueprint/production-pending.md; dev-notes/decisions.md (D162, D163)
-
 ### F-428 [P1] deferred - Signup would open to strangers with no email provider and no terms or privacy policy (narrowed 2026-10-13: 14 policy placeholders, production OpenRouter key, R2 backup retention)
 File: blueprint/context/needs-you.md (Resend, policies, licence lines)
 Deferred to: `host` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
@@ -136,4 +127,3 @@ File: app/features/auth/ (session cookie); D153 interim amendment in the spec
 
 ### F-439 [P2] fixed - Local backups live about 9 days, not the 7 the policy states
 File: deploy/backup-db.sh:79; app/features/legal/legal-documents.ts (retention)
-

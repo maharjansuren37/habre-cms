@@ -9,7 +9,6 @@ import { env } from "#app/lib/env.server.ts";
 import { Button } from "#app/lib/ui/button.tsx";
 import { Field } from "#app/lib/ui/field.tsx";
 import { Message } from "#app/lib/ui/message.tsx";
-import "#app/lib/zod-jitless.client.ts";
 import type { Route } from "./+types/settings";
 import { BrandFields } from "./brand-fields.tsx";
 import { LANGUAGES, languageOrDefault } from "./languages.ts";

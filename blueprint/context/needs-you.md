@@ -464,7 +464,3 @@ not tidying; it is what keeps the open list true.
       needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
 
 ## Done
-
-- [x] **The open-source licence** - AGPL-3.0-only (D505), `LICENSE` added when the
-      repository went public. `done` (rescope review, 2026-10-01; owner chose AGPL,
-      docs, 2026-10-13)
