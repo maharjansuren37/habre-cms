@@ -13,15 +13,46 @@ The `docs` skill maintains it.
 
 preflight: go, 2026-10-13, b3f3026 - accepted F-428, F-441 (owner, 2026-10-13); no open P0 or P1
 
-**Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
-items plus items 9-11 (home page, sections, columns) are shipped and live in
-production**, as of the deploy below. Production runs `8d82ce4`, which is `origin/main`. **Item 12
-(ready-made sections: hero, call to action, image + text; 12a-12c) was deployed
-2026-10-01** (release `8d82ce4`, below); the screen-reader pass was accepted by
-the owner (F-130). Nothing merged is undeployed and nothing is in flight; the
-build plan is complete. **Owner action now:** publish a page and choose it as the home page in
-Settings - production `/` showed the "This site is being set up" placeholder
-on 2026-09-29 (`needs-you.md`).
+**v1 is live.** Production runs `d340758` (`origin/main`), items 1-21c, on a
+fresh database (D503) with signup open (D504), search indexing off and billing
+off. Platform `https://app.surenmaharjan.fyi` (`cms.` 301s to it); sites at
+`<name>.habre.page`, site 1 at `surenmaharjan.fyi`. Accepted risks: F-428
+(legal placeholders, R2 lifecycle rule), F-441 (manual checks).
+
+- **Deploy, 2026-10-13 01:41 UTC (v1, items 13-21c, to production):** release
+  `d340758` (PR #56, CI green on the PR). Built on the laptop from a **clean
+  clone at that commit**: `npm ci` -> `npm run verify` (exit 0, 1238 unit
+  tests) -> `npm ci --omit=dev` -> `rsync --rsync-path="sudo rsync"
+  --chown=habre_cms:habre_cms` to `/srv/habre-cms/releases/d340758` (179M).
+  Browser suite run locally with real R2 first: 692 passed, 2 failed - F-230
+  (fixed by PR #56, test-only) and `account.spec.ts:327` (a load flake, passed
+  3/3 alone). Steps (`v1-switch.sh`, run by the owner): `pg_dump` of the old
+  database to `/var/backups/habre-cms/pre-v1-20261013T014039Z.dump`;
+  `production.env` backed up beside itself (`.bak-pre-v1-20261013T014039Z`);
+  stop; **drop and recreate `habre_cms`** (D503); `roles.sql` with a new
+  `habre_cms_app` password; `DATABASE_URL` moved to the app role,
+  `DATABASE_OWNER_URL` added, `PLATFORM_URL`, `SITES_URL`, `SEARCH_INDEXING=off`,
+  `SIGNUP_MODE=open` added; `current` -> `d340758`; **migrations 0001-0026
+  applied** from empty. Then `setup-server.sh`: new systemd unit (no
+  `PUBLIC_URL`/`ADMIN_URL`), Caddy site file, own-domains import, Caddy
+  restarted. **Fixed during the deploy:** `/etc/caddy/habre-cms.env` had
+  `HABRE_PLATFORM_DOMAIN=app.surenmaharjan.fyi`, so `cms.` redirected to
+  `app.app.` and `app.` had no site block; set to `surenmaharjan.fyi`
+  (validated, Caddy restarted). `create-admin` for the owner, who then signed in at `app./admin/login` (owner, 2026-10-13). Verified through
+  the public URLs: `app./healthz` -> `{"status":"ok","database":"up"}`;
+  `/admin/login`, `/signup`, `/legal/terms` -> 200; `cms./admin` -> 301
+  `app./admin`; `surenmaharjan.fyi/` -> 200; `surenmaharjan.habre.page` -> 301
+  to `surenmaharjan.fyi`; an unknown `*.habre.page` -> 404; certificates
+  `*.habre.page` (wildcard, DNS challenge) and `app.surenmaharjan.fyi`, both to
+  2027-01-11; `robots.txt` `Disallow: /` and `X-Robots-Tag: noindex, nofollow`;
+  CSP with nonces. Journal: 0 warnings or errors since start, `NRestarts=0`.
+  Database: 26 migrations, 1 site, 1 user, 0 media (so `optimise-media` was
+  skipped - nothing to do). Server CPU is x86-64-v4, so sharp's binary runs
+  (F-310). **Rollback:** symlink alone is not enough - `8d82ce4` cannot run on
+  the new schema. Stop the app, point `current` at `8d82ce4`, restore
+  `pre-v1-20261013T014039Z.dump` into a recreated `habre_cms`, put back the env
+  backup, set `HABRE_PLATFORM_DOMAIN` as it was, re-run the old Caddy file.
+  Once real accounts exist that loses them: fix forward instead.
 
 - **Deploy, 2026-10-01 04:24 UTC (items 12a-12c to production):** release
   `8d82ce4` ("docs: preflight 12a-12c ...", CI green on this exact SHA; code is
