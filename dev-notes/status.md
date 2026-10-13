@@ -11,7 +11,7 @@ The `docs` skill maintains it.
 
 ## Where this stands
 
-preflight: no-go, 2026-10-13, 22ec086 - blockers F-428, F-441 (deferred to deploy); F-426, F-427 closed
+preflight: go, 2026-10-13, b3f3026 - accepted F-428, F-441 (owner, 2026-10-13); no open P0 or P1
 
 **Goal:** a CMS non-technical editors can run a website with. **All 8 MVP
 items plus items 9-11 (home page, sections, columns) are shipped and live in
