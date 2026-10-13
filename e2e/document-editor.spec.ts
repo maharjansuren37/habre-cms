@@ -688,9 +688,11 @@ test("a 2-column section sits side by side in the canvas at 1280px and stacks at
   await page.setViewportSize({ width: 390, height: 800 });
   [a, b] = [await left.boundingBox(), await right.boundingBox()];
   expect(a && b && b.y >= a.y + a.height && Math.abs(a.x - b.x) < 2).toBe(true);
-  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(
-    true,
-  );
+  // The block toolbar is re-placed by a ResizeObserver, which runs at the next
+  // rendering frame, so poll rather than read the width once (F-230).
+  await expect
+    .poll(() => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"))
+    .toBe(true);
 });
 
 test("the canvas's content box is as wide as the public page's at 1280px", async ({ page }) => {
