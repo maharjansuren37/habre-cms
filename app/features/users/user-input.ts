@@ -1,3 +1,4 @@
+import "#app/lib/zod-jitless.client.ts";
 import { z } from "zod";
 import { roles } from "./roles.ts";
 

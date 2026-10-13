@@ -1,3 +1,4 @@
+import "#app/lib/zod-jitless.client.ts";
 import { z } from "zod";
 import { isStorableText } from "#app/features/blocks/inline-runs.ts";
 import { parseBrandColor } from "#app/features/brand/brand-colours.ts";
