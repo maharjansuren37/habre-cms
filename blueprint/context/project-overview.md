@@ -6,7 +6,7 @@
 > the record. Decision numbers are entries in `dev-notes/decisions.md` -
 > read the entry before changing anything it covers.
 
-Generated 2026-10-13, `main` after `a7ab144` (D503, D504).
+Generated 2026-10-13, `main` after `64cd542`.
 
 ## What this is
 
@@ -145,6 +145,6 @@ in-process background job: the AI run, in `ai_runs`, two at a time (D154).
 
 ## Current state
 
-- **Plan:** items 1-21 done. Last shipped: legal pages (drafts).
+- **Plan:** items 1-21 done. Last shipped: the F-399 CSP fix.
 - **In flight:** nothing. **Next:** the owner's work on F-428 and F-441 (`prepare`), then the v1 deploy (`blueprint/production-pending.md`).
 - **Live:** items 1-12 (`dev-notes/status.md`). CI: `verify`, `e2e`.
