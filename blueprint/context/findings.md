@@ -113,7 +113,7 @@ File: e2e/contact.spec.ts:13; .github/workflows/ci.yml:103
 
 ### F-428 [P1] deferred - Signup would open to strangers with no email provider and no terms or privacy policy (narrowed 2026-10-13: 14 policy placeholders, production OpenRouter key, R2 backup retention)
 File: blueprint/context/needs-you.md (Resend, policies, licence lines)
-Deferred to: `host` - release blockers, not code in this fix; due before the v1 deploy (owner, 2026-10-12)
+Deferred to: `host` - release blockers, not code in this fix; risk accepted for the v1 deploy: signup opens with the 14 placeholders unfilled and the R2 lifecycle rule not yet added, the owner will do both (owner, 2026-10-13)
 
 ### F-441 [P1] deferred - Manual checks the v1 deploy needs have not been done: phone drag, SVG logo in Firefox and Safari, OpenRouter cost comparison, screen-reader passes over v1's screens
 File: blueprint/context/needs-you.md (phone drag, SVG logo, OpenRouter activity, two screen-reader lines)

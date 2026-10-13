@@ -382,8 +382,10 @@ not tidying; it is what keeps the open list true.
       `/legal/privacy`, with 14 `[OWNER: ...]` placeholders left for testing
       (owner, 2026-10-13): name and ABN, contact email, minimum age, state,
       Oracle region, R2 backup retention, journald retention, change emails,
-      refunds, liability, the Portal's period-end setting, APP 8 wording. Fill
-      them in `app/features/legal/legal-documents.ts` until `grep -c "\[OWNER"`
+      refunds, liability, the Portal's period-end setting, APP 8 wording. **Risk accepted by the owner, 2026-10-13
+      (F-428): the v1 deploy goes ahead with signup open, these placeholders
+      unfilled and the R2 lifecycle rule not yet added; the owner will do
+      both.** Fill them in `app/features/legal/legal-documents.ts` until `grep -c "\[OWNER"`
       prints `0`, before signup opens to the public.** Public signup
       makes you the host of strangers' content, and contact-form submissions
       are visitors' personal data. It should also say that deleting an
