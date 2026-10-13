@@ -389,7 +389,9 @@ not tidying; it is what keeps the open list true.
       are visitors' personal data. It should also say that deleting an
       account is immediate and that deleted data stays in the nightly backups
       until they age out (about 9 days locally per `deploy/backup-db.sh` - `-mtime +7` runs after the new dump, F-439; the R2
-      backup bucket's retention is not recorded - check it). Blocks nothing now; needed before signup
+      backup bucket keeps dumps 30 days - owner's decision, 2026-10-13: an R2
+      lifecycle rule on prefix `habre_cms-`, delete after 30 days, which the
+      owner adds in Cloudflare; the policy's wording is "up to 30 days"). Blocks nothing now; needed before signup
       opens to the public (item 15's `deploy`). `open` (rescope review,
       2026-10-01; widened, spec 15e2, 2026-10-05)
 
