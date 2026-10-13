@@ -1513,6 +1513,9 @@ built; the builder follow-ups move to Level 2.
 Its rejection of a free-form canvas was reconsidered and **confirmed by D165**
 (2026-10-01).
 
+**Superseded in part by D507** (2026-10-14): the free-form canvas this rejected is
+built as a Pro section type (item 27).
+
 ## D114 - Sections are v3 container blocks, arranged in React, one Editor.js per column (2026-10-01)
 
 **Chose:** pages only store `section` blocks (`blocks_format` v3): `plain`
@@ -2006,6 +2009,8 @@ Costs: a site admin's "reset password" for a member must become email-only
 once a user can belong to several sites, or one site's admin could take over
 an account used elsewhere.
 
+**Superseded by D506** (2026-10-14), from item 51: several sites per account.
+
 ## D160 - Stripe through its official SDK and hosted pages; webhooks set the plan (2026-10-01)
 
 **Chose:**
@@ -2102,6 +2107,9 @@ is re-mocked. `architect` decides the container format before item 14.
 
 The container format is decided in **D169**, and ready-made sections become
 templates in **D170** (2026-10-02).
+
+**Superseded in part by D507** (2026-10-14): the rejection of a free-form canvas no
+longer stands; free-form sections arrive in Pro (item 27).
 
 ## D166 - Editing levels: Simple, Pro and Developer, in one editor (2026-10-02)
 
@@ -5226,3 +5234,114 @@ owner.
 Costs: some companies will not use AGPL code; selling a separate commercial
 licence later needs the rights to every outside contribution (a CLA before
 accepting any).
+
+## D506 - Rescope: Platform v2 is the full Figma Make prototype, and any website (2026-10-14)
+
+**Chose:** v2 (build items 22-57) builds everything in
+`prototypes/Build CMS for Website.zip` - the dark grouped admin shell, the
+Overview dashboard and all ten modules (visual builder, collections, media,
+leads, forms and automation, SEO and personalisation, analytics, localization,
+apps and API, workflow and access) - with Habre's existing tokens, not the
+prototype's "Mono" brand. Leads and CRM are generic for any business, nothing
+movers-specific. Modules are revealed by level, keeping "Simple by default"
+(principles.md): Simple sees Overview, content, media, leads and forms; Pro
+adds builder extras, SEO, analytics, localization and workflow; Developer adds
+CSS, code and the API. The public side comes first: v2 is done when a person
+can build any website they like, including one Figma Make would build (D509).
+The owner meant this for v1; it moved to v2 so the v1 deploy proceeds as
+planned (owner, 2026-10-14).
+Supersedes: plan section 11's "Later, or never" for multiple languages, audit
+log, custom roles, other channels, styling per element and custom fonts; its
+custom CSS/HTML entry, under D508's terms; D159's one site per user, from item
+51. Free-form canvas: D507.
+Beats: the build-any-site bar only for movers-site-v2 - a single site would
+not prove Figma Make parity; a movers vertical - narrows who Habre is for
+(D148); showing every module to everyone - breaks the principle.
+Costs: about sixty features, several times v1's size, in four phases
+(v2a-v2d), each item deployed as it ships (D512). Still out: e-commerce, comments, WordPress import, SSO,
+SAML, SCIM, data residency, and hosting Figma Make's code as-is.
+
+## D507 - Free-form sections: pixel placement with a guided mode, Pro only (2026-10-14)
+
+**Chose:** a section can be free-form (item 27). Blocks are placed by pixel
+with smart alignment guides, or snapped to a grid in a guided mode; positions
+are stored per screen size (desktop, tablet, phone) in the same document. On
+phones the section stacks in reading order unless the phone layout is
+arranged by hand. A layers list sets the reading order, which the HTML
+follows. Pro only. Flow sections stay the default.
+Supersedes: D113's and D165's rejection of a free-form canvas.
+Beats: grid-only placement - the owner wants Figma-like freedom, with the grid
+as the guided option; a whole-page canvas - a section type keeps the rest of
+the page reflowing.
+Costs: a second editing layer on top of TipTap - the largest builder item;
+keyboard move and resize, announced positions and a reading-order check
+for WCAG 2.2 AA; free-form layouts are where "broken on my phone" comes from,
+which the phone stacking default has to contain.
+
+## D508 - Custom CSS and a code block, Developer only, never on the platform origin (2026-10-14)
+
+**Chose:** item 32 adds a site-wide stylesheet and a sandboxed HTML/CSS/JS
+block, both Developer level. Neither ever renders on the platform host: the
+editor and Preview show them in a sandboxed iframe served from the site's own
+origin. Contrast and accessibility under custom CSS are warned about, not
+guaranteed.
+Supersedes: the never-raw-HTML rule (D28-D30, D169), for these two things
+only; plan section 11's "custom CSS/HTML". Every other block keeps the escaping
+renderer.
+Beats: no code at all - Figma Make parity (D509) needs an escape hatch;
+code rendered in the page - an XSS path into every visitor's session and,
+through Preview, the admin's.
+Costs: an origin split `architect` must design; a CSP per site; abuse
+reports for hosted scripts.
+
+## D509 - v2 is proven by rebuilding a reference set (2026-10-14)
+
+**Chose:** item 34 rebuilds movers-site-v2
+(`~/para/02-areas/design/ui-taste/directions/bulmaya/movers-site-v2`) and three
+Figma Make sites the owner chooses - a product landing page, a portfolio or
+agency, a restaurant or event - and compares screenshots at 1280, 820 and
+390px, and a screen recording each for motion. With item 55, a Next.js or
+Astro starter shows a site's content through the API.
+Beats: the movers site alone - one site does not stand for "any website".
+Costs: the owner supplies the three exports, URLs and prompts
+(`needs-you.md`).
+
+## D510 - Motion from a fixed, accessible set (2026-10-14)
+
+**Chose:** item 28 - entrance on scroll, hover effects and carousels from a
+fixed set, never custom keyframes. `prefers-reduced-motion` turns every
+effect off; a carousel has pause and visible controls, and anything that
+moves on its own for more than five seconds can be paused (WCAG 2.2.2).
+Simple gets a site-wide "subtle motion" switch, Pro sets effects per block.
+Beats: leaving motion out - Figma Make sites rely on it, and the proof would
+compare stills only.
+Costs: the public site ships JavaScript - a page-weight budget and a CSP
+question for `architect` before item 28.
+
+## D511 - Headless is a mode per site (2026-10-14)
+
+**Chose:** a site can be served by Habre, by an outside site (Next.js, Astro,
+an app), or both (item 55). The API serves published content only unless a
+secret key asks for drafts; a public read-only key is safe in a browser, with
+allowed origins per key. Forms on outside sites post to Habre and land in
+Messages and Leads. The editor and the stored format do not change. The
+switch and keys are Developer level; API requests count against the plan.
+Kept last in v2 (owner, 2026-10-14).
+Beats: an API only for Habre's own apps - the owner wants people who build
+their own website to use Habre as its content source.
+Costs: rate limits, CORS per key and API traffic on the 954 MB server, for
+`architect`.
+
+## D512 - From v2, every shipped item is deployed (2026-10-14)
+
+**Chose:** each v2 item goes to production after `ship`, rather than being held
+for a release (owner, 2026-10-14). Each deploy still needs its own yes
+(AGENTS.md), and v2a-v2d are phases of the plan, not release gates.
+Supersedes: D163's hold-until-done, which ended with v1's deploy on
+2026-10-13.
+Beats: holding v2 until a phase is done - a bigger, riskier deploy, and
+production drifting months behind `main`.
+Costs: production holds real data now, so every migration is additive or
+backfilled and must roll back by symlink where it can; a half-finished module
+stays hidden behind its level or a switch until it is usable; the full browser
+suite with real R2 runs before each deploy (`needs-you.md`).

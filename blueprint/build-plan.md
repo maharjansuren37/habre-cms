@@ -97,7 +97,7 @@ blueprint/project-plan.md too, then regenerate the overview.
 
 ## Platform v1
 
-Rescope D148: a stranger signs up, describes what they want, gets a site, edits it and publishes it (Level 1). Architecture: plan section 6 (D151-D164, D169-D174). Production holds on `8d82ce4` until 13-21 are all done, then v1 ships in one deploy (D163). Item 15 splits into 15a-15d when spec'd (plan section 6, *Build order*). Item 14 splits into 14a the format, TipTap and public render; 14b the palette and drag and drop; 14c ready-made sections as templates (D169, D170). 14a split again into 14a1-14a3 when spec'd. 14c split into 14c1-14c2 when spec'd. 15e split into 15e1-15e2 when spec'd. 16 split into 16a-16b when spec'd. 18a split into 18a1-18a2 when spec'd. 18b split into 18b1-18b5 when spec'd. 18b4 split into 18b4a-18b4b when spec'd. Item 18 splits into 18a your brand (logo, brand colour, three style presets, in Settings and on the public site); 18b the AI draft, with "Make it yours" as onboarding's third step (D167, D171). Details: plan section 6, *Build order*. The look is settled (`blueprint/context/design.md`, 2026-10-02).
+Rescope D148: a stranger signs up, describes what they want, gets a site, edits it and publishes it (Level 1). Architecture: plan section 6 (D151-D164, D169-D174). Production held on `8d82ce4` until 13-21 were done; v1 shipped in one deploy on 2026-10-13 as `d340758` (D163). Item 15 splits into 15a-15d when spec'd (plan section 6, *Build order*). Item 14 splits into 14a the format, TipTap and public render; 14b the palette and drag and drop; 14c ready-made sections as templates (D169, D170). 14a split again into 14a1-14a3 when spec'd. 14c split into 14c1-14c2 when spec'd. 15e split into 15e1-15e2 when spec'd. 16 split into 16a-16b when spec'd. 18a split into 18a1-18a2 when spec'd. 18b split into 18b1-18b5 when spec'd. 18b4 split into 18b4a-18b4b when spec'd. Item 18 splits into 18a your brand (logo, brand colour, three style presets, in Settings and on the public site); 18b the AI draft, with "Make it yours" as onboarding's third step (D167, D171). Details: plan section 6, *Build order*. The look is settled (`blueprint/context/design.md`, 2026-10-02).
 
 - [x] 13. **Upgrade React Router** - 8.4.0, with `@remix-run/node-fetch-server` 0.14.2 (D23), `verify` and the browser suite green. Vite, Biome and other patch releases parked (owner, 2026-10-02)
 - [x] 13b. **The new look** - `design.md`'s 2026-10-02 redesign on the existing screens: its tokens, Inter self-hosted, the rust admin; public sites in the neutral site scope and light only (D168); contrast re-measured, `verify` and the browser suite green
@@ -143,3 +143,55 @@ Rescope D148: a stranger signs up, describes what they want, gets a site, edits 
   - [x] 21a. **Plans and limits** - migration `0024` adds `billing_customer_id`, `billing_subscription_id`, `billing_status`, `paid_until` to `sites`; storage and AI allowances follow the site's `plan` (Free and Launch numbers by configuration); the "Made with Habre" footer link on public pages, removed on Launch; `/admin/plan` shows plan and usage; at a limit with billing off, "Paid plans coming soon". No Stripe calls
   - [x] 21b. **Pay for Launch** - the pinned `stripe` SDK behind one `billing` module; Checkout and the Customer Portal from `/admin/plan`; `/webhooks/stripe` checked by signature, each event once in `stripe_events`, webhooks the only thing that sets the plan; a failed payment or cancel drops to Free limits, keeping content; the billing switch (`STRIPE_*` set = on, half-set stops startup)
   - [x] 21c. **Own domain** - add and verify a domain (DNS check), the `site_domains` insert grant, Caddy's on-demand-certificate `ask` endpoint, the own domain as the main address (subdomain redirects, D173); paid plans only
+
+## Platform v2
+
+Rescope D506 (2026-10-14): the full product in `prototypes/Build CMS for Website.zip` with Habre's branding, generic for any business and revealed by level, plus "build any website you like" - proven by rebuilding movers-site-v2 and three Figma Make sites (item 34). Public site first (v2a), then the admin shell and workspace (v2b), Grow (v2c), and the platform (v2d). Free-form D507, code and custom CSS D508, the proof D509, motion D510, headless D511. Gap notes: `blueprint/reference/movers-site-gap-2026-10-13.md`. Each item splits when spec'd. **Every item deploys to production once it ships (D512)**; v2a-v2d are phases, not held releases.
+
+### v2a - build any site
+
+- [ ] 22. **Section width** - narrow, wide or full per section; text inside keeps a readable measure; old documents read as narrow
+- [ ] 23. **Section styles** - dark and accent backgrounds, background image or video, image to the edge, an overlay card
+- [ ] 24. **New blocks** - icon, icon list, card, steps, FAQ, phone link, then whatever else the reference set needs (listed by `spec` against it)
+- [ ] 25. **Styling per element** (Pro) - colour, border, radius, shadow, spacing and type on any block, as validated values, never raw CSS
+- [ ] 26. **Custom fonts** - upload, or pick from Google Fonts served from Habre itself; font pairs in the style presets
+- [ ] 27. **Free-form sections** (Pro) - pixel placement with smart guides, a guided grid mode, positions per screen size, a layers list that sets reading order, phone stacking
+- [ ] 28. **Motion** - a fixed set: entrance on scroll, hover effects, carousels with pause and controls; `prefers-reduced-motion` turns it all off; a site-wide "subtle motion" switch in Simple, per-block effects in Pro
+- [ ] 29. **Header and footer settings** - top bar, phone, header button, language switch, footer columns, hide on scroll, phone tab bar
+- [ ] 30. **Form builder** - field types, steps, logic, uploads, validation; replies land in Messages
+- [ ] 31. **Localization** - languages per site, translation editor, publishing per language, URLs and `hreflang`, AI translation as drafts
+- [ ] 32. **Custom CSS and the code block** (Developer) - a site-wide stylesheet and a sandboxed HTML/CSS/JS block, never rendered on the platform origin (D508)
+- [ ] 33. **"Local business" starter** - a ready-made site from 22-31 that `/start`'s AI can produce
+- [ ] 34. **Proof** - movers-site-v2 and the three Figma Make reference sites rebuilt in Habre, screenshots at 1280, 820 and 390px beside the originals and a screen recording each for motion (D509)
+
+### v2b - the admin shell and workspace
+
+- [ ] 35. **Admin shell v2** - the prototype's dark grouped sidebar in Habre's tokens, nav by level, site switcher, plan card, user menu, breadcrumbs, command palette (a dialog), announced toasts
+- [ ] 36. **Overview dashboard** - metric cards with real data only, pages table, quick actions, recent activity
+- [ ] 37. **Revisions and branches** - history, compare, restore; branches and merge for campaigns
+- [ ] 38. **Collections** - admin-built content types and fields, relations, the content graph
+- [ ] 39. **Builder library** - global styles, saved sections and symbols, page templates
+- [ ] 40. **Media library v2** - folders, tags, search, crop and focal point, where used, replace everywhere, rights and expiry, duplicates, video and documents
+- [ ] 41. **AI content assistant** - draft, rewrite, translate, brand voice, alt text, meta descriptions; drafts only
+- [ ] 42. **Content health and scheduling** - stale, missing and duplicate content; scheduled publishing and release bundles
+
+### v2c - Grow
+
+- [ ] 43. **Leads pipeline** - Messages become leads: stages, owner, notes, value
+- [ ] 44. **Calendar, quotes and customer portal** - bookings calendar, quote builder, a quote-calculator form block, a portal with quotes, schedule, documents and Stripe payments
+- [ ] 45. **Automation** - triggers, emails, assignments, webhooks, confirmations, follow-up and review-request sequences
+- [ ] 46. **Integrations** - Zapier, Make, HubSpot, Salesforce, Slack
+- [ ] 47. **SEO control centre** - redirects, broken links, schema, canonicals, indexing, social previews, a site audit score
+- [ ] 48. **Programmatic pages** - landing pages generated from collections
+- [ ] 49. **Analytics** - first-party: visits, conversions, form funnels, content insights, attribution, dashboards, alerts
+- [ ] 50. **Personalisation and A/B tests** - audience segments, section and headline variants
+
+### v2d - the platform
+
+- [ ] 51. **Teams and several sites** - invites by email, more than one site per account, seats (supersedes D159)
+- [ ] 52. **Roles and approvals** - custom roles, permissions by language, type and action, draft - review - approved, assignments, due dates, notifications
+- [ ] 53. **Audit history** - every content, settings and access change
+- [ ] 54. **Live co-editing** - presence and page locking
+- [ ] 55. **Content API** - headless switch per site (D511); REST read API (JSON and rendered HTML), scoped keys with CORS per key, preview API, webhooks on publish, image URLs, form submissions and an embed snippet for outside sites, CSV and JSON import and export
+- [ ] 56. **Headless platform** - GraphQL, a TypeScript SDK, Next.js and Astro starters, content environments, other channels, edge caching
+- [ ] 57. **Component marketplace** - installable sections, templates and integrations

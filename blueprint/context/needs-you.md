@@ -465,4 +465,11 @@ not tidying; it is what keeps the open list true.
       `http://` block has not met a real Caddy). No test reaches Let's Encrypt. Blocks nothing now; `preflight`
       needs it before own domains are offered. `open` (spec 21c, 2026-10-12)
 
+- [ ] **Choose 3 Figma Make reference sites** - decision; which sites stand
+      for "any website" is yours. One product or SaaS landing page, one
+      portfolio or agency, one restaurant, venue or event, with real-looking
+      content. Save each export zip, its published URL and the prompt used
+      under `prototypes/reference/`. Blocks item 34 (D509); not wanted before
+      then. `open` (ideate --rescope, 2026-10-14)
+
 ## Done

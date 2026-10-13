@@ -22,6 +22,12 @@ itself, so no developer is needed to put content online.
 The original problem - WordPress is heavy and confusing for the people who
 edit content - still holds; it is now the Level 1 half of a wider product.
 
+**Platform v2 (D506, 2026-10-14).** v2 builds the full product in
+`prototypes/Build CMS for Website.zip` with Habre's branding, and raises the bar
+to **build any website you like** - including one Figma Make would build -
+proven by rebuilding a reference set (D509). Sites can also be served
+headless, by a website someone builds themselves (D511).
+
 ## 2. Users - who is this for?
 
 For everyone, through **progressive disclosure** - one product, one content
@@ -107,6 +113,28 @@ describes what they want, gets a site, edits it and publishes it:
 - **Page builder, first cut (rescope, 2026-10-01):** pages are built from
   sections; a section can hold 2-3 columns; ready-made sections (hero,
   call-to-action, image + text) can be inserted.
+
+**Platform v2 (D506, build items 22-57)** - revealed by level, so Simple
+stays simple:
+
+- **v2a, build any site:** section width and styles, new blocks, styling per
+  element, custom fonts, free-form sections (pixel placement with a guided
+  grid mode, D507), motion (D510), header and footer settings, a form
+  builder, localization, custom CSS and a sandboxed code block (D508), a
+  "Local business" starter, and the proof (D509).
+- **v2b, the admin shell and workspace:** the prototype's shell, Overview
+  dashboard, revisions and branches, collections, builder library, media
+  library v2, AI content assistant, content health and scheduling.
+- **v2c, Grow (generic, not movers-specific):** leads pipeline, calendar,
+  quotes and customer portal, automation, integrations, SEO control centre,
+  programmatic pages, analytics, personalisation and A/B tests.
+- **v2d, the platform:** teams and several sites, roles and approvals, audit
+  history, live co-editing, the content API, the headless platform, a
+  component marketplace.
+- **Levels:** Simple - Overview, content, media, leads, forms, section width
+  and styles, motion's on/off; Pro - styling per element, free-form, fonts,
+  per-block motion, SEO, analytics, localization, workflow; Developer - custom
+  CSS, the code block, the headless switch and API keys.
 
 ## 4. Data - what are we storing?
 
@@ -864,7 +892,9 @@ an entry is saved, published or unpublished, or the settings change.
 
 Items are built and merged one by one, but none is deployed until v1 is
 complete (D163). Each item still has to leave `npm run verify` and the full
-browser suite green.
+browser suite green. **v1 deployed 2026-10-13 as `d340758`**
+(`dev-notes/status.md`). **From v2, every item deploys to production once it
+ships (D512).**
 
 - **13** - none.
 - **13b** - the new look before the new editor, so the editor is not
@@ -940,6 +970,13 @@ browser suite green.
   platform v1 by `prototype` on 2026-10-02, replacing 2026-09-15 - with
   mockups in `prototypes/`.
 
+- **Platform v2 (D506):** the admin takes the prototype's layout - dark
+  grouped sidebar, Overview dashboard, command palette - in Habre's existing
+  tokens, settled by `prototype` before item 35. Not carried over: its
+  Tailwind, remote Google Fonts import, `div` tables and button-only nav. The
+  public side is measured against movers-site-v2 and three Figma Make sites
+  (D509).
+
 ## 8. Deployment - where and how does it ship?
 
 Known so far: an **Oracle Cloud VPS**, with **PostgreSQL 16 installed on the
@@ -975,7 +1012,11 @@ From `architect`:
   - `PLATFORM_URL` and `SITES_URL` replaced `PUBLIC_URL` and `ADMIN_URL` at
     item 16a (D309); their production values wait on the two domains.
 - **One deployable, one process, `/healthz` on every host** - unchanged.
-- **Production holds until v1 is done (D163).** Production stays on release
+- **v1 is live (2026-10-13):** release `d340758`, items 1-21c, on a fresh
+  database (D503); the plan below is how it got there. Rollback is now to an
+  earlier v1-era release, not `8d82ce4`. From v2, every shipped item is
+  deployed (D512).
+- **Production held until v1 was done (D163).** Production stayed on release
   `8d82ce4` (items 1-12) while items 13-21 are built, then v1 ships in one
   deploy:
   - **On a fresh database (D503):** the production database is dropped and
@@ -1151,6 +1192,16 @@ own key.
   off. A payment provider is a further paid account (item 21).
 - **Deadline / budget:** not stated.
 
+- **Platform v2, for `architect` (D506-D511):** styles per element are a
+  validated schema, never CSS strings; custom CSS and the code block never
+  render on the platform origin, so the editor and Preview need the site's
+  origin in a sandboxed iframe (D508); motion and carousels mean public pages
+  ship JavaScript - a page-weight budget and CSP (D510); co-editing
+  (websockets), analytics collection, an edge CDN and API traffic against the
+  954 MB server; each integration, the websocket server and GraphQL is a
+  recorded dependency decision; keyword tracking needs an outside data
+  provider.
+
 ## 11. Deliberately deferred - what is not in the first version?
 
 Rewritten by the platform rescope (D148). Platform v1 proves Level 1; everything
@@ -1189,15 +1240,18 @@ below matters only once it does.
 and ready-made sections (items 10-12, D113). SEO fields, sitemap, public
 signup, many sites, forms and password reset by email move into platform v1.
 
+**Moved into Platform v2 (D506, 2026-10-14):** Level 2 and Level 3 above,
+free-form sections (D507), custom CSS and a sandboxed code block (D508),
+styling per element, custom fonts, multiple languages, other channels
+(headless, D511), audit log and custom roles.
+
 **Later, or never:**
 
-- **Free-form drag-anywhere canvas, custom CSS/HTML** - fights ease of use and
-  multiplies the accessibility surface. Reconsidered and rejected again, D165.
-- **Multiple themes, styling per element, custom fonts.** v1 has one theme
-  with a brand colour and three style presets (D167).
-- **Store / e-commerce, multiple languages, comments, importing from WordPress.**
-- **Other channels** - mobile apps, email, digital displays, AI agents.
-- **Enterprise** - audit log, SSO, SAML, SCIM, data residency.
+- **Multiple themes** beyond the presets and styling per element.
+- **Store / e-commerce, comments, importing from WordPress.**
+- **Enterprise** - SSO, SAML, SCIM, data residency.
+- **Hosting Figma Make's (or any) exported code as-is** - v2 matches what it
+  makes, it does not run it (D506).
 
 ## Open questions
 
